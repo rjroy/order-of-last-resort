@@ -16,6 +16,9 @@ node_modules
 /dist
 /out
 
+# Borrowed Turns Godot editor cache
+/games/borrowed-turns/.godot/
+
 # python
 __pycache__/
 *.py[cod]

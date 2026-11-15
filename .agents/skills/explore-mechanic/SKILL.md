@@ -51,6 +51,8 @@ Give each version a stable ID, a neutral player-facing label, and a short specif
 
 Explore meaningfully different alternatives, not six situations using the same rules. Numerical changes count when they test distinct player-experience hypotheses; six arbitrary tuning values do not.
 
+Distinguish shared rules, mechanic alternatives, and tuning/constraint comparisons. Do not present action costs, range limits, deadlines, or caps alone as proof of mechanic diversity. A constraint-based alternative needs an explicit account of the worthwhile decision or possibility it enables, not merely an added penalty. If the task is to find a useful combination of constraints, label it as that experiment rather than implying six fundamentally different mechanics. Preserve user criticism and resulting decisions in the experiment record; do not rewrite the original proposals to hide the learning.
+
 Keep unrelated presentation, content, goals, and session conditions consistent enough for useful comparison. Change a coherent design dimension where practical. When alternatives change several coupled rules, record the bundle and limit causal claims accordingly.
 
 ## 3. Build minimal playable variants

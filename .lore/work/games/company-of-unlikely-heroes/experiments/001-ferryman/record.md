@@ -1,0 +1,19 @@
+# The last ferryman
+
+**Question.** Does Ronald enjoy trusting two heroes to carry out standing orders while taking personal charge of the third?
+
+**Origin.** At starting revision `dcf1870`, the two briefs in `../../notes/` supply the premise and preferred illustration style, not a production pipeline. The assistant proposed the rescue and the comparison between individual and standing orders. Ronald specified the six abilities, their targeting quirks, and the hybrid command mode. This is a collaborative design, not a test of independent AI invention.
+
+**Comparison.** One fixed bridge, company, enemy setup and objective. Hybrid is the default and the primary test; full direct control and standing orders alone are comparisons, not extra levels. Ronald can switch modes or stop at will. Playing hybrid first gives it a first-exposure advantage; later comparisons include learning. No recruitment or telemetry.
+
+**Before play.** Require a repeatable pull rescue and a distinct non-pull rescue from the exact same start, a reachable loss, deterministic consequences and agreement between previews and resolution. Check the actual rendered scene at normal size. Stop production at that point; these checks do not establish enjoyment.
+
+**Human decision.** Ask whether commanding one member and trusting two was enjoyable, and which moment best illustrates why. Treat wanting another run and actually choosing another run separately. If Ronald describes spending his turns preventing unwanted behavior, investigate trust and order readability before adding content. If he liked the company but feels finished after one rescue, record both observations. No playtest outcome yet.
+
+**Implementation choices.** Deterministic 7×5 board, one harpooner, a ten-round deadline and an exit tile on the far bank. Nearest means Manhattan distance; ties use stable entity order. The ferryman acts after the company and harpooner. The forecast resolves in order on a copy of the board. The game uses drawn-in-engine 2D figures, not a proposed 3D production pipeline.
+
+**Comparison correction.** The early two-order wizard could hold or blast, but not rescue on standing orders. A search over every reachable standing-only order sequence through the deadline found no win. That would have compared a viable hybrid mode against an impossible mission. Added a persistent wizard rescue order that pulls only when it moves the ferryman closer to the exit and recoil is possible. Kept the encounter and the hybrid starting orders unchanged. The standing-only regression uses the same starting positions as hybrid and no manual override.
+
+**Mechanical and window results.** Godot `4.7.2.stable.arch_linux.ed1daf0bf`. The retained rules and rescue scripts passed. One hybrid win pulled the civilian and one never used pull; the same starting state also produced a deadline loss. Direct and standing modes each admitted a rescue. Shield regression fixtures distinguish reflection from retaliation: the ward no longer takes the initial hit, and a friendly blast can redirect damage and knockdown. Normal project entry and the windowed scene smoke exited 0 on a private Wayland compositor (Mesa llvmpipe); the 1280×820 rendered game was inspected. A supplemental control probe exercised map clicks, recoil, victory, reassignment, persistent orders and restart. Reproduce the retained checks with the instructions in `games/company-of-unlikely-heroes/README.md`. These are correctness results; enjoyment and voluntary replay remain unmeasured.
+
+**Planning correction.** In the first UI pass, the forecast resolved actions in order, but the target menu used the board as it stood at the beginning of the round. A later hero could not select a square vacated by an earlier push. The target menu and board selection now use the same simulated prefix as the round forecast; editing does not move anyone on the real board. The scene smoke covers this chained action.

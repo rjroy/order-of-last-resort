@@ -21,6 +21,7 @@ func _initialize() -> void:
 		else:
 			rules = script.new()
 			definitions = preload("res://tests/fixtures/rules_catalog.gd").definitions()
+			definitions.abilities.healer_heal.params["prefer_wounded_self"] = true
 
 	var required := ["new_game", "options", "preview", "apply_plan", "choose_manual", "preview_round", "commit_round"]
 	for method in required:
@@ -338,10 +339,55 @@ func _test_healer_heal() -> void:
 	_check(_find(result, "near").get("hp", 11) <= 10, "Heal cannot exceed maximum hp")
 	_check(_find(result, "far").get("hp", 0) == 2, "Heal does not choose the more injured distant ally")
 	_check(_find(result, "enemy").get("hp", 0) == 1, "Heal does not select an enemy")
-	var self_state := _state([_unit("h", "heroes", "healer", Vector2i.ZERO, 5), _unit("ally", "heroes", "knight", Vector2i(1, 0), 10), _unit("far", "heroes", "wizard", Vector2i(2, 0), 5)])
-	var self_result := _apply(self_state, _plan(self_state, "h", "healer_heal"), "healer_heal")
-	_check(_find(self_result, "h").get("hp", 0) == 5, "Heal excludes healer")
-	_check(_find(self_result, "far").get("hp", 0) == 5, "Heal does not skip a full nearest ally")
+	var self_state := _state([_unit("h", "heroes", "healer", Vector2i.ZERO, 9), _unit("ally", "heroes", "knight", Vector2i(1, 0), 3)])
+	var self_plan := _plan(self_state, "h", "healer_heal")
+	_check(self_plan.get("events", [{}])[0].get("target_id") == "h", "Wounded healer previews healing self")
+	var self_result := _apply(self_state, self_plan, "healer_heal")
+	_check(_find(self_result, "h").get("hp") == 10, "Self-heal caps at maximum hp")
+	_check(_find(self_result, "ally").get("hp") == 3, "Wounded healer takes priority over ally")
+	var lone := _state([_unit("h", "heroes", "healer", Vector2i.ZERO, 5)])
+	var lone_result := _apply(lone, _plan(lone, "h", "healer_heal"), "lone self heal")
+	_check(_find(lone_result, "h").get("hp") == 8, "Lone wounded healer can heal self")
+	var fallback := _state([_unit("h", "heroes", "healer", Vector2i.ZERO), _unit("ally", "heroes", "knight", Vector2i(1, 0)), _unit("far", "heroes", "wizard", Vector2i(2, 0), 5)])
+	var fallback_plan := _plan(fallback, "h", "healer_heal")
+	_check(fallback_plan.get("events", [{}])[0].get("target_id") == "ally", "Full healer selects nearest ally even when full")
+	var fallback_result := _apply(fallback, fallback_plan, "fallback heal")
+	_check(_find(fallback_result, "far").get("hp") == 5, "Heal does not skip a full nearest ally")
+	var ordinary_defs := definitions.duplicate(true)
+	ordinary_defs.abilities.healer_heal.params.erase("prefer_wounded_self")
+	var ordinary := _state([_unit("h", "heroes", "healer", Vector2i.ZERO, 5), _unit("ally", "heroes", "knight", Vector2i(1, 0), 5)], ordinary_defs)
+	var ordinary_result := _apply(ordinary, _plan(ordinary, "h", "healer_heal"), "ordinary heal")
+	_check(_find(ordinary_result, "h").get("hp") == 5 and _find(ordinary_result, "ally").get("hp") == 8,
+		"Heal without the policy retains other-only targeting")
+	var standing_defs := definitions.duplicate(true)
+	standing_defs.orders["support"] = {"label": "Support"}
+	standing_defs.behaviors["support"] = {"handler": "use_ability", "params": {"ability": "healer_heal"}}
+	standing_defs.classes.healer.habits["support"] = "support"
+	var standing := _state([_unit("h", "heroes", "healer", Vector2i.ZERO, 5),
+		_unit("ally", "heroes", "knight", Vector2i(1, 0), 5)], standing_defs)
+	standing.orders["h"] = "support"
+	var before := standing.duplicate(true)
+	var round_plan: Dictionary = rules.preview_round(standing)
+	var round_result: Dictionary = rules.commit_round(standing, round_plan)
+	var self_event := false
+	for event in round_plan.get("events", []):
+		if event.get("ability_id") == "healer_heal" and event.get("target_id") == "h":
+			self_event = true
+	_check(standing == before and self_event, "Standing heal previews self without mutating state")
+	_check(_find(round_result, "h").get("hp") == 8 and _find(round_result, "ally").get("hp") == 5,
+		"Standing heal commits the previewed self target")
+	var standing_fallback := _state([_unit("h", "heroes", "healer", Vector2i.ZERO),
+		_unit("ally", "heroes", "knight", Vector2i(1, 0)),
+		_unit("far", "heroes", "wizard", Vector2i(2, 0), 5)], standing_defs)
+	standing_fallback.orders["h"] = "support"
+	var fallback_round: Dictionary = rules.preview_round(standing_fallback)
+	var fallback_event := false
+	for event in fallback_round.get("events", []):
+		if event.get("ability_id") == "healer_heal" and event.get("target_id") == "ally":
+			fallback_event = true
+	var fallback_committed: Dictionary = rules.commit_round(standing_fallback, fallback_round)
+	_check(fallback_event and _find(fallback_committed, "far").get("hp") == 5,
+		"Standing heal previews and commits the full nearest ally rather than a wounded distant ally")
 
 
 func _test_wizard_blast() -> void:

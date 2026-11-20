@@ -19,11 +19,11 @@ The catalog selects code handlers, not arbitrary scripts. New mechanics need new
 | `apply_status` | `none` | `status` |
 | `push` | `entity` or `automatic` | `collision_damage` |
 | `bonk`, `blast` | `entity` or `automatic` | `damage`, `status`, optional `source_suffix` |
-| `heal` | `entity` or `automatic` | `amount` |
+| `heal` | `entity` or `automatic` | `amount`; optional `prefer_wounded_self` for automatic healing |
 | `pull` | `entity` or `automatic` | `recoil_damage`, `status` |
 | `attack` | `entity` or `automatic` | `damage`, optional `source_suffix` and `status` |
 
-Entity selection filters by `range` (Manhattan distance), `teams`, `objects` (include objects), and `capabilities` (all listed IDs are required). Without a range limit any distance is allowed. Automatic targeting selects the nearest eligible entity with ties broken deterministically. Handlers also enforce the physical capabilities they need: `mobile` for movement and pull recoil; `pushable`/`pullable` for displacement; `damageable`/`healable` for damage/healing. `blocks_movement` is independent of whether an entity can be damaged or moved. `commandable` identifies units exposed to player commands; `protectable`, `recoverable` and `tauntable` govern applicable status effects.
+Entity selection filters by `range` (Manhattan distance), `teams`, `objects` (include objects), and `capabilities` (all listed IDs are required). Without a range limit any distance is allowed. Automatic targeting selects the nearest eligible entity with ties broken deterministically. An automatic heal with `prefer_wounded_self: true` includes its wounded actor when it passes the other target filters; otherwise it targets the nearest eligible other entity, even at full health. Handlers also enforce the physical capabilities they need: `mobile` for movement and pull recoil; `pushable`/`pullable` for displacement; `damageable`/`healable` for damage/healing. `blocks_movement` is independent of whether an entity can be damaged or moved. `commandable` identifies units exposed to player commands; `protectable`, `recoverable` and `tauntable` govern applicable status effects.
 
 | Behavior handler | Parameters and compatibility |
 |---|---|

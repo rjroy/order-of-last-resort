@@ -83,6 +83,29 @@ func _test_executable_authoring() -> void:
 	untargeted_behavior["behaviors"]["guard"]["params"]["ability"] = "knight_push"
 	_check(not catalog.call("validate", untargeted_behavior).is_empty(),
 		"use_ability cannot select an ability requiring an explicit target")
+	var heal_fixture := defs.duplicate(true)
+	heal_fixture.abilities["test_heal"] = defs.abilities.healer_heal.duplicate(true)
+	for value in [true, false]:
+		heal_fixture.abilities.test_heal.params.prefer_wounded_self = value
+		_check(catalog.validate(heal_fixture).is_empty(),
+			"Automatic heal accepts boolean self-preference %s" % str(value))
+	for value in ["true", 1, null]:
+		heal_fixture.abilities.test_heal.params.prefer_wounded_self = value
+		var errors: Array = catalog.validate(heal_fixture)
+		_check("abilities.test_heal.params.prefer_wounded_self: expected a boolean" in errors,
+			"Self-preference rejects non-boolean %s" % str(value))
+	heal_fixture.abilities.test_heal.targeting.kind = "entity"
+	for value in [true, false]:
+		heal_fixture.abilities.test_heal.params.prefer_wounded_self = value
+		var errors: Array = catalog.validate(heal_fixture)
+		_check("abilities.test_heal.params.prefer_wounded_self: requires automatic heal targeting" in errors,
+			"Explicit heal rejects self-preference %s" % str(value))
+	heal_fixture.abilities.test_heal.params.erase("prefer_wounded_self")
+	_check(catalog.validate(heal_fixture).is_empty(), "Explicit heal without self-preference validates")
+	var other_handler := defs.duplicate(true)
+	other_handler.abilities.knight_push.params["prefer_wounded_self"] = true
+	_check("abilities.knight_push.params.prefer_wounded_self: requires automatic heal targeting" in catalog.validate(other_handler),
+		"Non-heal abilities reject self-preference")
 
 
 func _check_frozen(value: Variant, path: String) -> void:

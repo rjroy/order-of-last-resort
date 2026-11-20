@@ -27,7 +27,11 @@ static func _in_reach(actor: Dictionary, position: Vector2i, targeting: Dictiona
 
 
 static func _entity_allowed(state: Dictionary, actor: Dictionary, candidate: Dictionary, ability: Dictionary) -> bool:
-	if candidate.id == actor.id or not _in_reach(actor, candidate.position, ability.targeting):
+	if candidate.id == actor.id:
+		return ability.handler == "heal" and ability.targeting.kind == "automatic" \
+			and ability.params.get("prefer_wounded_self", false) == true \
+			and actor.hp < actor.max_hp and Board.capable(state, actor, "healable")
+	if not _in_reach(actor, candidate.position, ability.targeting):
 		return false
 	match ability.handler:
 		"push":
@@ -82,7 +86,12 @@ static func selection(state: Dictionary, actor: Dictionary, ability: Dictionary,
 	if choices.is_empty():
 		return {}
 	if ability.targeting.kind == "automatic":
-		return Board.nearest(actor, choices) if target_id.is_empty() else {}
+		if not target_id.is_empty():
+			return {}
+		for choice in choices:
+			if choice.id == actor.id:
+				return choice
+		return Board.nearest(actor, choices)
 	for choice in choices:
 		if choice.id == target_id:
 			return choice

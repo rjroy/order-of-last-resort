@@ -515,12 +515,15 @@ func _build_desk(parent: HBoxContainer) -> void:
 	what.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_label(what, "Action", 13, MUTED)
 	_ability_select = _picker(what, "AbilitySelect")
+	_ability_select.allow_reselect = true
 	_ability_select.item_selected.connect(_select_ability)
 	var target := _stack(desk, 3)
 	_label(target, "Target", 13, MUTED)
 	_target_select = _picker(target, "TargetSelect")
+	_target_select.allow_reselect = true
 	_target_select.item_selected.connect(_select_target)
 	_action_help = _label(desk, "", 13, MUTED)
+	_action_help.name = "ActionHelp"
 	_action_help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_action_help.custom_minimum_size.y = 34
 	_action_help.max_lines_visible = 2
@@ -606,10 +609,16 @@ func _sync_targets(auto_pick: bool) -> void:
 		selected_exists = selected_exists or choice.id == _target_id
 	if _targets.is_empty():
 		var prompt := "No target needed"
-		if _actor_id.is_empty():
+		if not _ongoing():
+			prompt = "Mission ended"
+		elif _actor_id.is_empty():
 			prompt = "No hero available"
 		elif _ability_id.is_empty():
 			prompt = "No action available"
+		elif not _editor_can_act:
+			prompt = "Knocked down" if _editor_actor.get("hp", 0) > 0 else "Falls before acting"
+		elif target_kind == "cell":
+			prompt = "No open adjacent tile" if _rules.has_capability(context, _actor_id, "mobile") else "Cannot move"
 		elif selectable:
 			prompt = "No legal targets"
 		elif target_kind == "automatic":
@@ -625,15 +634,20 @@ func _sync_targets(auto_pick: bool) -> void:
 func _select_actor(index: int) -> void:
 	if _actor_select.is_item_disabled(index):
 		return
-	_actor_id = str(_actor_select.get_item_metadata(index))
+	var actor_id := str(_actor_select.get_item_metadata(index))
+	if actor_id == _actor_id:
+		return
+	_actor_id = actor_id
 	_unpreviewed_edit = false
 	_sync_command()
 	_refresh(true)
 
 
 func _select_ability(index: int) -> void:
-	_ability_id = str(_ability_select.get_item_metadata(index))
-	_target_id = ""
+	var ability_id := str(_ability_select.get_item_metadata(index))
+	if _ability_id != ability_id:
+		_target_id = ""
+	_ability_id = ability_id
 	_unpreviewed_edit = true
 	_refresh(true)
 
@@ -667,9 +681,11 @@ func _note_unpreviewed_edit() -> void:
 
 
 func _clear_command() -> void:
-	_planned_state = _rules.clear_manual(_planned_state)
+	if not _unpreviewed_edit:
+		_planned_state = _rules.clear_manual(_planned_state)
 	_unpreviewed_edit = false
-	_refresh()
+	_sync_command()
+	_refresh(true)
 
 
 func _ready_to_command() -> bool:
@@ -730,26 +746,44 @@ func _refresh(auto_pick_target := false) -> void:
 	_target_select.disabled = not manual or _targets.is_empty()
 	_preview_button.disabled = not _can_stage_command()
 	_preview_button.text = "Preview replacement" if not commanded.is_empty() and commanded != _actor_id else "Preview command"
-	_clear_button.disabled = not active or commanded.is_empty()
+	_clear_button.disabled = not active or (commanded.is_empty() and not _unpreviewed_edit)
+	_clear_button.text = "Discard edit" if _unpreviewed_edit else "Clear command"
 	_commit_button.disabled = not _can_commit()
 	_commit_button.text = "Commit round %d" % _state.round if active else "Mission complete" if _state.outcome == "victory" else "Mission failed"
-	_action_help.text = _rules.ability_definition(_state, _ability_id).get("help", "")
-	if _is_selectable(_target_kind()) and _targets.is_empty() and manual:
-		_action_help.text = "No legal target when this hero acts."
-	if manual and _editor_actor.get("hp", 0) > 0 and not _editor_can_act:
-		_action_help.text = "This hero must get up and cannot act this round."
-	elif manual and not _editor_can_act:
-		_action_help.text = "This hero falls before their turn."
-	if not active:
-		_action_help.text = "Restart this mission to try again." if not _fixed_mission.is_empty() else "This mission has ended."
+	_action_help.text = _command_help(active, manual)
 	_action_help.tooltip_text = _action_help.text
 	_refresh_orders(active)
 	_refresh_forecast()
 	_refresh_board()
 
 
+func _command_help(active: bool, manual: bool) -> String:
+	if not active:
+		return "Restart this mission to try again." if not _fixed_mission.is_empty() else "This mission has ended."
+	if not manual:
+		return ""
+	if not _editor_can_act:
+		if _editor_actor.get("hp", 0) <= 0:
+			return "This hero falls before acting. Change an earlier order or choose another hero."
+		if _rules.has_status_handler(_state, _actor_id, "skip_action"):
+			return "This hero is down and spends this turn getting up. Choose another hero."
+		return "This hero will be knocked down before acting. Change an earlier order or choose another hero."
+	var target_kind := _target_kind()
+	if target_kind == "cell":
+		if not _rules.has_capability(_state, _actor_id, "mobile"):
+			return "This hero cannot move. Choose another action or hero."
+		if _targets.is_empty():
+			return "No open tile up, down, left, or right when this hero acts. Choose another action or hero."
+		if _editor_actor.position != _find(_actor_id).position:
+			return "This hero will act from %s. Choose a highlighted tile." % BridgeArt.coordinate(_editor_actor.position)
+		return "Choose a highlighted tile up, down, left, or right."
+	if target_kind == "entity" and _targets.is_empty():
+		return "No legal target when this hero acts. Choose another action or hero."
+	return _rules.ability_definition(_state, _ability_id).get("help", "")
+
+
 func _can_commit() -> bool:
-	return _ongoing() and _plan.get("valid", false)
+	return _ongoing() and not _unpreviewed_edit and _plan.get("valid", false)
 
 
 func _commanded_hero() -> String:
@@ -833,7 +867,10 @@ func _refresh_forecast() -> void:
 			var action: String = _rules.ability_definition(_state, draft.ability_id).label
 			var target := _target_description(hero, draft.ability_id, draft.target_id)
 			summary = "%s: %s%s" % [_name_for(hero), action, target]
-		var unpreviewed := "\n[color=#f0b495]Use Preview to include the command you are editing.[/color]" if _unpreviewed_edit else ""
+		var unpreviewed := ""
+		if _unpreviewed_edit:
+			var next_step := "Preview" if _can_stage_command() else "Change"
+			unpreviewed = "\n[color=#f0b495]Edit not queued. %s or discard it before committing.[/color]" % next_step
 		_forecast.text = "[color=#e3b970][b]%s[/b][/color]%s\n%s" % [_escape_log_text(summary), unpreviewed, _event_lines(_plan.events)]
 	_forecast.scroll_to_line(0)
 	_last_title.text = "Last round" if _last_round == 0 else "Round %d result" % _last_round

@@ -19,7 +19,7 @@ After winning the fight, inspect the debrief before continuing. Survivors carry 
 | Hero | Offensive action | Utility |
 |---|---|---|
 | Knight | Push a neighboring unit or obstacle. The push hurts only on collision. | His shield covers everyone in range, even an enemy. An incoming attack reflects to the nearest enemy or obstacle. |
-| Healer | A staff bonk damages an adjacent enemy or obstacle and draws an enemy’s attention. | Healing goes to the nearest eligible companion, even when someone farther away needs it more. |
+| Healer | A staff bonk damages an adjacent enemy or obstacle and draws an enemy’s attention. | When wounded, heals self; otherwise heals the nearest eligible companion, even if they are at full health. |
 | Wizard | The blast seeks the nearest thing, not the most convenient enemy. | Choose someone to pull. They land where the wizard stood; the wizard takes the recoil, including injury and knockdown. |
 | Alchemist | A volatile splash hits the nearest thing, friend or foe, and can knock it down. | A ward redirects attacks. The alchemist can protect a wounded company, but cannot heal it or pull someone out of danger. |
 

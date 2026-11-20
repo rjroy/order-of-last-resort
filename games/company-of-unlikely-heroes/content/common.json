@@ -301,11 +301,12 @@
       }
     },
     "healer_heal": {
-      "label": "Heal nearest ally",
-      "help": "Heals the nearest other hero, even if they are already at full health.",
+      "label": "Heal self or nearest ally",
+      "help": "Heals self when wounded; otherwise heals the nearest other hero, even at full health.",
       "handler": "heal",
       "params": {
-        "amount": 3
+        "amount": 3,
+        "prefer_wounded_self": true
       },
       "targeting": {
         "kind": "automatic",

@@ -311,6 +311,10 @@ class Validator:
 			_check_target_filters(targeting, path + ".targeting")
 		var params := _dictionary(ability.get("params"), path + ".params")
 		var param_path := path + ".params."
+		if params.has("prefer_wounded_self"):
+			_boolean(params.prefer_wounded_self, param_path + "prefer_wounded_self")
+			if handler != "heal" or targeting.get("kind") != "automatic":
+				_error(param_path + "prefer_wounded_self", "requires automatic heal targeting")
 		match handler:
 			"move":
 				pass

@@ -8,7 +8,7 @@ related: []
 
 # Experiment <id>: <working title>
 
-Copy to `.lore/work/experiments/<id>/record.md`. Replace placeholders and remove this instruction. Fill sections as work occurs; use “not run,” “unknown,” or “not applicable, because…” rather than inventing evidence. This is a research record, not a task tracker.
+Copy to `.lore/work/games/<game-id>/experiments/<experiment-id>/record.md`. Replace placeholders and remove this instruction. Fill sections as work occurs; use “not run,” “unknown,” or “not applicable, because…” rather than inventing evidence. This is a research record, not a task tracker.
 
 ## Inputs and provenance
 

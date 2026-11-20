@@ -13,13 +13,13 @@ The default is **one mechanic, six alternative versions**. Six is a project expl
 
 Read the repository's `AGENTS.md` and the shared foundations, resolving paths from the repository root:
 
-- `.lore/work/notes/ai-game-design-experiment.md`
-- `.lore/work/notes/ai-design-novel-fun.md`
-- `.lore/work/notes/what-makes-games-fun.md`
+- `.lore/work/shared/method/ai-game-design-experiment.md`
+- `.lore/work/shared/research/ai-design-novel-fun.md`
+- `.lore/work/shared/research/what-makes-games-fun.md`
 
 Use the current experiment's scope and decisions. If they are not settled, establish the intended audience, development constraints, telemetry and consent approach, recruitment, comparison design, correctness checks, decision criteria, and stopping criteria before implementation. Ask only for decisions that block progress; reuse settled choices.
 
-Read `.lore/work/intents/player-brief.md`. When no direction has been selected, use `discover-game-hook` before generating mechanic variants. Continue the selected experiment's `.lore/work/experiments/<experiment-id>/record.md`; use `.agents/skills/discover-game-hook/templates/experiment-record.md` if starting a record. Preserve its input snapshots, provenance, and replay manifest. For unlocks, test both anticipation and payoff; provide direct preview access so comparison does not require repeated grinding, and distinguish previews from naturally earned unlocks.
+Read `.lore/work/shared/audience/player-brief.md`. When no direction has been selected, use `discover-game-hook` before generating mechanic variants. Continue the selected experiment's `.lore/work/games/<game-id>/experiments/<experiment-id>/record.md`; use `.agents/skills/discover-game-hook/templates/experiment-record.md` if starting a record. Preserve its input snapshots, provenance, and replay manifest. For unlocks, test both anticipation and payoff; provide direct preview access so comparison does not require repeated grinding, and distinguish previews from naturally earned unlocks.
 
 Invoking this skill to explore and build a mechanic authorizes that bounded work, subject to project approvals. Asking to define or discuss the skill does not authorize an experiment. Do not silently expand into a complete game, install dependencies, generate assets, or integrate into another experiment without the applicable authorization.
 

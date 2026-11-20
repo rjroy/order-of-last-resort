@@ -12,12 +12,12 @@ Find an experience worth investigating, not merely a slogan or an unusual rule. 
 Resolve paths from the repository root. Read:
 
 - `AGENTS.md` for current constraints and authorization boundaries.
-- `.lore/work/intents/player-brief.md` for the intended player's preferences, not a fixed game recipe.
-- `.lore/work/research/game-hooks-and-player-promises.md` for source-backed distinctions and limits.
-- The three foundation notes under `.lore/work/notes/` referenced by `AGENTS.md`.
+- `.lore/work/shared/audience/player-brief.md` for the intended player's preferences, not a fixed game recipe.
+- `.lore/work/shared/research/game-hooks-and-player-promises.md` for source-backed distinctions and limits.
+- The shared method and research foundations referenced by `AGENTS.md`.
 - `.agents/skills/explore-mechanic/SKILL.md` for the downstream handoff.
 
-Use `.agents/skills/discover-game-hook/templates/experiment-record.md` to start `.lore/work/experiments/<experiment-id>/record.md`. Choose a stable, unused ID; leave previous experiments intact. Fill only the sections relevant to the current stage. Unknowns and unrun tests must remain explicit, not invented results.
+Use `.agents/skills/discover-game-hook/templates/experiment-record.md` to start `.lore/work/games/<game-id>/experiments/<experiment-id>/record.md`. Choose a stable, unused ID; leave previous experiments intact. Fill only the sections relevant to the current stage. Unknowns and unrun tests must remain explicit, not invented results.
 
 Snapshot the player brief and relevant procedure versions in the record: reference immutable commits when available; otherwise preserve input copies and content hashes. Record the prompt, important constraints, proposals, human decisions, and available agent/model identity. A fresh run may produce different ideas; reproducible procedure does not promise identical AI output.
 

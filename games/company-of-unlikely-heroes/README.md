@@ -22,6 +22,9 @@ After winning the fight, inspect the debrief before continuing. Survivors carry 
 | Healer | A staff bonk damages an adjacent enemy or obstacle and draws an enemy’s attention. | When wounded, heals self; otherwise heals the nearest eligible companion, even if they are at full health. |
 | Wizard | The blast seeks the nearest thing, not the most convenient enemy. | Choose someone to pull. They land where the wizard stood; the wizard takes the recoil, including injury and knockdown. |
 | Alchemist | A volatile splash hits the nearest thing, friend or foe, and can knock it down. | A ward redirects attacks. The alchemist can protect a wounded company, but cannot heal it or pull someone out of danger. |
+| Rogue | Wasn't Me marks an enemy beside another living character; its next attack is redirected to an adjacent character, including an ally. | Retreat steps away from the nearest enemy. Confusing Dodge swaps with the furthest other living character, friend or foe. |
+
+Rogue distance ties and redirect victim ties use the lowest character instance ID. When the marked enemy attacks, Wasn't Me looks for an adjacent living character other than the attacker and its original target. If nobody else is there, the original target takes the attack. Either way, the mark is spent. Movement before the attack can change who takes the blame, and a reflecting aura can still redirect the resulting attack.
 
 The game collects no playtest telemetry. The question to take away: **Did you enjoy trusting two of these people while you took charge of the third?**
 
@@ -59,6 +62,7 @@ From this directory, run the suites with `godot --headless --script res://tests/
 | `rescues_test` | Fixed-start rescues, loss, and restart |
 | `adventure_test` | Party selection and formation, deployment, combat and mission transitions |
 | `adventure_scene_test` | Party selection and formation through the controls, debrief, wound carryover, and guild return |
+| `rogue_test` | Rogue dodge, redirect, retreat, and hybrid forecast consistency |
 | `scene_smoke` | Guild entry, battle controls, one-command forecasts, commit, and fixed-scenario restart |
 
 In a graphical session, `godot --script res://tests/scene_smoke.gd -- --capture=/absolute/path.png` also saves the game viewport after the smoke run.

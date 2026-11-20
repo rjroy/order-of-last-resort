@@ -11,8 +11,9 @@ const ABILITY_TARGETING := {
 	"move": ["cell"], "apply_status": ["none"],
 	"push": ["entity", "automatic"], "bonk": ["entity", "automatic"], "heal": ["entity", "automatic"],
 	"blast": ["entity", "automatic"], "pull": ["entity", "automatic"], "attack": ["entity", "automatic"],
+	"swap_furthest": ["automatic"], "misdirect": ["entity"],
 }
-const STATUS_EXPIRY := {"reflect": "actor_turn_start", "skip_action": "consume_action", "retarget": "actor_turn_end"}
+const STATUS_EXPIRY := {"reflect": "actor_turn_start", "skip_action": "consume_action", "retarget": "actor_turn_end", "misdirect": "consume_attack"}
 
 
 class FrozenCatalog extends RefCounted:
@@ -286,6 +287,16 @@ class Validator:
 			_text(_defs.events[id].get("text"), "events.%s.text" % id)
 		for id in REQUIRED_EVENTS:
 			_ref(id, "events", "events." + id)
+		for ability in _defs.abilities.values():
+			match ability.get("handler", ""):
+				"swap_furthest":
+					_ref("swap", "events", "events.swap")
+				"misdirect":
+					_ref("misdirect_mark", "events", "events.misdirect_mark")
+		for status in _defs.statuses.values():
+			if is_same(status.get("handler", ""), "misdirect"):
+				for id in ["misdirect_redirect", "misdirect_missing"]:
+					_ref(id, "events", "events." + id)
 
 	func _check_ability(ability: Dictionary, path: String) -> void:
 		_text(ability.get("label"), path + ".label")
@@ -322,6 +333,10 @@ class Validator:
 				_integer(params.get("collision_damage"), param_path + "collision_damage")
 			"apply_status":
 				_ref(params.get("status"), "statuses", param_path + "status")
+			"misdirect":
+				var status: Variant = params.get("status")
+				if _ref(status, "statuses", param_path + "status") and not is_same(_defs.statuses[status].get("handler"), "misdirect"):
+					_error(param_path + "status", "status must use the misdirect handler")
 			"bonk", "blast":
 				_integer(params.get("damage"), param_path + "damage")
 				_ref(params.get("status"), "statuses", param_path + "status")
@@ -348,16 +363,18 @@ class Validator:
 	func _check_behavior(behavior: Dictionary, path: String) -> void:
 		var handler: Variant = behavior.get("handler")
 		var params := _dictionary(behavior.get("params"), path + ".params")
-		if not _choice(handler, ["use_ability", "pursue", "hold", "rescue", "threat", "escort"], path + ".handler"):
+		if not _choice(handler, ["use_ability", "pursue", "hold", "rescue", "threat", "escort", "retreat"], path + ".handler"):
 			return
 		path += ".params."
 		if handler in ["use_ability", "pursue", "rescue", "threat"]:
 			_check_behavior_ability(handler, params, path + "ability")
-		if handler in ["pursue", "threat", "escort"]:
+		if handler in ["pursue", "threat", "escort", "retreat"]:
 			var move: Variant = params.get("move_ability")
 			if _ref(move, "abilities", path + "move_ability") and not is_same(_defs.abilities[move].get("handler"), "move"):
 				_error(path + "move_ability", "ability must use the move handler")
 		if handler == "pursue":
+			_text(params.get("team"), path + "team")
+		elif handler == "retreat":
 			_text(params.get("team"), path + "team")
 		elif handler == "threat":
 			_integer(params.get("pursue_range"), path + "pursue_range", 1)
@@ -403,7 +420,7 @@ class Validator:
 			"retarget":
 				if params.has("teams"):
 					_id_list(params.teams, path + ".params.teams")
-			"skip_action":
+			"skip_action", "misdirect":
 				pass
 
 	func _check_profile(data: Dictionary, path: String) -> void:

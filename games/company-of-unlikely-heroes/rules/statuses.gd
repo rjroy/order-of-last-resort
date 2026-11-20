@@ -33,6 +33,8 @@ static func accepts(state: Dictionary, target: Dictionary, id: String, source: D
 			return Board.capable(state, target, "tauntable") and _accepts_source(state, source, spec.params)
 		"reflect":
 			return true
+		"misdirect":
+			return true
 	return false
 
 
@@ -55,6 +57,33 @@ static func retarget(state: Dictionary, unit: Dictionary, id: String) -> Diction
 		return {}
 	var source := Board.entity(state, unit.statuses[id].source_id)
 	return source if source != unit and _accepts_source(state, source, spec.params) else {}
+
+
+static func adjacent_victim(state: Dictionary, attacker: Dictionary, exclude_id := "") -> Dictionary:
+	var candidates := Board.occupants(state, {})
+	candidates = candidates.filter(func(candidate: Dictionary) -> bool:
+		return candidate.id != attacker.id and candidate.id != exclude_id \
+			and Board.distance(attacker.position, candidate.position) == 1)
+	candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.id < b.id)
+	return candidates[0] if not candidates.is_empty() else {}
+
+
+static func misdirect_attack(state: Dictionary, attacker: Dictionary, target: Dictionary, events: Array) -> Dictionary:
+	var ids := ids_with_handler(state, attacker, "misdirect")
+	if ids.is_empty():
+		return target
+	ids.sort()
+	var victim := adjacent_victim(state, attacker, target.id)
+	expire(state, attacker, "consume_attack")
+	if victim.is_empty():
+		Board.authored_event(state, events, "misdirect", "misdirect_missing",
+			{"actor": Board.display_name(state, attacker), "target": Board.display_name(state, target)},
+			{"unit_id": attacker.id, "target_id": target.id, "status_id": ids[0]})
+		return target
+	Board.authored_event(state, events, "misdirect", "misdirect_redirect",
+		{"actor": Board.display_name(state, attacker), "target": Board.display_name(state, victim)},
+		{"unit_id": attacker.id, "target_id": victim.id, "status_id": ids[0]})
+	return victim
 
 
 static func attack_recipient(state: Dictionary, ward: Dictionary, events: Array) -> Dictionary:

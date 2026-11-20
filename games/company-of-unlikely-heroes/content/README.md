@@ -22,8 +22,12 @@ The catalog selects code handlers, not arbitrary scripts. New mechanics need new
 | `heal` | `entity` or `automatic` | `amount`; optional `prefer_wounded_self` for automatic healing |
 | `pull` | `entity` or `automatic` | `recoil_damage`, `status` |
 | `attack` | `entity` or `automatic` | `damage`, optional `source_suffix` and `status` |
+| `swap_furthest` | `automatic` | No parameters; swaps the actor with the furthest eligible other living character. |
+| `misdirect` | `entity` | `status` referencing a status with the `misdirect` handler. |
 
 Entity selection filters by `range` (Manhattan distance), `teams`, `objects` (include objects), and `capabilities` (all listed IDs are required). Without a range limit any distance is allowed. Automatic targeting selects the nearest eligible entity with ties broken deterministically. An automatic heal with `prefer_wounded_self: true` includes its wounded actor when it passes the other target filters; otherwise it targets the nearest eligible other entity, even at full health. Handlers also enforce the physical capabilities they need: `mobile` for movement and pull recoil; `pushable`/`pullable` for displacement; `damageable`/`healable` for damage/healing. `blocks_movement` is independent of whether an entity can be damaged or moved. `commandable` identifies units exposed to player commands; `protectable`, `recoverable` and `tauntable` govern applicable status effects.
+
+`swap_furthest` is the exception to nearest automatic selection: it excludes objects and breaks equal Manhattan distances by lowest instance ID, regardless of unit order. `misdirect` selects an opposing character with at least one other living character orthogonally adjacent. The player selects that opponent, not the alternate victim. At its next attack, the marked character redirects to the adjacent living character with the lowest instance ID, excluding itself and the original attack target. This can be its ally. If no alternate remains, the original attack proceeds; either way the mark is consumed. An aura can subsequently redirect the attack. The mark event names a currently adjacent candidate, while the attack forecast and resolution identify the actual recipient.
 
 | Behavior handler | Parameters and compatibility |
 |---|---|
@@ -33,8 +37,11 @@ Entity selection filters by `range` (Manhattan distance), `teams`, `objects` (in
 | `rescue` | `ability` with entity targeting and a `pull` handler. |
 | `threat` | A damaging `ability` with entity targeting, `move_ability`, `pursue_range`, `fallback_teams`, and `taunt_status` with a `retarget` handler. |
 | `escort` | `move_ability`. |
+| `retreat` | `move_ability` and opposing `team`. Step away from the nearest living member of that team, with lowest instance ID breaking enemy-distance ties. Among equally distant legal steps, prefer the direction most aligned with the vector away from that enemy, then the fixed direction order. Hold if no step increases distance. |
 
-Every `move_ability` must refer to a `move` handler and belong to the effective kit. The supported status/expiry pairs are `reflect` / `actor_turn_start`, `skip_action` / `consume_action`, and `retarget` / `actor_turn_end`. These statuses belong to characters with turns. A crate can still take the damage from a status-inflicting attack, but does not acquire its turn-based status. `reflect` takes a `range` and can filter its redirect targets with `teams`, `objects` and `capabilities`; `retarget` can filter permitted sources with `teams`.
+Every `move_ability` must refer to a `move` handler and belong to the effective kit. The supported status/expiry pairs are `reflect` / `actor_turn_start`, `skip_action` / `consume_action`, `retarget` / `actor_turn_end`, and `misdirect` / `consume_attack`. These statuses belong to characters with turns. A crate can still take the damage from a status-inflicting attack, but does not acquire its turn-based status. `reflect` takes a `range` and can filter its redirect targets with `teams`, `objects` and `capabilities`; `retarget` can filter permitted sources with `teams`. `misdirect` takes no parameters and persists until the next attack.
+
+Catalogs with a `swap_furthest` ability must provide the `swap` event template. Catalogs with a `misdirect` ability must provide `misdirect_mark`; those with a `misdirect` status must provide `misdirect_redirect` and `misdirect_missing`. Catalogs without these handlers need not include their templates. Use the placeholders in the built-in templates when authoring replacements.
 
 ## Loading and snapshots
 

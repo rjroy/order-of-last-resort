@@ -14,6 +14,8 @@ func _initialize() -> void:
 		rules = load("res://rules.gd").new()
 		_test_validation()
 		_test_executable_authoring()
+		_test_handler_event_requirements()
+		_test_malformed_status_handler_preserves_event_diagnostics()
 		_test_world_isolation()
 		_test_capability_opt_out()
 		_test_reflect_capability_filter()
@@ -106,6 +108,50 @@ func _test_executable_authoring() -> void:
 	other_handler.abilities.knight_push.params["prefer_wounded_self"] = true
 	_check("abilities.knight_push.params.prefer_wounded_self: requires automatic heal targeting" in catalog.validate(other_handler),
 		"Non-heal abilities reject self-preference")
+
+
+func _test_handler_event_requirements() -> void:
+	var defs := _fixture()
+	_check(catalog.validate(defs).is_empty(), "Handler event fixture starts valid")
+	for event_id in ["swap", "misdirect_mark", "misdirect_redirect", "misdirect_missing"]:
+		var missing := defs.duplicate(true)
+		missing.events.erase(event_id)
+		var errors: PackedStringArray = catalog.validate(missing)
+		_check(not errors.is_empty(), "Catalog with active handler rejects missing event " + event_id)
+		_check(event_id in " ".join(errors), "Missing event diagnostic identifies " + event_id)
+
+	# Old or independently authored catalogs need not support unused handlers.
+	var compatible := defs.duplicate(true)
+	compatible.adventures.first_outing.roster.erase("rogue")
+	compatible.characters.erase("rogue")
+	compatible.abilities.erase("rogue_confusing_dodge")
+	compatible.abilities.erase("rogue_wasnt_me")
+	compatible.statuses.erase("misdirected")
+	for event_id in ["swap", "misdirect_mark", "misdirect_redirect", "misdirect_missing"]:
+		compatible.events.erase(event_id)
+	var errors: PackedStringArray = catalog.validate(compatible)
+	_check(errors.is_empty(), "Catalog without Rogue handlers does not require their events: " + str(errors))
+
+
+func _test_malformed_status_handler_preserves_event_diagnostics() -> void:
+	for invalid_handler in [7, {}]:
+		var defs := _fixture()
+		var broken: Dictionary = defs.statuses.misdirected.duplicate(true)
+		broken.handler = invalid_handler
+		# Put the malformed record first so the valid misdirect status still
+		# needs to be visited after it in the conditional event scan.
+		var statuses := {"broken_misdirect": broken}
+		statuses.merge(defs.statuses)
+		defs.statuses = statuses
+		defs.events.erase("misdirect_redirect")
+		defs.events.erase("misdirect_missing")
+		var errors: PackedStringArray = catalog.validate(defs)
+		var diagnostics := "\n".join(errors)
+		_check("statuses.broken_misdirect.handler" in diagnostics,
+			"Malformed status handler %s reports its own validation error" % str(invalid_handler))
+		_check("events.misdirect_redirect" in diagnostics and "events.misdirect_missing" in diagnostics,
+			"Malformed status handler %s does not hide either valid handler's missing-event error: %s"
+			% [str(invalid_handler), diagnostics])
 
 
 func _check_frozen(value: Variant, path: String) -> void:

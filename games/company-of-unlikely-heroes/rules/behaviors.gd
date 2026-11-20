@@ -30,6 +30,29 @@ static func decide(state: Dictionary, actor: Dictionary, behavior_id: String) ->
 		"escort":
 			if state.objective.handler == "escort" and actor.id == state.objective.subject:
 				return _move(state, actor, params.move_ability, state.objective.destination, 0)
+		"retreat":
+			var enemies := Board.occupants(state, {"teams": [params.team]})
+			enemies.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.id < b.id)
+			var enemy := Board.nearest(actor, enemies)
+			if not enemy.is_empty():
+				var best: Vector2i = actor.position
+				var best_distance := Board.distance(best, enemy.position)
+				var best_alignment := -2147483647
+				for direction in Board.DIRECTIONS:
+					var position: Vector2i = actor.position + direction
+					var distance := Board.distance(position, enemy.position)
+					var away: Vector2i = actor.position - enemy.position
+					var alignment: int = direction.x * away.x + direction.y * away.y
+					if distance > Board.distance(actor.position, enemy.position) \
+							and (distance > best_distance or (distance == best_distance and alignment > best_alignment)) \
+							and Board.can_enter(state, position) \
+							and _legal_target(state, actor, params.move_ability, Board.cell_id(position)):
+						best = position
+						best_distance = distance
+						best_alignment = alignment
+				if best != actor.position:
+					return _action(params.move_ability, Board.cell_id(best))
+			return {"wait": "hold"}
 	return {}
 
 

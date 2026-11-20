@@ -45,6 +45,12 @@ static func _entity_allowed(state: Dictionary, actor: Dictionary, candidate: Dic
 			return Board.capable(state, candidate, "damageable")
 		"heal":
 			return Board.capable(state, candidate, "healable")
+		"swap_furthest":
+			return candidate.has("character_id")
+		"misdirect":
+			return Board.team(state, candidate) != Board.team(state, actor) \
+				and not Statuses.adjacent_victim(state, candidate).is_empty() \
+				and Statuses.accepts(state, candidate, ability.params.status, actor)
 	return false
 
 
@@ -91,6 +97,12 @@ static func selection(state: Dictionary, actor: Dictionary, ability: Dictionary,
 		for choice in choices:
 			if choice.id == actor.id:
 				return choice
+		if ability.handler == "swap_furthest":
+			choices.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+				var da := Board.distance(actor.position, a.position)
+				var db := Board.distance(actor.position, b.position)
+				return a.id < b.id if da == db else da > db)
+			return choices[0]
 		return Board.nearest(actor, choices)
 	for choice in choices:
 		if choice.id == target_id:
@@ -142,8 +154,23 @@ static func execute(state: Dictionary, actor: Dictionary, action: Dictionary, ev
 			var suffix: String = params.get("source_suffix", "")
 			if ability.handler == "blast" and not params.has("source_suffix"):
 				suffix = Board.text(state, "blast_suffix")
+			target = Statuses.misdirect_attack(state, actor, target, events)
 			_damage(state, actor, Statuses.attack_recipient(state, target, events), int(params.damage),
 				name + suffix, params.get("status", ""), events)
+		"swap_furthest":
+			var old: Vector2i = actor.position
+			actor.position = target.position
+			target.position = old
+			Board.authored_event(state, events, "swap", "swap",
+				{"actor": name, "target": target_name, "position": actor.position},
+				{"unit_id": actor.id, "target_id": target.id, "position": actor.position, "target_position": old})
+		"misdirect":
+			if not Statuses.apply(state, target, params.status, actor):
+				return false
+			var victim := Statuses.adjacent_victim(state, target)
+			Board.authored_event(state, events, "misdirect", "misdirect_mark",
+				{"actor": name, "target": target_name, "victim": Board.display_name(state, victim)},
+				{"unit_id": actor.id, "target_id": target.id, "victim_id": victim.id, "status_id": params.status})
 		"heal":
 			var amount := mini(int(params.amount), target.max_hp - target.hp)
 			target.hp += amount

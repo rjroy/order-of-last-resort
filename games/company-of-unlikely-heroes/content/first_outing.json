@@ -6,7 +6,8 @@
         "knight",
         "healer",
         "wizard",
-        "alchemist"
+        "alchemist",
+        "rogue"
       ],
       "missions": [
         "bridge_patrol",

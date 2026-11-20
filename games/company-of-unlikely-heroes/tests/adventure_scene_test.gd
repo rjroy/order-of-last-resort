@@ -33,6 +33,13 @@ func _run() -> void:
 		_finish()
 		return
 	_check(start.disabled, "Cannot launch an empty company")
+	var rogue := _node("Recruit_rogue") as BaseButton
+	_check(rogue != null and not rogue.disabled, "Guild offers Rogue as a selectable recruit")
+	if rogue != null and not rogue.disabled:
+		await _press("Recruit_rogue")
+		_check("rogue" in scene.selected_recruits(), "Selecting Rogue adds them to the company")
+		await _press("Recruit_rogue")
+		_check("rogue" not in scene.selected_recruits(), "Rogue can be deselected")
 	await _press("Recruit_knight")
 	await _press("Recruit_healer")
 	_check((_node("StartAdventure") as BaseButton).disabled, "Two recruits are not enough")

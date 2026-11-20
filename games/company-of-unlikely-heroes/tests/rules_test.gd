@@ -22,7 +22,7 @@ func _initialize() -> void:
 			rules = script.new()
 			definitions = preload("res://tests/fixtures/rules_catalog.gd").definitions()
 
-	var required := ["new_game", "options", "preview", "apply_plan", "advance_round", "choose_manual", "preview_round", "commit_round"]
+	var required := ["new_game", "options", "preview", "apply_plan", "choose_manual", "preview_round", "commit_round"]
 	for method in required:
 		if not rules.has_method(method):
 			failures.append("Missing behavior: rules.%s()" % method)
@@ -42,6 +42,8 @@ func _initialize() -> void:
 		_test_recovery_expires_turn_end_status()
 		_test_modes_and_restart()
 		_test_round_preview()
+		_test_elimination()
+		_test_movement_forecast_order()
 	if failures.is_empty():
 		print("PASS: company rules")
 	else:
@@ -63,8 +65,8 @@ func _unit(id: String, _team: String, role: String, pos: Vector2i, hp: int = 10)
 	}
 
 
-func _state(units: Array, mode: String = "hybrid", remaining: int = 1, fixture_defs: Dictionary = {}) -> Dictionary:
-	var state: Dictionary = rules.new_game(mode, fixture_defs if not fixture_defs.is_empty() else definitions, "fixture")
+func _state(units: Array, fixture_defs: Dictionary = {}) -> Dictionary:
+	var state: Dictionary = rules.new_game(fixture_defs if not fixture_defs.is_empty() else definitions, "fixture")
 	state["width"] = 12
 	state["height"] = 12
 	state["units"] = units
@@ -74,7 +76,6 @@ func _state(units: Array, mode: String = "hybrid", remaining: int = 1, fixture_d
 	state["objective"] = {"handler": "escort", "subject": "civilian", "destination": Vector2i(9, 9)}
 	state["orders"] = {}
 	state["round"] = 1
-	state["manual_remaining"] = remaining
 	return state
 
 
@@ -366,7 +367,7 @@ func _test_wizard_blast() -> void:
 func _test_turn_bound_status_on_object() -> void:
 	var fixture_defs := definitions.duplicate(true)
 	fixture_defs["abilities"]["wizard_blast"]["params"]["status"] = "aura"
-	var state := _state([_unit("w", "heroes", "wizard", Vector2i.ZERO)], "hybrid", 1, fixture_defs)
+	var state := _state([_unit("w", "heroes", "wizard", Vector2i.ZERO)], fixture_defs)
 	state["obstacles"] = [{"id": "crate", "object_id": "crate", "statuses": {},
 		"position": Vector2i(1, 0), "hp": 10, "max_hp": 10}]
 	var after := _apply(state, _plan(state, "w", "wizard_blast"), "blast on crate")
@@ -376,7 +377,7 @@ func _test_turn_bound_status_on_object() -> void:
 	var character_state := _state([
 		_unit("w", "heroes", "wizard", Vector2i.ZERO),
 		_unit("enemy", "enemies", "enemy", Vector2i(1, 0))
-	], "hybrid", 1, fixture_defs)
+	], fixture_defs)
 	var character_after := _apply(character_state, _plan(character_state, "w", "wizard_blast"), "blast on character")
 	_check(_find(character_after, "enemy").get("hp") == 6,
 		"Same blast deals configured nonlethal damage to a character")
@@ -434,74 +435,22 @@ func _test_recovery_expires_turn_end_status() -> void:
 
 
 func _test_modes_and_restart() -> void:
-	for pair in [["hybrid", 1], ["direct", 3], ["standing", 0]]:
-		var mode: String = pair[0]
-		var budget: int = pair[1]
-		var initial = rules.call("new_game", mode, definitions, "fixture")
-		if not initial is Dictionary:
-			failures.append("%s new_game must return Dictionary" % mode)
-			continue
-		_check(initial.get("manual_remaining", -1) == budget, "%s starts with %d manual slots" % [mode, budget])
-		var exhausted: Dictionary = initial.duplicate(true)
-		# Direct mode has exactly three heroes and three slots. Add a fourth
-		# living hero so overflow attempts a new override, not an edit.
-		if mode == "direct":
-			exhausted["units"].append(_unit("spare", "heroes", "knight", Vector2i(0, 0)))
-		var overflow_id: String = "healer" if mode == "hybrid" else ("spare" if mode == "direct" else "knight")
-		var overflow_action: String = "healer_heal" if mode == "hybrid" else "knight_aura"
-		var valid = rules.call("preview", exhausted, overflow_id, overflow_action, "")
-		_check(valid is Dictionary and valid.get("valid", false), "%s overflow action must be legal for a living hero" % mode)
-		if mode != "standing":
-			var accepted = rules.call("choose_manual", exhausted, overflow_id, overflow_action, "")
-			_check(accepted is Dictionary and accepted.get("manual_remaining", -1) == budget - 1,
-				"%s overflow action must be accepted when a slot is available" % mode)
-		var choices := [["knight", "knight_aura"], ["healer", "healer_heal"], ["wizard", "wizard_blast"]]
-		for i in range(budget):
-			var choice: Array = choices[i]
-			var previous: Dictionary = exhausted.duplicate(true)
-			var action_plan = rules.call("preview", exhausted, choice[0], choice[1], "")
-			_check(action_plan is Dictionary and action_plan.get("valid", false), "%s prior override %d must be legal" % [mode, i + 1])
-			var selected = rules.call("choose_manual", exhausted, choice[0], choice[1], "")
-			_check(exhausted == previous, "%s prior override must not mutate input" % mode)
-			if not selected is Dictionary:
-				failures.append("%s prior override must return Dictionary" % mode)
-				break
-			exhausted = selected
-			_check(exhausted.get("manual_remaining", -1) == budget - i - 1,
-				"%s prior override %d consumes one slot" % [mode, i + 1])
-		_check(exhausted.get("manual_remaining", -1) == 0, "%s has exhausted its manual slots" % mode)
-		var before := exhausted.duplicate(true)
-		var rejected = rules.call("choose_manual", exhausted, overflow_id, overflow_action, "")
-		_check(exhausted == before and rejected == before, "%s rejects a manual choice when exhausted" % mode)
-		var next = rules.call("advance_round", exhausted)
-		_check(exhausted == before, "%s advance_round must not mutate input" % mode)
-		if next is Dictionary:
-			var next_budget := 4 if mode == "direct" else budget
-			_check(next.get("manual_remaining", -1) == next_budget,
-				"%s issues %d manual slots for the next round's roster" % [mode, next_budget])
-			_check(next.get("round", 0) == initial.get("round", 1) + 1, "%s advances round" % mode)
-		else:
-			failures.append("%s advance_round must return Dictionary" % mode)
-		var restarted: Dictionary = rules.call("new_game", mode, definitions, "fixture")
-		var initial_facts: Dictionary = initial.duplicate()
-		var restarted_facts := restarted.duplicate()
-		initial_facts.erase("catalog")
-		restarted_facts.erase("catalog")
-		_check(restarted_facts == initial_facts, "%s restart creates a clean initial state" % mode)
-
-	# Use a controlled legal choice to verify actual slot consumption.
-	for pair in [["hybrid", 1], ["direct", 3]]:
-		var state := _state([_unit("k", "heroes", "knight", Vector2i.ZERO)], pair[0], pair[1])
-		var before := state.duplicate(true)
-		var selected = rules.call("choose_manual", state, "k", "knight_aura", "")
-		_check(state == before, "%s manual choice must not mutate input" % pair[0])
-		if selected is Dictionary:
-			_check(selected.get("manual_remaining", -1) == pair[1] - 1, "%s consumes exactly one slot" % pair[0])
-			var edited = rules.call("choose_manual", selected, "k", "knight_push", "")
-			_check(edited is Dictionary and edited.get("manual_remaining", -1) == pair[1] - 1,
-				"%s editing an override does not consume another slot" % pair[0])
-		else:
-			failures.append("%s manual choice must return Dictionary" % pair[0])
+	var initial: Dictionary = rules.new_game(definitions, "fixture")
+	_check(initial.get("overrides", {}).is_empty(), "Hybrid starts without an override")
+	var before := initial.duplicate(true)
+	var selected: Dictionary = rules.choose_manual(initial, "knight", "knight_aura", "")
+	_check(initial == before, "Choosing an override must not mutate input")
+	_check(selected.get("overrides", {}) == {"knight": {"ability_id": "knight_aura", "target_id": ""}},
+		"Override stores the selected command")
+	var edited: Dictionary = rules.choose_manual(selected, "knight", "knight_push", "")
+	_check(edited.get("overrides", {}) == {"knight": {"ability_id": "knight_push", "target_id": ""}},
+		"Editing replaces the selected command")
+	var restarted: Dictionary = rules.new_game(definitions, "fixture")
+	var initial_facts := initial.duplicate()
+	var restarted_facts := restarted.duplicate()
+	initial_facts.erase("catalog")
+	restarted_facts.erase("catalog")
+	_check(restarted_facts == initial_facts, "Restart creates a clean initial state")
 
 
 func _test_round_preview() -> void:
@@ -517,6 +466,10 @@ func _test_round_preview() -> void:
 		{"ability_id": "knight_push", "target_id": "enemy"},
 		"Round fixture installs the knight's manual push without mutating its input")
 	var before := state.duplicate(true)
+	var action_plan: Dictionary = rules.preview(state, "k", "knight_push", "enemy")
+	_check(action_plan.get("valid", false), "Fixture has a valid individual action preview")
+	_check(rules.commit_round(state, action_plan) == before,
+		"An individual action preview cannot be committed as a whole round")
 	var plan = rules.call("preview_round", state)
 	_check(state == before, "Round preview must not mutate state")
 	if not plan is Dictionary:
@@ -533,3 +486,65 @@ func _test_round_preview() -> void:
 	_check(committed.get("outcome") == "victory", "Round resolves victory when civilian reaches exit")
 	var repeated = rules.call("commit_round", before, plan)
 	_check(committed == repeated, "Same previewed plan commits identical NPC and victory outcomes")
+
+
+func _test_elimination() -> void:
+	var fixture_defs := definitions.duplicate(true)
+	fixture_defs.missions.fixture.objective = {
+		"handler": "defeat_all", "team": "enemies", "text": "Defeat enemies",
+		"victory_text": "Victory", "defeat_text": "Defeat", "victory_event": "Victory"
+	}
+	fixture_defs.missions.fixture.failures = [{"handler": "party_wiped", "event": "Wiped"}]
+	fixture_defs.encounters.fixture.deadline = 0
+	var state := _state([
+		_unit("w", "heroes", "wizard", Vector2i(1, 1)),
+		_unit("e", "enemies", "enemy", Vector2i(2, 1), 4)
+	], fixture_defs)
+	state.objective = {"handler": "defeat_all", "team": "enemies"}
+	state = rules.choose_manual(state, "w", "wizard_blast", "")
+	var before := state.duplicate(true)
+	var plan: Dictionary = rules.preview_round(state)
+	_check(state == before and plan.get("valid", false), "Elimination forecast is valid and non-mutating")
+	var won: Dictionary = rules.commit_round(state, plan)
+	_check(_matches_preview(won, plan), "Elimination commit matches forecast")
+	_check(_find(won, "e").get("hp", 1) <= 0 and won.get("outcome") == "victory",
+		"Defeating the last enemy wins")
+
+	var alive := _state([
+		_unit("h", "heroes", "healer", Vector2i(0, 0), 0),
+		_unit("w", "heroes", "wizard", Vector2i(9, 9)),
+		_unit("e", "enemies", "enemy", Vector2i(5, 5))
+	], fixture_defs)
+	alive.objective = {"handler": "defeat_all", "team": "enemies"}
+	alive.round = 20
+	var continued: Dictionary = rules.commit_round(alive, rules.preview_round(alive))
+	_check(continued.get("outcome") == "ongoing", "One knocked-out hero is not a party wipe, even after round ten")
+	var wiped := alive.duplicate(true)
+	_find(wiped, "w")["hp"] = 0
+	var lost: Dictionary = rules.commit_round(wiped, rules.preview_round(wiped))
+	_check(lost.get("outcome") == "defeat", "All heroes knocked out causes defeat")
+
+
+func _test_movement_forecast_order() -> void:
+	var state := _state([
+		_unit("k", "heroes", "knight", Vector2i(1, 1)),
+		_unit("w", "heroes", "wizard", Vector2i(4, 1)),
+		_unit("e", "enemies", "enemy", Vector2i(8, 8)),
+		_unit("civilian", "civilian", "civilian", Vector2i(9, 8))
+	])
+	state = rules.choose_manual(state, "k", "move", "2,1")
+	var before := state.duplicate(true)
+	var forecast: Dictionary = rules.state_before_action(state, "w")
+	_check(state == before, "Turn forecast does not mutate its source")
+	_check(_find(forecast, "k").get("position") == Vector2i(2, 1),
+		"Later hero forecasts see the earlier hero's chosen move")
+	var plan: Dictionary = rules.preview_round(state)
+	var committed: Dictionary = rules.commit_round(state, plan)
+	_check(_find(committed, "k").get("position") == Vector2i(2, 1),
+		"Committed movement matches the later hero's forecast")
+
+
+func _matches_preview(committed: Dictionary, plan: Dictionary) -> bool:
+	var gameplay := committed.duplicate(true)
+	gameplay.erase("_terminal_commit")
+	return gameplay == plan.get("result")

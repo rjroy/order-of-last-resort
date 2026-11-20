@@ -159,10 +159,10 @@ func _test_capability_opt_out() -> void:
 	defs["objects"]["crate"]["capabilities"] = ["pushable", "blocks_movement", "damageable"]
 	defs["objects"]["passable_crate"] = defs["objects"]["crate"].duplicate(true)
 	defs["objects"]["passable_crate"]["capabilities"] = []
-	var solid: Dictionary = rules.call("new_game", "hybrid", defs, "ferryman")
+	var solid: Dictionary = rules.call("new_game", defs, "ferryman")
 	var passable_defs := defs.duplicate(true)
 	passable_defs["encounters"]["crossing"]["placements"][2]["object"] = "passable_crate"
-	var passable: Dictionary = rules.call("new_game", "hybrid", passable_defs, "ferryman")
+	var passable: Dictionary = rules.call("new_game", passable_defs, "ferryman")
 	if solid.is_empty() or passable.is_empty():
 		_check(false, "Capability comparison fixtures must build")
 		return
@@ -213,7 +213,7 @@ func _test_reflect_capability_filter() -> void:
 	_check(errors.is_empty(), "Reflect capability filter fixture must validate: " + str(errors))
 	if not errors.is_empty():
 		return
-	var state: Dictionary = rules.call("new_game", "hybrid", defs, "ferryman")
+	var state: Dictionary = rules.call("new_game", defs, "ferryman")
 	if state.is_empty():
 		_check(false, "Reflect capability filter world must build")
 		return

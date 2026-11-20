@@ -45,8 +45,9 @@ func _ready() -> void:
 
 ## cells: Vector2i -> "stone", "bridge", "broken", "safe", "exit", "obstacle", or "water".
 ## An absent cell is scenery only. The canvas emits input for supplied cells; it never authorizes moves.
-## units: {id, art_key, cell, hp, max_hp, prone}; optional facing (-1 left, 1 right), guarded, objective, variant.
-## overlay: selected/chosen_target (Vector2i), targets/impact/threat (arrays of Vector2i),
+## units: {id, art_key, cell, hp, max_hp, prone}; optional facing (-1 left, 1 right),
+## guarded, objective, variant, label and color.
+## overlay: selected/chosen_target/commanded (Vector2i), targets/impact/threat (arrays of Vector2i),
 ## paths (each an array of Vector2i), exit (Vector2i), safe (a set of Vector2i),
 ## and obstacles (id, art_key, position, hp, max_hp).
 func set_render_state(cells: Dictionary, units: Array, overlay: Dictionary = {}) -> void:
@@ -173,6 +174,10 @@ func _draw() -> void:
 	for unit in occupants:
 		if _cells.has(unit.cell):
 			_draw_unit(unit)
+	# Draw identifiers over all figures so a tall neighbor cannot cover a name.
+	for unit in occupants:
+		if _cells.has(unit.cell):
+			_draw_unit_marker(unit)
 	if not _cells.is_empty():
 		_at(Vector2.ZERO)
 		_draw_coordinates()
@@ -469,12 +474,29 @@ func _draw_unit(unit: Dictionary) -> void:
 	_draw_health(unit, prone)
 
 
+func _draw_unit_marker(unit: Dictionary) -> void:
+	_at(_tile_origin(unit.cell))
+	var label: String = unit.get("label", "")
+	if not label.is_empty():
+		var font := ThemeDB.fallback_font
+		# Small identification labels distinguish recruits sharing a provisional drawing.
+		var width := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+		if width > 86.0:
+			label = label.get_slice(" ", 0)
+			if font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x > 86.0:
+				label = label.left(8) + "…"
+			width = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+		_caption(label, Vector2(49.0 + width * 0.5, 78), Color.from_string(unit.get("color", ""), PARCHMENT), 13)
+	if _overlay.get("commanded") == unit.cell:
+		_caption("CMD", Vector2(90, 17), AMBER, 11)
+
+
 func _draw_health(unit: Dictionary, prone: bool) -> void:
 	var maximum := maxi(0, int(unit.get("max_hp", 0)))
 	var hp := clampi(int(unit.get("hp", maximum)), 0, maximum)
 	if maximum > 0:
 		var width := 27.0
-		var top := Vector2(49 - width * 0.5, 69)
+		var top := Vector2(49 - width * 0.5, 63 if not unit.get("label", "").is_empty() else 69)
 		draw_rect(Rect2(top - Vector2(2, 2), Vector2(width + 4, 7)), INK)
 		draw_rect(Rect2(top, Vector2(width, 3)), Color("#725344"))
 		var fill := CORAL if hp < maximum and hp * 2 <= maximum else (AMBER if unit.get("objective", false) else MINT)

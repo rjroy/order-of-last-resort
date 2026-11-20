@@ -88,7 +88,7 @@ static func _qualifies(state: Dictionary, subject: Dictionary, filters: Dictiona
 	return true
 
 
-# Strict comparison preserves placement order on ties.
+# Strict comparison preserves the supplied candidate order on ties.
 static func nearest(origin: Dictionary, candidates: Array) -> Dictionary:
 	var best: Dictionary = {}
 	var best_distance := 2147483647
@@ -120,7 +120,7 @@ static func coordinate(position: Vector2i) -> String:
 
 
 # Breadth-first search with fixed neighbor order, bounded by the authored board.
-static func step_toward(state: Dictionary, unit: Dictionary, goal: Vector2i, adjacent: bool) -> Vector2i:
+static func step_toward(state: Dictionary, unit: Dictionary, goal: Vector2i, reach: int) -> Vector2i:
 	var start: Vector2i = unit.position
 	var queue: Array[Vector2i] = [start]
 	var previous := {start: start}
@@ -128,7 +128,7 @@ static func step_toward(state: Dictionary, unit: Dictionary, goal: Vector2i, adj
 	while index < queue.size():
 		var current := queue[index]
 		index += 1
-		if distance(current, goal) <= (1 if adjacent else 0):
+		if distance(current, goal) <= reach:
 			while previous[current] != start:
 				current = previous[current]
 			return current

@@ -1,0 +1,7 @@
+{
+  "parts": [
+    "common.json",
+    "first_outing.json",
+    "fixed_fixtures.json"
+  ]
+}

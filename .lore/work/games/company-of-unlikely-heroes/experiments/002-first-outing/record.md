@@ -1,0 +1,13 @@
+# First outing: combat into rescue
+
+**Baseline:** `8e43004` contains the earlier fixed ferryman experiment and command-mode comparison. Ronald selected hybrid for normal play. His design gives the player ownership of party membership and acting order, gives the adventure a sequence of missions, and keeps guild rewards separate from temporary hero improvements. The previously retained fixed scenarios are regression inputs, not player-owned adventure content.
+
+**Question:** After choosing three recruits and their acting order, does carrying their wounds from a fight into a rescue change whom Ronald commands or how he uses the party? Observe the first outing, not whether he finds the most efficient route.
+
+**Bounded intervention:** One untimed combat mission followed by one timed escort. The party remains in the same order. Survivors keep current HP; a downed recruit returns at low HP only if the company wins. A mission failure ends the outing. The guild starts the next company fresh. No currency, upgrades, perks, or progression between outings in this build. The screens and artwork are playtest tools, not an approved presentation direction.
+
+**Checks before human play:** Verify a complete success and a return after failure, actual wound transfer and status clearing, and a clean new departure. Verify the roster and its order are reflected in deployment, previews and actual resolution. Use a second legal company to detect a silently fixed lineup. These checks establish feasibility, not balance or enjoyment.
+
+**Human evidence:** No telemetry. After play, ask which choice in the rescue, if any, changed because of what happened in combat. A player who understands the wounds but would always issue the same command is different from a player who could not read the wound state. Record enjoyment and whether Ronald chooses another outing separately. No result yet.
+
+**Build evidence:** `games/company-of-unlikely-heroes/tests/adventure_test.gd` replays both shipped missions using legal commands from each of the four possible three-recruit rosters in at least one selected order. The success routes and a failed rescue are retained in the repository. These are existence checks, not evidence that every order is equally strong. A controlled transition fixture separately tests a downed recruit, wound carry, status clearing and fresh deployment. `tests/adventure_scene_test.gd` drives selection, ordering, debrief and return through the actual controls. Run them from the game directory with `godot --headless --script res://tests/<name>.gd`. Guild, combat and debrief were inspected as rendered game windows; HP pips and long forecasts remain prototype UI.

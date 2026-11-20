@@ -17,6 +17,7 @@ func _initialize() -> void:
 		_test_instances()
 		_test_escort()
 		_test_authored_deadline()
+		_test_adventure_content()
 	if failures.is_empty():
 		print("PASS: authored content variations")
 	else:
@@ -72,7 +73,7 @@ func _test_instances() -> void:
 	placements.append({"id": "second_knight", "character": "blast_knight", "at": [6, 4]})
 	placements.append({"id": "second_crate", "object": "crate", "at": [5, 4]})
 	var authored := definitions.duplicate(true)
-	var initial: Dictionary = rules.call("new_game", "hybrid", definitions, "ferryman")
+	var initial: Dictionary = rules.call("new_game", definitions, "ferryman")
 	if initial.is_empty():
 		failures.append("Instance fixture failed to build")
 		return
@@ -102,11 +103,11 @@ func _test_instances() -> void:
 	_check(round_plan.get("valid", false), "Standing round preview is valid")
 	if round_plan.get("valid", false):
 		var committed: Dictionary = rules.call("commit_round", initial, round_plan)
-		_check(committed == round_plan.get("result"), "Standing round commits its preview")
+		_check(_matches_preview(committed, round_plan), "Standing round commits its preview")
 		_check(_entity(committed, "second_crate").get("hp", 0) == crate.get("hp", 0) - 1,
 			"Second knight follows its personal blast habit")
 		_check(_entity(committed, "crate") == original_crate, "Personal habit leaves other crate unchanged")
-	var restarted: Dictionary = rules.call("new_game", "hybrid", definitions, "ferryman")
+	var restarted: Dictionary = rules.call("new_game", definitions, "ferryman")
 	_check_restart(restarted, before, "Restart restores authored instance positions and health")
 	_check(definitions == authored, "Play and restart must not mutate authoring data")
 	_check(catalog.call("read_default") == untouched, "A modified catalog does not alter fresh defaults")
@@ -122,7 +123,7 @@ func _test_escort() -> void:
 		{"id": "passenger", "character": "ferryman", "at": [5, 4]},
 		{"id": "harpooner", "character": "harpooner", "at": [4, 4]}
 	]
-	var initial: Dictionary = rules.call("new_game", "standing", definitions, "ferryman")
+	var initial: Dictionary = rules.call("new_game", definitions, "ferryman")
 	if initial.is_empty():
 		failures.append("Escort fixture failed to build")
 		return
@@ -136,7 +137,7 @@ func _test_escort() -> void:
 		return
 	var committed: Dictionary = rules.call("commit_round", initial, plan)
 	_check(initial == before, "Escort commit must not mutate input")
-	_check(committed == plan.get("result"), "Escort commit matches preview")
+	_check(_matches_preview(committed, plan), "Escort commit matches preview")
 	_check(_entity(committed, "passenger").get("hp", 0) < _entity(initial, "passenger").get("hp", 0),
 		"Threat NPC targets the renamed objective subject")
 	_check(_entity(committed, "passenger").get("position") == Vector2i(6, 4),
@@ -146,14 +147,14 @@ func _test_escort() -> void:
 	_check(committed.get("outcome", "") == "victory",
 		"Renamed subject reaching relocated destination wins")
 	_check(rules.call("commit_round", initial, plan) == committed, "Committing the same escort preview is deterministic")
-	_check_restart(rules.call("new_game", "standing", definitions, "ferryman"), before,
+	_check_restart(rules.call("new_game", definitions, "ferryman"), before,
 		"Restart restores the renamed objective and relocated destination")
 
 
 func _test_authored_deadline() -> void:
 	var definitions: Dictionary = catalog.read_default()
 	definitions.encounters.crossing.deadline = 1
-	var state: Dictionary = rules.new_game("standing", definitions, "ferryman")
+	var state: Dictionary = rules.new_game(definitions, "ferryman")
 	_check(not state.has("bridge_deadline") and not state.has("exit") \
 		and not state.has("victory") and not state.has("defeat"), "Opening has no duplicate authorities")
 	_check(rules.deadline(state) == 1, "Deadline comes from authored encounter")
@@ -161,3 +162,39 @@ func _test_authored_deadline() -> void:
 	var result: Dictionary = rules.commit_round(state, plan)
 	_check(result.outcome == "defeat" and result.round == 1, "Authored first-round deadline causes defeat")
 	_check(not result.has("victory") and not result.has("defeat"), "Outcome remains the only result authority")
+
+
+func _test_adventure_content() -> void:
+	var definitions: Dictionary = catalog.read_default()
+	var adventure: Dictionary = definitions.get("adventures", {}).get("first_outing", {})
+	_check(not adventure.is_empty(), "First outing is authored")
+	if adventure.is_empty():
+		return
+	_check(adventure.get("roster", []) == ["knight", "healer", "wizard", "alchemist"],
+		"First outing offers the four named heroes")
+	_check(adventure.get("party_size") == 3, "First outing requires exactly three heroes")
+	_check(adventure.get("missions", []) == ["bridge_patrol", "company_rescue"],
+		"First outing has the two ordered missions")
+	var missions: Dictionary = definitions.get("missions", {})
+	var patrol: Dictionary = missions.get("bridge_patrol", {})
+	var rescue: Dictionary = missions.get("company_rescue", {})
+	_check(patrol.get("objective", {}).get("handler") == "defeat_all",
+		"Patrol victory requires eliminating all enemies")
+	_check(rescue.get("objective", {}).get("handler") == "escort",
+		"Second mission retains its escort objective")
+	var failures_found := false
+	for failure in patrol.get("failures", []):
+		if failure.get("handler") == "party_wiped":
+			failures_found = true
+		_check(failure.get("handler") != "deadline", "Patrol is untimed")
+	_check(failures_found, "Patrol defeat requires the party to be wiped")
+	for mission in [patrol, rescue]:
+		var encounter: Dictionary = definitions.get("encounters", {}).get(mission.get("encounter", ""), {})
+		_check(encounter.get("party_slots", []).size() == 3,
+			"Adventure encounter provides three ordered party slots")
+
+
+func _matches_preview(committed: Dictionary, plan: Dictionary) -> bool:
+	var gameplay := committed.duplicate(true)
+	gameplay.erase("_terminal_commit")
+	return gameplay == plan.get("result")

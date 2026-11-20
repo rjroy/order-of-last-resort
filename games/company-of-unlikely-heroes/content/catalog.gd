@@ -1,7 +1,7 @@
 extends RefCounted
 ## Reads authored JSON and builds independent encounters without embedding definitions in snapshots.
 
-const DEFAULT_PATH := "res://content/ferryman.json"
+const DEFAULT_PATH := "res://content/catalog.json"
 const TABLES := ["missions", "encounters", "boards", "tiles", "classes", "characters",
 	"capabilities", "objects", "abilities", "orders", "behaviors", "statuses", "events", "presentation"]
 const REQUIRED_EVENTS := ["move", "damage", "knockdown_suffix", "reflect_absorb", "reflect_redirect",
@@ -50,6 +50,38 @@ static func read_default() -> Dictionary:
 
 ## Use for explicit content files as well, so built-in and injected JSON share diagnostics.
 static func read_source(path: String) -> Dictionary:
+	var source := _read_json(path)
+	if source.has("error"):
+		return source
+	var defs: Dictionary = source.definitions
+	if defs.has("parts"):
+		if defs.size() != 1 or not defs.parts is Array or defs.parts.is_empty():
+			return {"error": "Invalid content manifest \"%s\": expected only a nonempty parts array." % path}
+		defs = {}
+		for part in source.definitions.parts:
+			if not part is String or part.strip_edges().is_empty() or part.is_absolute_path():
+				return {"error": "Invalid content manifest \"%s\": part paths must be nonempty relative paths." % path}
+			var part_path := path.get_base_dir().path_join(part)
+			var loaded := _read_json(part_path)
+			if loaded.has("error"):
+				return loaded
+			for table in loaded.definitions:
+				var records: Variant = loaded.definitions[table]
+				if not records is Dictionary:
+					return {"error": "Invalid content part \"%s\": table '%s' must be a dictionary." % [part_path, table]}
+				if not defs.has(table):
+					defs[table] = {}
+				for id in records:
+					if defs[table].has(id):
+						return {"error": "Duplicate %s ID '%s' in content part \"%s\"." % [table, id, part_path]}
+					defs[table][id] = records[id]
+	var errors := validate(defs)
+	if not errors.is_empty():
+		return {"error": "Invalid content in \"%s\":\n%s" % [path, "\n".join(errors)]}
+	return {"definitions": defs}
+
+
+static func _read_json(path: String) -> Dictionary:
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
 		return {"error": "Could not open the content file \"%s\": %s" % [
@@ -65,11 +97,7 @@ static func read_source(path: String) -> Dictionary:
 	var duplicate := _duplicate_key(text)
 	if not duplicate.is_empty():
 		return {"error": "Invalid JSON in \"%s\": %s" % [path, duplicate]}
-	var defs: Dictionary = parser.data
-	var errors := validate(defs)
-	if not errors.is_empty():
-		return {"error": "Invalid content in \"%s\":\n%s" % [path, "\n".join(errors)]}
-	return {"definitions": defs}
+	return {"definitions": parser.data}
 
 
 static func validate(defs: Dictionary) -> PackedStringArray:
@@ -84,7 +112,7 @@ static func profile(defs: Dictionary, character_id: String) -> Dictionary:
 	return defaults.merged(character, true)
 
 
-static func build(defs: Dictionary, mission_id: String) -> Dictionary:
+static func build(defs: Dictionary, mission_id: String, chosen_ids: Array = []) -> Dictionary:
 	if not _report_errors("Catalog", validate(defs)):
 		return {}
 	if not defs.missions.has(mission_id):
@@ -93,10 +121,39 @@ static func build(defs: Dictionary, mission_id: String) -> Dictionary:
 	var mission: Dictionary = defs.missions[mission_id]
 	var encounter: Dictionary = defs.encounters[mission.encounter]
 	var board: Dictionary = defs.boards[encounter.board]
-	var destination := Validator.position(board.locations[mission.objective.destination])
+	var objective := {"handler": mission.objective.handler}
+	if mission.objective.handler == "escort":
+		objective["subject"] = mission.objective.subject
+		objective["destination"] = Validator.position(board.locations[mission.objective.destination])
+	elif mission.objective.handler == "defeat_all":
+		objective["team"] = mission.objective.get("team", "enemies")
 	var units: Array = []
 	var obstacles: Array = []
 	var orders: Dictionary = {}
+	var slots: Array = encounter.get("party_slots", [])
+	if chosen_ids.size() != slots.size():
+		push_error("Catalog: mission '%s' requires exactly %d selected characters; received %d" % [
+			mission_id, slots.size(), chosen_ids.size()])
+		return {}
+	var used: Dictionary = {}
+	for i in chosen_ids.size():
+		var id: Variant = chosen_ids[i]
+		if not id is String or not defs.characters.has(id) or used.has(id):
+			push_error("Catalog: unknown or duplicate selected character '%s'" % str(id))
+			return {}
+		var unit_profile := profile(defs, id)
+		if unit_profile.team != "heroes" or not "commandable" in unit_profile.capabilities:
+			push_error("Catalog: selected character '%s' is not a commandable hero" % id)
+			return {}
+		for placement in encounter.placements:
+			if placement.id == id:
+				push_error("Catalog: selected character ID '%s' collides with a placement" % id)
+				return {}
+		used[id] = true
+		units.append({"id": id, "character_id": id, "position": Validator.position(slots[i]),
+			"statuses": {}, "hp": int(unit_profile.max_hp), "max_hp": int(unit_profile.max_hp)})
+		if unit_profile.has("default_order"):
+			orders[id] = unit_profile.default_order
 	for placement in encounter.placements:
 		var instance := {"id": placement.id, "position": Validator.position(placement.at), "statuses": {}}
 		if placement.has("character"):
@@ -115,8 +172,7 @@ static func build(defs: Dictionary, mission_id: String) -> Dictionary:
 		terrain.append({"position": Validator.position(tile.at), "type": tile.type})
 	return {"catalog": FrozenCatalog.new(defs),
 		"mission_id": mission_id, "encounter_id": mission.encounter, "board_id": encounter.board,
-		"objective": {"handler": mission.objective.handler, "subject": mission.objective.subject,
-			"destination": destination},
+		"objective": objective,
 		"width": int(board.width), "height": int(board.height), "default_tile": board.default_tile,
 		"units": units, "obstacles": obstacles, "terrain": terrain,
 		"round": 1, "orders": orders, "overrides": {}, "outcome": "ongoing"}
@@ -179,6 +235,11 @@ class Validator:
 		_each("boards", _check_board)
 		_each("encounters", _check_encounter)
 		_each("missions", _check_mission)
+		if _defs.has("adventures"):
+			var adventures := _dictionary(_defs.adventures, "adventures")
+			for id in adventures:
+				_text(str(id), "adventures ID")
+				_check_adventure(_dictionary(adventures[id], "adventures." + str(id)), "adventures." + str(id))
 		return _errors
 
 	func _check_json_shape(value: Variant, path: String, ancestors: Array) -> void:
@@ -420,7 +481,8 @@ class Validator:
 		var board: Dictionary = {}
 		if _ref(encounter.get("board"), "boards", path + ".board"):
 			board = _defs.boards[encounter.board]
-		_integer(encounter.get("deadline"), path + ".deadline", 1)
+		if encounter.has("deadline"):
+			_integer(encounter.deadline, path + ".deadline")
 		var placements := _array(encounter.get("placements"), path + ".placements")
 		var terrain := _terrain_index(board)
 		var occupied: Dictionary = {}
@@ -446,18 +508,34 @@ class Validator:
 				if _blocked(terrain.get(at, board.get("default_tile"))):
 					_error(place_path + ".at", "placement is on impassable terrain")
 				occupied[at] = str(id)
+		var slots := _array(encounter.get("party_slots", []), path + ".party_slots")
+		for i in slots.size():
+			var slot_path := "%s.party_slots[%d]" % [path, i]
+			var at: Variant = _board_position(slots[i], board, slot_path)
+			if at != null:
+				if occupied.has(at):
+					_error(slot_path, "slot overlaps '%s'" % occupied[at])
+				if _blocked(terrain.get(at, board.get("default_tile"))):
+					_error(slot_path, "slot is on impassable terrain")
+				occupied[at] = "party slot"
 
 	func _check_mission(mission: Dictionary, path: String) -> void:
 		_text(mission.get("title"), path + ".title")
+		if mission.has("tier"):
+			_integer(mission.tier, path + ".tier", 1)
 		var encounter: Dictionary = {}
 		if _ref(mission.get("encounter"), "encounters", path + ".encounter"):
 			encounter = _defs.encounters[mission.encounter]
 		var objective := _dictionary(mission.get("objective"), path + ".objective")
-		_choice(objective.get("handler"), ["escort"], path + ".objective.handler")
+		var objective_handler := ""
+		if _choice(objective.get("handler"), ["escort", "defeat_all"], path + ".objective.handler"):
+			objective_handler = objective.handler
+		if objective_handler == "defeat_all" and objective.has("team"):
+			_text(objective.team, path + ".objective.team")
 		for field in ["text", "victory_text", "defeat_text", "victory_event"]:
 			_text(objective.get(field), path + ".objective." + field)
 		var subject: Variant = objective.get("subject")
-		if _text(subject, path + ".objective.subject") and not encounter.is_empty():
+		if objective_handler == "escort" and _text(subject, path + ".objective.subject") and not encounter.is_empty():
 			var found := false
 			var placements: Variant = encounter.get("placements")
 			if placements is Array:
@@ -468,7 +546,7 @@ class Validator:
 			if not found:
 				_error(path + ".objective.subject", "no character placement has ID '%s'" % subject)
 		var destination: Variant = objective.get("destination")
-		if _text(destination, path + ".objective.destination") and not encounter.is_empty():
+		if objective_handler == "escort" and _text(destination, path + ".objective.destination") and not encounter.is_empty():
 			var board: Dictionary = _defs.boards.get(encounter.get("board"), {})
 			var locations: Variant = board.get("locations")
 			if locations is Dictionary and not locations.has(destination):
@@ -479,11 +557,47 @@ class Validator:
 			var failure_path := "%s.failures[%d]" % [path, i]
 			var failure := _dictionary(failures[i], failure_path)
 			var handler: Variant = failure.get("handler")
-			if _choice(handler, ["subject_dead", "deadline"], failure_path + ".handler"):
+			if _choice(handler, ["subject_dead", "deadline", "party_wiped"], failure_path + ".handler"):
 				if seen.has(handler):
 					_error(failure_path + ".handler", "duplicate failure '%s'" % handler)
 				seen[handler] = true
+				if handler == "deadline" and not _is_integer(encounter.get("deadline"), 1):
+					_error(failure_path, "deadline failure requires a positive encounter deadline")
+				if handler == "subject_dead" and objective_handler != "escort":
+					_error(failure_path, "subject_dead requires an escort objective")
 			_text(failure.get("event"), failure_path + ".event")
+
+	func _check_adventure(adventure: Dictionary, path: String) -> void:
+		_text(adventure.get("label"), path + ".label")
+		_integer(adventure.get("party_size"), path + ".party_size", 1)
+		var roster := _id_list(adventure.get("roster"), path + ".roster", "characters")
+		var missions := _id_list(adventure.get("missions"), path + ".missions", "missions")
+		if missions.is_empty():
+			_error(path + ".missions", "requires at least one mission")
+		var party_size: Variant = adventure.get("party_size")
+		if not _is_integer(party_size, 1):
+			return
+		if roster.size() < int(party_size):
+			_error(path + ".roster", "roster is smaller than party size")
+		for id in roster:
+			if id is String and _defs.characters.has(id):
+				var character: Dictionary = _defs.characters[id]
+				var hero: Dictionary = _defs.classes.get(character.get("class"), {}).merged(character, true)
+				var capabilities: Variant = hero.get("capabilities")
+				if hero.get("team") != "heroes" or not capabilities is Array or not "commandable" in capabilities:
+					_error(path + ".roster", "character '%s' is not a commandable hero" % id)
+		for id in missions:
+			if not id is String or not _defs.missions.has(id):
+				continue
+			var encounter: Dictionary = _defs.encounters.get(_defs.missions[id].get("encounter"), {})
+			var slots: Variant = encounter.get("party_slots", [])
+			if not slots is Array or slots.size() != int(party_size):
+				_error(path + ".missions", "mission '%s' must have exactly %d party slots" % [id, int(party_size)])
+			var placements: Variant = encounter.get("placements", [])
+			if placements is Array:
+				for placement in placements:
+					if placement is Dictionary and placement.get("id") in roster:
+						_error(path + ".missions", "mission '%s' placement collides with roster ID" % id)
 
 	func _terrain_index(board: Dictionary) -> Dictionary:
 		var result: Dictionary = {}

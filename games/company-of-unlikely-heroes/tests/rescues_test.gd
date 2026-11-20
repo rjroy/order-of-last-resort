@@ -49,9 +49,12 @@ func _run() -> void:
 	for method in ["new_game", "options", "targets", "set_order", "choose_manual", "preview", "preview_round", "commit_round"]:
 		if not rules.has_method(method):
 			_fail("Missing gameplay API method: " + method)
+	for method in rules.get_method_list():
+		if method.name == "new_game" and method.args.size() != 2:
+			_fail("new_game must accept definitions and mission_id, without a mode")
 	if not failures.is_empty():
 		return
-	var initial = rules.call("new_game", "hybrid")
+	var initial = rules.call("new_game", null, "ferryman")
 	if not initial is Dictionary:
 		_fail("new_game must return a state Dictionary")
 		return
@@ -61,64 +64,9 @@ func _run() -> void:
 	_play("pull rescue", initial, PULL_RESCUE, "victory", true)
 	_play("no-pull rescue", initial, NO_PULL_RESCUE, "victory", false)
 	_play("loss", initial, LOSS, "defeat", false)
-	_standing_rescue(initial)
-	var restart = rules.call("new_game", "hybrid")
+	var restart = rules.call("new_game", null, "ferryman")
 	if _mutable_facts(restart) != _mutable_facts(initial):
 		_fail("Restart must reproduce the clean initial state, including orders and overrides")
-
-
-func _standing_rescue(hybrid_initial: Dictionary) -> void:
-	var standing = rules.call("new_game", "standing")
-	if not standing is Dictionary:
-		_fail("Standing new_game must return a state Dictionary")
-		return
-	var comparable := _mutable_facts(standing)
-	var hybrid := _mutable_facts(hybrid_initial)
-	comparable.erase("mode")
-	comparable.erase("manual_remaining")
-	hybrid.erase("mode")
-	hybrid.erase("manual_remaining")
-	if comparable != hybrid:
-		_fail("Standing rescue must begin in the same encounter as hybrid")
-		return
-	if not _has_option(standing, "wizard", "order_rescue", "order"):
-		_fail("Standing rescue requires a UI-exposed wizard rescue order")
-		return
-	var state = rules.call("set_order", standing, "wizard", "order_rescue")
-	if not state is Dictionary or state.get("orders", {}).get("wizard", "") != "order_rescue":
-		_fail("Wizard rescue order must be selectable as a persistent standing order")
-		return
-	var pulled_civilian := false
-	var limit: int = rules.deadline(state)
-	for round_index in range(limit):
-		if state.get("outcome", "") != "ongoing":
-			break
-		if state.get("manual_remaining", -1) != 0 or not state.get("overrides", {}).is_empty():
-			_fail("Standing rescue must not use manual overrides")
-			return
-		if state.get("orders", {}).get("wizard", "") != "order_rescue":
-			_fail("Wizard rescue order must persist across rounds")
-			return
-		var before: Dictionary = state.duplicate(true)
-		var plan = rules.call("preview_round", state)
-		if state != before or not plan is Dictionary or not plan.get("valid", false):
-			_fail("Standing rescue requires a valid, non-mutating round preview")
-			return
-		for event in plan.get("events", []):
-			if event.get("type", "") == "pull" and event.get("target_id", "") == "civilian" and event.get("unit_id", "") == "wizard" \
-					and event.get("position") == _unit(before, "wizard").get("position"):
-				pulled_civilian = true
-		var committed = rules.call("commit_round", state, plan)
-		if committed != plan.get("result"):
-			_fail("Standing rescue commit must match preview")
-			return
-		state = committed
-	if state.get("outcome", "") != "victory":
-		_fail("Persistent wizard rescue order must enable a real standing-mode victory")
-	if not pulled_civilian:
-		_fail("Standing-mode victory must include a successful civilian pull")
-	if not _civilian_at_exit(state):
-		_fail("Standing-mode victory must put the civilian at the exit")
 
 
 func _play(name: String, initial: Dictionary, route: Array, outcome: String, require_pull: bool) -> void:
@@ -179,7 +127,7 @@ func _play(name: String, initial: Dictionary, route: Array, outcome: String, req
 			_fail("%s round preview is invalid" % name)
 			return
 		var committed = rules.call("commit_round", state, plan)
-		if committed != plan.get("result"):
+		if not _matches_preview(committed, plan):
 			_fail("%s commit differs from its preview" % name)
 			return
 		if expected_pull:
@@ -243,6 +191,12 @@ func _civilian_at_exit(state: Dictionary) -> bool:
 func _mutable_facts(state: Dictionary) -> Dictionary:
 	var facts := {}
 	for key in ["width", "height", "units", "terrain", "obstacles", "objective",
-			"round", "mode", "manual_remaining", "orders", "overrides", "outcome"]:
+			"round", "mode", "orders", "overrides", "outcome"]:
 		facts[key] = state.get(key)
 	return facts
+
+
+func _matches_preview(committed: Dictionary, plan: Dictionary) -> bool:
+	var gameplay := committed.duplicate(true)
+	gameplay.erase("_terminal_commit")
+	return gameplay == plan.get("result")

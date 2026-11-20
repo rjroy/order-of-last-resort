@@ -21,7 +21,7 @@ func _run() -> void:
 	current_scene = scene
 	await process_frame
 	await process_frame
-	for name in ["ModeDirect", "ModeStanding", "Restart", "Preview", "Commit",
+	for name in ["Restart", "Preview", "Commit",
 			"ActorSelect", "AbilitySelect", "TargetSelect", "PreviewText", "ObjectiveText", "RoundText", "BridgeBoard"]:
 		var control := scene.find_child(name, true, false)
 		if control == null:
@@ -37,17 +37,12 @@ func _run() -> void:
 
 
 func _run_child() -> void:
-	var file := FileAccess.open("res://content/ferryman.json", FileAccess.READ)
-	if file == null:
-		failures.append("Default authored catalog is missing")
+	var catalog = load("res://content/catalog.gd")
+	var data: Dictionary = catalog.read_default()
+	if data.is_empty():
+		failures.append("Default authored catalog is missing or invalid")
 		_finish()
 		return
-	var definitions: Variant = JSON.parse_string(file.get_as_text())
-	if not definitions is Dictionary:
-		failures.append("Default authored catalog is invalid JSON")
-		_finish()
-		return
-	var data: Dictionary = definitions
 	data["missions"][MISSION]["title"] = "A courier crossing"
 	data["missions"][MISSION]["objective"]["subject"] = "passenger"
 	data["missions"][MISSION]["objective"]["text"] = "Escort {subject_label} to {destination}; {hp}/{max_hp} at {position}"
@@ -116,10 +111,9 @@ func _exercise_permanent_regression() -> void:
 	_check(_entity(first_plan.get("result", {}), "far_crate") == _entity(initial, "far_crate"),
 		"First forecast leaves the far crate unchanged")
 	_check(_same_state(scene.get("_state"), initial), "First forecast does not commit")
-	await _press("ModeDirect")
-	_check(scene.get("_state").get("manual_remaining") == 4, "Direct mode has four command slots")
+	_check(scene.get("_state").get("overrides", {}).is_empty(), "Hybrid starts without a command")
 	for hero in ["blast_knight", "knight", "healer", "wizard"]:
-		_check(_has_id(controls["ActorSelect"], hero), "Direct mode offers " + hero)
+		_check(_has_id(controls["ActorSelect"], hero), "Hybrid mode offers " + hero)
 	if await _select_id(controls["ActorSelect"], "blast_knight"):
 		_check(_has_id(controls["AbilitySelect"], "wizard_blast"), "Blast knight has blast")
 		_check(not _has_id(controls["AbilitySelect"], "knight_push"), "Blast knight does not have push")
@@ -140,7 +134,6 @@ func _exercise_scene() -> void:
 	_check(overlay.get("exit") == Vector2i(6, 4), "Board must mark the authored exit")
 	_check_shore(overlay.get("safe", {}), 4)
 
-	await _press("ModeDirect")
 	var before: Dictionary = scene.get("_state").duplicate(true)
 	if await _select_id(controls["ActorSelect"], "knight") and await _select_id(controls["AbilitySelect"], "knight_push"):
 		var retained_forecast: Dictionary = {}
@@ -162,17 +155,17 @@ func _exercise_scene() -> void:
 		_check(not retained_forecast.is_empty() and _same_state(scene.get("_state"), retained_forecast),
 			"Commit must match the retained second-crate forecast")
 		await _press("Restart")
-		_check(_same_state(scene.get("_state"), before), "Restart must restore authored direct encounter")
+		_check(_same_state(scene.get("_state"), before), "Restart must restore authored hybrid encounter")
 
 	if await _select_id(controls["ActorSelect"], "second_knight"):
 		_check(_has_id(controls["AbilitySelect"], "wizard_blast"), "Second knight must expose its authored blast")
 		_check(not _has_id(controls["AbilitySelect"], "knight_push"), "Second knight must not inherit the other knight's push")
 		if await _select_id(controls["AbilitySelect"], "wizard_blast"):
 			await _press("Preview")
-			_check(_event_targets(scene.get("_plan"), "second_crate"), "Second knight direct blast must forecast its nearby crate")
+			_check(_event_targets(scene.get("_plan"), "second_crate"), "Second knight blast must forecast its nearby crate")
 			_check(_same_state(scene.get("_state"), before), "Second knight preview must not mutate committed state")
 
-	await _press("ModeStanding")
+	await _press("Restart")
 	var standing_before: Dictionary = scene.get("_state").duplicate(true)
 	var first_order := _order_picker("knight")
 	var second_order := _order_picker("second_knight")

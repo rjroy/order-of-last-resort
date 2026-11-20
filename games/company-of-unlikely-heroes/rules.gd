@@ -6,37 +6,23 @@ const Behaviors = preload("res://rules/behaviors.gd")
 const Board = preload("res://rules/board.gd")
 const Statuses = preload("res://rules/statuses.gd")
 
-func new_game(mode: String, definitions_input: Variant = null, mission_id := "ferryman") -> Dictionary:
+
+func new_game(definitions_input: Variant = null, mission_id := "ferryman") -> Dictionary:
 	var authored: Variant = definitions_input if definitions_input != null else Catalog.read_default()
 	if not authored is Dictionary:
 		push_error("Company: definitions must be a Dictionary.")
 		return {}
 	if definitions_input == null and authored.is_empty():
 		return {}
-	return start_in_mode(Catalog.build(authored, mission_id), mode)
+	return open_mission(authored, mission_id)
 
 
-## Start from a pristine authored opening; share its catalog but not mutable state.
-func start_in_mode(opening: Dictionary, mode: String) -> Dictionary:
-	if opening.is_empty():
-		return {}
-	var state := opening.duplicate(true)
-	state["mode"] = mode if mode in ["hybrid", "direct", "standing"] else "hybrid"
-	state["manual_remaining"] = _budget(state)
+## With no party IDs, open a fixed authored regression scenario.
+static func open_mission(definitions_input: Dictionary, mission_id: String, party_ids: Array = []) -> Dictionary:
+	var state := Catalog.build(definitions_input, mission_id, party_ids)
+	if not state.is_empty() and not party_ids.is_empty():
+		state["party"] = party_ids.duplicate()
 	return state
-
-
-func _budget(state: Dictionary) -> int:
-	match state.mode:
-		"hybrid":
-			return 1
-		"direct":
-			var living := 0
-			for actor in state.units:
-				if Board.alive(actor) and Board.capable(state, actor, "commandable"):
-					living += 1
-			return living
-	return 0
 
 
 func definitions(state: Dictionary) -> Dictionary:
@@ -64,6 +50,21 @@ func mission_definition(state: Dictionary) -> Dictionary:
 	return definitions(state).missions[state.mission_id]
 
 
+## Elimination progress, using the same authored team and living check as victory.
+func objective_progress(state: Dictionary) -> Dictionary:
+	if state.objective.handler != "defeat_all":
+		return {}
+	var team: String = state.objective.team
+	var alive := 0
+	var total := 0
+	for unit in state.units:
+		if Board.team(state, unit) == team:
+			total += 1
+			if Board.alive(unit):
+				alive += 1
+	return {"alive": alive, "total": total}
+
+
 func tile_definition(state: Dictionary, position: Vector2i) -> Dictionary:
 	return Board.tile(state, position)
 
@@ -74,7 +75,7 @@ func location(state: Dictionary, id: String) -> Variant:
 
 
 func deadline(state: Dictionary) -> int:
-	return int(definitions(state).encounters[state.encounter_id].deadline)
+	return int(definitions(state).encounters[state.encounter_id].get("deadline", 0))
 
 
 func has_capability(state: Dictionary, unit_id: String, capability: String) -> bool:
@@ -114,7 +115,7 @@ func options(state: Dictionary, unit_id: String) -> Array:
 func set_order(state: Dictionary, unit_id: String, order_id: String) -> Dictionary:
 	var result := state.duplicate(true)
 	var profile := entity_profile(state, unit_id)
-	if "commandable" in profile.get("capabilities", []) and profile.habits.has(order_id):
+	if state.outcome == "ongoing" and "commandable" in profile.get("capabilities", []) and profile.habits.has(order_id):
 		result.orders[unit_id] = order_id
 	return result
 
@@ -128,11 +129,11 @@ func preview(state: Dictionary, unit_id: String, ability_id: String, target_id :
 	var events: Array = []
 	var valid: bool = state.get("outcome") == "ongoing" and Actions.execute(result, Board.entity(result, unit_id),
 		{"ability_id": ability_id, "target_id": target_id}, events)
-	return _plan(state, result, events, valid)
+	return _plan("action", state, result, events, valid)
 
 
-func _plan(state: Dictionary, result: Dictionary, events: Array, valid: bool) -> Dictionary:
-	return {"valid": valid, "events": events, "result": result, "source": state.duplicate(true)}
+func _plan(kind: String, state: Dictionary, result: Dictionary, events: Array, valid: bool) -> Dictionary:
+	return {"kind": kind, "valid": valid, "events": events, "result": result, "source": state.duplicate(true)}
 
 
 func apply_plan(state: Dictionary, plan: Dictionary) -> Dictionary:
@@ -149,25 +150,22 @@ func choose_manual(state: Dictionary, unit_id: String, ability_id: String, targe
 	if state.outcome != "ongoing" or not Board.alive(actor) or not Board.capable(state, actor, "commandable") \
 			or Actions.owned_ability(state, actor, ability_id).is_empty():
 		return result
-	if not result.overrides.has(unit_id):
-		if result.manual_remaining <= 0:
-			return result
-		result.manual_remaining -= 1
+	if not result.overrides.is_empty() and not result.overrides.has(unit_id):
+		return result
 	# Stored intent is checked on the board as this actor gets their turn.
 	result.overrides[unit_id] = {"ability_id": ability_id, "target_id": target_id}
 	return result
 
 
-func _begin_next_round(state: Dictionary) -> void:
-	state.round += 1
-	state.manual_remaining = _budget(state)
-	state.overrides.clear()
-
-
-func advance_round(state: Dictionary) -> Dictionary:
+func clear_manual(state: Dictionary) -> Dictionary:
 	var result := state.duplicate(true)
-	_begin_next_round(result)
+	if result.outcome == "ongoing":
+		_reset_override(result)
 	return result
+
+
+func _reset_override(state: Dictionary) -> void:
+	state.overrides.clear()
 
 
 ## The board as a commandable actor's turn starts, after earlier turns.
@@ -182,17 +180,46 @@ func preview_round(state: Dictionary) -> Dictionary:
 	var result := state.duplicate(true)
 	var events: Array = []
 	if state.get("outcome") != "ongoing":
-		return _plan(state, result, events, false)
+		return _plan("round", state, result, events, false)
 	_resolve_turns(result, events)
-	if not _check_objective(result, events):
-		_check_failures(result, events)
-	if result.outcome == "ongoing":
-		_begin_next_round(result)
-	return _plan(state, result, events, true)
+	var ending := _end_condition(result)
+	if ending.is_empty():
+		result.round += 1
+		_reset_override(result)
+	else:
+		if ending.get("collapse", false):
+			_collapse(result)
+		result.outcome = ending.outcome
+		events.append(_mission_end_event(result, ending))
+	return _plan("round", state, result, events, true)
 
 
 func commit_round(state: Dictionary, plan: Dictionary) -> Dictionary:
-	return apply_plan(state, plan)
+	if plan.get("kind") != "round":
+		return state.duplicate(true)
+	var result := apply_plan(state, plan)
+	if state.get("outcome") == "ongoing" and result.get("outcome") in ["victory", "defeat"] and state.has("party"):
+		# Distinguish a committed adventure round from a forecast of the same board.
+		if not _matches_board_outcome(result):
+			return state.duplicate(true)
+		result["_terminal_commit"] = true
+	return result
+
+
+func is_committed_terminal(state: Dictionary) -> bool:
+	return state.get("_terminal_commit", false) == true and _matches_board_outcome(state)
+
+
+func mission_result_text(state: Dictionary) -> String:
+	var ending := _end_condition(state)
+	if ending.get("outcome") != state.get("outcome"):
+		return ""
+	return _mission_end_event(state, ending).text
+
+
+func _matches_board_outcome(state: Dictionary) -> bool:
+	return state.get("outcome") in ["victory", "defeat"] \
+		and _end_condition(state).get("outcome") == state.outcome
 
 
 func _resolve_turns(state: Dictionary, events: Array, stop_before := "") -> void:
@@ -232,34 +259,44 @@ func _intent(state: Dictionary, actor: Dictionary) -> Dictionary:
 	return Behaviors.decide(state, actor, behavior)
 
 
-func _check_objective(state: Dictionary, events: Array) -> bool:
+func _objective_met(state: Dictionary) -> bool:
 	var objective: Dictionary = state.objective
-	if objective.handler != "escort":
-		return false
-	var subject := Board.entity(state, objective.subject)
-	if not Board.alive(subject) or subject.position != objective.destination:
-		return false
-	var spec: Dictionary = mission_definition(state).objective
-	state["outcome"] = "victory"
-	_mission_event(state, events, "victory", spec.victory_event)
-	return true
+	match objective.handler:
+		"escort":
+			var subject := Board.entity(state, objective.subject)
+			return Board.alive(subject) and subject.position == objective.destination
+		"defeat_all":
+			return objective_progress(state).alive == 0
+	return false
 
 
-func _check_failures(state: Dictionary, events: Array) -> void:
-	for failure in mission_definition(state).failures:
+func _party_survives(state: Dictionary) -> bool:
+	for actor in state.units:
+		var belongs: bool = actor.id in state.party if state.has("party") \
+			else Board.capable(state, actor, "commandable")
+		if belongs and Board.alive(actor):
+			return true
+	return false
+
+
+## Resolve precedence from the final board without mutating it.
+func _end_condition(state: Dictionary) -> Dictionary:
+	var mission := mission_definition(state)
+	for failure in mission.failures:
+		if failure.handler == "party_wiped" and not _party_survives(state):
+			return {"outcome": "defeat", "event": failure.event}
+	if _objective_met(state):
+		return {"outcome": "victory", "event": mission.objective.victory_event}
+	for failure in mission.failures:
 		match failure.handler:
 			"subject_dead":
-				if Board.alive(Board.entity(state, state.objective.subject)):
-					continue
+				if not Board.alive(Board.entity(state, state.objective.subject)):
+					return {"outcome": "defeat", "event": failure.event}
 			"deadline":
-				if deadline(state) == 0 or state.round < deadline(state):
-					continue
-				_collapse(state)
-			_:
-				continue
-		state["outcome"] = "defeat"
-		_mission_event(state, events, "defeat", failure.event)
-		return
+				var due := deadline(state)
+				if due > 0 and state.round >= due:
+					return {"outcome": "defeat", "event": failure.event, "collapse": true}
+	return {}
 
 
 func _collapse(state: Dictionary) -> void:
@@ -269,11 +306,17 @@ func _collapse(state: Dictionary) -> void:
 	state.default_tile = tiles[state.default_tile].get("collapse_to", state.default_tile)
 
 
-func _mission_event(state: Dictionary, events: Array, type: String, template: String) -> void:
-	var subject := Board.entity(state, state.objective.subject)
-	var name := Board.display_name(state, subject)
-	var destination: Vector2i = state.objective.destination
-	var text := Board.format_text(template, {"subject": name.to_lower(), "subject_label": name,
-		"destination": destination, "position": subject.get("position", destination), "hp": subject.get("hp", 0),
-		"max_hp": subject.get("max_hp", 0)})
-	Board.event(events, type, text, {"target_id": state.objective.subject, "position": destination})
+func _mission_end_event(state: Dictionary, ending: Dictionary) -> Dictionary:
+	var substitutions: Dictionary = {}
+	var event := {"type": ending.outcome}
+	if state.objective.handler == "escort":
+		var subject := Board.entity(state, state.objective.subject)
+		var name := Board.display_name(state, subject)
+		var destination: Vector2i = state.objective.destination
+		substitutions = {"subject": name.to_lower(), "subject_label": name,
+			"destination": destination, "position": subject.get("position", destination),
+			"hp": subject.get("hp", 0), "max_hp": subject.get("max_hp", 0)}
+		event["target_id"] = state.objective.subject
+		event["position"] = destination
+	event["text"] = Board.format_text(ending.event, substitutions)
+	return event

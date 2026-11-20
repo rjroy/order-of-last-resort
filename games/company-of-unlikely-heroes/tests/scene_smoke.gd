@@ -18,16 +18,16 @@ func _test_shore_presentation() -> void:
 	var original: Dictionary = scene.get("_state")
 	var defs: Dictionary = rules.definitions(original).duplicate(true)
 	defs.tiles.stone.art_key = "custom_floor"
-	scene.set("_state", rules.new_game("hybrid", defs, "ferryman"))
+	scene.set("_state", rules.new_game(defs, "ferryman"))
 	var cells: Dictionary = scene.call("_terrain")
 	_check(cells[Vector2i(6, 2)] == "custom_floor" and scene.get("_safe_cells").size() == 15,
 		"Authored shore tint works with custom tile art without replacing it")
 	defs.boards.bridge.erase("shore_cells")
-	scene.set("_state", rules.new_game("hybrid", defs, "ferryman"))
+	scene.set("_state", rules.new_game(defs, "ferryman"))
 	scene.call("_terrain")
 	_check(scene.get("_safe_cells").is_empty(), "Board without shore configuration has no automatic tint")
 	defs.tiles.stone.art_key = "stone"
-	scene.set("_state", rules.new_game("hybrid", defs, "ferryman"))
+	scene.set("_state", rules.new_game(defs, "ferryman"))
 	scene.call("_terrain")
 	_check(scene.get("_safe_cells").is_empty(), "Stone art alone does not imply a shore")
 	scene.set("_state", original)
@@ -59,11 +59,25 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 
-	for name in ["ModeHybrid", "ModeDirect", "ModeStanding", "Restart", "Preview", "Commit"]:
+	_check(scene.has_method("current_screen") and scene.call("current_screen") == "guild",
+		"Default entry must show the guild screen")
+	_check(scene.find_child("ModeDirect", true, false) == null
+		and scene.find_child("ModeStanding", true, false) == null,
+		"Guild entry must not offer retired mode selectors")
+	scene.queue_free()
+	await process_frame
+	scene = packed.instantiate()
+	scene.call("configure_launch", PackedStringArray(["--mission=ferryman"]))
+	root.add_child(scene)
+	current_scene = scene
+	await process_frame
+	await process_frame
+	_check(scene.call("current_screen") == "battle", "Fixed mission launches into battle")
+	for name in ["Restart", "Preview", "Commit"]:
 		_require_control(name, BaseButton)
 	for name in ["ActorSelect", "AbilitySelect", "TargetSelect"]:
 		_require_control(name, OptionButton)
-	for name in ["StatusText", "RoundText", "PreviewText"]:
+	for name in ["MissionTitle", "RoundText", "PreviewText"]:
 		var node := scene.find_child(name, true, false)
 		if node == null or not (node is Label or node is RichTextLabel or node is TextEdit):
 			failures.append("Missing behavior: visible text control " + name)
@@ -74,23 +88,15 @@ func _run() -> void:
 		_finish()
 		return
 
-	var initial_status := _text("StatusText")
+	var initial_status := _text("MissionTitle")
 	var initial_round := _text("RoundText")
 	_check(not initial_status.strip_edges().is_empty(), "Hybrid entry must display status")
 	_check(not initial_round.strip_edges().is_empty(), "Hybrid entry must display the round")
 	_test_shore_presentation()
 
-	await _press("ModeDirect")
-	var direct_status := _text("StatusText")
-	_check(not direct_status.strip_edges().is_empty() and direct_status != initial_status,
-		"Direct mode must visibly differ from hybrid")
-	await _press("ModeStanding")
-	var standing_status := _text("StatusText")
-	_check(not standing_status.strip_edges().is_empty() and standing_status != direct_status
-		and standing_status != initial_status, "Standing mode must visibly differ from other modes")
-	await _press("ModeHybrid")
-	_check(_text("StatusText") == initial_status and _text("RoundText") == initial_round,
-		"Hybrid mode must restart at its initial state")
+	_check(scene.find_child("ModeDirect", true, false) == null
+		and scene.find_child("ModeStanding", true, false) == null,
+		"Battle must not offer retired mode selectors")
 
 	var actors: OptionButton = controls["ActorSelect"]
 	var abilities: OptionButton = controls["AbilitySelect"]
@@ -116,12 +122,8 @@ func _run() -> void:
 		await _press("Commit")
 		_check(_text("RoundText") != initial_round, "Committing the preview must advance the round")
 		await _press("Restart")
-		_check(_text("RoundText") == initial_round and _text("StatusText") == initial_status,
+		_check(_text("RoundText") == initial_round and _text("MissionTitle") == initial_status,
 			"Restart must restore the initial hybrid state")
-
-	await _test_direct_follow_up_move()
-	_test_four_hero_direct_budget()
-	await _press("ModeHybrid")
 
 	var capture_path := ""
 	for arg in OS.get_cmdline_user_args():
@@ -140,58 +142,6 @@ func _run() -> void:
 				var error := image.save_png(capture_path)
 				_check(error == OK, "Could not save viewport capture: %s" % error)
 	_finish()
-
-
-func _test_direct_follow_up_move() -> void:
-	await _press("ModeDirect")
-	var initial: Dictionary = scene.get("_state").duplicate(true)
-	var initial_round := _text("RoundText")
-	if not await _select_id("ActorSelect", "knight"):
-		return
-	var knight_label: String = controls["ActorSelect"].get_item_text(controls["ActorSelect"].selected).to_lower()
-	if not await _select_id("AbilitySelect", "knight_push"):
-		return
-	if not await _select_id("TargetSelect", "civilian"):
-		return
-	var civilian_label: String = controls["TargetSelect"].get_item_text(controls["TargetSelect"].selected).split("  ·  ")[0].to_lower()
-	await _press("Preview")
-	var push_text := _text("PreviewText").to_lower()
-	_check(knight_label in push_text and civilian_label in push_text and "push" in push_text and "b4" in push_text,
-		"Direct forecast must show the knight pushing the ferryman from B3 to B4")
-	if not await _select_id("ActorSelect", "healer"):
-		return
-	var healer_label: String = controls["ActorSelect"].get_item_text(controls["ActorSelect"].selected).to_lower()
-	if not await _select_id("AbilitySelect", "move"):
-		return
-	if not await _select_id("TargetSelect", "1,2"):
-		return
-	await _press("Preview")
-	var move_text := _text("PreviewText").to_lower()
-	_check(healer_label in move_text and "move" in move_text and "b3" in move_text,
-		"Direct forecast must show the healer successfully moving into the vacated B3")
-	_check(scene.get("_state") == initial and _text("RoundText") == initial_round,
-		"Previewing the chained move must not alter the committed initial state")
-
-
-func _test_four_hero_direct_budget() -> void:
-	var catalog = load("res://content/catalog.gd")
-	var definitions: Dictionary = catalog.read_default()
-	definitions["encounters"]["crossing"]["placements"].append(
-		{"id": "spare", "character": "knight", "at": [6, 4]})
-	var rules = scene.get("_rules")
-	var state: Dictionary = rules.new_game("direct", definitions, "ferryman")
-	_check(state.get("manual_remaining", -1) == 4,
-		"Direct mode issues four slots for four authored commandable heroes")
-	for choice in [["knight", "knight_aura"], ["healer", "healer_heal"],
-			["wizard", "wizard_blast"], ["spare", "knight_aura"]]:
-		var plan: Dictionary = rules.preview(state, choice[0], choice[1], "")
-		_check(plan.get("valid", false), "Authored four-hero fixture must offer each hero a legal action")
-		var before := state.duplicate(true)
-		state = rules.choose_manual(state, choice[0], choice[1], "")
-		_check(state.get("manual_remaining", -1) == before.get("manual_remaining", 0) - 1,
-			"Each of the four authored heroes consumes one Direct slot")
-	_check(state.get("manual_remaining", -1) == 0 and state.get("overrides", {}).size() == 4,
-		"Direct mode accepts one override for each of four authored heroes")
 
 
 func _select_id(name: String, id: String) -> bool:

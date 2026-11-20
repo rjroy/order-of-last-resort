@@ -1,0 +1,176 @@
+{
+  "missions": {
+    "ferryman": {
+      "title": "The last ferryman",
+      "encounter": "crossing",
+      "objective": {
+        "handler": "escort",
+        "subject": "civilian",
+        "destination": "safe_bank",
+        "text": "Get the {subject} to {destination} before the bridge fails.   ·   {subject_label} {hp}/{max_hp} HP at {position}",
+        "victory_text": "Rescued! The {subject} reached the safe bank.",
+        "defeat_text": "Rescue failed. The {subject} fell or the ferry departed.",
+        "victory_event": "The {subject} reaches the ferry!"
+      },
+      "failures": [
+        {
+          "handler": "subject_dead",
+          "event": "The {subject} falls."
+        },
+        {
+          "handler": "deadline",
+          "event": "The ferry departs as the bridge fails."
+        }
+      ]
+    },
+    "extra_knight": {
+      "title": "The last ferryman: extra knight",
+      "encounter": "extra_knight_crossing",
+      "objective": {
+        "handler": "escort",
+        "subject": "civilian",
+        "destination": "near_landing",
+        "text": "Get the {subject} to {destination} before the bridge fails.   ·   {subject_label} {hp}/{max_hp} HP at {position}",
+        "victory_text": "Rescued! The {subject} reached the safe bank.",
+        "defeat_text": "Rescue failed. The {subject} fell or the ferry departed.",
+        "victory_event": "The {subject} reaches the ferry!"
+      },
+      "failures": [
+        {
+          "handler": "subject_dead",
+          "event": "The {subject} falls."
+        },
+        {
+          "handler": "deadline",
+          "event": "The ferry departs as the bridge fails."
+        }
+      ]
+    }
+  },
+  "encounters": {
+    "crossing": {
+      "board": "bridge",
+      "deadline": 10,
+      "placements": [
+        {
+          "id": "knight",
+          "character": "knight",
+          "at": [
+            1,
+            1
+          ]
+        },
+        {
+          "id": "healer",
+          "character": "healer",
+          "at": [
+            0,
+            2
+          ]
+        },
+        {
+          "id": "wizard",
+          "character": "wizard",
+          "at": [
+            4,
+            2
+          ]
+        },
+        {
+          "id": "harpooner",
+          "character": "harpooner",
+          "at": [
+            5,
+            1
+          ]
+        },
+        {
+          "id": "civilian",
+          "character": "ferryman",
+          "at": [
+            1,
+            2
+          ]
+        },
+        {
+          "id": "crate",
+          "object": "crate",
+          "at": [
+            2,
+            2
+          ]
+        }
+      ]
+    },
+    "extra_knight_crossing": {
+      "board": "bridge",
+      "deadline": 10,
+      "placements": [
+        {
+          "id": "blast_knight",
+          "character": "regression_blast_knight",
+          "at": [
+            0,
+            0
+          ]
+        },
+        {
+          "id": "knight",
+          "character": "knight",
+          "at": [
+            1,
+            1
+          ]
+        },
+        {
+          "id": "healer",
+          "character": "healer",
+          "at": [
+            0,
+            2
+          ]
+        },
+        {
+          "id": "wizard",
+          "character": "wizard",
+          "at": [
+            4,
+            2
+          ]
+        },
+        {
+          "id": "harpooner",
+          "character": "harpooner",
+          "at": [
+            5,
+            1
+          ]
+        },
+        {
+          "id": "civilian",
+          "character": "ferryman",
+          "at": [
+            1,
+            2
+          ]
+        },
+        {
+          "id": "near_crate",
+          "object": "crate",
+          "at": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "far_crate",
+          "object": "crate",
+          "at": [
+            2,
+            2
+          ]
+        }
+      ]
+    }
+  }
+}

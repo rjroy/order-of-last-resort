@@ -14,9 +14,15 @@ const FOAM := Color("#b4c6ad")
 const STONE := Color("#afa087")
 const BRIDGE := Color("#beaa89")
 const SAFE := Color("#a0a67a")
+const SHORE_WASH := Color("#7eac5b", 0.36)
 const AMBER := Color("#ffdc86")
 const MINT := Color("#d7edbc")
 const CORAL := Color("#ffc1a2")
+const TILE_FACE := [
+	Vector2(2, 2), Vector2(42, 1), Vector2(68, 2), Vector2(91, 1), Vector2(95, 6),
+	Vector2(94, 37), Vector2(95, 62), Vector2(91, 78), Vector2(64, 79), Vector2(40, 77),
+	Vector2(5, 79), Vector2(1, 75), Vector2(2, 51), Vector2(1, 16),
+]
 
 var _cells: Dictionary = {}
 var _units: Array = []
@@ -39,9 +45,10 @@ func _ready() -> void:
 
 ## cells: Vector2i -> "stone", "bridge", "broken", "safe", "exit", "obstacle", or "water".
 ## An absent cell is scenery only. The canvas emits input for supplied cells; it never authorizes moves.
-## units: {id, role, cell, hp, max_hp, prone}; optional facing (-1 left, 1 right), guarded, variant (enemy).
+## units: {id, art_key, cell, hp, max_hp, prone}; optional facing (-1 left, 1 right), guarded, objective, variant.
 ## overlay: selected/chosen_target (Vector2i), targets/impact/threat (arrays of Vector2i),
-## paths (each an array of Vector2i), and obstacles (id, position, hp, max_hp).
+## paths (each an array of Vector2i), exit (Vector2i), safe (a set of Vector2i),
+## and obstacles (id, art_key, position, hp, max_hp).
 func set_render_state(cells: Dictionary, units: Array, overlay: Dictionary = {}) -> void:
 	_cells = cells.duplicate()
 	_units = units.duplicate(true)
@@ -141,10 +148,15 @@ func _draw() -> void:
 		var cell: Vector2i = value
 		_at(_tile_origin(cell))
 		_draw_escapement(cell)
+	var shore: Dictionary = _overlay.get("safe", {})
 	for value in cells:
 		var cell: Vector2i = value
 		_at(_tile_origin(cell))
 		_draw_tile(cell)
+		if shore.has(cell):
+			_piece(TILE_FACE, SHORE_WASH)
+		if _overlay.get("exit") == cell:
+			_draw_exit()
 	_at(Vector2.ZERO)
 	for path in _overlay.get("paths", []):
 		_draw_path(path)
@@ -152,15 +164,15 @@ func _draw() -> void:
 		var cell: Vector2i = value
 		_at(_tile_origin(cell))
 		_draw_overlays(cell)
+	for obstacle in _overlay.get("obstacles", []):
+		if obstacle.hp > 0 and _cells.has(obstacle.position):
+			_at(_tile_origin(obstacle.position))
+			_draw_object(obstacle)
 	var occupants := _units.duplicate()
 	occupants.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _reading_order(a.cell, b.cell))
 	for unit in occupants:
 		if _cells.has(unit.cell):
 			_draw_unit(unit)
-	for obstacle in _overlay.get("obstacles", []):
-		if obstacle.hp > 0 and _cells.has(obstacle.position):
-			_at(_tile_origin(obstacle.position))
-			_draw_health(obstacle, "obstacle", false)
 	if not _cells.is_empty():
 		_at(Vector2.ZERO)
 		_draw_coordinates()
@@ -234,9 +246,7 @@ func _draw_tile(cell: Vector2i) -> void:
 	elif terrain == "safe" or terrain == "exit":
 		base = SAFE
 	base = base.lerp(INK if _rng.randf() < 0.50 else PARCHMENT, _rng.randf_range(0.02, 0.13))
-	_piece([Vector2(2, 2), Vector2(42, 1), Vector2(68, 2), Vector2(91, 1), Vector2(95, 6),
-		Vector2(94, 37), Vector2(95, 62), Vector2(91, 78), Vector2(64, 79), Vector2(40, 77),
-		Vector2(5, 79), Vector2(1, 75), Vector2(2, 51), Vector2(1, 16)], base, Color("#514b3e"), 1.3)
+	_piece(TILE_FACE, base, Color("#514b3e"), 1.3)
 	_line([Vector2(4, 7), Vector2(26, 4), Vector2(56, 5), Vector2(88, 4)], Color(PARCHMENT, 0.50), 1.4)
 	_line([Vector2(5, 75), Vector2(34, 73), Vector2(62, 76), Vector2(88, 74)], Color(INK, 0.30), 1.3)
 	for i in range(12):
@@ -248,7 +258,7 @@ func _draw_tile(cell: Vector2i) -> void:
 		draw_line(p, p + Vector2(_rng.randf_range(0.4, 3.5), -0.5), Color(INK, 0.18), 0.8, true)
 	match terrain:
 		"safe", "exit":
-			_draw_safe(terrain == "exit")
+			_draw_safe()
 		"obstacle":
 			_draw_obstacle()
 		_:
@@ -303,7 +313,7 @@ func _draw_broken() -> void:
 			Color("#6f8276"), Color("#344a45"), 1.0)
 
 
-func _draw_safe(exit: bool) -> void:
+func _draw_safe() -> void:
 	for i in range(12):
 		var p := Vector2(_rng.randf_range(5, 65), _rng.randf_range(5, 62))
 		_wash(p, Vector2(_rng.randf_range(8, 26), _rng.randf_range(5, 13)), Color("#65794f", 0.25))
@@ -313,8 +323,6 @@ func _draw_safe(exit: bool) -> void:
 			Color("#596747", 0.85), 0.85)
 	_line([Vector2(7, 65), Vector2(26, 58), Vector2(48, 61), Vector2(67, 67), Vector2(89, 61)],
 		Color("#d0c69a", 0.54), 2.4)
-	if exit:
-		_draw_exit()
 
 
 func _draw_exit() -> void:
@@ -348,6 +356,13 @@ func _draw_obstacle() -> void:
 	_line([Vector2(32, 24), Vector2(54, 24), Vector2(70, 22)], Color("#684a32"), 1.0)
 	_line([Vector2(40, 44), Vector2(43, 43), Vector2(47, 42)], Color("#e2b57f"), 1.05)
 	_line([Vector2(71, 49), Vector2(76, 43), Vector2(69, 44), Vector2(75, 37)], Color("#3c3129"), 1.15)
+
+
+func _draw_object(object: Dictionary) -> void:
+	match str(object.art_key):
+		"obstacle", "crate":
+			_draw_obstacle()
+	_draw_health(object, false)
 
 
 static func _solid(terrain: String) -> bool:
@@ -425,7 +440,7 @@ func _caption(label: String, right_baseline: Vector2, color: Color, font_size: i
 
 
 func _draw_unit(unit: Dictionary) -> void:
-	var role := str(unit.role)
+	var role := str(unit.art_key)
 	var prone := bool(unit.get("prone", false))
 	var origin := _tile_origin(unit.cell)
 	var foot := origin + Vector2(49, 62)
@@ -451,10 +466,10 @@ func _draw_unit(unit: Dictionary) -> void:
 		_:
 			_enemy(str(unit.get("variant", "")))
 	_at(origin)
-	_draw_health(unit, role, prone)
+	_draw_health(unit, prone)
 
 
-func _draw_health(unit: Dictionary, role: String, prone: bool) -> void:
+func _draw_health(unit: Dictionary, prone: bool) -> void:
 	var maximum := maxi(0, int(unit.get("max_hp", 0)))
 	var hp := clampi(int(unit.get("hp", maximum)), 0, maximum)
 	if maximum > 0:
@@ -462,7 +477,7 @@ func _draw_health(unit: Dictionary, role: String, prone: bool) -> void:
 		var top := Vector2(49 - width * 0.5, 69)
 		draw_rect(Rect2(top - Vector2(2, 2), Vector2(width + 4, 7)), INK)
 		draw_rect(Rect2(top, Vector2(width, 3)), Color("#725344"))
-		var fill := CORAL if hp < maximum and hp * 2 <= maximum else (AMBER if role == "ferryman" else MINT)
+		var fill := CORAL if hp < maximum and hp * 2 <= maximum else (AMBER if unit.get("objective", false) else MINT)
 		draw_rect(Rect2(top, Vector2(width * float(hp) / maximum, 3)), fill)
 		if maximum < 9:
 			for index in range(1, maximum):

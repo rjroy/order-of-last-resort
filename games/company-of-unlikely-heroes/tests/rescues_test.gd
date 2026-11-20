@@ -55,7 +55,7 @@ func _run() -> void:
 	if not initial is Dictionary:
 		_fail("new_game must return a state Dictionary")
 		return
-	if initial.get("outcome", "") != "ongoing" or initial.get("victory", true) or initial.get("defeat", true):
+	if initial.get("outcome", "") != "ongoing":
 		_fail("A new hybrid game must start ongoing")
 		return
 	_play("pull rescue", initial, PULL_RESCUE, "victory", true)
@@ -63,7 +63,7 @@ func _run() -> void:
 	_play("loss", initial, LOSS, "defeat", false)
 	_standing_rescue(initial)
 	var restart = rules.call("new_game", "hybrid")
-	if restart != initial:
+	if _mutable_facts(restart) != _mutable_facts(initial):
 		_fail("Restart must reproduce the clean initial state, including orders and overrides")
 
 
@@ -72,10 +72,13 @@ func _standing_rescue(hybrid_initial: Dictionary) -> void:
 	if not standing is Dictionary:
 		_fail("Standing new_game must return a state Dictionary")
 		return
-	var comparable: Dictionary = standing.duplicate(true)
-	comparable["mode"] = hybrid_initial.get("mode")
-	comparable["manual_remaining"] = hybrid_initial.get("manual_remaining")
-	if comparable != hybrid_initial:
+	var comparable := _mutable_facts(standing)
+	var hybrid := _mutable_facts(hybrid_initial)
+	comparable.erase("mode")
+	comparable.erase("manual_remaining")
+	hybrid.erase("mode")
+	hybrid.erase("manual_remaining")
+	if comparable != hybrid:
 		_fail("Standing rescue must begin in the same encounter as hybrid")
 		return
 	if not _has_option(standing, "wizard", "order_rescue", "order"):
@@ -86,7 +89,7 @@ func _standing_rescue(hybrid_initial: Dictionary) -> void:
 		_fail("Wizard rescue order must be selectable as a persistent standing order")
 		return
 	var pulled_civilian := false
-	var limit: int = state.get("bridge_deadline", 10)
+	var limit: int = rules.deadline(state)
 	for round_index in range(limit):
 		if state.get("outcome", "") != "ongoing":
 			break
@@ -102,14 +105,15 @@ func _standing_rescue(hybrid_initial: Dictionary) -> void:
 			_fail("Standing rescue requires a valid, non-mutating round preview")
 			return
 		for event in plan.get("events", []):
-			if event.get("type", "") == "pull" and "civilian" in event.get("text", "") and "wizard" in event.get("text", ""):
+			if event.get("type", "") == "pull" and event.get("target_id", "") == "civilian" and event.get("unit_id", "") == "wizard" \
+					and event.get("position") == _unit(before, "wizard").get("position"):
 				pulled_civilian = true
 		var committed = rules.call("commit_round", state, plan)
 		if committed != plan.get("result"):
 			_fail("Standing rescue commit must match preview")
 			return
 		state = committed
-	if state.get("outcome", "") != "victory" or not state.get("victory", false):
+	if state.get("outcome", "") != "victory":
 		_fail("Persistent wizard rescue order must enable a real standing-mode victory")
 	if not pulled_civilian:
 		_fail("Standing-mode victory must include a successful civilian pull")
@@ -162,11 +166,10 @@ func _play(name: String, initial: Dictionary, route: Array, outcome: String, req
 		var expected_pull := false
 		if action.get("ability", "") == "wizard_pull":
 			var target_id: String = action.get("target", "")
-			var target_before := _unit(before, target_id)
 			var wizard_before := _unit(before, action.get("unit", ""))
 			var pull = rules.call("preview", before, action.get("unit", ""), "wizard_pull", target_id)
 			expected_pull = pull is Dictionary and pull.get("valid", false) \
-				and target_before.get("class", "") == "civilian" \
+				and target_id == before.objective.subject \
 				and _unit(pull.get("result", {}), target_id).get("position") == wizard_before.get("position")
 		var plan = rules.call("preview_round", state)
 		if state != before:
@@ -182,7 +185,9 @@ func _play(name: String, initial: Dictionary, route: Array, outcome: String, req
 		if expected_pull:
 			# The civilian may move again after the pull, before the round ends.
 			for event in plan.get("events", []):
-				if event.get("type", "") == "pull" and "civilian" in event.get("text", ""):
+				if event.get("type", "") == "pull" and event.get("target_id", "") == action.get("target", "") \
+						and event.get("unit_id", "") == action.get("unit", "") \
+						and event.get("position") == _unit(before, action.get("unit", "")).get("position"):
 					pulled_civilian = true
 		if committed.get("outcome", "") != "ongoing":
 			var event_found := false
@@ -194,7 +199,7 @@ func _play(name: String, initial: Dictionary, route: Array, outcome: String, req
 		state = committed
 	if initial != start_snapshot:
 		_fail("%s mutated the shared initial state" % name)
-	if state.get("outcome", "") != outcome or not state.get(outcome, false):
+	if state.get("outcome", "") != outcome:
 		_fail("%s did not produce real %s" % [name, outcome])
 	if state.get("round", -1) != route.size():
 		_fail("%s did not end on its expected round" % name)
@@ -232,7 +237,12 @@ func _unit(state: Dictionary, id: String) -> Dictionary:
 
 
 func _civilian_at_exit(state: Dictionary) -> bool:
-	for unit in state.get("units", []):
-		if unit.get("class", "") == "civilian" and unit.get("position") == state.get("exit"):
-			return true
-	return false
+	return _unit(state, state.objective.subject).get("position") == state.objective.destination
+
+
+func _mutable_facts(state: Dictionary) -> Dictionary:
+	var facts := {}
+	for key in ["width", "height", "units", "terrain", "obstacles", "objective",
+			"round", "mode", "manual_remaining", "orders", "overrides", "outcome"]:
+		facts[key] = state.get(key)
+	return facts

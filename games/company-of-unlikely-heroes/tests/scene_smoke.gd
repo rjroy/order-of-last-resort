@@ -7,6 +7,33 @@ var scene: Node
 var controls: Dictionary = {}
 
 
+func _test_shore_presentation() -> void:
+	var board := scene.find_child("BridgeBoard", true, false)
+	var safe: Dictionary = board.get("_overlay").get("safe", {})
+	_check(safe.size() == 15, "Default shore covers exactly the far bank")
+	for x in range(7):
+		for y in range(5):
+			_check(safe.has(Vector2i(x, y)) == (x >= 4), "Default shore extent at %s" % Vector2i(x, y))
+	var rules = scene.get("_rules")
+	var original: Dictionary = scene.get("_state")
+	var defs: Dictionary = rules.definitions(original).duplicate(true)
+	defs.tiles.stone.art_key = "custom_floor"
+	scene.set("_state", rules.new_game("hybrid", defs, "ferryman"))
+	var cells: Dictionary = scene.call("_terrain")
+	_check(cells[Vector2i(6, 2)] == "custom_floor" and scene.get("_safe_cells").size() == 15,
+		"Authored shore tint works with custom tile art without replacing it")
+	defs.boards.bridge.erase("shore_cells")
+	scene.set("_state", rules.new_game("hybrid", defs, "ferryman"))
+	scene.call("_terrain")
+	_check(scene.get("_safe_cells").is_empty(), "Board without shore configuration has no automatic tint")
+	defs.tiles.stone.art_key = "stone"
+	scene.set("_state", rules.new_game("hybrid", defs, "ferryman"))
+	scene.call("_terrain")
+	_check(scene.get("_safe_cells").is_empty(), "Stone art alone does not imply a shore")
+	scene.set("_state", original)
+	scene.call("_terrain")
+
+
 func _initialize() -> void:
 	call_deferred("_run")
 
@@ -51,6 +78,7 @@ func _run() -> void:
 	var initial_round := _text("RoundText")
 	_check(not initial_status.strip_edges().is_empty(), "Hybrid entry must display status")
 	_check(not initial_round.strip_edges().is_empty(), "Hybrid entry must display the round")
+	_test_shore_presentation()
 
 	await _press("ModeDirect")
 	var direct_status := _text("StatusText")
@@ -92,6 +120,7 @@ func _run() -> void:
 			"Restart must restore the initial hybrid state")
 
 	await _test_direct_follow_up_move()
+	_test_four_hero_direct_budget()
 	await _press("ModeHybrid")
 
 	var capture_path := ""
@@ -119,24 +148,50 @@ func _test_direct_follow_up_move() -> void:
 	var initial_round := _text("RoundText")
 	if not await _select_id("ActorSelect", "knight"):
 		return
+	var knight_label: String = controls["ActorSelect"].get_item_text(controls["ActorSelect"].selected).to_lower()
 	if not await _select_id("AbilitySelect", "knight_push"):
 		return
 	if not await _select_id("TargetSelect", "civilian"):
 		return
+	var civilian_label: String = controls["TargetSelect"].get_item_text(controls["TargetSelect"].selected).split("  ·  ")[0].to_lower()
 	await _press("Preview")
-	_check("Knight pushes ferryman to B4." in _text("PreviewText"),
+	var push_text := _text("PreviewText").to_lower()
+	_check(knight_label in push_text and civilian_label in push_text and "push" in push_text and "b4" in push_text,
 		"Direct forecast must show the knight pushing the ferryman from B3 to B4")
 	if not await _select_id("ActorSelect", "healer"):
 		return
+	var healer_label: String = controls["ActorSelect"].get_item_text(controls["ActorSelect"].selected).to_lower()
 	if not await _select_id("AbilitySelect", "move"):
 		return
 	if not await _select_id("TargetSelect", "1,2"):
 		return
 	await _press("Preview")
-	_check("Healer moves to B3." in _text("PreviewText"),
+	var move_text := _text("PreviewText").to_lower()
+	_check(healer_label in move_text and "move" in move_text and "b3" in move_text,
 		"Direct forecast must show the healer successfully moving into the vacated B3")
 	_check(scene.get("_state") == initial and _text("RoundText") == initial_round,
 		"Previewing the chained move must not alter the committed initial state")
+
+
+func _test_four_hero_direct_budget() -> void:
+	var catalog = load("res://content/catalog.gd")
+	var definitions: Dictionary = catalog.read_default()
+	definitions["encounters"]["crossing"]["placements"].append(
+		{"id": "spare", "character": "knight", "at": [6, 4]})
+	var rules = scene.get("_rules")
+	var state: Dictionary = rules.new_game("direct", definitions, "ferryman")
+	_check(state.get("manual_remaining", -1) == 4,
+		"Direct mode issues four slots for four authored commandable heroes")
+	for choice in [["knight", "knight_aura"], ["healer", "healer_heal"],
+			["wizard", "wizard_blast"], ["spare", "knight_aura"]]:
+		var plan: Dictionary = rules.preview(state, choice[0], choice[1], "")
+		_check(plan.get("valid", false), "Authored four-hero fixture must offer each hero a legal action")
+		var before := state.duplicate(true)
+		state = rules.choose_manual(state, choice[0], choice[1], "")
+		_check(state.get("manual_remaining", -1) == before.get("manual_remaining", 0) - 1,
+			"Each of the four authored heroes consumes one Direct slot")
+	_check(state.get("manual_remaining", -1) == 0 and state.get("overrides", {}).size() == 4,
+		"Direct mode accepts one override for each of four authored heroes")
 
 
 func _select_id(name: String, id: String) -> bool:

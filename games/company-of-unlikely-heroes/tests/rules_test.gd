@@ -4,6 +4,7 @@ extends SceneTree
 # Fixtures deliberately own their positions and health rather than relying on tuning.
 var failures: Array[String] = []
 var rules: RefCounted
+var definitions: Dictionary
 
 
 func _initialize() -> void:
@@ -19,6 +20,7 @@ func _initialize() -> void:
 			rules = RefCounted.new()
 		else:
 			rules = script.new()
+			definitions = preload("res://tests/fixtures/rules_catalog.gd").definitions()
 
 	var required := ["new_game", "options", "preview", "apply_plan", "advance_round", "choose_manual", "preview_round", "commit_round"]
 	for method in required:
@@ -35,7 +37,9 @@ func _initialize() -> void:
 		_test_healer_bonk()
 		_test_healer_heal()
 		_test_wizard_blast()
+		_test_turn_bound_status_on_object()
 		_test_wizard_pull()
+		_test_recovery_expires_turn_end_status()
 		_test_modes_and_restart()
 		_test_round_preview()
 	if failures.is_empty():
@@ -51,16 +55,27 @@ func _check(condition: bool, message: String) -> void:
 		failures.append(message)
 
 
-func _unit(id: String, team: String, role: String, pos: Vector2i, hp: int = 10) -> Dictionary:
+func _unit(id: String, _team: String, role: String, pos: Vector2i, hp: int = 10) -> Dictionary:
 	return {
-		"id": id, "team": team, "class": role, "position": pos,
-		"hp": hp, "max_hp": 10, "knocked_down": false, "taunted_by": ""
+		"id": id,
+		"character_id": {"enemy": "harpooner", "civilian": "ferryman"}.get(role, role),
+		"position": pos, "hp": hp, "max_hp": 10, "statuses": {}
 	}
 
 
-func _state(units: Array, mode: String = "hybrid", remaining: int = 1) -> Dictionary:
-	return {"units": units, "terrain": [], "obstacles": [], "exit": Vector2i(9, 9),
-		"orders": {}, "mode": mode, "round": 1, "manual_remaining": remaining}
+func _state(units: Array, mode: String = "hybrid", remaining: int = 1, fixture_defs: Dictionary = {}) -> Dictionary:
+	var state: Dictionary = rules.new_game(mode, fixture_defs if not fixture_defs.is_empty() else definitions, "fixture")
+	state["width"] = 12
+	state["height"] = 12
+	state["units"] = units
+	state["terrain"] = []
+	state["default_tile"] = "stone"
+	state["obstacles"] = []
+	state["objective"] = {"handler": "escort", "subject": "civilian", "destination": Vector2i(9, 9)}
+	state["orders"] = {}
+	state["round"] = 1
+	state["manual_remaining"] = remaining
+	return state
 
 
 func _find(state: Dictionary, id: String) -> Dictionary:
@@ -125,7 +140,7 @@ func _test_knight_push() -> void:
 	_check(enemy.get("position") == Vector2i(3, 1), "Knight push moves enemy away one tile")
 	_check(enemy.get("hp", 10) == 10, "Free knight push does not deal damage")
 	var blocked := state.duplicate(true)
-	blocked["obstacles"] = [{"id": "wall", "position": Vector2i(3, 1), "hp": 10, "max_hp": 10}]
+	blocked["obstacles"] = [{"id": "wall", "object_id": "crate", "statuses": {}, "position": Vector2i(3, 1), "hp": 10, "max_hp": 10}]
 	var collision := _apply(blocked, _plan(blocked, "k", "knight_push", "e"), "knight_push collision")
 	_check(_find(collision, "e").get("hp", 10) < 10, "Push collision damages target")
 
@@ -134,9 +149,9 @@ func _test_crate_targets() -> void:
 	for entry in [["k", "knight", "knight_push"], ["h", "healer", "healer_bonk"]]:
 		var state := _state([_unit(entry[0], "heroes", entry[1], Vector2i.ZERO)])
 		state["obstacles"] = [
-			{"id": "adjacent", "position": Vector2i(1, 0), "hp": 10, "max_hp": 10},
-			{"id": "far", "position": Vector2i(2, 0), "hp": 10, "max_hp": 10},
-			{"id": "destroyed", "position": Vector2i(0, 1), "hp": 0, "max_hp": 10}
+			{"id": "adjacent", "object_id": "crate", "statuses": {}, "position": Vector2i(1, 0), "hp": 10, "max_hp": 10},
+			{"id": "far", "object_id": "crate", "statuses": {}, "position": Vector2i(2, 0), "hp": 10, "max_hp": 10},
+			{"id": "destroyed", "object_id": "crate", "statuses": {}, "position": Vector2i(0, 1), "hp": 0, "max_hp": 10}
 		]
 		var before := state.duplicate(true)
 		var choices = rules.call("targets", state, entry[0], entry[2])
@@ -154,7 +169,7 @@ func _test_crate_targets() -> void:
 			_check(state == before, "%s crate preview must not mutate state" % entry[2])
 
 	var wizard_state := _state([_unit("w", "heroes", "wizard", Vector2i.ZERO)])
-	wizard_state["obstacles"] = [{"id": "crate", "position": Vector2i(1, 0), "hp": 10, "max_hp": 10}]
+	wizard_state["obstacles"] = [{"id": "crate", "object_id": "crate", "statuses": {}, "position": Vector2i(1, 0), "hp": 10, "max_hp": 10}]
 	var wizard_choices = rules.call("targets", wizard_state, "w", "wizard_pull")
 	for choice in wizard_choices:
 		_check(choice.get("id", "") != "crate", "Wizard pull does not offer crates")
@@ -164,26 +179,26 @@ func _test_crate_targets() -> void:
 
 func _test_crate_actions() -> void:
 	var push_state := _state([_unit("k", "heroes", "knight", Vector2i.ZERO)])
-	push_state["obstacles"] = [{"id": "crate", "position": Vector2i(1, 0), "hp": 10, "max_hp": 10}]
+	push_state["obstacles"] = [{"id": "crate", "object_id": "crate", "statuses": {}, "position": Vector2i(1, 0), "hp": 10, "max_hp": 10}]
 	var pushed := _apply(push_state, _plan(push_state, "k", "knight_push", "crate"), "crate push")
 	var crate: Dictionary = pushed.get("obstacles", [{}])[0]
 	_check(crate.get("position") == Vector2i(2, 0), "Free crate push moves crate one tile")
 	_check(crate.get("hp", 0) == 10, "Free crate push does not damage crate")
 
 	var blocked := push_state.duplicate(true)
-	blocked["obstacles"].append({"id": "wall", "position": Vector2i(2, 0), "hp": 10, "max_hp": 10})
+	blocked["obstacles"].append({"id": "wall", "object_id": "crate", "statuses": {}, "position": Vector2i(2, 0), "hp": 10, "max_hp": 10})
 	var collision := _apply(blocked, _plan(blocked, "k", "knight_push", "crate"), "blocked crate push")
 	var blocked_crate: Dictionary = collision.get("obstacles", [{}])[0]
 	_check(blocked_crate.get("position") == Vector2i(1, 0), "Blocked crate stays in place")
 	_check(blocked_crate.get("hp", 10) < 10, "Blocked crate push damages crate")
 
 	var bonk_state := _state([_unit("h", "heroes", "healer", Vector2i.ZERO)])
-	bonk_state["obstacles"] = [{"id": "crate", "position": Vector2i(1, 0), "hp": 10, "max_hp": 10}]
+	bonk_state["obstacles"] = [{"id": "crate", "object_id": "crate", "statuses": {}, "position": Vector2i(1, 0), "hp": 10, "max_hp": 10}]
 	var bonk_plan := _plan(bonk_state, "h", "healer_bonk", "crate")
 	var bonked := _apply(bonk_state, bonk_plan, "crate bonk")
 	var bonked_crate: Dictionary = bonked.get("obstacles", [{}])[0]
 	_check(bonked_crate.get("hp", 10) < 10, "Bonk damages crate")
-	_check(not bonked_crate.has("taunted_by"), "Bonk does not taunt crate")
+	_check(not bonked_crate.get("statuses", {}).has("taunt"), "Bonk does not taunt crate")
 	for event in bonk_plan.get("events", []):
 		_check(event.get("type", "") != "taunt", "Bonk on crate emits no taunt")
 
@@ -192,13 +207,13 @@ func _test_crate_actions() -> void:
 		_unit("k", "heroes", "knight", Vector2i(1, 1)),
 		_unit("enemy", "enemies", "enemy", Vector2i(2, 0))
 	])
-	aura_state["obstacles"] = [{"id": "crate", "position": Vector2i(1, 0), "hp": 10, "max_hp": 10}]
+	aura_state["obstacles"] = [{"id": "crate", "object_id": "crate", "statuses": {}, "position": Vector2i(1, 0), "hp": 10, "max_hp": 10}]
 	var aura_active := _apply(aura_state, _plan(aura_state, "k", "knight_aura"), "knight_aura")
 	var aura_bonk := _plan(aura_active, "h", "healer_bonk", "crate")
 	var aura_after := _apply(aura_active, aura_bonk, "crate bonk near aura")
 	_check(aura_after.get("obstacles", [{}])[0].get("hp", 10) < 10, "Aura does not protect a bonked crate")
 	_check(_find(aura_after, "enemy").get("hp", 10) == 10, "Crate bonk near aura does not damage enemy")
-	_check(_find(aura_after, "enemy").get("taunted_by", "") == "", "Crate bonk near aura does not taunt enemy")
+	_check(not rules.has_status_handler(aura_after, "enemy", "retarget"), "Crate bonk near aura does not taunt enemy")
 	for event in aura_bonk.get("events", []):
 		_check(event.get("type", "") != "reflect", "Crate bonk near aura emits no reflect")
 		_check(event.get("type", "") != "taunt", "Crate bonk near aura emits no taunt")
@@ -234,7 +249,7 @@ func _test_knight_aura() -> void:
 		_unit("k", "heroes", "knight", Vector2i(1, 1)),
 		_unit("attacker", "enemies", "enemy", Vector2i(3, 1))
 	])
-	state["obstacles"] = [{"id": "rock", "position": Vector2i(1, 2), "hp": 10, "max_hp": 10}]
+	state["obstacles"] = [{"id": "rock", "object_id": "crate", "statuses": {}, "position": Vector2i(1, 2), "hp": 10, "max_hp": 10}]
 	var protected := _apply(state, _plan(state, "k", "knight_aura"), "knight_aura")
 	var after := _apply(protected, _plan(protected, "attacker", "enemy_harpoon", "k"), "enemy_harpoon")
 	_check(_find(after, "k").get("hp", 0) == 10, "Aura prevents range-two harpoon damage")
@@ -246,10 +261,10 @@ func _test_aura_redirects_friendly_attacks() -> void:
 	# The friendly-fire ward and the alternate enemy are both inside the aura.
 	# The redirected attack must hit once, not bounce back through the aura.
 	var state := _state([
-		_unit("k", "heroes", "knight", Vector2i.ZERO),
-		_unit("ward", "heroes", "healer", Vector2i(1, 0)),
-		_unit("w", "heroes", "wizard", Vector2i(2, 0)),
-		_unit("recipient", "enemies", "enemy", Vector2i(-1, 0))
+		_unit("k", "heroes", "knight", Vector2i(2, 2)),
+		_unit("ward", "heroes", "healer", Vector2i(3, 2)),
+		_unit("w", "heroes", "wizard", Vector2i(4, 2)),
+		_unit("recipient", "enemies", "enemy", Vector2i(1, 2))
 	])
 	var baseline := _apply(state, _plan(state, "w", "wizard_blast"), "unshielded blast")
 	var blast_damage: int = 10 - _find(baseline, "ward").get("hp", 10)
@@ -257,20 +272,20 @@ func _test_aura_redirects_friendly_attacks() -> void:
 	var protected := _apply(state, _plan(state, "k", "knight_aura"), "knight_aura")
 	var after := _apply(protected, _plan(protected, "w", "wizard_blast"), "shielded blast")
 	_check(_find(after, "ward").get("hp", 0) == 10, "Aura prevents friendly-fire blast damage to ward")
-	_check(not _find(after, "ward").get("knocked_down", false), "Ward does not receive redirected blast knockdown")
+	_check(not rules.has_status_handler(after, "ward", "skip_action"), "Ward does not receive redirected blast knockdown")
 	_check(_find(after, "recipient").get("hp", 10) == 10 - blast_damage, "Nearest alternate enemy receives exactly the original blast damage once")
-	_check(_find(after, "recipient").get("knocked_down", false), "Reflected blast knocks down its actual recipient")
+	_check(rules.has_status_handler(after, "recipient", "skip_action"), "Reflected blast knocks down its actual recipient")
 	_check(_find(after, "k").get("hp", 0) == 10, "Reflection does not loop back into the aura")
 	_check(_find(after, "w").get("hp", 0) == 10, "Reflection does not damage the original attacker instead")
 
 	# A shielded enemy can also be the initial ward. An adjacent obstacle is
 	# the nearest eligible alternate recipient of the healer's attack.
 	var bonk_state := _state([
-		_unit("k", "heroes", "knight", Vector2i.ZERO),
-		_unit("enemy", "enemies", "enemy", Vector2i(1, 0)),
-		_unit("h", "heroes", "healer", Vector2i(2, 0))
+		_unit("k", "heroes", "knight", Vector2i(2, 2)),
+		_unit("enemy", "enemies", "enemy", Vector2i(3, 2)),
+		_unit("h", "heroes", "healer", Vector2i(4, 2))
 	])
-	bonk_state["obstacles"] = [{"id": "rock", "position": Vector2i(1, 1), "hp": 10, "max_hp": 10}]
+	bonk_state["obstacles"] = [{"id": "rock", "object_id": "crate", "statuses": {}, "position": Vector2i(3, 3), "hp": 10, "max_hp": 10}]
 	var bonk_baseline := _apply(bonk_state, _plan(bonk_state, "h", "healer_bonk", "enemy"), "unshielded bonk")
 	var bonk_damage: int = 10 - _find(bonk_baseline, "enemy").get("hp", 10)
 	_check(bonk_damage > 0, "Unshielded bonk has positive damage")
@@ -288,7 +303,7 @@ func _test_healer_bonk() -> void:
 	var result := _apply(state, _plan(state, "h", "healer_bonk", "e"), "healer_bonk")
 	var enemy := _find(result, "e")
 	_check(enemy.get("hp", 10) < 10, "Healer bonk damages enemy")
-	_check(enemy.get("taunted_by", "") == "h", "Healer bonk taunts enemy toward healer")
+	_check(enemy.get("statuses", {}).get("taunt", {}).get("source_id", "") == "h", "Healer bonk taunts enemy toward healer")
 
 
 func _test_harpoon_range() -> void:
@@ -336,39 +351,93 @@ func _test_wizard_blast() -> void:
 	])
 	var result := _apply(state, _plan(state, "w", "wizard_blast"), "wizard_blast")
 	_check(_find(result, "ally").get("hp", 10) < 10, "Blast targets nearest unit even when allied")
-	_check(_find(result, "ally").get("knocked_down", false), "Blast knocks its target down")
+	_check(rules.has_status_handler(result, "ally", "skip_action"), "Blast knocks its target down")
 	_check(_find(result, "enemy").get("hp", 0) == 10, "Blast does not hit more distant enemy instead")
 	var obstacle_state := _state([
 		_unit("w", "heroes", "wizard", Vector2i.ZERO),
 		_unit("enemy", "enemies", "enemy", Vector2i(3, 0))
 	])
-	obstacle_state["obstacles"] = [{"id": "rock", "position": Vector2i(1, 0), "hp": 10, "max_hp": 10}]
+	obstacle_state["obstacles"] = [{"id": "rock", "object_id": "crate", "statuses": {}, "position": Vector2i(1, 0), "hp": 10, "max_hp": 10}]
 	var obstacle_result := _apply(obstacle_state, _plan(obstacle_state, "w", "wizard_blast"), "wizard_blast")
 	_check(obstacle_result.get("obstacles", [{}])[0].get("hp", 10) < 10, "Blast targets nearest obstacle")
 	_check(_find(obstacle_result, "enemy").get("hp", 0) == 10, "Blast does not bypass a nearer obstacle")
 
 
+func _test_turn_bound_status_on_object() -> void:
+	var fixture_defs := definitions.duplicate(true)
+	fixture_defs["abilities"]["wizard_blast"]["params"]["status"] = "aura"
+	var state := _state([_unit("w", "heroes", "wizard", Vector2i.ZERO)], "hybrid", 1, fixture_defs)
+	state["obstacles"] = [{"id": "crate", "object_id": "crate", "statuses": {},
+		"position": Vector2i(1, 0), "hp": 10, "max_hp": 10}]
+	var after := _apply(state, _plan(state, "w", "wizard_blast"), "blast on crate")
+	var crate: Dictionary = after["obstacles"][0]
+	_check(crate.get("hp") == 6, "Blast deals its configured nonlethal damage to the crate")
+	_check(crate.get("statuses", {}).is_empty(), "Object without turns receives no turn-bound reflect status")
+	var character_state := _state([
+		_unit("w", "heroes", "wizard", Vector2i.ZERO),
+		_unit("enemy", "enemies", "enemy", Vector2i(1, 0))
+	], "hybrid", 1, fixture_defs)
+	var character_after := _apply(character_state, _plan(character_state, "w", "wizard_blast"), "blast on character")
+	_check(_find(character_after, "enemy").get("hp") == 6,
+		"Same blast deals configured nonlethal damage to a character")
+	_check(rules.has_status_handler(character_after, "enemy", "reflect")
+		and rules.status(character_after, "enemy", "aura").get("source_id") == "w",
+		"Surviving character still receives the reflect status from the wizard")
+
+
 func _test_wizard_pull() -> void:
 	var state := _state([
-		_unit("w", "heroes", "wizard", Vector2i.ZERO),
-		_unit("near", "enemies", "enemy", Vector2i(0, 1)),
-		_unit("chosen", "enemies", "enemy", Vector2i(3, 0))
+		_unit("w", "heroes", "wizard", Vector2i(1, 1)),
+		_unit("near", "enemies", "enemy", Vector2i(1, 2)),
+		_unit("chosen", "enemies", "enemy", Vector2i(4, 1))
 	])
 	var result := _apply(state, _plan(state, "w", "wizard_pull", "chosen"), "wizard_pull")
 	var chosen := _find(result, "chosen")
-	_check(chosen.get("position") == Vector2i.ZERO, "Pull moves selected target to wizard former cell")
+	_check(chosen.get("position") == Vector2i(1, 1), "Pull moves selected target to wizard former cell")
 	_check(chosen.get("hp", 0) == 10, "Pull does not damage target by default")
 	_check(_find(result, "w").get("hp", 10) < 10, "Pull recoils on wizard")
-	_check(_find(result, "w").get("position") == Vector2i(-1, 0), "Pull recoils wizard one tile away")
-	_check(_find(result, "w").get("knocked_down", false), "Pull knocks wizard down")
+	_check(_find(result, "w").get("position") == Vector2i(0, 1), "Pull recoils wizard one tile away")
+	_check(rules.has_status_handler(result, "w", "skip_action"), "Pull knocks wizard down")
 	_check(_find(result, "near").get("hp", 0) == 10, "Pull respects selected target rather than nearest")
+
+
+func _test_recovery_expires_turn_end_status() -> void:
+	var state := _state([
+		_unit("h", "heroes", "healer", Vector2i(1, 1)),
+		_unit("enemy", "enemies", "enemy", Vector2i(2, 1)),
+		_unit("w", "heroes", "wizard", Vector2i(3, 1)),
+		_unit("civilian", "civilian", "civilian", Vector2i(8, 8))
+	])
+	state = _apply(state, _plan(state, "h", "healer_bonk", "enemy"), "taunting bonk")
+	state = _apply(state, _plan(state, "w", "wizard_blast"), "knockdown blast")
+	_check(rules.has_status_handler(state, "enemy", "retarget")
+		and rules.status(state, "enemy", "taunt").get("source_id") == "h",
+		"Fixture has a valid active taunt from the living healer")
+	_check(rules.has_status_handler(state, "enemy", "skip_action"),
+		"Fixture has a knockdown that skips the enemy's action")
+	var before := state.duplicate(true)
+	var plan: Dictionary = rules.preview_round(state)
+	_check(state == before and plan.get("valid", false), "Recovery round previews without mutating input")
+	var after: Dictionary = rules.commit_round(state, plan)
+	var recovered := false
+	for event in plan.get("events", []):
+		if event.get("type", "") == "recover" and event.get("unit_id", "") == "enemy":
+			recovered = true
+	_check(recovered, "Knocked-down enemy spends its turn recovering")
+	_check(_find(after, "enemy").get("position") == _find(before, "enemy").get("position")
+		and _find(after, "h").get("hp") == _find(before, "h").get("hp"),
+		"Recovering enemy does not move or attack the taunt source")
+	_check(not rules.has_status_handler(after, "enemy", "skip_action"),
+		"Recovery consumes knockdown")
+	_check(not rules.has_status_handler(after, "enemy", "retarget"),
+		"Recovery still expires the end-of-turn taunt")
 
 
 func _test_modes_and_restart() -> void:
 	for pair in [["hybrid", 1], ["direct", 3], ["standing", 0]]:
 		var mode: String = pair[0]
 		var budget: int = pair[1]
-		var initial = rules.call("new_game", mode)
+		var initial = rules.call("new_game", mode, definitions, "fixture")
 		if not initial is Dictionary:
 			failures.append("%s new_game must return Dictionary" % mode)
 			continue
@@ -407,12 +476,18 @@ func _test_modes_and_restart() -> void:
 		var next = rules.call("advance_round", exhausted)
 		_check(exhausted == before, "%s advance_round must not mutate input" % mode)
 		if next is Dictionary:
-			_check(next.get("manual_remaining", -1) == budget, "%s restores manual budget each round" % mode)
+			var next_budget := 4 if mode == "direct" else budget
+			_check(next.get("manual_remaining", -1) == next_budget,
+				"%s issues %d manual slots for the next round's roster" % [mode, next_budget])
 			_check(next.get("round", 0) == initial.get("round", 1) + 1, "%s advances round" % mode)
 		else:
 			failures.append("%s advance_round must return Dictionary" % mode)
-		var restarted = rules.call("new_game", mode)
-		_check(restarted == initial, "%s restart creates a clean initial state" % mode)
+		var restarted: Dictionary = rules.call("new_game", mode, definitions, "fixture")
+		var initial_facts: Dictionary = initial.duplicate()
+		var restarted_facts := restarted.duplicate()
+		initial_facts.erase("catalog")
+		restarted_facts.erase("catalog")
+		_check(restarted_facts == initial_facts, "%s restart creates a clean initial state" % mode)
 
 	# Use a controlled legal choice to verify actual slot consumption.
 	for pair in [["hybrid", 1], ["direct", 3]]:
@@ -435,8 +510,12 @@ func _test_round_preview() -> void:
 		_unit("enemy", "enemies", "enemy", Vector2i(1, 0)),
 		_unit("civilian", "civilian", "civilian", Vector2i(4, 4))
 	])
-	state["exit"] = Vector2i(5, 4)
-	state["orders"] = {"k": {"ability_id": "knight_push", "target_id": "enemy"}}
+	state["objective"]["destination"] = Vector2i(5, 4)
+	var unselected := state.duplicate(true)
+	state = rules.choose_manual(state, "k", "knight_push", "enemy")
+	_check(unselected.get("overrides", {}).is_empty() and state.get("overrides", {}).get("k", {}) == \
+		{"ability_id": "knight_push", "target_id": "enemy"},
+		"Round fixture installs the knight's manual push without mutating its input")
 	var before := state.duplicate(true)
 	var plan = rules.call("preview_round", state)
 	_check(state == before, "Round preview must not mutate state")
@@ -451,6 +530,6 @@ func _test_round_preview() -> void:
 		return
 	_check(_find(committed, "enemy").get("position") == Vector2i(2, 0), "Round commits previewed hero order")
 	_check(_find(committed, "civilian").get("position") == Vector2i(5, 4), "Round resolves civilian movement to exit")
-	_check(committed.get("victory", false), "Round resolves victory when civilian reaches exit")
+	_check(committed.get("outcome") == "victory", "Round resolves victory when civilian reaches exit")
 	var repeated = rules.call("commit_round", before, plan)
 	_check(committed == repeated, "Same previewed plan commits identical NPC and victory outcomes")

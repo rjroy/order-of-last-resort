@@ -1,0 +1,280 @@
+{
+  "missions": {
+    "ferryman": {
+      "title": "The last ferryman",
+      "encounter": "crossing",
+      "objective": {
+        "handler": "escort",
+        "subject": "civilian",
+        "destination": "safe_bank",
+        "text": "Get the {subject} to {destination} before the bridge fails.   ·   {subject_label} {hp}/{max_hp} HP at {position}",
+        "victory_text": "Rescued! The {subject} reached the safe bank.",
+        "defeat_text": "Rescue failed. The {subject} fell or the ferry departed.",
+        "victory_event": "The {subject} reaches the ferry!"
+      },
+      "failures": [
+        {"handler": "subject_dead", "event": "The {subject} falls."},
+        {"handler": "deadline", "event": "The ferry departs as the bridge fails."}
+      ]
+    },
+    "extra_knight": {
+      "title": "The last ferryman: extra knight",
+      "encounter": "extra_knight_crossing",
+      "objective": {
+        "handler": "escort",
+        "subject": "civilian",
+        "destination": "near_landing",
+        "text": "Get the {subject} to {destination} before the bridge fails.   ·   {subject_label} {hp}/{max_hp} HP at {position}",
+        "victory_text": "Rescued! The {subject} reached the safe bank.",
+        "defeat_text": "Rescue failed. The {subject} fell or the ferry departed.",
+        "victory_event": "The {subject} reaches the ferry!"
+      },
+      "failures": [
+        {"handler": "subject_dead", "event": "The {subject} falls."},
+        {"handler": "deadline", "event": "The ferry departs as the bridge fails."}
+      ]
+    }
+  },
+  "encounters": {
+    "crossing": {
+      "board": "bridge",
+      "deadline": 10,
+      "placements": [
+        {"id": "knight", "character": "knight", "at": [1, 1]},
+        {"id": "healer", "character": "healer", "at": [0, 2]},
+        {"id": "wizard", "character": "wizard", "at": [4, 2]},
+        {"id": "harpooner", "character": "harpooner", "at": [5, 1]},
+        {"id": "civilian", "character": "ferryman", "at": [1, 2]},
+        {"id": "crate", "object": "crate", "at": [2, 2]}
+      ]
+    },
+    "extra_knight_crossing": {
+      "board": "bridge",
+      "deadline": 10,
+      "placements": [
+        {"id": "blast_knight", "character": "regression_blast_knight", "at": [0, 0]},
+        {"id": "knight", "character": "knight", "at": [1, 1]},
+        {"id": "healer", "character": "healer", "at": [0, 2]},
+        {"id": "wizard", "character": "wizard", "at": [4, 2]},
+        {"id": "harpooner", "character": "harpooner", "at": [5, 1]},
+        {"id": "civilian", "character": "ferryman", "at": [1, 2]},
+        {"id": "near_crate", "object": "crate", "at": [1, 0]},
+        {"id": "far_crate", "object": "crate", "at": [2, 2]}
+      ]
+    }
+  },
+  "boards": {
+    "bridge": {
+      "width": 7,
+      "height": 5,
+      "default_tile": "stone",
+      "shore_cells": [
+        [0, 0], [1, 0], [2, 0], [4, 0], [5, 0], [6, 0],
+        [0, 1], [1, 1], [2, 1], [4, 1], [5, 1], [6, 1],
+        [0, 2], [1, 2], [2, 2], [4, 2], [5, 2], [6, 2],
+        [0, 3], [1, 3], [2, 3], [4, 3], [5, 3], [6, 3],
+        [0, 4], [1, 4], [2, 4], [4, 4], [5, 4], [6, 4]
+      ],
+      "tiles": [
+        {"at": [3, 0], "type": "gap"},
+        {"at": [3, 1], "type": "gap"},
+        {"at": [3, 3], "type": "gap"},
+        {"at": [3, 4], "type": "gap"},
+        {"at": [3, 2], "type": "bridge"}
+      ],
+      "locations": {"safe_bank": [6, 2], "near_landing": [2, 0]}
+    }
+  },
+  "tiles": {
+    "stone": {"label": "Stone", "art_key": "stone", "passable": true},
+    "gap": {"label": "Bridge gap", "art_key": "broken", "passable": false},
+    "bridge": {"label": "Bridge", "art_key": "bridge", "passable": true, "collapse_to": "collapsed"},
+    "collapsed": {"label": "Bridge gap", "art_key": "broken", "passable": false}
+  },
+  "classes": {
+    "knight": {
+      "team": "heroes", "max_hp": 8,
+      "capabilities": ["blocks_movement", "mobile", "pushable", "pullable", "damageable", "healable", "protectable", "commandable", "recoverable"],
+      "abilities": ["move", "knight_push", "knight_aura"],
+      "habits": {"order_guard": "guard", "order_advance": "advance"},
+      "default_order": "order_guard", "art_key": "knight", "color": "#a7cdcd"
+    },
+    "healer": {
+      "team": "heroes", "max_hp": 7,
+      "capabilities": ["blocks_movement", "mobile", "pushable", "pullable", "damageable", "healable", "protectable", "commandable", "recoverable"],
+      "abilities": ["move", "healer_bonk", "healer_heal"],
+      "habits": {"order_support": "support", "order_aggressive": "aggressive"},
+      "default_order": "order_support", "art_key": "healer", "color": "#e6cfa2"
+    },
+    "wizard": {
+      "team": "heroes", "max_hp": 6,
+      "capabilities": ["blocks_movement", "mobile", "pushable", "pullable", "damageable", "healable", "protectable", "commandable", "recoverable"],
+      "abilities": ["move", "wizard_blast", "wizard_pull"],
+      "habits": {"order_cautious": "hold", "order_blast": "blast", "order_rescue": "rescue"},
+      "default_order": "order_cautious", "art_key": "wizard", "color": "#d9b3ce"
+    },
+    "enemy": {
+      "team": "enemies", "max_hp": 6,
+      "capabilities": ["blocks_movement", "mobile", "pushable", "pullable", "damageable", "protectable", "tauntable", "recoverable"],
+      "abilities": ["move", "enemy_attack", "enemy_harpoon"],
+      "habits": {}, "behavior": "harpooner", "art_key": "enemy", "art_variant": "spear"
+    },
+    "civilian": {
+      "team": "civilian", "max_hp": 5,
+      "capabilities": ["blocks_movement", "mobile", "pushable", "pullable", "damageable", "protectable", "recoverable"],
+      "abilities": ["move"], "habits": {}, "behavior": "escort", "art_key": "ferryman"
+    }
+  },
+  "characters": {
+    "knight": {"class": "knight", "label": "Knight"},
+    "regression_blast_knight": {
+      "class": "knight", "label": "Blast knight", "abilities": ["move", "wizard_blast"],
+      "habits": {"order_blast": "blast"}, "default_order": "order_blast"
+    },
+    "healer": {"class": "healer", "label": "Healer"},
+    "wizard": {"class": "wizard", "label": "Wizard"},
+    "harpooner": {"class": "enemy", "label": "Harpooner"},
+    "ferryman": {"class": "civilian", "label": "Ferryman"}
+  },
+  "capabilities": {
+    "blocks_movement": {"label": "Blocks movement"},
+    "mobile": {"label": "Can move"},
+    "pushable": {"label": "Can be pushed"},
+    "pullable": {"label": "Can be pulled"},
+    "damageable": {"label": "Can take damage"},
+    "healable": {"label": "Can be healed"},
+    "protectable": {"label": "Can be warded"},
+    "tauntable": {"label": "Can be taunted"},
+    "commandable": {"label": "Directly commandable"},
+    "recoverable": {"label": "Can be knocked down and recover"}
+  },
+  "objects": {
+    "crate": {"label": "Crate", "max_hp": 4, "art_key": "obstacle",
+      "capabilities": ["blocks_movement", "pushable", "damageable"]}
+  },
+  "abilities": {
+    "move": {
+      "label": "Move one tile", "help": "Step to an open neighboring tile.",
+      "handler": "move", "params": {}, "targeting": {"kind": "cell", "range": 1}
+    },
+    "knight_push": {
+      "label": "Push", "help": "Push a neighboring unit or obstacle one tile. Collision deals damage.",
+      "handler": "push", "params": {"collision_damage": 2},
+      "targeting": {"kind": "entity", "range": 1, "objects": true, "capabilities": ["pushable"]}
+    },
+    "knight_aura": {
+      "label": "Reflecting aura",
+      "help": "Covers everyone within one tile; reflects to the nearest enemy or obstacle.",
+      "handler": "apply_status", "params": {"status": "aura"}, "targeting": {"kind": "none"}
+    },
+    "healer_bonk": {
+      "label": "Bonk and taunt",
+      "help": "Hurt an adjacent enemy or obstacle. Enemies also turn their attention to the healer.",
+      "handler": "bonk", "params": {"damage": 2, "status": "taunt"},
+      "targeting": {"kind": "entity", "range": 1, "teams": ["enemies"], "objects": true,
+        "capabilities": ["damageable"]}
+    },
+    "healer_heal": {
+      "label": "Heal nearest ally",
+      "help": "Heals the nearest other hero, even if they are already at full health.",
+      "handler": "heal", "params": {"amount": 3},
+      "targeting": {"kind": "automatic", "teams": ["heroes"], "capabilities": ["healable"]}
+    },
+    "wizard_blast": {
+      "label": "Blast nearest",
+      "help": "Hits and knocks down the nearest unit, friend or foe. Obstacles can take the hit.",
+      "handler": "blast", "params": {"damage": 4, "status": "knockdown"},
+      "targeting": {"kind": "automatic", "objects": true, "capabilities": ["damageable"]}
+    },
+    "wizard_pull": {
+      "label": "Pull and recoil",
+      "help": "Draws the target to the wizard’s tile. Recoil hurts and knocks down the wizard.",
+      "handler": "pull", "params": {"recoil_damage": 2, "status": "knockdown"},
+      "targeting": {"kind": "entity", "capabilities": ["pullable"]}
+    },
+    "enemy_attack": {
+      "label": "Attack", "help": "Attack an adjacent target.",
+      "handler": "attack", "params": {"damage": 2, "source_suffix": ""},
+      "targeting": {"kind": "entity", "range": 1, "objects": true, "capabilities": ["damageable"]}
+    },
+    "enemy_harpoon": {
+      "label": "Harpoon", "help": "Strike a target up to two tiles away.",
+      "handler": "attack", "params": {"damage": 2, "source_suffix": "'s harpoon"},
+      "targeting": {"kind": "entity", "range": 2, "objects": true, "capabilities": ["damageable"]}
+    }
+  },
+  "orders": {
+    "order_guard": {"label": "Guard"},
+    "order_advance": {"label": "Advance"},
+    "order_support": {"label": "Support"},
+    "order_aggressive": {"label": "Pursue and bonk"},
+    "order_cautious": {"label": "Hold position"},
+    "order_blast": {"label": "Blast nearest"},
+    "order_rescue": {"label": "Pull civilian toward ferry"}
+  },
+  "behaviors": {
+    "guard": {"handler": "use_ability", "params": {"ability": "knight_aura"}},
+    "advance": {
+      "handler": "pursue", "params": {"ability": "knight_push", "move_ability": "move", "team": "enemies"}
+    },
+    "support": {"handler": "use_ability", "params": {"ability": "healer_heal"}},
+    "aggressive": {
+      "handler": "pursue", "params": {"ability": "healer_bonk", "move_ability": "move", "team": "enemies"}
+    },
+    "hold": {"handler": "hold", "params": {}},
+    "blast": {"handler": "use_ability", "params": {"ability": "wizard_blast"}},
+    "rescue": {"handler": "rescue", "params": {"ability": "wizard_pull"}},
+    "harpooner": {
+      "handler": "threat",
+      "params": {
+        "ability": "enemy_harpoon", "move_ability": "move", "pursue_range": 5,
+        "fallback_teams": ["heroes", "civilian"], "taunt_status": "taunt"
+      }
+    },
+    "escort": {"handler": "escort", "params": {"move_ability": "move"}}
+  },
+  "statuses": {
+    "aura": {
+      "label": "Reflecting aura", "handler": "reflect", "expiry": "actor_turn_start",
+      "params": {"range": 1, "teams": ["enemies"], "objects": true}
+    },
+    "knockdown": {
+      "label": "Down", "handler": "skip_action", "expiry": "consume_action", "params": {}
+    },
+    "taunt": {
+      "label": "Taunted", "handler": "retarget", "expiry": "actor_turn_end",
+      "params": {"teams": ["heroes"]}
+    }
+  },
+  "events": {
+    "move": {"text": "{actor} moves to {position}."},
+    "damage": {"text": "{source} deals {amount} damage to {target}{effect}."},
+    "knockdown_suffix": {"text": " and knocks them down"},
+    "reflect_absorb": {"text": "{protector}'s aura absorbs the attack on {ward}; no redirect target remains."},
+    "reflect_redirect": {"text": "{protector}'s aura redirects the attack on {ward} to {target}."},
+    "push": {"text": "{actor} pushes {target} to {position}."},
+    "collision_suffix": {"text": "'s collision"},
+    "aura": {"text": "{actor} raises an aura (range {range}) that redirects incoming damage and attack effects; movement and recoil are unaffected."},
+    "taunt": {"text": "{actor} taunts {target}."},
+    "heal": {"text": "{actor} heals {target} for {amount}."},
+    "heal_full": {"text": "{actor} heals {target} (already at full health)."},
+    "blast_suffix": {"text": "'s blast"},
+    "pull": {"text": "{actor} pulls {target} to {position} and recoils to {recoil}."},
+    "recoil_source": {"text": "Recoil"},
+    "cannot_advance": {"text": "{actor} cannot advance."},
+    "recover": {"text": "{actor} gets up and loses this action."},
+    "hold": {"text": "{actor} holds position."},
+    "invalid": {"text": "{actor}'s action is no longer valid."},
+    "watches": {"text": "{actor} watches for a closer target."},
+    "gain_status": {"text": "{actor} gains {status}."}
+  },
+  "presentation": {
+    "safe": {"label": "Safe bank", "color": "#a0a67a"},
+    "exit": {"label": "Ferry landing"},
+    "broken": {"label": "Bridge gap", "color": "#5c918e"},
+    "obstacle": {"label": "Blocked", "color": "#b38b60"},
+    "target": {"label": "Target"},
+    "impact": {"label": "Net HP loss"},
+    "path": {"label": "Forecast end"}
+  }
+}

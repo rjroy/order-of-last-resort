@@ -109,7 +109,39 @@ func _run() -> void:
 				_check("knight" in str(_node("CommandedHero").text).to_lower(),
 					"A different hero can be commanded next round")
 	await _exercise_transition_fixture()
+	await _exercise_bard_guild()
 	_finish()
+
+
+func _exercise_bard_guild() -> void:
+	scene.queue_free()
+	await process_frame
+	scene = load("res://main.tscn").instantiate()
+	root.add_child(scene)
+	current_scene = scene
+	await process_frame
+	await process_frame
+	var recruit := _node("Recruit_bard") as BaseButton
+	_check(recruit != null and not recruit.disabled, "Guild offers Bard")
+	if recruit == null or recruit.disabled:
+		return
+	await _press("Recruit_bard")
+	_check("bard" in scene.selected_recruits(), "Bard joins the company")
+	await _press("Recruit_healer")
+	await _press("Recruit_wizard")
+	await _press("StartAdventure")
+	_check(scene.current_screen() == "battle", "Company with Bard deploys")
+	if scene.current_screen() != "battle":
+		return
+	var picker := _order_picker("bard")
+	_check(picker != null, "Bard has a standing order selector")
+	if picker == null:
+		return
+	for id in ["order_inspiring_melody", "order_healing_sonnet"]:
+		if await _select_id(picker, id):
+			_check(scene.battle_snapshot().get("orders", {}).get("bard") == id,
+				"Bard scene selects " + id)
+			picker = _order_picker("bard")
 
 
 func _exercise_transition_fixture() -> void:

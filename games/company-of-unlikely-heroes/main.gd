@@ -32,6 +32,8 @@ var _plan: Dictionary
 var _editor_actor: Dictionary
 var _editor_can_act := false
 var _editor_move_blocked := false
+var _editor_knocked_down := false
+var _editor_skip_label := ""
 var _last_events: Array = []
 var _last_round := 0
 var _unpreviewed_edit := false
@@ -603,6 +605,8 @@ func _sync_targets(auto_pick: bool) -> void:
 	_editor_actor = _find(_actor_id, context)
 	_editor_can_act = _rules.can_act(context, _actor_id)
 	_editor_move_blocked = _rules.has_status_handler(context, _actor_id, "stop_move")
+	_editor_knocked_down = _rules.knocked_down(context, _actor_id)
+	_editor_skip_label = ", ".join(_rules.status_labels(context, _actor_id, "skip_action"))
 	_target_select.clear()
 	var target_kind := _target_kind()
 	var selectable := _is_selectable(target_kind)
@@ -623,7 +627,10 @@ func _sync_targets(auto_pick: bool) -> void:
 		elif _ability_id.is_empty():
 			prompt = "No action available"
 		elif not _editor_can_act:
-			prompt = "Knocked down" if _editor_actor.get("hp", 0) > 0 else "Falls before acting"
+			if _editor_actor.get("hp", 0) <= 0:
+				prompt = "Falls before acting"
+			else:
+				prompt = "Knocked down" if _editor_knocked_down else "Skips turn"
 		elif summon and _rules.summon_capped(context, _actor_id, _ability_id):
 			prompt = "Summon already alive"
 		elif summon and target_kind == "entity":
@@ -636,7 +643,7 @@ func _sync_targets(auto_pick: bool) -> void:
 		elif selectable:
 			prompt = "No legal targets"
 		elif target_kind == "automatic":
-			prompt = "Automatic"
+			prompt = "Random opponent (automatic)" if _rules.ability_definition(_state, _ability_id).handler == "perform" else "Automatic"
 		_add_choice(_target_select, prompt, "")
 	elif not selected_exists and (not auto_pick or not _target_id.is_empty()):
 		_add_choice(_target_select, "Choose a target", "")
@@ -783,9 +790,11 @@ func _command_help(active: bool, manual: bool) -> String:
 	if not _editor_can_act:
 		if _editor_actor.get("hp", 0) <= 0:
 			return "This hero falls before acting. Change an earlier order or choose another hero."
-		if _rules.has_status_handler(_state, _actor_id, "skip_action"):
-			return "This hero is down and spends this turn getting up. Choose another hero."
-		return "This hero will be knocked down before acting. Change an earlier order or choose another hero."
+		if _editor_knocked_down:
+			if _rules.knocked_down(_state, _actor_id):
+				return "This hero is down and spends this turn getting up. Choose another hero."
+			return "This hero will be knocked down before acting. Change an earlier order or choose another hero."
+		return "%s. Change an earlier order or choose another hero." % _editor_skip_label
 	var target_kind := _target_kind()
 	var help: String = _rules.ability_definition(_state, _ability_id).get("help", "")
 	if _is_summon():
@@ -870,8 +879,10 @@ func _refresh_orders(active: bool) -> void:
 		var detail := "%d/%d HP" % [unit.hp, unit.max_hp]
 		if unit.hp <= 0:
 			detail += " · Fallen"
-		elif _rules.has_status_handler(_state, hero, "skip_action"):
+		elif _rules.knocked_down(_state, hero):
 			detail += " · Down"
+		elif _rules.has_status_handler(_state, hero, "skip_action"):
+			detail += " · Skips turn"
 		elif _rules.has_status_handler(_state, hero, "stop_move"):
 			detail += " · Held"
 		if is_commanded:
@@ -932,6 +943,10 @@ func _escape_log_text(text: String) -> String:
 
 func _target_description(hero: String, ability: String, target: String) -> String:
 	if target.is_empty():
+		if _rules.ability_definition(_state, ability).handler == "perform":
+			for event in _plan.events:
+				if event.get("unit_id") == hero and event.get("ability_id") == ability:
+					return " → %s" % event.target_label if event.has("target_label") else " (no eligible listener)"
 		return ""
 	var context := _rules.state_before_action(_planned_state, hero)
 	for choice in _rules.targets(context, hero, ability):
@@ -960,7 +975,7 @@ func _refresh_board() -> void:
 		units.append({"id": unit.id, "art_key": profile.art_key, "variant": profile.get("art_variant", ""),
 			"label": _name_for(unit.id) if show_label else "", "color": profile.get("color", ""),
 			"cell": unit.position, "hp": unit.hp, "max_hp": unit.max_hp, "objective": is_objective,
-			"prone": unit.hp <= 0 or _rules.has_status_handler(_state, unit.id, "skip_action"),
+			"prone": unit.hp <= 0 or _rules.knocked_down(_state, unit.id),
 			"guarded": _rules.has_status_handler(_state, unit.id, "reflect")})
 	var overlay := {"safe": _safe_cells, "obstacles": []}
 	if _state.objective.has("destination"):
@@ -1077,8 +1092,8 @@ func _inspect_board(cell: Vector2i) -> void:
 	for unit in _state.units:
 		if unit.position == cell and unit.hp > 0:
 			_hover_text.text = "%s  ·  %s  %d/%d HP" % [place, _name_for(unit.id), unit.hp, unit.max_hp]
-			if _rules.has_status_handler(_state, unit.id, "stop_move"):
-				_hover_text.text += "  ·  Held in place"
+			for label in _rules.status_labels(_state, unit.id):
+				_hover_text.text += "  ·  " + label
 			_board.tooltip_text = _hover_text.text
 			return
 	for obstacle in _state.obstacles:

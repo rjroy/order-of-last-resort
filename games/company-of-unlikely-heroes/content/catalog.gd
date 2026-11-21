@@ -13,9 +13,11 @@ const ABILITY_TARGETING := {
 	"blast": ["entity", "automatic"], "pull": ["entity", "automatic"], "attack": ["entity", "automatic"],
 	"swap_furthest": ["automatic"], "misdirect": ["entity"],
 	"summon": ["cell", "entity"], "sweep": ["none"], "repel": ["automatic"], "stop_target": ["automatic"],
+	"perform": ["automatic"],
 }
 const ABILITY_EVENTS := {"swap_furthest": ["swap"], "misdirect": ["misdirect_mark"],
-	"sweep": ["sweep"], "stop_target": ["stop_target"], "repel": ["repel"]}
+	"sweep": ["sweep"], "stop_target": ["stop_target"], "repel": ["repel"],
+	"perform": ["performance_dry"]}
 const STATUS_EXPIRY := {"reflect": "actor_turn_start", "skip_action": "consume_action",
 	"retarget": "actor_turn_end", "misdirect": "consume_attack", "stop_move": "actor_turn_end"}
 
@@ -368,6 +370,16 @@ class Validator:
 				var status: Variant = params.get("status")
 				if _ref(status, "statuses", param_path + "status") and not is_same(_defs.statuses[status].get("handler"), "stop_move"):
 					_error(param_path + "status", "status must use the stop_move handler")
+			"perform":
+				if is_same(targeting.get("objects"), true):
+					_error(path + ".targeting.objects", "perform only targets living opponents")
+				if params.has("status"):
+					if params.has("damage"):
+						_error(param_path + "damage", "perform accepts either damage or status, not both")
+					_ref(params.status, "statuses", param_path + "status")
+				else:
+					_integer(params.get("damage"), param_path + "damage", 1)
+				_ref(params.get("listener_event"), "events", param_path + "listener_event")
 		if handler in ["bonk", "blast", "attack"] and params.has("source_suffix"):
 			_text(params.source_suffix, param_path + "source_suffix", true)
 
@@ -446,7 +458,13 @@ class Validator:
 			"retarget":
 				if params.has("teams"):
 					_id_list(params.teams, path + ".params.teams")
-			"skip_action", "misdirect", "stop_move":
+			"skip_action":
+				if params.has("immunity_rounds"):
+					_integer(params.immunity_rounds, path + ".params.immunity_rounds", 1)
+					_text(params.get("immune_label"), path + ".params.immune_label")
+				if params.has("skip_event"):
+					_ref(params.skip_event, "events", path + ".params.skip_event")
+			"misdirect", "stop_move":
 				pass
 
 	func _check_profile(data: Dictionary, path: String) -> void:

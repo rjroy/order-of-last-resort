@@ -105,7 +105,7 @@ static func _summarize_mission(party: Array, committed: Dictionary) -> Dictionar
 		if member.id in party:
 			var report := {"hp": member.hp, "max_hp": member.max_hp,
 				"label": rules.display_name(committed, member.id),
-				"knocked_down": rules.has_status_handler(committed, member.id, "skip_action")}
+				"knocked_down": rules.knocked_down(committed, member.id)}
 			report.make_read_only()
 			heroes[member.id] = report
 	heroes.make_read_only()

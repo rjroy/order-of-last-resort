@@ -2,6 +2,7 @@ extends RefCounted
 
 const Actions = preload("res://rules/actions.gd")
 const Board = preload("res://rules/board.gd")
+const EncounterRandom = preload("res://rules/encounter_random.gd")
 const Statuses = preload("res://rules/statuses.gd")
 
 
@@ -66,8 +67,7 @@ static func _greet(state: Dictionary, actor: Dictionary, params: Dictionary) -> 
 	if Board.distance(actor.position, enemy.position) <= reach:
 		var options := _greeting_options(state, actor, params.greetings)
 		if not options.is_empty():
-			# Park–Miller PRNG: the round works on its own snapshot, never a global RNG.
-			state.rng_state = (int(state.rng_state) * 48271) % 2147483647
+			state.rng_state = EncounterRandom.step(state.rng_state)
 			return options[state.rng_state % options.size()]
 	if Actions.targets(state, actor, params.move_ability).is_empty():
 		return {"wait": "cannot_advance"}

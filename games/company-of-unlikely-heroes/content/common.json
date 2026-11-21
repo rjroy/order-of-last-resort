@@ -215,6 +215,19 @@
       "default_order": "order_hold",
       "color": "#bcabdf"
     },
+    "bard": {
+      "class": "wizard",
+      "label": "Bard",
+      "description": "Pick the tune, not the audience. A melody makes an opponent laugh away their turn; a sonnet hurts one.",
+      "abilities": ["move", "inspiring_melody", "healing_sonnet"],
+      "habits": {
+        "order_hold": "hold",
+        "order_inspiring_melody": "sing_melody",
+        "order_healing_sonnet": "sing_sonnet"
+      },
+      "default_order": "order_hold",
+      "color": "#e3b970"
+    },
     "skeleton": {
       "class": "undead",
       "label": "Skeleton",
@@ -287,6 +300,20 @@
     }
   },
   "abilities": {
+    "inspiring_melody": {
+      "label": "Inspiring Melody",
+      "help": "A random eligible opponent skips its next turn laughing, then is immune to laughter through the following round.",
+      "handler": "perform",
+      "params": {"status": "laughter", "listener_event": "melody_listener"},
+      "targeting": {"kind": "automatic", "teams": ["enemies"]}
+    },
+    "healing_sonnet": {
+      "label": "Healing Sonnet",
+      "help": "Deals 1 damage to a random living opponent. Despite the name, nobody is healed.",
+      "handler": "perform",
+      "params": {"damage": 1, "listener_event": "sonnet_listener"},
+      "targeting": {"kind": "automatic", "teams": ["enemies"]}
+    },
     "raise_dead": {
       "label": "Raise Dead",
       "help": "Choose an unoccupied enemy corpse. It becomes a zombie with half the enemy's maximum HP, rounded up.",
@@ -495,6 +522,12 @@
     "order_hold": {
       "label": "Hold"
     },
+    "order_inspiring_melody": {
+      "label": "Inspiring Melody"
+    },
+    "order_healing_sonnet": {
+      "label": "Healing Sonnet"
+    },
     "order_retreat": {
       "label": "Retreat from nearest enemy"
     },
@@ -521,6 +554,14 @@
     }
   },
   "behaviors": {
+    "sing_melody": {
+      "handler": "use_ability",
+      "params": {"ability": "inspiring_melody"}
+    },
+    "sing_sonnet": {
+      "handler": "use_ability",
+      "params": {"ability": "healing_sonnet"}
+    },
     "skeleton_greetings": {
       "handler": "greet",
       "params": {"team": "enemies", "move_ability": "move", "greeting_range": 1, "greetings": ["wave", "dont_go"]}
@@ -602,6 +643,12 @@
     }
   },
   "statuses": {
+    "laughter": {
+      "label": "Laughing; skips next turn",
+      "handler": "skip_action",
+      "expiry": "consume_action",
+      "params": {"immunity_rounds": 1, "immune_label": "Immune to laughter this round", "skip_event": "laugh_skip"}
+    },
     "held_in_place": {
       "label": "Held in place",
       "handler": "stop_move",
@@ -644,6 +691,18 @@
     }
   },
   "events": {
+    "performance_dry": {
+      "text": "{actor} sings {ability}, but there is no eligible listener."
+    },
+    "melody_listener": {
+      "text": "{actor} sings {ability}. {target} bursts out laughing and will miss their next turn."
+    },
+    "sonnet_listener": {
+      "text": "{actor} sings {ability}. {target} screams in pain and takes {amount} damage."
+    },
+    "laugh_skip": {
+      "text": "{actor} laughs away this turn and is immune to laughter through the next round."
+    },
     "summon": {
       "text": "{actor} summons a {minion} at {position} ({hp} HP). It first acts next round."
     },

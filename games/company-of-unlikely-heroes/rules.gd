@@ -94,6 +94,14 @@ func has_status_handler(state: Dictionary, unit_id: String, handler: String) -> 
 	return not Statuses.ids_with_handler(state, Board.entity(state, unit_id), handler).is_empty()
 
 
+func status_labels(state: Dictionary, unit_id: String, active_handler := "") -> PackedStringArray:
+	return Statuses.labels(state, Board.entity(state, unit_id), active_handler)
+
+
+func knocked_down(state: Dictionary, unit_id: String) -> bool:
+	return Statuses.knocked_down(state, Board.entity(state, unit_id))
+
+
 func can_act(state: Dictionary, unit_id: String) -> bool:
 	return state.outcome == "ongoing" and Actions.can_act(state, Board.entity(state, unit_id))
 
@@ -172,8 +180,9 @@ func apply_plan(state: Dictionary, plan: Dictionary) -> Dictionary:
 func choose_manual(state: Dictionary, unit_id: String, ability_id: String, target_id := "") -> Dictionary:
 	var result := state.duplicate(true)
 	var actor := Board.entity(state, unit_id)
+	var ability := Actions.owned_ability(state, actor, ability_id)
 	if state.outcome != "ongoing" or not Board.alive(actor) or not Board.capable(state, actor, "commandable") \
-			or Actions.owned_ability(state, actor, ability_id).is_empty():
+			or ability.is_empty() or (ability.handler == "perform" and not Actions.accepts_target_argument(ability, target_id)):
 		return result
 	if not result.overrides.is_empty() and not result.overrides.has(unit_id):
 		return result
@@ -210,6 +219,7 @@ func preview_round(state: Dictionary) -> Dictionary:
 	var ending := _end_condition(result)
 	if ending.is_empty():
 		result.round += 1
+		Statuses.expire_rounds(result)
 		_reset_override(result)
 	else:
 		if ending.get("collapse", false):
@@ -259,14 +269,11 @@ func _resolve_turns(state: Dictionary, events: Array, stop_before := "") -> void
 
 
 func _resolve_turn(state: Dictionary, actor: Dictionary, events: Array) -> void:
-	var name := Board.display_name(state, actor)
 	if not Actions.can_act(state, actor):
-		var consumed := Statuses.ids_with_handler(state, actor, "skip_action")
-		Statuses.expire(state, actor, "consume_action")
-		Board.authored_event(state, events, "recover", "recover", {"actor": name},
-			{"unit_id": actor.id, "status_ids": consumed})
+		Statuses.consume_skips(state, actor, events)
 		return
 
+	var name := Board.display_name(state, actor)
 	var action := _intent(state, actor)
 	if not action.has("ability_id"):
 		Board.authored_event(state, events, "wait", action.get("wait", "hold"), {"actor": name}, {"unit_id": actor.id})

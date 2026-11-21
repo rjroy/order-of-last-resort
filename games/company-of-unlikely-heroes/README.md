@@ -10,11 +10,11 @@ godot --path games/company-of-unlikely-heroes
 
 ### Your first outing
 
-At the guild, pick **exactly three** of the six recruits and arrange them in the order you want them to act. The order is fixed for the outing. The patrol fight has no round limit: defeat the opposition before it defeats your company. The second mission has a different objective: get the ferryman to the marked landing before the bridge fails. Clearing the bridge of enemies does not by itself win the rescue.
+At the guild, pick **exactly three** of the seven recruits and arrange them in the order you want them to act. The order is fixed for the outing. The patrol fight has no round limit: defeat the opposition before it defeats your company. The second mission has a different objective: get the ferryman to the marked landing before the bridge fails. Clearing the bridge of enemies does not by itself win the rescue.
 
 Give each hero a standing order. Each round you may queue **one** manual command instead: select a hero, action and target if needed, preview it, and read the ordered forecast. You can revise it, switch the hero you command, or clear it before committing the round. Everyone else follows their standing order. There is no full-manual or standing-only mode selector.
 
-After winning the fight, inspect the debrief before continuing. Survivors carry their current HP forward. Downed heroes rejoin at **1 HP**; mission statuses clear. Failure ends the outing, as does a successful rescue. Return to the guild to start fresh. There are no mission upgrades, rewards or guild perks in this build.
+After winning the fight, inspect the debrief before continuing. Survivors carry their current HP and standing orders forward. Downed heroes rejoin at **1 HP**; mission statuses clear. Failure ends the outing, as does a successful rescue. Return to the guild to start fresh. There are no mission upgrades, rewards or guild perks in this build.
 
 | Hero | Offensive action | Utility |
 |---|---|---|
@@ -24,12 +24,17 @@ After winning the fight, inspect the debrief before continuing. Survivors carry 
 | Alchemist | A volatile splash hits the nearest thing, friend or foe, and can knock it down. | A ward redirects attacks. The alchemist can protect a wounded company, but cannot heal it or pull someone out of danger. |
 | Rogue | Wasn't Me marks an enemy beside another living character; its next attack is redirected to an adjacent character, including an ally. | Retreat steps away from the nearest enemy. Confusing Dodge swaps with the furthest other living character, friend or foe. |
 | Necromancer | Summon Skeleton puts a 1 HP skeleton on an open neighboring tile. | Raise Dead consumes an unoccupied enemy corpse and puts a zombie there with half the enemy's maximum HP, rounded up. The Necromancer holds unless directly commanded. |
+| Bard | Healing Sonnet makes a random living opponent scream for 1 damage. It does not heal. | Inspiring Melody makes a random eligible opponent laugh away their next turn. The Bard starts on Hold and can take either song as a standing order. |
 
 Rogue distance ties and redirect victim ties use the lowest character instance ID. When the marked enemy attacks, Wasn't Me looks for an adjacent living character other than the attacker and its original target. If nobody else is there, the original target takes the attack. Either way, the mark is spent. Movement before the attack can change who takes the blame, and a reflecting aura can still redirect the resulting attack.
 
 The Necromancer can have one living skeleton and one living zombie at a time. They appear immediately but first act **next round**, right after their summoner (skeleton before zombie). Neither takes a company slot, prevents a wipe, or joins the next mission. They cannot be commanded, and their remains cannot be raised.
 
 Both summons pursue opponents and, close enough, independently pick a legal greeting. Read the forecast before committing: an earlier hero can move out of the way. **Wave** hits every adjacent character except the skeleton for 1 damage. **Don't Go** blocks the nearest other character's next Move, not their other actions. **Say Hello** makes the nearest other character back up a tile if it is open. These three greetings can affect friends. **Offer Flower** deals 1 damage to an opponent up to two tiles away.
+
+The Bard can Move or perform either song as a direct command. It interrupts that Bard's standing order for one round; directly commanding anyone else lets the song continue. Songs choose their own listener from living opponents anywhere on the board, never a crate, ally or corpse. The ordered forecast names the listener and shows whether they lose their turn; refreshing the same forecast never rerolls it. A listener who laughs is immune to more laughter through the entire following round, but the Sonnet still hurts them. With two opponents and no other interference, a standing Melody alternates between them. With one, the Bard sings without an eligible listener every other round.
+
+To try it in the existing patrol, recruit Bard, Healer and Knight in that order. Leave the other two on their default orders and commit three rounds of **Inspiring Melody**, comparing the listeners. Switch to **Healing Sonnet** for round four to see damage against the raider who just laughed. Before committing, preview a Move for another hero to leave the song in place, then replace the command with a Bard Move to see the song drop out of the forecast. The Bard uses the existing Wizard drawing with a distinct gold name label.
 
 The game collects no playtest telemetry. The question to take away: **Did you enjoy trusting two of these people while you took charge of the third?**
 
@@ -81,6 +86,8 @@ From this directory, run the suites with `godot --headless --script res://tests/
 | `adventure_scene_test` | Party selection and formation through the controls, debrief, wound carryover, and guild return |
 | `rogue_test` | Rogue dodge, redirect, retreat, and hybrid forecast consistency |
 | `necromancer_test` | Summons, corpse selection, greetings, round order and forecast consistency, and expedition boundaries |
+| `bard_test` | Both persistent songs, seeded listeners, skipped turns and full-round laughter immunity, damage, and direct-command interactions |
+| `laughter_presentation_test` | A laughing hero loses their turn without being shown as knocked down in the command editor or debrief |
 | `scene_smoke` | Guild entry, battle controls, one-command forecasts, commit, and fixed-scenario restart |
 
 In a graphical session, `godot --script res://tests/scene_smoke.gd -- --capture=/absolute/path.png` also saves the game viewport after the smoke run.

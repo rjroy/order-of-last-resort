@@ -8,7 +8,8 @@
         "wizard",
         "alchemist",
         "rogue",
-        "necromancer"
+        "necromancer",
+        "bard"
       ],
       "missions": [
         "bridge_patrol",

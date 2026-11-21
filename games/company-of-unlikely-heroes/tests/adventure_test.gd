@@ -66,7 +66,7 @@ func _test_selection() -> void:
 
 
 func _test_deployment_and_override() -> void:
-	for picks in [["wizard", "knight", "alchemist"], ["knight", "healer", "wizard"], ["rogue", "healer", "wizard"], ["necromancer", "healer", "wizard"]]:
+	for picks in [["wizard", "knight", "alchemist"], ["knight", "healer", "wizard"], ["rogue", "healer", "wizard"], ["necromancer", "healer", "wizard"], ["bard", "healer", "wizard"]]:
 		var ready := _start(picks)
 		if ready.is_empty():
 			_check(false, "Legal company starts before deployment")

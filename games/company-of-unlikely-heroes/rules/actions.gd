@@ -2,6 +2,7 @@ extends RefCounted
 
 const Catalog = preload("res://content/catalog.gd")
 const Board = preload("res://rules/board.gd")
+const EncounterRandom = preload("res://rules/encounter_random.gd")
 const Statuses = preload("res://rules/statuses.gd")
 
 
@@ -13,6 +14,10 @@ static func owned_ability(state: Dictionary, actor: Dictionary, id: String) -> D
 
 static func can_act(state: Dictionary, actor: Dictionary) -> bool:
 	return Board.alive(actor) and Statuses.ids_with_handler(state, actor, "skip_action").is_empty()
+
+
+static func accepts_target_argument(ability: Dictionary, target_id: String) -> bool:
+	return target_id.is_empty() or ability.targeting.kind in ["cell", "entity"]
 
 
 static func _can_move(state: Dictionary, actor: Dictionary) -> bool:
@@ -60,6 +65,12 @@ static func _entity_allowed(state: Dictionary, actor: Dictionary, candidate: Dic
 			return candidate.has("character_id")
 		"stop_target":
 			return Statuses.accepts(state, candidate, ability.params.status, actor)
+		"perform":
+			if not candidate.has("character_id") \
+					or Board.team(state, candidate) in ["", "civilian", Board.team(state, actor)]:
+				return false
+			return Statuses.accepts(state, candidate, ability.params.status, actor) if ability.params.has("status") \
+				else Board.capable(state, candidate, "damageable")
 	return false
 
 
@@ -144,14 +155,19 @@ static func targets(state: Dictionary, actor: Dictionary, ability_id: String) ->
 
 
 static func selection(state: Dictionary, actor: Dictionary, ability: Dictionary, target_id: String) -> Dictionary:
+	if ability.is_empty() or not accepts_target_argument(ability, target_id):
+		return {}
 	var choices := _legal_choices(state, actor, ability)
 	if choices.is_empty():
 		return {}
 	if ability.handler == "sweep":
-		return {"id": "", "recipients": choices} if target_id.is_empty() else {}
+		return {"id": "", "recipients": choices}
+	if ability.handler == "perform":
+		var draw := EncounterRandom.uniform_draw(state.rng_state, choices.size())
+		var choice: Dictionary = choices[draw.index]
+		choice["rng_seed"] = draw.seed
+		return choice
 	if ability.targeting.kind == "automatic":
-		if not target_id.is_empty():
-			return {}
 		for choice in choices:
 			if choice.id == actor.id:
 				return choice
@@ -206,9 +222,43 @@ static func _summon(state: Dictionary, actor: Dictionary, ability: Dictionary,
 	Board.authored_event(state, events, "summon", "raise" if raising else "summon", copy, data)
 
 
+static func _perform(state: Dictionary, actor: Dictionary, ability: Dictionary, ability_id: String,
+		choice: Dictionary, events: Array) -> bool:
+	var name := Board.display_name(state, actor)
+	var copy := {"actor": name, "ability": ability.label}
+	var data := {"unit_id": actor.id, "ability_id": ability_id}
+	if choice.is_empty():
+		Board.authored_event(state, events, "performance", "performance_dry", copy, data)
+		return true
+	var listener := Board.entity(state, choice.id)
+	data["target_id"] = listener.id
+	data["target_label"] = choice.label
+	copy["target"] = choice.label
+	var params: Dictionary = ability.params
+	if params.has("status"):
+		if not Statuses.apply(state, listener, params.status, actor):
+			return false
+		data["status_id"] = params.status
+		Board.authored_event(state, events, "performance", params.listener_event, copy, data)
+	else:
+		# A performance affects its listener directly; it isn't a redirectable attack.
+		var amount := int(params.damage)
+		_hurt(listener, amount)
+		data.merge({"source_id": actor.id, "amount": amount})
+		copy["amount"] = amount
+		Board.authored_event(state, events, "damage", params.listener_event, copy, data)
+	state.rng_state = choice.rng_seed
+	return true
+
+
 static func execute(state: Dictionary, actor: Dictionary, action: Dictionary, events: Array) -> bool:
 	var ability := owned_ability(state, actor, action.ability_id)
-	var choice := selection(state, actor, ability, action.get("target_id", ""))
+	var target_id: String = action.get("target_id", "")
+	if ability.is_empty() or not can_act(state, actor) or not accepts_target_argument(ability, target_id):
+		return false
+	var choice := selection(state, actor, ability, target_id)
+	if ability.handler == "perform":
+		return _perform(state, actor, ability, action.ability_id, choice, events)
 	if choice.is_empty():
 		return false
 	var target := Board.entity(state, choice.id)
@@ -304,14 +354,18 @@ static func execute(state: Dictionary, actor: Dictionary, action: Dictionary, ev
 	return true
 
 
+static func _hurt(target: Dictionary, amount: int) -> void:
+	target.hp = maxi(0, target.hp - amount)
+
+
 static func _damage(state: Dictionary, source: Dictionary, target: Dictionary, amount: int,
 		source_name: String, status_id: String, events: Array) -> void:
 	if not Board.alive(target) or not Board.capable(state, target, "damageable"):
 		return
-	target.hp = maxi(0, target.hp - amount)
+	_hurt(target, amount)
 	var applied := not status_id.is_empty() and Statuses.apply(state, target, status_id, source)
 	var handler = Statuses.definition(state, status_id).get("handler", "") if applied else ""
-	var suffix := Board.text(state, "knockdown_suffix") if handler == "skip_action" else ""
+	var suffix := Board.text(state, "knockdown_suffix") if applied and Statuses.is_knockdown(state, status_id) else ""
 	var target_name := Board.display_name(state, target)
 	var data := {"source_id": source.id, "target_id": target.id, "amount": amount}
 	if applied:

@@ -1,0 +1,326 @@
+{
+  "version": 1,
+  "artwork_status": "exact masters approved",
+  "runtime_status": "appearance not accepted in Godot",
+  "catalog_reference_commit": "1f30963",
+  "image_format": {
+    "format": "PNG",
+    "color_space": "sRGB",
+    "bit_depth": 8,
+    "opaque": true
+  },
+  "boards": {
+    "bridge": {
+      "file": "bridge.png",
+      "sha256": "4f82c2e88167e11f9cf95813dd756805254e4c3dc5d343440e6f079a20a20e91",
+      "bytes": 3539597,
+      "board_dimensions": [7, 5],
+      "pixels": [1536, 1024],
+      "registration": {
+        "a1_center_px": [272, 176],
+        "column_px": [184, 18],
+        "row_px": [-28, 146]
+      },
+      "missions": [
+        "company_rescue",
+        "ferryman",
+        "extra_knight"
+      ],
+      "provenance": {
+        "origin": "approved Ferryman crossing pilot",
+        "generated": "2026-11-21",
+        "tool": "OpenCode experimental_image_generate",
+        "model": "openai/gpt-image-2",
+        "historical_note": "Ferryman crossing pilot, REVIEW.md (see package README for tracked study)"
+      }
+    },
+    "frontier_bridge_board": {
+      "file": "frontier_bridge_board.png",
+      "sha256": "38b97421e9251ebe917e82235ed23551659101aa1cbbe909852d695ebc65c2ba",
+      "bytes": 2947575,
+      "board_dimensions": [7, 5],
+      "pixels": [1536, 1024],
+      "registration": {
+        "a1_center_px": [272, 176],
+        "column_px": [184, 18],
+        "row_px": [-28, 146]
+      },
+      "missions": [
+        "bridge_is_out"
+      ],
+      "provenance": {
+        "origin": "approved combined mission board review",
+        "generated": "2026-11-21",
+        "tool": "OpenCode experimental_image_generate",
+        "model": "openai/gpt-image-2",
+        "style_reference": "bridge.png",
+        "generation_guide": {
+          "name": "bridge-layout-guide",
+          "sha256": "c7e1e0ce4fe8f797bb5d57717509f469d19eb1b88c1497f81cfaa6cb8900450c"
+        }
+      }
+    },
+    "frontier_field": {
+      "file": "frontier_field.png",
+      "sha256": "eddc341a885ee3e3b4a0156f58096c37bf122c846d2ea7f83cc005eed63f29b7",
+      "bytes": 2966511,
+      "board_dimensions": [7, 5],
+      "pixels": [1536, 1024],
+      "registration": {
+        "a1_center_px": [272, 176],
+        "column_px": [184, 18],
+        "row_px": [-28, 146]
+      },
+      "missions": [
+        "shield_wall",
+        "cowardly_captain",
+        "explosive_situation",
+        "unfortunate_healer",
+        "duelists",
+        "odd_couple",
+        "mirror_company",
+        "last_one_standing"
+      ],
+      "provenance": {
+        "origin": "approved combined mission board review",
+        "generated": "2026-11-21",
+        "tool": "OpenCode experimental_image_generate",
+        "model": "openai/gpt-image-2",
+        "style_reference": "bridge.png",
+        "generation_job": "image_20062a33200168fgscp7nh0XrV"
+      }
+    },
+    "frontier_gate_board": {
+      "file": "frontier_gate_board.png",
+      "sha256": "0cb6b59fb6b5c06a8b05a73571ef65882c2d518238971ffdc4f05672cfe5129f",
+      "bytes": 3389338,
+      "board_dimensions": [7, 5],
+      "pixels": [1536, 1024],
+      "registration": {
+        "a1_center_px": [272, 175],
+        "column_px": [184, 18],
+        "row_px": [-35, 146]
+      },
+      "missions": [
+        "wrong_side_of_the_door"
+      ],
+      "provenance": {
+        "origin": "approved combined mission board review",
+        "generated": "2026-11-21",
+        "tool": "OpenCode experimental_image_generate",
+        "model": "openai/gpt-image-2",
+        "style_reference": "bridge.png",
+        "generation_guide": {
+          "name": "gate-layout-guide",
+          "sha256": "ed6119864f757d6dbc3614fac9f3740d6d040e8edde1ae58570835c761431890"
+        },
+        "generation_job": "image_200626d4d0017xPlTNznflIsRR"
+      }
+    },
+    "frontier_line_board": {
+      "file": "frontier_line_board.png",
+      "sha256": "8acffdbcd389e8e75b64c81a160bc18de67e176f396cca4c82faafc57cda3807",
+      "bytes": 3257381,
+      "board_dimensions": [7, 5],
+      "pixels": [1536, 1024],
+      "registration": {
+        "a1_center_px": [272, 176],
+        "column_px": [184, 18],
+        "row_px": [-28, 146]
+      },
+      "missions": [
+        "hold_the_line"
+      ],
+      "provenance": {
+        "origin": "approved combined mission board review",
+        "generated": "2026-11-21",
+        "tool": "OpenCode experimental_image_generate",
+        "model": "openai/gpt-image-2",
+        "style_reference": "bridge.png",
+        "generation_job": "image_20062d4cb001fKgMSnezZIwQ8v"
+      }
+    },
+    "frontier_ritual_board": {
+      "file": "frontier_ritual_board.png",
+      "sha256": "d2a1bc37659f5c922082eb072b932993e669583cb30a277e305e7898b283fc04",
+      "bytes": 3459879,
+      "board_dimensions": [7, 5],
+      "pixels": [1536, 1024],
+      "registration": {
+        "a1_center_px": [272, 176],
+        "column_px": [184, 18],
+        "row_px": [-28, 146]
+      },
+      "missions": [
+        "unfortunate_ritual"
+      ],
+      "provenance": {
+        "origin": "approved combined mission board review",
+        "generated": "2026-11-21",
+        "tool": "OpenCode experimental_image_generate",
+        "model": "openai/gpt-image-2",
+        "style_reference": "bridge.png"
+      }
+    },
+    "frontier_sheep_board": {
+      "file": "frontier_sheep_board.png",
+      "sha256": "63cdb6c9f46e49862bdeb70207d08c8de7e21c67436d4fea45e380136843e26f",
+      "bytes": 2952531,
+      "board_dimensions": [7, 5],
+      "pixels": [1536, 1024],
+      "registration": {
+        "a1_center_px": [272, 176],
+        "column_px": [184, 18],
+        "row_px": [-28, 146]
+      },
+      "missions": [
+        "great_sheep_escape"
+      ],
+      "provenance": {
+        "origin": "approved combined mission board review",
+        "generated": "2026-11-21",
+        "tool": "OpenCode experimental_image_generate",
+        "model": "openai/gpt-image-2",
+        "style_reference": "bridge.png",
+        "generation_job": "image_2006307be001cyIKJn0v89BtUY"
+      }
+    },
+    "frontier_treasure_board": {
+      "file": "frontier_treasure_board.png",
+      "sha256": "52435414450cfb0190ec9b4dc13637df502c4814923f9b26d344915da4d89886",
+      "bytes": 3051576,
+      "board_dimensions": [7, 5],
+      "pixels": [1536, 1024],
+      "registration": {
+        "a1_center_px": [272, 176],
+        "column_px": [184, 18],
+        "row_px": [-28, 146]
+      },
+      "missions": [
+        "dont_wake_the_giant"
+      ],
+      "provenance": {
+        "origin": "approved combined mission board review",
+        "generated": "2026-11-21",
+        "tool": "OpenCode experimental_image_generate",
+        "model": "openai/gpt-image-2",
+        "style_reference": "bridge.png"
+      }
+    },
+    "frontier_wagon_board": {
+      "file": "frontier_wagon_board.png",
+      "sha256": "3d88c79dd62349759f8480fcce8c7a81d8abf3641701bd74e21509bf64986dfb",
+      "bytes": 3139400,
+      "board_dimensions": [7, 5],
+      "pixels": [1536, 1024],
+      "registration": {
+        "a1_center_px": [272, 176],
+        "column_px": [184, 18],
+        "row_px": [-28, 146]
+      },
+      "missions": [
+        "last_wagon"
+      ],
+      "provenance": {
+        "origin": "approved combined mission board review",
+        "generated": "2026-11-21",
+        "tool": "OpenCode experimental_image_generate",
+        "model": "openai/gpt-image-2",
+        "style_reference": "bridge.png"
+      }
+    },
+    "road": {
+      "file": "road.png",
+      "sha256": "87195ae9b1100096f2bcb47a67c9d6871ce9588e803750afd15a376ca8b127b1",
+      "bytes": 3277165,
+      "board_dimensions": [7, 5],
+      "pixels": [1536, 1024],
+      "registration": {
+        "a1_center_px": [272, 176],
+        "column_px": [184, 18],
+        "row_px": [-28, 146]
+      },
+      "missions": [
+        "bridge_patrol",
+        "necromancer_wave"
+      ],
+      "provenance": {
+        "origin": "approved combined mission board review",
+        "generated": "2026-11-21",
+        "tool": "OpenCode experimental_image_generate",
+        "model": "openai/gpt-image-2",
+        "style_reference": "bridge.png",
+        "generation_job": "image_200618f57001c7570M1GH6lAyQ"
+      }
+    },
+    "village_approach": {
+      "file": "village_approach.png",
+      "sha256": "59fcae4055d796bea2c3f07a148ee35ec786e02c5a5d218ec3136599dbd6ae75",
+      "bytes": 3227511,
+      "board_dimensions": [7, 5],
+      "pixels": [1536, 1024],
+      "registration": {
+        "a1_center_px": [272, 176],
+        "column_px": [184, 18],
+        "row_px": [-28, 146]
+      },
+      "missions": [
+        "goblin_mob"
+      ],
+      "provenance": {
+        "origin": "approved combined mission board review",
+        "generated": "2026-11-21",
+        "tool": "OpenCode experimental_image_generate",
+        "model": "openai/gpt-image-2",
+        "style_reference": "bridge.png",
+        "generation_job": "image_2006228f9001X8UQTpjWDLkwD6"
+      }
+    },
+    "village_lane": {
+      "file": "village_lane.png",
+      "sha256": "7e4913fc06cdb50b74d4d17755d6c780f42931c307f731df0a17ddb9e3e37848",
+      "bytes": 3879149,
+      "board_dimensions": [7, 5],
+      "pixels": [1536, 1024],
+      "registration": {
+        "a1_center_px": [272, 176],
+        "column_px": [184, 18],
+        "row_px": [-28, 146]
+      },
+      "missions": [
+        "harpoon_squad"
+      ],
+      "provenance": {
+        "origin": "approved combined mission board review",
+        "generated": "2026-11-21",
+        "tool": "OpenCode experimental_image_generate",
+        "model": "openai/gpt-image-2",
+        "style_reference": "bridge.png",
+        "generation_job": "image_20062609f001NImA2xJCu5pYAb"
+      }
+    },
+    "village_square": {
+      "file": "village_square.png",
+      "sha256": "bba9c65ea75cece6e376cd56e15f4a02115d4373aee75bcb382b18548681911e",
+      "bytes": 3423956,
+      "board_dimensions": [7, 5],
+      "pixels": [1536, 1024],
+      "registration": {
+        "a1_center_px": [272, 176],
+        "column_px": [184, 18],
+        "row_px": [-28, 146]
+      },
+      "missions": [
+        "unwelcome_guest"
+      ],
+      "provenance": {
+        "origin": "approved combined mission board review",
+        "generated": "2026-11-21",
+        "tool": "OpenCode experimental_image_generate",
+        "model": "openai/gpt-image-2",
+        "style_reference": "bridge.png",
+        "generation_job": "image_20062951d001pWc4En0IF4aFKc"
+      }
+    }
+  }
+}

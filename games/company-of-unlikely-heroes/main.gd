@@ -3,12 +3,14 @@ extends Control
 const Rules = preload("res://rules.gd")
 const BridgeArt = preload("res://bridge_art.gd")
 const BattleCues = preload("res://battle_cues.gd")
+const CastCues = preload("res://presentation/cast_cues.gd")
 const Catalog = preload("res://content/catalog.gd")
 const Adventure = preload("res://adventure.gd")
 const Upgrades = preload("res://rules/upgrades.gd")
 const Commissions = preload("res://commissions.gd")
 const GuildProfile = preload("res://guild_profile.gd")
 const DEFAULT_ADVENTURE := "first_outing"
+const TERMINAL_REPLAY_LIMIT_MS := 3200
 
 const PAPER := Color("#f1dfb8")
 const MUTED := Color("#c0c7ad")
@@ -29,6 +31,7 @@ var _picked_recruits: Array = []
 var _screen := ""
 var _screen_root: Control
 var _launch_args: Variant
+var _uses_builtin_catalog := false
 var _profile_path := GuildProfile.DEFAULT_PATH
 var _guild_profile: Dictionary
 var _commission: Dictionary
@@ -63,6 +66,9 @@ var _hover_cell: Variant = null
 var _display_font: SystemFont
 var _board: BridgeArt
 var _board_cues: BattleCues
+var _terminal_replay: PanelContainer
+var _terminal_board: BridgeArt
+var _terminal_replay_until := 0
 var _legend: HFlowContainer
 var _actor_select: OptionButton
 var _ability_select: OptionButton
@@ -87,6 +93,7 @@ var _order_grid: GridContainer
 
 
 func _ready() -> void:
+	set_process(false)
 	_make_theme()
 	var args: PackedStringArray = OS.get_cmdline_user_args() if _launch_args == null else _launch_args
 	var launch := _read_launch_options(args)
@@ -99,6 +106,7 @@ func _ready() -> void:
 		_show_launch_error(content.error)
 		return
 	_definitions = content.definitions
+	_uses_builtin_catalog = launch.content.is_empty()
 	_fixed_mission = launch.mission
 	var adventures: Dictionary = _definitions.get("adventures", {})
 	if not adventures.is_empty() and not adventures.has(_adventure_id):
@@ -235,6 +243,7 @@ func _show_launch_error(message: String) -> void:
 
 
 func _page(screen: String, top_margin := 22) -> VBoxContainer:
+	_clear_terminal_replay()
 	_screen = screen
 	if is_instance_valid(_screen_root):
 		remove_child(_screen_root)
@@ -939,6 +948,8 @@ func _build_map(parent: VBoxContainer) -> void:
 	_board.name = "BridgeBoard"
 	_board.custom_minimum_size.y = 315
 	_board.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	if _uses_builtin_catalog:
+		_board.set_painting(_state.board_id)
 	parent.add_child(_board)
 	_board.cell_selected.connect(_select_board)
 	_board.cell_hovered.connect(_inspect_board)
@@ -1065,6 +1076,7 @@ func _restart_fixed() -> void:
 
 
 func _begin_attempt() -> void:
+	_board.clear_action_playback()
 	_planned_state = _state
 	_last_events.clear()
 	_last_round = 0
@@ -1255,32 +1267,110 @@ func _can_stage_command() -> bool:
 func _commit() -> void:
 	if not _can_commit():
 		return
+	var committed := _rules.commit_round(_planned_state, _plan)
+	if committed == _planned_state:
+		return
 	_last_round = _state.round
 	_last_events = _plan.events.duplicate(true)
-	_state = _rules.commit_round(_planned_state, _plan)
+	var cues := CastCues.build(_state, committed, _last_events)
+	_state = committed
 	_planned_state = _state
 	_unpreviewed_edit = false
 	if not _ongoing() and _fixed_mission.is_empty():
 		_run = Adventure.settle_mission(_run, _state)
-		match _run.phase:
-			"reward":
-				_show_debrief()
-				return
-			"route":
-				_show_routes()
-				return
-			"ready":
-				if _commission.is_empty():
-					_show_debrief()
-				else:
-					_begin_mission()
-				return
-			"finished":
-				_show_result()
-				return
+		if _run.phase in ["reward", "route", "ready", "finished"]:
+			var replay := _take_terminal_board(cues)
+			_show_settled_mission()
+			if replay != null:
+				_show_terminal_replay(replay)
+			return
 	_sync_actors()
 	_sync_command()
 	_refresh(true)
+	_board.play_committed_actions(cues)
+
+
+func _show_settled_mission() -> void:
+	match _run.phase:
+		"reward":
+			_show_debrief()
+		"route":
+			_show_routes()
+		"ready":
+			if _commission.is_empty():
+				_show_debrief()
+			else:
+				_begin_mission()
+		"finished":
+			_show_result()
+
+
+func _take_terminal_board(cues: Array) -> BridgeArt:
+	if cues.is_empty():
+		return null
+	_refresh_board()
+	_board.clear_action_playback()
+	_board.play_committed_actions(cues)
+	if _board.action_playback_snapshot().is_empty():
+		return null
+	# Keep the resolved board only, not its controls or callbacks into the
+	# battle editor. A commission can deploy a new board synchronously.
+	var replay := _board
+	replay.cell_selected.disconnect(_select_board)
+	replay.cell_hovered.disconnect(_inspect_board)
+	replay.hover_cleared.disconnect(_clear_inspection)
+	replay.name = "ReplayBoard"
+	replay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	replay.tooltip_text = ""
+	replay.get_parent().remove_child(replay)
+	return replay
+
+
+func _show_terminal_replay(board: BridgeArt) -> void:
+	var panel := PanelContainer.new()
+	panel.name = "TerminalCastReplay"
+	panel.z_index = 10
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_theme_stylebox_override("panel", _box(Color("#172321"), LINE, 12))
+	add_child(panel)
+	panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	panel.offset_left = -660
+	panel.offset_top = -462
+	panel.offset_right = -26
+	panel.offset_bottom = -26
+	var stack := _stack(panel, 6)
+	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var title := _label(stack, "Final actions  ·  Press a key or click to skip", 15, MUTED)
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.add_child(board)
+	_terminal_replay = panel
+	_terminal_board = board
+	_terminal_replay_until = Time.get_ticks_msec() + TERMINAL_REPLAY_LIMIT_MS
+	set_process(true)
+
+
+func _process(_delta: float) -> void:
+	if Time.get_ticks_msec() >= _terminal_replay_until \
+			or _terminal_board.action_playback_snapshot().is_empty():
+		_clear_terminal_replay()
+
+
+func _input(event: InputEvent) -> void:
+	if _terminal_replay != null and event.is_pressed() and not event.is_echo() \
+			and (event is InputEventKey or event is InputEventMouseButton or event is InputEventScreenTouch \
+			or event is InputEventJoypadButton):
+		_clear_terminal_replay()
+
+
+func _clear_terminal_replay() -> void:
+	if _terminal_replay == null:
+		return
+	_terminal_board.clear_action_playback()
+	remove_child(_terminal_replay)
+	_terminal_replay.queue_free()
+	_terminal_replay = null
+	_terminal_board = null
+	set_process(false)
 
 
 func _refresh(auto_pick_target := false) -> void:
@@ -1587,6 +1677,9 @@ func _refresh_board() -> void:
 			"prone": unit.hp <= 0 or _rules.knocked_down(_state, unit.id),
 			"guarded": _rules.has_status_handler(_state, unit.id, "reflect"),
 			"shield_away": _rules.shield_position(_state, unit.id) is Vector2i}
+		var cast_key := CastCues.cast_key_for(_state, unit, profile)
+		if not cast_key.is_empty():
+			figure["cast_key"] = cast_key
 		if "minion" in profile.capabilities:
 			var directed := _find(_rules.nominated_target(_state, unit.id))
 			if not directed.is_empty() and directed.position.x != unit.position.x:
@@ -1611,6 +1704,11 @@ func _refresh_board() -> void:
 			var cell := Vector2i(int(at[0]), int(at[1]))
 			if not _objective_markers.has(cell):
 				_objective_markers[cell] = {"kind": "zone", "label": "Village square"}
+	elif _state.objective.handler == "herd_sheep":
+		overlay["pen_zone"] = _state.objective.pen
+	elif _state.objective.handler == "pressure_gate":
+		var gate: Vector2i = _state.objective.gate
+		overlay["pressure_gate"] = {"cell": gate, "open": _rules.tile_definition(_state, gate).passable}
 	if native_exit:
 		overlay["exit"] = _state.objective.destination
 		if not _objective_markers.has(overlay.exit):

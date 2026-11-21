@@ -159,7 +159,9 @@
   "characters": {
     "knight": {
       "class": "knight",
-      "label": "Knight"
+      "label": "Knight",
+      "cast_key": "knight",
+      "cast_art_key": "knight"
     },
     "regression_blast_knight": {
       "class": "knight",
@@ -175,11 +177,15 @@
     },
     "healer": {
       "class": "healer",
-      "label": "Healer"
+      "label": "Healer",
+      "cast_key": "healer",
+      "cast_art_key": "healer"
     },
     "wizard": {
       "class": "wizard",
-      "label": "Wizard"
+      "label": "Wizard",
+      "cast_key": "wizard",
+      "cast_art_key": "wizard"
     },
     "alchemist": {
       "class": "healer",
@@ -200,6 +206,8 @@
     "rogue": {
       "class": "wizard",
       "label": "Rogue",
+      "cast_key": "rogue",
+      "cast_art_key": "wizard",
       "description": "A slippery opportunist who retreats, swaps places, and leaves someone else holding the blame.",
       "abilities": ["move", "rogue_confusing_dodge", "rogue_wasnt_me"],
       "habits": {"order_retreat": "retreat"},
@@ -209,6 +217,8 @@
     "necromancer": {
       "class": "wizard",
       "label": "Necromancer",
+      "cast_key": "necromancer",
+      "cast_art_key": "wizard",
       "description": "Raise a defeated opponent as a zombie or call a skeleton onto an open neighboring tile. Both act on their own and can greet allies as well as enemies.",
       "abilities": ["move", "raise_dead", "summon_skeleton"],
       "habits": {"order_hold": "hold"},
@@ -218,6 +228,8 @@
     "bard": {
       "class": "wizard",
       "label": "Bard",
+      "cast_key": "bard",
+      "cast_art_key": "wizard",
       "description": "Pick the tune, not the audience. A melody makes an opponent laugh away their turn; a sonnet hurts one.",
       "abilities": ["move", "inspiring_melody", "healing_sonnet"],
       "habits": {
@@ -231,6 +243,8 @@
     "skeleton": {
       "class": "undead",
       "label": "Skeleton",
+      "cast_key": "skeleton",
+      "cast_art_key": "skeleton",
       "abilities": ["move", "wave", "dont_go"],
       "behavior": "skeleton_greetings",
       "color": "#e1d7b5"
@@ -239,6 +253,8 @@
       "class": "undead",
       "label": "Zombie",
       "art_key": "zombie",
+      "cast_key": "zombie",
+      "cast_art_key": "zombie",
       "abilities": ["move", "say_hello", "offer_flower"],
       "behavior": "zombie_greetings",
       "color": "#aeca93"

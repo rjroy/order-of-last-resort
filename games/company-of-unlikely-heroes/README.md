@@ -122,9 +122,15 @@ Both summons pursue opponents and, close enough, independently pick a legal gree
 
 The Bard can Move or perform either song as a direct command. It interrupts that Bard's standing order for one round; directly commanding anyone else lets the song continue. Songs choose their own listener from living opponents anywhere on the board, never a crate, ally or corpse. The ordered forecast names the listener and shows whether they lose their turn; refreshing the same forecast never rerolls it. A listener who laughs is immune to more laughter through the entire following round, but the Sonnet still hurts them. With two opponents and no other interference, a standing Melody alternates between them. With one, the Bard sings without an eligible listener every other round.
 
-To try it in the practice patrol, choose **The company's first outing** and recruit Bard, Healer and Knight in that order. Leave the other two on their default orders and commit three rounds of **Inspiring Melody**, comparing the listeners. Switch to **Healing Sonnet** for round four to see damage against the raider who just laughed. Before committing, preview a Move for another hero to leave the song in place, then replace the command with a Bard Move to see the song drop out of the forecast. The Bard uses the existing Wizard drawing with a distinct gold name label.
+To try it in the practice patrol, choose **The company's first outing** and recruit Bard, Healer and Knight in that order. Leave the other two on their default orders and commit three rounds of **Inspiring Melody**, comparing the listeners. Switch to **Healing Sonnet** for round four to see damage against the raider who just laughed. Before committing, preview a Move for another hero to leave the song in place, then replace the command with a Bard Move to see the song drop out of the forecast.
 
 The game collects no playtest telemetry. The question to take away: **Did you enjoy trusting two of these people while you took charge of the third?**
+
+### Cast sprites in battle
+
+The battle board in commissions, practice outings, and standalone missions uses sprites rendered from Blender for six heroes (Knight, Healer, Wizard, Rogue, Necromancer, and Bard) and both summons (Skeleton and Zombie). The Alchemist keeps the existing board drawing. The [cast manifest](assets/cast/manifest.json) lists the packaged sprite sheets and clips. The original summon sprites were rendered from static Blender models based on the approved *First Greetings* concept. Those [models and sprites](assets/summons/README.md) are still in the game directory; the rigged summons were built from those models.
+
+Preview updates the forecast without resolving the round or starting any action clips. Commit resolves the round. Action playback is cosmetic and uses supported actions from the committed round, including standing orders. Not every ability has its own clip. To compare preview and commit with the stock Necromancer and both summons, try [First Greetings](#play-the-checked-in-regressions) below.
 
 ### Rewards between missions
 
@@ -140,14 +146,14 @@ The built-in catalog starts at `content/catalog.json`. Shared definitions, adven
 
 ### Play the checked-in regressions
 
-Launch **First Greetings** to see both summons and give the Healer a chance to escape a Wave:
+From the repository root, launch the stock **First Greetings** fixture to see both summons and give the Healer a chance to escape a Wave:
 
 ```sh
 godot --path games/company-of-unlikely-heroes -- --mission=necromancer_wave
 ```
 
-1. **Round 1:** Select Necromancer → **Raise Dead** → corpse at **E4**. Preview and commit to raise a 3 HP zombie.
-2. **Round 2:** Select Necromancer → **Summon Skeleton** → **C2**. Preview and commit. Both summons are now on the board.
+1. **Round 1:** Select Necromancer → **Raise Dead** → corpse at **E4**. Preview to see the forecast, then commit to see the Necromancer's **Raise Dead** clip and raise a 3 HP zombie.
+2. **Round 2:** Select Necromancer → **Summon Skeleton** → **C2**. Preview, then commit to see the summoning clip. Both summons are now on the board.
 3. **Round 3:** Scroll through the standing forecast: the skeleton's **Wave** will hit the Healer at B2, the Necromancer, and the practice raider. Select Healer → **Move one tile** → **A2**, then preview. The Healer's Move now precedes Wave; the forecast still shows the other hits. Commit to leave the Healer at A2 with full HP.
 
 Leave standing orders unchanged. The fixture has no time limit and restarts from the same seed; the practice raider holds position.

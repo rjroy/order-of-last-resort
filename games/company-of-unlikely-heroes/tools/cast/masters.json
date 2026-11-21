@@ -1,0 +1,34 @@
+{
+  "bard": {
+    "source": "models/bard/bard-blockout.blend",
+    "sha256": "5685e66c4f43a73a8267afcb6d16c369e64d3d6460cc80631642f3e796874966"
+  },
+  "healer": {
+    "source": "models/healer/healer-blockout.blend",
+    "sha256": "3a0b8427c788a26b511a6f6262c6debeb3fbcea78fa2c44fd867b32e5010aaa5"
+  },
+  "knight": {
+    "source": "models/knight/knight-guard-blockout.blend",
+    "sha256": "0bdf470f4472f2ee269337e458b605bf53be0f36f700e9ebbf8156147e10b45b"
+  },
+  "necromancer": {
+    "source": "models/necromancer/necromancer-blockout.blend",
+    "sha256": "a6d8c25de84a45c1cdbc9ef9c8284f0e7bb4448e9be85a1e0be7edb664f309a8"
+  },
+  "rogue": {
+    "source": "models/rogue/rogue-blockout.blend",
+    "sha256": "99d4607ab9e9792c51e15ae90d11d412973e98e3e17f481b5c976fbac02cfbb1"
+  },
+  "skeleton": {
+    "source": "models/skeleton/skeleton-blockout.blend",
+    "sha256": "c270d6bfa5ae9a419e1319b8305588df8132bc3c646dd4b753fb3aeca2646d03"
+  },
+  "wizard": {
+    "source": "models/wizard/wizard-blockout.blend",
+    "sha256": "5776143ed740e3cb924535ab267bad1e49a41753651c89223d812e36a65eaf24"
+  },
+  "zombie": {
+    "source": "models/zombie/zombie-blockout.blend",
+    "sha256": "b4b9bb6bca976144125f8f684fcccd774dda178ab83f920c3617ca9674a4ca0d"
+  }
+}

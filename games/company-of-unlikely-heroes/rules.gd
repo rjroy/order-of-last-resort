@@ -303,8 +303,15 @@ func _resolve_turn(state: Dictionary, actor: Dictionary, events: Array) -> void:
 
 func _execute_action(state: Dictionary, actor: Dictionary, action: Dictionary, events: Array) -> bool:
 	var gate_was_open := Board.pressure_gate_open(state)
+	var first := events.size()
+	var origin: Variant = actor.get("position")
 	if not Actions.execute(state, actor, action, events):
 		return false
+	if first < events.size():
+		# Effects name their own sources (e.g. a protector who absorbs the hit).
+		# Preserve the actual actor and effect scope without adding a log event.
+		events[first]["resolved_action"] = {"unit_id": actor.id, "ability_id": action.ability_id,
+			"source_cell": origin, "actor_cell": actor.position, "event_count": events.size() - first}
 	match state.objective.handler:
 		"pressure_gate":
 			FrontierObjectives.report_gate_change(state, actor, gate_was_open, events)

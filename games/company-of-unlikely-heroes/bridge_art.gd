@@ -5,8 +5,13 @@ signal cell_selected(cell: Vector2i)
 signal cell_hovered(cell: Vector2i)
 signal hover_cleared
 
+const CastSprites := preload("res://presentation/cast_sprites.gd")
+const CastPlayback := preload("res://presentation/cast_playback.gd")
+const BoardPainting := preload("res://presentation/board_painting.gd")
+
 const TILE := Vector2(96, 80)
 const GUTTER := Vector2(31, 34)
+const FOOT := Vector2(49, 62)
 const INK := Color("#282725")
 const PARCHMENT := Color("#f5e5bd")
 const RIVER := Color("#28474b")
@@ -21,6 +26,11 @@ const CORAL := Color("#ffc1a2")
 const ZONE_WASH := Color("#5bacaa", 0.35)
 const ZONE_EDGE := Color("#375e5a")
 const ZONE_CHALK := Color("#c0e6d7")
+const PAINTED_GRID := Color("#272318", 0.57)
+const GAP_WASH := Color("#18292b", 0.40)
+const GAP_TICKS := Color("#e8e3c5", 0.63)
+const PEN_WASH := Color("#2c6553", 0.30)
+const PEN_EDGE := Color("#d8e8b8")
 const SUMMON_SPRITES := {
 	"skeleton": {"path": "res://assets/summons/skeleton.png", "pivot": Vector2(68, 233)},
 	"zombie": {"path": "res://assets/summons/zombie.png", "pivot": Vector2(52, 204)},
@@ -36,6 +46,8 @@ var _cells: Dictionary = {}
 var _units: Array = []
 var _overlay: Dictionary = {}
 var _objective_zone: Dictionary[Vector2i, bool] = {}
+var _pen_zone: Dictionary[Vector2i, bool] = {}
+var _painting: BoardPainting.Plate
 var _bounds := Rect2i()
 var _hover: Variant = null
 var _map_origin := Vector2.ZERO
@@ -43,6 +55,15 @@ var _map_scale := 1.0
 var _map_size := Vector2.ZERO
 var _rng := RandomNumberGenerator.new()
 var _summon_textures: Dictionary[String, Texture2D] = {}
+var _cast := CastSprites.new()
+var _playback := CastPlayback.new()
+var _figures := Node2D.new()
+var _ink_canvas: CanvasItem = self
+var _units_by_id: Dictionary = {}
+var _targets_by_id: Dictionary = {}
+var _ready_clips: Array[CastSprites.Clip] = []
+var _ready_ms := 0.0
+var _wizard_pull_facing: Dictionary[String, float] = {}
 
 
 func _ready() -> void:
@@ -51,43 +72,55 @@ func _ready() -> void:
 	resized.connect(_layout)
 	mouse_exited.connect(_clear_hover)
 	for role: String in SUMMON_SPRITES:
-		_summon_textures[role] = _load_summon_texture(SUMMON_SPRITES[role].path)
+		_summon_textures[role] = CastSprites.load_texture(SUMMON_SPRITES[role].path)
+	_cast.load_manifest()
+	_figures.name = "CastAndUnitMarkers"
+	_figures.draw.connect(_draw_figures)
+	add_child(_figures)
+	_set_ready_clips()
 	_layout()
 
 
-static func _load_summon_texture(path: String) -> Texture2D:
-	# The source game can run directly from a checkout, without an editor import.
-	if FileAccess.file_exists(path):
-		var image := Image.new()
-		if image.load_png_from_buffer(FileAccess.get_file_as_bytes(path)) == OK:
-			return ImageTexture.create_from_image(image)
-	elif ResourceLoader.exists(path, "Texture2D"):
-		# Packaged builds may ship only the imported resource.
-		var texture := load(path) as Texture2D
-		if texture != null:
-			return texture
-	push_error("Could not load summon texture: " + path)
-	return null
+## The caller supplies a board ID only when launched from the built-in catalog.
+func set_painting(board_id: String) -> void:
+	_painting = BoardPainting.open(board_id) if not board_id.is_empty() else null
+	queue_redraw()
 
 
 ## cells: Vector2i -> "stone", "bridge", "broken", "safe", "exit", "obstacle", or "water".
 ## An absent cell is scenery only. The canvas emits input for supplied cells; it never authorizes moves.
 ## units: {id, art_key, cell, hp, max_hp, prone}; optional facing (-1 left, 1 right),
-## guarded, shield_away, objective, variant, label and color.
+## cast_key, guarded, shield_away, objective, variant, label and color.
 ## overlay: selected/chosen_target/commanded (Vector2i), targets/impact/threat (arrays of Vector2i),
 ## paths (each an array of Vector2i), exit (Vector2i), safe (a set of Vector2i),
 ## objective_zone (array of [x, y] pairs or Vector2i), obstacles (id, art_key, position, hp, max_hp),
+## pen_zone (array of Vector2i), pressure_gate ({cell: Vector2i, open: bool}),
 ## shields/forecast_shields (arrays of Vector2i).
 func set_render_state(cells: Dictionary, units: Array, overlay: Dictionary = {}) -> void:
 	_cells = cells.duplicate()
 	_units = units.duplicate(true)
 	_overlay = overlay.duplicate(true)
+	_units_by_id.clear()
+	_targets_by_id.clear()
+	for unit: Dictionary in _units:
+		_units_by_id[unit.id] = unit
+		_targets_by_id[unit.id] = unit.cell
+	for obstacle: Dictionary in _overlay.get("obstacles", []):
+		_targets_by_id[obstacle.id] = obstacle.position
+	for id in _wizard_pull_facing.keys():
+		var unit: Dictionary = _units_by_id.get(id, {})
+		if not bool(unit.get("prone", false)) or int(unit.get("hp", 1)) <= 0:
+			_wizard_pull_facing.erase(id)
+	_set_ready_clips()
 	_objective_zone.clear()
 	for at in _overlay.get("objective_zone", []):
 		if at is Vector2i:
 			_objective_zone[at] = true
 		elif at is Array and at.size() == 2:
 			_objective_zone[Vector2i(int(at[0]), int(at[1]))] = true
+	_pen_zone.clear()
+	for at: Vector2i in _overlay.get("pen_zone", []):
+		_pen_zone[at] = true
 	_bounds = Rect2i()
 	var first := true
 	for value in _cells:
@@ -100,11 +133,66 @@ func set_render_state(cells: Dictionary, units: Array, overlay: Dictionary = {})
 	_layout()
 
 
+## Only committed cues belong here. A state refresh replaces the board, not the timeline.
+func play_committed_actions(cues: Array) -> void:
+	_playback.enqueue(cues, _cast)
+	_sync_playback_geometry()
+	_set_processing()
+	_figures.queue_redraw()
+
+
+func clear_action_playback() -> void:
+	_playback.clear()
+	_wizard_pull_facing.clear()
+	_set_processing()
+	_figures.queue_redraw()
+
+
+func action_playback_snapshot() -> Array:
+	return _playback.snapshot()
+
+
+func _set_ready_clips() -> void:
+	_ready_clips.clear()
+	for unit in _units:
+		if bool(unit.get("prone", false)) or int(unit.get("hp", 1)) <= 0 \
+				or bool(unit.get("shield_away", false)):
+			continue
+		var clip := _cast.clip_for(str(unit.get("cast_key", "")), "ready")
+		if clip != null and clip.loop and clip.frames.size() > 1 and not _ready_clips.has(clip):
+			_ready_clips.append(clip)
+	_set_processing()
+
+
+func _set_processing() -> void:
+	set_process(_playback.pending() or not _ready_clips.is_empty())
+
+
+func _process(delta: float) -> void:
+	if not is_visible_in_tree():
+		return
+	var previous_ms := _ready_ms
+	_ready_ms += delta * 1000.0
+	var redraw := _playback.pending()
+	if redraw:
+		_playback.advance(delta * 1000.0)
+		_sync_playback_geometry()
+		_set_processing()
+	else:
+		for clip in _ready_clips:
+			if clip.frame_index(previous_ms) != clip.frame_index(_ready_ms):
+				redraw = true
+				break
+	if redraw:
+		_figures.queue_redraw()
+
+
 func _layout() -> void:
 	_map_size = Vector2(_bounds.size) * TILE + GUTTER * 2.0
 	_map_scale = minf(size.x / _map_size.x, size.y / _map_size.y)
 	_map_origin = (size - _map_size * _map_scale) * 0.5
 	queue_redraw()
+	_figures.queue_redraw()
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -168,32 +256,48 @@ func _tile_origin(cell: Vector2i) -> Vector2:
 
 
 func _at(point: Vector2, angle := 0.0, local_scale := Vector2.ONE) -> void:
-	draw_set_transform(_map_origin + point * _map_scale, angle, local_scale * _map_scale)
+	_ink_canvas.draw_set_transform(_map_origin + point * _map_scale, angle, local_scale * _map_scale)
 
 
 func _draw() -> void:
+	_ink_canvas = self
 	draw_rect(Rect2(Vector2.ZERO, size), Color("#203639"))
 	if _map_scale <= 0.0:
 		return
 	_at(Vector2.ZERO)
-	_draw_water()
+	var painted: bool = _painting != null and _bounds.position == Vector2i.ZERO \
+		and _bounds.size == _painting.dimensions
 	var cells := _cells.keys()
 	cells.sort_custom(_reading_order)
-	for value in cells:
-		var cell: Vector2i = value
-		_at(_tile_origin(cell))
-		_draw_escapement(cell)
+	if painted:
+		_painting.draw(self, _map_size, GUTTER, TILE)
+	else:
+		_draw_water()
+		for cell: Vector2i in cells:
+			_at(_tile_origin(cell))
+			_draw_escapement(cell)
 	var shore: Dictionary = _overlay.get("safe", {})
-	for value in cells:
-		var cell: Vector2i = value
+	var gate: Dictionary = _overlay.get("pressure_gate", {})
+	for cell: Vector2i in cells:
 		_at(_tile_origin(cell))
-		_draw_tile(cell)
+		if painted:
+			_draw_painted_tile(cell)
+		else:
+			_draw_tile(cell)
 		if shore.has(cell):
 			_piece(TILE_FACE, SHORE_WASH)
 		if _objective_zone.has(cell):
 			_draw_objective_square()
+		if _pen_zone.has(cell):
+			_draw_pen(cell)
 		if _overlay.get("exit") == cell:
 			_draw_exit()
+		if gate.get("cell") == cell:
+			_draw_pressure_gate(gate.open)
+	if painted:
+		for cell: Vector2i in cells:
+			_at(_tile_origin(cell))
+			_draw_painted_grid(cell)
 	_at(Vector2.ZERO)
 	for path in _overlay.get("paths", []):
 		_draw_path(path)
@@ -205,14 +309,152 @@ func _draw() -> void:
 		if obstacle.hp > 0 and _cells.has(obstacle.position):
 			_at(_tile_origin(obstacle.position))
 			_draw_object(obstacle)
+	if not _cells.is_empty():
+		_at(Vector2.ZERO)
+		_draw_coordinates()
+
+
+func _draw_painted_tile(cell: Vector2i) -> void:
+	match str(_cells[cell]):
+		"bridge":
+			_draw_deck(cell)
+		"broken", "water":
+			draw_rect(Rect2(Vector2.ZERO, TILE), GAP_WASH)
+			# Mark the drop even where the painted rock or shoreline wanders into the cell.
+			_line([Vector2(6, 19), Vector2(6, 6), Vector2(19, 6)], GAP_TICKS, 1.55)
+			_line([TILE - Vector2(6, 19), TILE - Vector2(6, 6), TILE - Vector2(19, 6)], GAP_TICKS, 1.55)
+
+
+func _draw_painted_grid(cell: Vector2i) -> void:
+	# Draw a shared edge only once. The grid works without masking the deck or foreground art.
+	_line([Vector2(0, TILE.y), Vector2.ZERO, Vector2(TILE.x, 0)], PAINTED_GRID, 1.6)
+	if not _cells.has(cell + Vector2i.RIGHT):
+		_line([Vector2(TILE.x, 0), TILE], PAINTED_GRID, 1.6)
+	if not _cells.has(cell + Vector2i.DOWN):
+		_line([Vector2(0, TILE.y), TILE], PAINTED_GRID, 1.6)
+
+
+func _draw_deck(cell: Vector2i) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(cell) + 371
+	var left := str(_cells.get(cell + Vector2i.LEFT, ""))
+	var right := str(_cells.get(cell + Vector2i.RIGHT, ""))
+	var top := 0.0 if _cells.get(cell + Vector2i.UP) == "bridge" else 5.0
+	var bottom := TILE.y if _cells.get(cell + Vector2i.DOWN) == "bridge" else TILE.y - 6.0
+	# The narrow crossing leaves some water visible above and below the boards.
+	if _solid(left) and _solid(right) and left != "bridge" and right != "bridge":
+		top = 13.0
+		bottom = 66.0
+		_draw_deck_sill(0.0, 1.0)
+		_draw_deck_sill(TILE.x, -1.0)
+	var x0 := 2.0 if not _solid(left) else 0.0
+	var x1 := TILE.x - 2.0 if not _solid(right) else TILE.x
+	draw_rect(Rect2(x0, top, x1 - x0, bottom - top), Color("#4d3c30"))
+	for i in range(8):
+		var a := lerpf(x0, x1, i / 8.0)
+		var b := lerpf(x0, x1, (i + 1) / 8.0)
+		var crack := bottom - rng.randf_range(1.2, 3.0)
+		var oak := Color("#aa885b").lerp(Color("#644b36") if i % 3 == 0 else Color("#d8b785"),
+			rng.randf_range(0.08, 0.48))
+		_piece([Vector2(a + 0.6, top + 0.8), Vector2(b - 0.5, top + 1.0),
+			Vector2(b - 0.8, crack), Vector2(a + 0.5, bottom - 1.3)], oak)
+		for j in range(3):
+			var grain_x := rng.randf_range(a + 2.0, b - 2.0)
+			var grain_y := rng.randf_range(top + 4.0, bottom - 16.0)
+			_line([Vector2(grain_x, grain_y), Vector2(grain_x - 0.6, grain_y + 9.0)],
+				Color("#523e29", 0.35), 0.85)
+		if top > 0.0:
+			draw_circle(Vector2((a + b) * 0.5, top + 5.0), 1.15, Color("#523e29"))
+		if bottom < TILE.y:
+			draw_circle(Vector2((a + b) * 0.5, bottom - 6.0), 1.15, Color("#523e29"))
+	if top > 0.0:
+		_line([Vector2(x0, top + 1.0), Vector2(x1, top + 1.0)], Color("#e1c696", 0.76), 1.25)
+	if bottom < TILE.y:
+		_line([Vector2(x0, bottom - 1.0), Vector2(x1, bottom - 1.0)], Color("#644933"), 2.7)
+
+
+func _draw_deck_sill(edge: float, inward: float) -> void:
+	# The stone ends cover the irregular painted banks only while the deck exists.
+	var outer := edge - inward * 23.0
+	var inner := edge + inward * 6.0
+	_piece([Vector2(outer, 17), Vector2(inner, 10), Vector2(inner, 64),
+		Vector2(outer + inward * 3.0, 68), Vector2(outer - inward * 2.0, 43)],
+		Color("#9a896a"), Color("#514638"), 2.1)
+	_line([Vector2(outer, 18), Vector2(inner, 12)], Color("#d9bf93"), 1.8)
+	_line([Vector2(outer, 33), Vector2(edge - inward * 12.0, 37),
+		Vector2(inner, 32)], Color("#665c49"), 1.4)
+	_line([Vector2(outer, 51), Vector2(edge - inward * 10.0, 47),
+		Vector2(inner, 54)], Color("#685c48"), 1.5)
+
+
+func _draw_pen(cell: Vector2i) -> void:
+	draw_rect(Rect2(Vector2.ZERO, TILE), PEN_WASH)
+	for edge in [
+		[Vector2i.UP, Vector2.ZERO, Vector2(TILE.x, 0)],
+		[Vector2i.RIGHT, Vector2(TILE.x, 0), TILE],
+		[Vector2i.DOWN, TILE, Vector2(0, TILE.y)],
+		[Vector2i.LEFT, Vector2(0, TILE.y), Vector2.ZERO],
+	]:
+		if not _pen_zone.has(cell + edge[0]):
+			_line([edge[1], edge[2]], ZONE_EDGE, 5.7)
+			_line([edge[1], edge[2]], PEN_EDGE, 2.5)
+
+
+func _draw_pressure_gate(open: bool) -> void:
+	# The threshold is always usable ground in the painting. The slatted panel comes from state.
+	if not open:
+		_wash(Vector2(35, 11), Vector2(25, 60), Color("#342825", 0.32))
+		_piece([Vector2(41, 14), Vector2(54, 11), Vector2(55, 67), Vector2(42, 68)],
+			Color("#765140"), Color("#342b27"), 2.0)
+		for y in [21, 32, 43, 54, 64]:
+			_line([Vector2(43, y + 1), Vector2(53, y - 1)], Color("#ca9f70"), 1.6)
+		_line([Vector2(48, 16), Vector2(49, 65)], Color("#3c322c"), 1.7)
+	for y in [12, 68]:
+		draw_circle(Vector2(48, y), 5.5, Color("#3b3328"), true, -1.0, true)
+		draw_circle(Vector2(47, y - 1), 2.5, Color("#b69667"), true, -1.0, true)
+
+
+func _draw_figures() -> void:
+	if _map_scale <= 0.0:
+		return
+	_ink_canvas = _figures
+	var active := _playback.active()
+	var actions := {}
 	var occupants := _units.duplicate()
+	for entry in active:
+		if entry.elapsed_ms >= entry.clip.total_ms:
+			continue
+		var id: String = entry.cue.unit_id
+		var unit: Dictionary = _units_by_id.get(id, {})
+		if not unit.is_empty():
+			if int(unit.get("hp", 1)) <= 0 or str(unit.get("cast_key", "")) != entry.cue.cast_key:
+				continue
+			if bool(unit.get("prone", false)) and not _is_wizard_pull(entry):
+				continue
+			# A previous shield throw cannot remove a shield that has since been recovered.
+			if entry.cue.clip == "shield_away" and not bool(unit.get("shield_away", false)):
+				continue
+		actions[id] = entry
+		if unit.is_empty():
+			var source: Variant = entry.cue.get("actor_cell", entry.cue.get("source_cell"))
+			if source is Vector2i and _cells.has(source):
+				# A unit that acted and fell can finish the cue without regaining HP or a label.
+				occupants.append({"id": id, "cast_key": entry.cue.cast_key, "transient": true,
+					"art_key": entry.cue.cast_key, "cell": source})
 	occupants.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _reading_order(a.cell, b.cell))
 	for unit in occupants:
 		if _cells.has(unit.cell):
-			_draw_unit(unit)
-	# Draw identifiers over all figures so a tall neighbor cannot cover a name.
+			_draw_unit_shadow(unit)
 	for unit in occupants:
 		if _cells.has(unit.cell):
+			_draw_unit(unit, actions.get(unit.id))
+	for entry in active:
+		_draw_committed_feedback(entry)
+	# Draw identifiers over all figures so a tall neighbor cannot cover a name.
+	for unit in occupants:
+		if _cells.has(unit.cell) and not unit.get("transient", false):
+			_at(_tile_origin(unit.cell))
+			_draw_health(unit, bool(unit.get("prone", false)) or int(unit.get("hp", 1)) <= 0)
 			_draw_unit_marker(unit)
 	# Loose equipment is a tile marker, even when a unit occupies that tile.
 	for cell in _overlay.get("forecast_shields", []):
@@ -223,9 +465,7 @@ func _draw() -> void:
 		if _cells.has(cell):
 			_at(_tile_origin(cell))
 			_draw_shield_marker(false)
-	if not _cells.is_empty():
-		_at(Vector2.ZERO)
-		_draw_coordinates()
+	_ink_canvas = self
 
 
 static func _reading_order(a: Vector2i, b: Vector2i) -> bool:
@@ -488,7 +728,7 @@ func _draw_shield_marker(forecast: bool) -> void:
 		_piece(shape, fill, INK, 5.0)
 	_piece(shape, fill, AMBER if forecast else INK, 2.25)
 	if not forecast:
-		draw_circle(center - Vector2(0, 1), 2.5, INK, true, -1.0, true)
+		_ink_canvas.draw_circle(center - Vector2(0, 1), 2.5, INK, true, -1.0, true)
 
 
 func _draw_coordinates() -> void:
@@ -510,22 +750,31 @@ func _caption(label: String, right_baseline: Vector2, color: Color, font_size: i
 	var font := ThemeDB.fallback_font
 	var width := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 	var at := right_baseline - Vector2(width, 0)
-	draw_string_outline(font, at, label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 4, INK)
-	draw_string(font, at, label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)
+	_ink_canvas.draw_string_outline(font, at, label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 4, INK)
+	_ink_canvas.draw_string(font, at, label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)
 
 
-func _draw_unit(unit: Dictionary) -> void:
-	var role := str(unit.art_key)
-	var prone := bool(unit.get("prone", false))
-	var origin := _tile_origin(unit.cell)
-	var foot := origin + Vector2(49, 62)
+func _unit_facing(unit: Dictionary) -> float:
+	var role := str(unit.get("art_key", ""))
 	var default_facing := -1 if role in ["enemy", "goblin", "hookhand", "bruiser"] else 1
-	var facing := -1.0 if float(unit.get("facing", default_facing)) < 0.0 else 1.0
-	_at(foot)
+	return -1.0 if float(unit.get("facing", default_facing)) < 0.0 else 1.0
+
+
+func _draw_unit_shadow(unit: Dictionary) -> void:
+	_at(_tile_origin(unit.cell) + FOOT)
 	_wash(Vector2(-29, -1), Vector2(59, 9), Color("#24312a", 0.27))
 	_wash(Vector2(-22, 0), Vector2(48, 5), Color("#222824", 0.40))
 	if bool(unit.get("guarded", false)):
-		draw_arc(Vector2(0, -1), 24, PI * 0.07, PI * 0.93, 20, AMBER, 2.0, true)
+		_ink_canvas.draw_arc(Vector2(0, -1), 24, PI * 0.07, PI * 0.93, 20, AMBER, 2.0, true)
+
+
+func _draw_unit(unit: Dictionary, action: CastPlayback.Entry) -> void:
+	var role := str(unit.art_key)
+	var prone := bool(unit.get("prone", false)) or int(unit.get("hp", 1)) <= 0
+	var foot := _tile_origin(unit.cell) + FOOT
+	var facing := _unit_facing(unit)
+	if _draw_cast(unit, foot, facing, prone, action):
+		return
 	if prone:
 		_at(foot + Vector2(-28 * facing, -13), 1.43 * facing, Vector2(facing * 0.80, 0.80))
 	else:
@@ -551,8 +800,118 @@ func _draw_unit(unit: Dictionary) -> void:
 			_village_troll()
 		_:
 			_enemy(str(unit.get("variant", "")))
-	_at(origin)
-	_draw_health(unit, prone)
+
+
+func _draw_cast(unit: Dictionary, foot: Vector2, facing: float, prone: bool, action: CastPlayback.Entry) -> bool:
+	var cast_key := str(unit.get("cast_key", ""))
+	if cast_key.is_empty():
+		return false
+	var key := "ready"
+	var time_ms := _ready_ms
+	var turned_down := prone
+	if cast_key == "knight" and bool(unit.get("shield_away", false)):
+		# Equipment is authoritative. Never show a second shield on the unit.
+		key = "shield_away"
+	elif action != null and action.elapsed_ms < action.clip.total_ms:
+		key = action.cue.clip
+		time_ms = action.elapsed_ms
+		turned_down = false
+		facing = action.facing if action.facing != 0.0 else facing
+	elif cast_key == "wizard" and prone and _wizard_pull_facing.has(unit.id):
+		# Pull ends seated. Hold its authored stumble instead of rotating a standing pose.
+		key = "pull"
+		time_ms = INF
+		turned_down = false
+		facing = _wizard_pull_facing[unit.id]
+	elif prone:
+		time_ms = 0.0
+	var clip := _cast.clip_for(cast_key, key)
+	if clip == null:
+		return false
+	if turned_down:
+		_at(foot + Vector2(-28 * facing, -13), 1.43 * facing, Vector2(facing * 0.80, 0.80))
+	else:
+		_at(foot, 0.0, Vector2(facing, 1.0))
+	return _cast.paint(_ink_canvas, clip, clip.frame_index(time_ms))
+
+
+func _target_cell(id: String, at: Variant) -> Variant:
+	return at if at is Vector2i else _targets_by_id.get(id)
+
+
+func _is_wizard_pull(entry: CastPlayback.Entry) -> bool:
+	return entry.cue.cast_key == "wizard" and entry.cue.clip == "pull"
+
+
+func _sync_playback_geometry() -> void:
+	for entry in _playback.active():
+		var unit: Dictionary = _units_by_id.get(entry.cue.unit_id, {})
+		var source: Variant = entry.cue.get("source_cell", entry.cue.get("actor_cell"))
+		if not source is Vector2i:
+			source = unit.get("cell")
+		var target: Variant = _target_cell(entry.cue.target_id, entry.cue.get("target_cell"))
+		if not source is Vector2i:
+			continue
+		if entry.facing == 0.0:
+			entry.facing = _unit_facing(unit)
+			if target is Vector2i and target.x != source.x:
+				entry.facing = -1.0 if target.x < source.x else 1.0
+		if _is_wizard_pull(entry) and bool(unit.get("prone", false)) and int(unit.get("hp", 1)) > 0:
+			_wizard_pull_facing[entry.cue.unit_id] = entry.facing
+		if entry.gift == null or entry.gift_from != null or entry.flight_progress() < 0.0 \
+				or not target is Vector2i:
+			continue
+		var nudge := entry.clip.release_offset * Vector2(entry.facing, 1.0) * entry.clip.scale
+		entry.gift_from = _tile_origin(source) + FOOT + nudge
+		entry.gift_to = _tile_origin(target) + FOOT + Vector2(0, -29)
+
+
+func _draw_committed_feedback(entry: CastPlayback.Entry) -> void:
+	var flight := entry.flight_progress()
+	if entry.gift_from != null and flight >= 0.0 and flight < 1.0:
+		var start: Vector2 = entry.gift_from
+		var landing: Vector2 = entry.gift_to
+		var midair := start.lerp(landing, flight) - Vector2(0, sin(PI * flight) * 24.0)
+		_at(midair, entry.facing * flight * TAU, Vector2(entry.facing, 1.0))
+		_cast.paint(_ink_canvas, entry.gift, entry.gift.frame_index(entry.elapsed_ms - entry.clip.release_ms))
+	var progress := entry.progress()
+	if progress < 0.0 or progress >= 1.0:
+		return
+	var recipients: Array = entry.cue.get("recipients", [{"id": entry.cue.target_id,
+		"cell": entry.cue.get("target_cell"), "kind": entry.cue.get("kind", "")}])
+	var marked := {}
+	for recipient: Dictionary in recipients:
+		var cell: Variant = _target_cell(str(recipient.get("id", "")), recipient.get("cell"))
+		if cell is Vector2i and _cells.has(cell) and not marked.has(cell):
+			marked[cell] = true
+			_at(_tile_origin(cell) + FOOT)
+			_draw_recipient_ink(str(recipient.get("kind", "")), progress)
+
+
+func _draw_recipient_ink(kind: String, progress: float) -> void:
+	var color := PARCHMENT
+	match kind:
+		"hit", "damage":
+			color = CORAL
+		"heal":
+			color = MINT
+		"guard", "summon":
+			color = AMBER
+		"shift":
+			color = ZONE_CHALK
+	var opacity := 1.0 - progress * progress
+	var reach := 4.0 + 8.0 * (1.0 - pow(1.0 - progress, 3.0))
+	for side: float in [-1.0, 1.0]:
+		var lower := Vector2(side * (24.0 + reach), -12)
+		var upper := Vector2(side * (19.0 + reach), -26)
+		_line([lower + Vector2(side * 9, 2), lower], Color(INK, opacity * 0.75), 5.0)
+		_line([upper + Vector2(side * 5, -6), upper], Color(INK, opacity * 0.75), 5.0)
+		_line([lower + Vector2(side * 9, 2), lower], Color(color, opacity), 2.3)
+		_line([upper + Vector2(side * 5, -6), upper], Color(color, opacity), 2.3)
+		if kind == "heal":
+			var center := Vector2(side * (25.0 + reach), -33)
+			_line([center - Vector2(4, 0), center + Vector2(4, 0)], Color(color, opacity), 1.7)
+			_line([center - Vector2(0, 4), center + Vector2(0, 4)], Color(color, opacity), 1.7)
 
 
 func _draw_summon(role: String) -> void:
@@ -560,7 +919,7 @@ func _draw_summon(role: String) -> void:
 	if texture != null:
 		var pivot: Vector2 = SUMMON_SPRITES[role].pivot
 		var rect := Rect2(-pivot * SUMMON_TEXTURE_SCALE, texture.get_size() * SUMMON_TEXTURE_SCALE)
-		draw_texture_rect(texture, rect, false)
+		_ink_canvas.draw_texture_rect(texture, rect, false)
 
 
 func _draw_unit_marker(unit: Dictionary) -> void:
@@ -586,14 +945,14 @@ func _draw_health(unit: Dictionary, prone: bool) -> void:
 	if maximum > 0:
 		var width := 27.0
 		var top := Vector2(49 - width * 0.5, 63 if not unit.get("label", "").is_empty() else 69)
-		draw_rect(Rect2(top - Vector2(2, 2), Vector2(width + 4, 7)), INK)
-		draw_rect(Rect2(top, Vector2(width, 3)), Color("#725344"))
+		_ink_canvas.draw_rect(Rect2(top - Vector2(2, 2), Vector2(width + 4, 7)), INK)
+		_ink_canvas.draw_rect(Rect2(top, Vector2(width, 3)), Color("#725344"))
 		var fill := CORAL if hp < maximum and hp * 2 <= maximum else (AMBER if unit.get("objective", false) else MINT)
-		draw_rect(Rect2(top, Vector2(width * float(hp) / maximum, 3)), fill)
+		_ink_canvas.draw_rect(Rect2(top, Vector2(width * float(hp) / maximum, 3)), fill)
 		if maximum < 9:
 			for index in range(1, maximum):
 				var x := top.x + width * float(index) / maximum
-				draw_line(Vector2(x, top.y), Vector2(x, top.y + 3), INK, 1.0)
+				_ink_canvas.draw_line(Vector2(x, top.y), Vector2(x, top.y + 3), INK, 1.0)
 	if prone:
 		_caption("FALLEN" if hp == 0 else "DOWN", Vector2(85, 19), CORAL, 11)
 
@@ -625,7 +984,7 @@ func _knight(with_shield: bool) -> void:
 		Vector2(8, -60), Vector2(3, -58), Vector2(-3, -60), Vector2(-8, -55)], steel, INK, 1.6)
 	_line([Vector2(-12, -63), Vector2(-5, -66), Vector2(3, -64)], light, 1.3)
 	_line([Vector2(-1, -56), Vector2(3, -57), Vector2(5, -55)], INK, 1.15)
-	draw_circle(Vector2(3, -54), 0.9, INK, true, -1.0, true)
+	_ink_canvas.draw_circle(Vector2(3, -54), 0.9, INK, true, -1.0, true)
 	_line([Vector2(0, -49), Vector2(3, -51), Vector2(5, -50)], INK, 1.0)
 	if not with_shield:
 		_piece([Vector2(7, -43), Vector2(15, -43), Vector2(19, -33), Vector2(18, -25),
@@ -644,7 +1003,7 @@ func _knight(with_shield: bool) -> void:
 		Vector2(22, -36), Vector2(17, -34)], brass)
 	_line([Vector2(29, -40), Vector2(25, -36), Vector2(25, -32)], Color("#e6c99b"), 1.1)
 	for point in [Vector2(2, -45), Vector2(26, -42), Vector2(12, -13), Vector2(2, -22)]:
-		draw_circle(point, 1.0, light, true, -1.0, true)
+		_ink_canvas.draw_circle(point, 1.0, light, true, -1.0, true)
 
 
 func _healer() -> void:
@@ -710,9 +1069,9 @@ func _wizard() -> void:
 	_piece([Vector2(-6, -56), Vector2(1, -59), Vector2(8, -55), Vector2(9, -51), Vector2(12, -49),
 		Vector2(8, -46), Vector2(6, -42), Vector2(1, -43), Vector2(-6, -47)], Color("#e6b586"), INK, 1.3)
 	_line([Vector2(2, -48), Vector2(5, -46), Vector2(8, -47)], Color("#5f3b34"), 1.1)
-	draw_arc(Vector2(6, -52), 3.0, 0, TAU, 12, INK, 1.1, true)
-	draw_arc(Vector2(-1, -52), 2.4, 0, TAU, 12, INK, 1.0, true)
-	draw_circle(Vector2(7, -52), 0.75, INK, true, -1.0, true)
+	_ink_canvas.draw_arc(Vector2(6, -52), 3.0, 0, TAU, 12, INK, 1.1, true)
+	_ink_canvas.draw_arc(Vector2(-1, -52), 2.4, 0, TAU, 12, INK, 1.0, true)
+	_ink_canvas.draw_circle(Vector2(7, -52), 0.75, INK, true, -1.0, true)
 	_piece([Vector2(-24, -52), Vector2(-28, -55), Vector2(-23, -59), Vector2(-17, -61),
 		Vector2(-16, -67), Vector2(-21, -73), Vector2(-28, -70), Vector2(-26, -77),
 		Vector2(-19, -80), Vector2(-11, -77), Vector2(0, -64), Vector2(12, -67),
@@ -863,7 +1222,7 @@ func _hookhand() -> void:
 	_line([Vector2(-32, -42), Vector2(-27, -48), Vector2(-18, -50)], seam, 1.65)
 	_line([Vector2(-5, -43), Vector2(-2, -32), Vector2(-4, -16)], Color("#2b4a48"), 1.8)
 	for y in [-34, -28, -22]:
-		draw_circle(Vector2(2, y), 1.4, Color("#cba66f"), true, -1.0, true)
+		_ink_canvas.draw_circle(Vector2(2, y), 1.4, Color("#cba66f"), true, -1.0, true)
 	_piece([Vector2(-7, -51), Vector2(-11, -61), Vector2(-5, -67), Vector2(7, -66),
 		Vector2(14, -59), Vector2(14, -54), Vector2(17, -51), Vector2(12, -48), Vector2(9, -42),
 		Vector2(1, -42), Vector2(-6, -45)], skin, INK, 1.75)
@@ -964,8 +1323,8 @@ func _village_troll() -> void:
 		Vector2(-7, -72), Vector2(-11, -64)], Color("#5e6049"), INK, 1.5)
 	_line([Vector2(-17, -64), Vector2(-16, -61), Vector2(-12, -60)], shade, 1.25)
 	_line([Vector2(-3, -66), Vector2(1, -68), Vector2(5, -67)], shade, 1.9)
-	draw_circle(Vector2(3, -63), 1.6, INK, true, -1.0, true)
-	draw_circle(Vector2(12, -64), 1.5, INK, true, -1.0, true)
+	_ink_canvas.draw_circle(Vector2(3, -63), 1.6, INK, true, -1.0, true)
+	_ink_canvas.draw_circle(Vector2(12, -64), 1.5, INK, true, -1.0, true)
 	_piece([Vector2(8, -61), Vector2(14, -63), Vector2(20, -60), Vector2(19, -56), Vector2(11, -55),
 		Vector2(7, -57)], Color("#ce9f71"), Color("#725f45"), 1.15)
 	_line([Vector2(-1, -55), Vector2(2, -52), Vector2(7, -51), Vector2(13, -53)], INK, 1.6)
@@ -983,18 +1342,18 @@ func _village_troll() -> void:
 func _wash(p: Vector2, extent: Vector2, color: Color) -> void:
 	var x := extent.x
 	var y := extent.y
-	draw_colored_polygon(PackedVector2Array([p + Vector2(0, y * 0.35), p + Vector2(x * 0.19, 0),
+	_ink_canvas.draw_colored_polygon(PackedVector2Array([p + Vector2(0, y * 0.35), p + Vector2(x * 0.19, 0),
 		p + Vector2(x * 0.53, y * 0.15), p + Vector2(x * 0.90, y * 0.03), p + Vector2(x, y * 0.46),
 		p + Vector2(x * 0.79, y * 0.76), p + Vector2(x * 0.43, y), p + Vector2(x * 0.13, y * 0.80)]), color)
 
 
 func _piece(points: Array, fill: Color, outline := Color.TRANSPARENT, weight := 1.0) -> void:
-	draw_colored_polygon(PackedVector2Array(points), fill)
+	_ink_canvas.draw_colored_polygon(PackedVector2Array(points), fill)
 	if outline.a > 0.0:
 		var closed := PackedVector2Array(points)
 		closed.append(closed[0])
-		draw_polyline(closed, outline, weight, true)
+		_ink_canvas.draw_polyline(closed, outline, weight, true)
 
 
 func _line(points: Array, color: Color, weight: float) -> void:
-	draw_polyline(PackedVector2Array(points), color, weight, true)
+	_ink_canvas.draw_polyline(PackedVector2Array(points), color, weight, true)

@@ -1,0 +1,2446 @@
+{
+  "version": 1,
+  "display_scale": 0.375,
+  "source_root": ".lore/work/games/company-of-unlikely-heroes",
+  "pixels_per_metre": 104.91803278688525,
+  "camera_euler_xyz": [
+    1.150829196,
+    0,
+    -0.435386419
+  ],
+  "actors": {
+    "bard": {
+      "source": "art/models/bard/bard-blockout.blend",
+      "sha256": "5685e66c4f43a73a8267afcb6d16c369e64d3d6460cc80631642f3e796874966",
+      "clips": {
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                900,
+                143,
+                221
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                143,
+                900,
+                143,
+                221
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                286,
+                900,
+                143,
+                221
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                429,
+                900,
+                143,
+                221
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 208,
+              "rect": [
+                572,
+                900,
+                143,
+                221
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 125,
+              "rect": [
+                715,
+                900,
+                143,
+                221
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            48,
+            205
+          ],
+          "action": "Bard | Ready Count-In",
+          "path": "res://assets/cast/bard.png"
+        },
+        "inspiring_melody": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                720,
+                229,
+                149,
+                221
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 125,
+              "rect": [
+                869,
+                229,
+                149,
+                221
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                458,
+                149,
+                221
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 83,
+              "rect": [
+                149,
+                458,
+                149,
+                221
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                298,
+                458,
+                149,
+                221
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 166,
+              "rect": [
+                447,
+                458,
+                149,
+                221
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                596,
+                458,
+                149,
+                221
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 167,
+              "rect": [
+                745,
+                458,
+                149,
+                221
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                679,
+                149,
+                221
+              ]
+            },
+            {
+              "source_frame": 32,
+              "duration_ms": 83,
+              "rect": [
+                149,
+                679,
+                149,
+                221
+              ]
+            },
+            {
+              "source_frame": 34,
+              "duration_ms": 167,
+              "rect": [
+                298,
+                679,
+                149,
+                221
+              ]
+            },
+            {
+              "source_frame": 38,
+              "duration_ms": 125,
+              "rect": [
+                447,
+                679,
+                149,
+                221
+              ]
+            },
+            {
+              "source_frame": 41,
+              "duration_ms": 208,
+              "rect": [
+                596,
+                679,
+                149,
+                221
+              ]
+            },
+            {
+              "source_frame": 46,
+              "duration_ms": 125,
+              "rect": [
+                745,
+                679,
+                149,
+                221
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            54,
+            205
+          ],
+          "action": "Bard | Inspiring Melody",
+          "path": "res://assets/cast/bard.png"
+        },
+        "healing_sonnet": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                0,
+                144,
+                229
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 167,
+              "rect": [
+                144,
+                0,
+                144,
+                229
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 125,
+              "rect": [
+                288,
+                0,
+                144,
+                229
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                432,
+                0,
+                144,
+                229
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                576,
+                0,
+                144,
+                229
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                720,
+                0,
+                144,
+                229
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 250,
+              "rect": [
+                864,
+                0,
+                144,
+                229
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 292,
+              "rect": [
+                0,
+                229,
+                144,
+                229
+              ]
+            },
+            {
+              "source_frame": 38,
+              "duration_ms": 208,
+              "rect": [
+                144,
+                229,
+                144,
+                229
+              ]
+            },
+            {
+              "source_frame": 43,
+              "duration_ms": 208,
+              "rect": [
+                288,
+                229,
+                144,
+                229
+              ]
+            },
+            {
+              "source_frame": 48,
+              "duration_ms": 292,
+              "rect": [
+                432,
+                229,
+                144,
+                229
+              ]
+            },
+            {
+              "source_frame": 55,
+              "duration_ms": 250,
+              "rect": [
+                576,
+                229,
+                144,
+                229
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            49,
+            213
+          ],
+          "action": "Bard | Healing Sonnet",
+          "path": "res://assets/cast/bard.png"
+        }
+      }
+    },
+    "healer": {
+      "source": "art/models/healer/healer-blockout.blend",
+      "sha256": "3a0b8427c788a26b511a6f6262c6debeb3fbcea78fa2c44fd867b32e5010aaa5",
+      "clips": {
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 1000,
+              "rect": [
+                250,
+                832,
+                116,
+                207
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            71,
+            186
+          ],
+          "action": "Healer | Ally Heal",
+          "path": "res://assets/cast/healer.png"
+        },
+        "ally_heal": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                318,
+                209,
+                156,
+                207
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 125,
+              "rect": [
+                474,
+                209,
+                156,
+                207
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 125,
+              "rect": [
+                630,
+                209,
+                156,
+                207
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                418,
+                156,
+                207
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                156,
+                418,
+                156,
+                207
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 125,
+              "rect": [
+                312,
+                418,
+                156,
+                207
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 125,
+              "rect": [
+                468,
+                418,
+                156,
+                207
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 125,
+              "rect": [
+                624,
+                418,
+                156,
+                207
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                625,
+                156,
+                207
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 208,
+              "rect": [
+                318,
+                209,
+                156,
+                207
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            71,
+            186
+          ],
+          "action": "Healer | Ally Heal",
+          "path": "res://assets/cast/healer.png"
+        },
+        "self_heal": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                156,
+                625,
+                125,
+                207
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                281,
+                625,
+                125,
+                207
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 125,
+              "rect": [
+                406,
+                625,
+                125,
+                207
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 209,
+              "rect": [
+                531,
+                625,
+                125,
+                207
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 166,
+              "rect": [
+                656,
+                625,
+                125,
+                207
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                832,
+                125,
+                207
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 125,
+              "rect": [
+                125,
+                832,
+                125,
+                207
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 208,
+              "rect": [
+                156,
+                625,
+                125,
+                207
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            72,
+            186
+          ],
+          "action": "Healer | Self Heal",
+          "path": "res://assets/cast/healer.png"
+        },
+        "bonk": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                0,
+                159,
+                209
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 208,
+              "rect": [
+                159,
+                0,
+                159,
+                209
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 125,
+              "rect": [
+                318,
+                0,
+                159,
+                209
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 83,
+              "rect": [
+                477,
+                0,
+                159,
+                209
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 125,
+              "rect": [
+                636,
+                0,
+                159,
+                209
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                209,
+                159,
+                209
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 250,
+              "rect": [
+                159,
+                209,
+                159,
+                209
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 166,
+              "rect": [
+                0,
+                0,
+                159,
+                209
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            78,
+            188
+          ],
+          "action": "Healer | Adjacent Bonk",
+          "path": "res://assets/cast/healer.png"
+        }
+      }
+    },
+    "knight": {
+      "source": "art/models/knight/knight-guard-blockout.blend",
+      "sha256": "0bdf470f4472f2ee269337e458b605bf53be0f36f700e9ebbf8156147e10b45b",
+      "clips": {
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 8,
+              "duration_ms": 1000,
+              "rect": [
+                280,
+                460,
+                133,
+                227
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            54,
+            211
+          ],
+          "action": "Knight | Wary, plant, cover, settle",
+          "path": "res://assets/cast/knight.png"
+        },
+        "guard": {
+          "frames": [
+            {
+              "source_frame": 8,
+              "duration_ms": 250,
+              "rect": [
+                0,
+                0,
+                140,
+                230
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 250,
+              "rect": [
+                140,
+                0,
+                140,
+                230
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 208,
+              "rect": [
+                280,
+                0,
+                140,
+                230
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 250,
+              "rect": [
+                420,
+                0,
+                140,
+                230
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                230,
+                140,
+                230
+              ]
+            },
+            {
+              "source_frame": 35,
+              "duration_ms": 167,
+              "rect": [
+                140,
+                230,
+                140,
+                230
+              ]
+            },
+            {
+              "source_frame": 39,
+              "duration_ms": 208,
+              "rect": [
+                280,
+                230,
+                140,
+                230
+              ]
+            },
+            {
+              "source_frame": 44,
+              "duration_ms": 292,
+              "rect": [
+                420,
+                230,
+                140,
+                230
+              ]
+            },
+            {
+              "source_frame": 51,
+              "duration_ms": 583,
+              "rect": [
+                0,
+                460,
+                140,
+                230
+              ]
+            },
+            {
+              "source_frame": 65,
+              "duration_ms": 542,
+              "rect": [
+                140,
+                460,
+                140,
+                230
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            59,
+            211
+          ],
+          "action": "Knight | Wary, plant, cover, settle",
+          "path": "res://assets/cast/knight.png"
+        },
+        "shield_away": {
+          "frames": [
+            {
+              "source_frame": 8,
+              "duration_ms": 1000,
+              "rect": [
+                413,
+                460,
+                123,
+                226
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            53,
+            211
+          ],
+          "action": "Knight | Wary, plant, cover, settle",
+          "path": "res://assets/cast/knight.png"
+        }
+      }
+    },
+    "necromancer": {
+      "source": "art/models/necromancer/necromancer-blockout.blend",
+      "sha256": "a6d8c25de84a45c1cdbc9ef9c8284f0e7bb4448e9be85a1e0be7edb664f309a8",
+      "clips": {
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 250,
+              "rect": [
+                0,
+                0,
+                98,
+                212
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 250,
+              "rect": [
+                98,
+                0,
+                98,
+                212
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 250,
+              "rect": [
+                196,
+                0,
+                98,
+                212
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 250,
+              "rect": [
+                294,
+                0,
+                98,
+                212
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            53,
+            196
+          ],
+          "action": "Necromancer | Ready",
+          "path": "res://assets/cast/necromancer.png"
+        },
+        "summon_skeleton": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                760,
+                423,
+                142,
+                211
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                634,
+                142,
+                211
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 125,
+              "rect": [
+                142,
+                634,
+                142,
+                211
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 125,
+              "rect": [
+                284,
+                634,
+                142,
+                211
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 125,
+              "rect": [
+                426,
+                634,
+                142,
+                211
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                568,
+                634,
+                142,
+                211
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 166,
+              "rect": [
+                710,
+                634,
+                142,
+                211
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                845,
+                142,
+                211
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 292,
+              "rect": [
+                142,
+                845,
+                142,
+                211
+              ]
+            },
+            {
+              "source_frame": 34,
+              "duration_ms": 208,
+              "rect": [
+                284,
+                845,
+                142,
+                211
+              ]
+            },
+            {
+              "source_frame": 39,
+              "duration_ms": 167,
+              "rect": [
+                426,
+                845,
+                142,
+                211
+              ]
+            },
+            {
+              "source_frame": 43,
+              "duration_ms": 125,
+              "rect": [
+                568,
+                845,
+                142,
+                211
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            81,
+            195
+          ],
+          "action": "Necromancer | Summon Skeleton",
+          "path": "res://assets/cast/necromancer.png"
+        },
+        "raise_dead": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 292,
+              "rect": [
+                392,
+                0,
+                152,
+                211
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 208,
+              "rect": [
+                544,
+                0,
+                152,
+                211
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 208,
+              "rect": [
+                696,
+                0,
+                152,
+                211
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                212,
+                152,
+                211
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 167,
+              "rect": [
+                152,
+                212,
+                152,
+                211
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 333,
+              "rect": [
+                304,
+                212,
+                152,
+                211
+              ]
+            },
+            {
+              "source_frame": 34,
+              "duration_ms": 292,
+              "rect": [
+                456,
+                212,
+                152,
+                211
+              ]
+            },
+            {
+              "source_frame": 41,
+              "duration_ms": 166,
+              "rect": [
+                608,
+                212,
+                152,
+                211
+              ]
+            },
+            {
+              "source_frame": 45,
+              "duration_ms": 167,
+              "rect": [
+                760,
+                212,
+                152,
+                211
+              ]
+            },
+            {
+              "source_frame": 49,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                423,
+                152,
+                211
+              ]
+            },
+            {
+              "source_frame": 54,
+              "duration_ms": 209,
+              "rect": [
+                152,
+                423,
+                152,
+                211
+              ]
+            },
+            {
+              "source_frame": 59,
+              "duration_ms": 208,
+              "rect": [
+                304,
+                423,
+                152,
+                211
+              ]
+            },
+            {
+              "source_frame": 64,
+              "duration_ms": 125,
+              "rect": [
+                456,
+                423,
+                152,
+                211
+              ]
+            },
+            {
+              "source_frame": 67,
+              "duration_ms": 125,
+              "rect": [
+                608,
+                423,
+                152,
+                211
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            67,
+            195
+          ],
+          "action": "Necromancer | Raise Dead",
+          "path": "res://assets/cast/necromancer.png"
+        }
+      }
+    },
+    "rogue": {
+      "source": "art/models/rogue/rogue-blockout.blend",
+      "sha256": "99d4607ab9e9792c51e15ae90d11d412973e98e3e17f481b5c976fbac02cfbb1",
+      "clips": {
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 1000,
+              "rect": [
+                204,
+                894,
+                96,
+                223
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            51,
+            199
+          ],
+          "action": "Rogue | Ready / Retreat",
+          "path": "res://assets/cast/rogue.png"
+        },
+        "retreat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                316,
+                671,
+                102,
+                223
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                418,
+                671,
+                102,
+                223
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                520,
+                671,
+                102,
+                223
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                622,
+                671,
+                102,
+                223
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 166,
+              "rect": [
+                724,
+                671,
+                102,
+                223
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                894,
+                102,
+                223
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 166,
+              "rect": [
+                102,
+                894,
+                102,
+                223
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            56,
+            199
+          ],
+          "action": "Rogue | Ready / Retreat",
+          "path": "res://assets/cast/rogue.png"
+        },
+        "swap": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                282,
+                224,
+                158,
+                223
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 125,
+              "rect": [
+                440,
+                224,
+                158,
+                223
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 125,
+              "rect": [
+                598,
+                224,
+                158,
+                223
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                448,
+                158,
+                223
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 125,
+              "rect": [
+                158,
+                448,
+                158,
+                223
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 167,
+              "rect": [
+                316,
+                448,
+                158,
+                223
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 250,
+              "rect": [
+                474,
+                448,
+                158,
+                223
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 208,
+              "rect": [
+                632,
+                448,
+                158,
+                223
+              ]
+            },
+            {
+              "source_frame": 30,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                671,
+                158,
+                223
+              ]
+            },
+            {
+              "source_frame": 34,
+              "duration_ms": 167,
+              "rect": [
+                158,
+                671,
+                158,
+                223
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            54,
+            199
+          ],
+          "action": "Rogue | Confusing Dodge",
+          "path": "res://assets/cast/rogue.png"
+        },
+        "misdirect": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                0,
+                141,
+                224
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                141,
+                0,
+                141,
+                224
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 209,
+              "rect": [
+                282,
+                0,
+                141,
+                224
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 916,
+              "rect": [
+                423,
+                0,
+                141,
+                224
+              ]
+            },
+            {
+              "source_frame": 36,
+              "duration_ms": 250,
+              "rect": [
+                564,
+                0,
+                141,
+                224
+              ]
+            },
+            {
+              "source_frame": 42,
+              "duration_ms": 209,
+              "rect": [
+                705,
+                0,
+                141,
+                224
+              ]
+            },
+            {
+              "source_frame": 47,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                224,
+                141,
+                224
+              ]
+            },
+            {
+              "source_frame": 50,
+              "duration_ms": 166,
+              "rect": [
+                141,
+                224,
+                141,
+                224
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            53,
+            200
+          ],
+          "action": "Rogue | Wasn't Me",
+          "path": "res://assets/cast/rogue.png"
+        }
+      }
+    },
+    "skeleton": {
+      "source": "art/models/skeleton/skeleton-blockout.blend",
+      "sha256": "c270d6bfa5ae9a419e1319b8305588df8132bc3c646dd4b753fb3aeca2646d03",
+      "clips": {
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 250,
+              "rect": [
+                364,
+                470,
+                143,
+                204
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 167,
+              "rect": [
+                507,
+                470,
+                143,
+                204
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 166,
+              "rect": [
+                650,
+                470,
+                143,
+                204
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 125,
+              "rect": [
+                793,
+                470,
+                143,
+                204
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                705,
+                143,
+                204
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 125,
+              "rect": [
+                793,
+                470,
+                143,
+                204
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                705,
+                143,
+                204
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 166,
+              "rect": [
+                143,
+                705,
+                143,
+                204
+              ]
+            },
+            {
+              "source_frame": 33,
+              "duration_ms": 500,
+              "rect": [
+                364,
+                470,
+                143,
+                204
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            41,
+            183
+          ],
+          "action": "Skeleton | Ready & Greet",
+          "path": "res://assets/cast/skeleton.png"
+        },
+        "wave": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                0,
+                182,
+                235
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 125,
+              "rect": [
+                182,
+                0,
+                182,
+                235
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                364,
+                0,
+                182,
+                235
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 125,
+              "rect": [
+                546,
+                0,
+                182,
+                235
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 125,
+              "rect": [
+                728,
+                0,
+                182,
+                235
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 84,
+              "rect": [
+                0,
+                235,
+                182,
+                235
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 125,
+              "rect": [
+                182,
+                235,
+                182,
+                235
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 125,
+              "rect": [
+                364,
+                235,
+                182,
+                235
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                546,
+                235,
+                182,
+                235
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 292,
+              "rect": [
+                728,
+                235,
+                182,
+                235
+              ]
+            },
+            {
+              "source_frame": 38,
+              "duration_ms": 333,
+              "rect": [
+                0,
+                470,
+                182,
+                235
+              ]
+            },
+            {
+              "source_frame": 46,
+              "duration_ms": 333,
+              "rect": [
+                182,
+                470,
+                182,
+                235
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            73,
+            214
+          ],
+          "action": "Skeleton | Wave",
+          "path": "res://assets/cast/skeleton.png"
+        },
+        "dont_go": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                286,
+                705,
+                144,
+                202
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 125,
+              "rect": [
+                430,
+                705,
+                144,
+                202
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 208,
+              "rect": [
+                574,
+                705,
+                144,
+                202
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 250,
+              "rect": [
+                718,
+                705,
+                144,
+                202
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 333,
+              "rect": [
+                0,
+                909,
+                144,
+                202
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 334,
+              "rect": [
+                0,
+                909,
+                144,
+                202
+              ]
+            },
+            {
+              "source_frame": 35,
+              "duration_ms": 208,
+              "rect": [
+                144,
+                909,
+                144,
+                202
+              ]
+            },
+            {
+              "source_frame": 40,
+              "duration_ms": 208,
+              "rect": [
+                144,
+                909,
+                144,
+                202
+              ]
+            },
+            {
+              "source_frame": 45,
+              "duration_ms": 209,
+              "rect": [
+                288,
+                909,
+                144,
+                202
+              ]
+            },
+            {
+              "source_frame": 50,
+              "duration_ms": 333,
+              "rect": [
+                432,
+                909,
+                144,
+                202
+              ]
+            },
+            {
+              "source_frame": 58,
+              "duration_ms": 208,
+              "rect": [
+                576,
+                909,
+                144,
+                202
+              ]
+            },
+            {
+              "source_frame": 63,
+              "duration_ms": 125,
+              "rect": [
+                286,
+                705,
+                144,
+                202
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            49,
+            181
+          ],
+          "action": "Skeleton | Don't Go",
+          "path": "res://assets/cast/skeleton.png"
+        }
+      }
+    },
+    "wizard": {
+      "source": "art/models/wizard/wizard-blockout.blend",
+      "sha256": "5776143ed740e3cb924535ab267bad1e49a41753651c89223d812e36a65eaf24",
+      "clips": {
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 500,
+              "rect": [
+                652,
+                674,
+                123,
+                212
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            56,
+            198
+          ],
+          "action": "Wizard | Ready",
+          "path": "res://assets/cast/wizard.png"
+        },
+        "blast": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                0,
+                161,
+                228
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 125,
+              "rect": [
+                161,
+                0,
+                161,
+                228
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 167,
+              "rect": [
+                322,
+                0,
+                161,
+                228
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 125,
+              "rect": [
+                483,
+                0,
+                161,
+                228
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 125,
+              "rect": [
+                644,
+                0,
+                161,
+                228
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 166,
+              "rect": [
+                0,
+                228,
+                161,
+                228
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 125,
+              "rect": [
+                161,
+                228,
+                161,
+                228
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 209,
+              "rect": [
+                322,
+                228,
+                161,
+                228
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 208,
+              "rect": [
+                483,
+                228,
+                161,
+                228
+              ]
+            },
+            {
+              "source_frame": 34,
+              "duration_ms": 292,
+              "rect": [
+                0,
+                0,
+                161,
+                228
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            60,
+            201
+          ],
+          "action": "Wizard | Blast",
+          "path": "res://assets/cast/wizard.png"
+        },
+        "pull": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                644,
+                228,
+                163,
+                218
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                456,
+                163,
+                218
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 208,
+              "rect": [
+                163,
+                456,
+                163,
+                218
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 125,
+              "rect": [
+                326,
+                456,
+                163,
+                218
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 125,
+              "rect": [
+                489,
+                456,
+                163,
+                218
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 83,
+              "rect": [
+                652,
+                456,
+                163,
+                218
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                674,
+                163,
+                218
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 167,
+              "rect": [
+                163,
+                674,
+                163,
+                218
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 208,
+              "rect": [
+                326,
+                674,
+                163,
+                218
+              ]
+            },
+            {
+              "source_frame": 33,
+              "duration_ms": 334,
+              "rect": [
+                489,
+                674,
+                163,
+                218
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            91,
+            203
+          ],
+          "action": "Wizard | Pull",
+          "path": "res://assets/cast/wizard.png"
+        }
+      }
+    },
+    "zombie": {
+      "source": "art/models/zombie/zombie-blockout.blend",
+      "sha256": "b4b9bb6bca976144125f8f684fcccd774dda178ab83f920c3617ca9674a4ca0d",
+      "clips": {
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 1000,
+              "rect": [
+                528,
+                808,
+                103,
+                195
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            48,
+            176
+          ],
+          "action": "Zombie | Ready",
+          "path": "res://assets/cast/zombie.png"
+        },
+        "say_hello": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 250,
+              "rect": [
+                146,
+                606,
+                132,
+                198
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 208,
+              "rect": [
+                278,
+                606,
+                132,
+                198
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                410,
+                606,
+                132,
+                198
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 125,
+              "rect": [
+                542,
+                606,
+                132,
+                198
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 250,
+              "rect": [
+                674,
+                606,
+                132,
+                198
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                808,
+                132,
+                198
+              ]
+            },
+            {
+              "source_frame": 30,
+              "duration_ms": 250,
+              "rect": [
+                132,
+                808,
+                132,
+                198
+              ]
+            },
+            {
+              "source_frame": 36,
+              "duration_ms": 250,
+              "rect": [
+                264,
+                808,
+                132,
+                198
+              ]
+            },
+            {
+              "source_frame": 42,
+              "duration_ms": 167,
+              "rect": [
+                396,
+                808,
+                132,
+                198
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            56,
+            179
+          ],
+          "action": "Zombie | Say Hello",
+          "path": "res://assets/cast/zombie.png"
+        },
+        "offer_flower": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                0,
+                146,
+                202
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 167,
+              "rect": [
+                146,
+                0,
+                146,
+                202
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 167,
+              "rect": [
+                292,
+                0,
+                146,
+                202
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 125,
+              "rect": [
+                438,
+                0,
+                146,
+                202
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 83,
+              "rect": [
+                584,
+                0,
+                146,
+                202
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                202,
+                146,
+                202
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 42,
+              "rect": [
+                146,
+                202,
+                146,
+                202
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 83,
+              "rect": [
+                292,
+                202,
+                146,
+                202
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 84,
+              "rect": [
+                438,
+                202,
+                146,
+                202
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                584,
+                202,
+                146,
+                202
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                404,
+                146,
+                202
+              ]
+            },
+            {
+              "source_frame": 32,
+              "duration_ms": 208,
+              "rect": [
+                146,
+                404,
+                146,
+                202
+              ]
+            },
+            {
+              "source_frame": 37,
+              "duration_ms": 208,
+              "rect": [
+                292,
+                404,
+                146,
+                202
+              ]
+            },
+            {
+              "source_frame": 42,
+              "duration_ms": 209,
+              "rect": [
+                438,
+                404,
+                146,
+                202
+              ]
+            },
+            {
+              "source_frame": 47,
+              "duration_ms": 250,
+              "rect": [
+                584,
+                404,
+                146,
+                202
+              ]
+            },
+            {
+              "source_frame": 53,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                606,
+                146,
+                202
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            71,
+            183
+          ],
+          "action": "Zombie | Offer Flower",
+          "release": {
+            "time_ms": 875,
+            "offset": [
+              -42.967,
+              -106.933
+            ],
+            "clip": "gift"
+          },
+          "path": "res://assets/cast/zombie.png"
+        },
+        "gift": {
+          "frames": [
+            {
+              "source_frame": 22,
+              "duration_ms": 1000,
+              "rect": [
+                631,
+                808,
+                32,
+                54
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            16.033,
+            14.067
+          ],
+          "action": "Zombie | Offer Flower",
+          "path": "res://assets/cast/zombie.png"
+        }
+      }
+    }
+  }
+}

@@ -272,13 +272,30 @@ func _test_aura_redirects_friendly_attacks() -> void:
 	var blast_damage: int = 10 - _find(baseline, "ward").get("hp", 10)
 	_check(blast_damage > 0, "Unshielded friendly-fire blast has positive damage")
 	var protected := _apply(state, _plan(state, "k", "knight_aura"), "knight_aura")
-	var after := _apply(protected, _plan(protected, "w", "wizard_blast"), "shielded blast")
+	var reflected := _plan(protected, "w", "wizard_blast")
+	var after := _apply(protected, reflected, "shielded blast")
 	_check(_find(after, "ward").get("hp", 0) == 10, "Aura prevents friendly-fire blast damage to ward")
 	_check(not rules.has_status_handler(after, "ward", "skip_action"), "Ward does not receive redirected blast knockdown")
 	_check(_find(after, "recipient").get("hp", 10) == 10 - blast_damage, "Nearest alternate enemy receives exactly the original blast damage once")
 	_check(rules.has_status_handler(after, "recipient", "skip_action"), "Reflected blast knocks down its actual recipient")
 	_check(_find(after, "k").get("hp", 0) == 10, "Reflection does not loop back into the aura")
 	_check(_find(after, "w").get("hp", 0) == 10, "Reflection does not damage the original attacker instead")
+	_check(reflected.events.map(func(event: Dictionary) -> String: return event.type) == ["reflect", "damage"],
+		"Action attribution preserves the ordered reflect and damage log")
+	var first: Dictionary = reflected.events[0]
+	_check(first.get("unit_id") == "k" and first.get("ward_id") == "ward" \
+			and first.get("resolved_action") == {"unit_id": "w", "ability_id": "wizard_blast",
+				"source_cell": Vector2i(4, 2), "actor_cell": Vector2i(4, 2), "event_count": 2},
+		"A reflected cast preserves the Knight protector and groups both effects under the Wizard")
+	var absorbed := protected.duplicate(true)
+	absorbed.units.pop_back()
+	var absorbed_plan := _plan(absorbed, "w", "wizard_blast")
+	_check(absorbed_plan.result == absorbed and absorbed_plan.events.size() == 1
+			and absorbed_plan.events[0].get("type") == "reflect" \
+			and absorbed_plan.events[0].get("resolved_action", {}).get("unit_id") == "w",
+		"Fully absorbed cast changes no state and is still attributed to its successful caster")
+	var invalid: Dictionary = rules.preview(protected, "missing", "wizard_blast")
+	_check(not invalid.valid and invalid.events.is_empty(), "An unknown caster emits no action provenance")
 
 	# A shielded enemy can also be the initial ward. An adjacent obstacle is
 	# the nearest eligible alternate recipient of the healer's attack.

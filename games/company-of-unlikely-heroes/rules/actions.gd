@@ -51,6 +51,10 @@ static func _entity_allowed(state: Dictionary, actor: Dictionary, candidate: Dic
 				and Board.capable(state, actor, "mobile") and Board.capable(state, candidate, "pullable") \
 				and Board.can_enter(state, actor.position + _pull_step(actor, candidate)) \
 				and Board.can_enter(state, actor.position, actor.id)
+		"hook":
+			return Board.distance(actor.position, candidate.position) > 1 \
+				and Board.capable(state, candidate, "pullable") \
+				and Board.is_vacant(state, candidate.position + _pull_step(actor, candidate))
 		"bonk", "blast", "attack":
 			return Board.capable(state, candidate, "damageable")
 		"heal":
@@ -134,8 +138,11 @@ static func _legal_choices(state: Dictionary, actor: Dictionary, ability: Dictio
 		"entity", "automatic":
 			for candidate in Board.occupants(state, targeting):
 				if _entity_allowed(state, actor, candidate, ability):
-					result.append({"id": candidate.id, "label": Board.display_name(state, candidate),
-						"position": candidate.position})
+					var choice := {"id": candidate.id, "label": Board.display_name(state, candidate),
+						"position": candidate.position}
+					if ability.handler == "hook":
+						choice["destination"] = candidate.position + _pull_step(actor, candidate)
+					result.append(choice)
 		"none":
 			if ability.handler == "apply_status" and Statuses.accepts(state, actor, ability.params.status, actor):
 				result.append({"id": "", "position": actor.position})
@@ -269,8 +276,15 @@ static func execute(state: Dictionary, actor: Dictionary, action: Dictionary, ev
 	match ability.handler:
 		"move":
 			actor.position = choice.position
-			Board.authored_event(state, events, "move", "move", {"actor": name, "position": actor.position},
-				{"unit_id": actor.id, "position": actor.position})
+			var copy := {"actor": name, "position": actor.position}
+			var data := {"unit_id": actor.id, "position": actor.position}
+			var template := "move"
+			if action.has("follow_target_id"):
+				var followed := Board.entity(state, action.follow_target_id)
+				copy["target"] = Board.display_name(state, followed)
+				data["target_id"] = followed.id
+				template = "follow_party"
+			Board.authored_event(state, events, "move", template, copy, data)
 		"summon":
 			_summon(state, actor, ability, choice, target, events)
 		"sweep":
@@ -317,7 +331,10 @@ static func execute(state: Dictionary, actor: Dictionary, action: Dictionary, ev
 			if ability.handler == "blast" and not params.has("source_suffix"):
 				suffix = Board.text(state, "blast_suffix")
 			target = Statuses.misdirect_attack(state, actor, target, events)
-			_damage(state, actor, Statuses.attack_recipient(state, target, events), int(params.damage),
+			var damage: int = params.damage
+			if ability.handler == "attack" and params.has("surround_bonus"):
+				damage += _surround_bonus(state, actor, target, params.surround_bonus, events)
+			_damage(state, actor, Statuses.attack_recipient(state, target, events), damage,
 				name + suffix, params.get("status", ""), events)
 		"swap_furthest":
 			var old: Vector2i = actor.position
@@ -347,11 +364,33 @@ static func execute(state: Dictionary, actor: Dictionary, action: Dictionary, ev
 				{"actor": name, "target": target_name, "position": old, "recoil": actor.position},
 				{"unit_id": actor.id, "target_id": target.id, "position": old, "recoil_position": actor.position})
 			_damage(state, actor, actor, int(params.recoil_damage), Board.text(state, "recoil_source"), params.status, events)
+		"hook":
+			var old: Vector2i = target.position
+			target.position = choice.destination
+			Board.authored_event(state, events, "pull", "hook_pull",
+				{"actor": name, "target": target_name, "from": old, "position": target.position},
+				{"unit_id": actor.id, "target_id": target.id, "from_position": old, "position": target.position})
 		_:
 			return false
 	for index in range(first_event, events.size()):
 		events[index]["ability_id"] = action.ability_id
 	return true
+
+
+static func _surround_bonus(state: Dictionary, actor: Dictionary, target: Dictionary,
+		spec: Dictionary, events: Array) -> int:
+	var team := Board.team(state, actor)
+	for ally in state.units:
+		if ally.id == actor.id or ally.id == target.id or ally.character_id != spec.character \
+				or not Board.alive(ally) or Board.team(state, ally) != team \
+				or Board.distance(ally.position, target.position) != 1:
+			continue
+		var damage: int = spec.damage
+		Board.authored_event(state, events, "surround", "surround_bonus",
+			{"actor": Board.display_name(state, actor), "target": Board.display_name(state, target), "amount": damage},
+			{"unit_id": actor.id, "target_id": target.id, "ally_id": ally.id, "amount": damage})
+		return damage
+	return 0
 
 
 static func _hurt(target: Dictionary, amount: int) -> void:

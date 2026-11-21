@@ -297,6 +297,9 @@ func _objective_met(state: Dictionary) -> bool:
 		"escort":
 			var subject := Board.entity(state, objective.subject)
 			return Board.alive(subject) and subject.position == objective.destination
+		"leave_zone":
+			var subject := Board.entity(state, objective.subject)
+			return Board.alive(subject) and not Board.in_zone(state, objective.zone, subject.position)
 		"defeat_all":
 			return objective_progress(state).alive == 0
 	return false
@@ -350,5 +353,11 @@ func _mission_end_event(state: Dictionary, ending: Dictionary) -> Dictionary:
 			"hp": subject.get("hp", 0), "max_hp": subject.get("max_hp", 0)}
 		event["target_id"] = state.objective.subject
 		event["position"] = destination
+	elif state.objective.handler == "leave_zone":
+		var subject := Board.entity(state, state.objective.subject)
+		var name := Board.display_name(state, subject)
+		substitutions = {"subject": name.to_lower(), "subject_label": name, "zone": state.objective.zone,
+			"position": subject.position, "hp": subject.hp, "max_hp": subject.max_hp}
+		event.merge({"target_id": subject.id, "position": subject.position, "zone": state.objective.zone})
 	event["text"] = Board.format_text(ending.event, substitutions)
 	return event

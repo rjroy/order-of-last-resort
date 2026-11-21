@@ -1,12 +1,36 @@
 # The Company of Unlikely Heroes
 
-**Choose a company, not just a loadout.** Pick three recruits at the guild, fight a patrol, then take those same wounded heroes to rescue the last ferryman. This is a playtest build; its artwork and interface are provisional.
+**Choose a company, not just a loadout.** Choose an outing and recruit a company at the guild. Your heroes carry their wounds and orders between its missions. This is a playtest build; its artwork and interface are provisional.
 
 From the repository root, with Godot 4.7:
 
 ```sh
 godot --path games/company-of-unlikely-heroes
 ```
+
+### Choose an outing
+
+At the guild, use **Adventure** to choose either **The company's first outing** or **Village Troubles**. Pick the required distinct recruits and arrange their deployment order, then depart. Village Troubles takes the same company through Goblin Mob, Harpoon Squad and Unwelcome Guest. Review the debrief after each victory and choose when to continue; failure ends the outing. Returning to the guild starts a fresh company.
+
+In **Unwelcome Guest**, get the troll outside the marked village square alive. If it dies or your party falls, you lose. There is no deadline. The troll follows the nearest living party hero one tile each time it acts, stopping when adjacent. Your heroes' damaging standing orders remain active, so check and change them as needed. In particular, a carried Bard **Healing Sonnet** can damage or kill the troll even after it crosses the square's edge if the song happens later that round. Read the forecast before committing to see the troll's intended step and any pulls or follow-up actions.
+
+Each Village Troubles mission can also be opened as a standalone battle with its authored default party:
+
+```sh
+godot --path games/company-of-unlikely-heroes -- --mission=goblin_mob
+godot --path games/company-of-unlikely-heroes -- --mission=harpoon_squad
+godot --path games/company-of-unlikely-heroes -- --mission=unwelcome_guest
+```
+
+Standalone missions have a restart button and do not carry results to another mission. They are optional: normal play starts at the guild without command-line options.
+
+To explore the standalone openings, leave standing orders at their defaults:
+
+- **The Goblin Mob:** Select Necromancer → **Summon Skeleton** → **C3**, then preview and commit. The skeleton joins the fight next round; its Wave can hit allies as well as goblins.
+- **The Harpoon Squad:** Read the opening forecast: Hookhand pulls the Healer from **B3** to **C3**, setting up the Bruiser's strike. Preview Knight → **Push** → Bruiser at **C4**. The push moves the Bruiser to **D4** and removes that follow-up from the forecast. Compare before committing.
+- **The Unwelcome Guest:** Preview Knight → **Push** → Village Troll at **C3**. The push takes the living troll out of the square for a victory. Alternatively, preview Knight → **Move one tile** → **E3** to see the troll's intended step in the forecast. Read the forecast and adjust damaging orders before committing.
+
+These examples use the standalone missions' authored parties and fresh opening positions. A guild party and its carried wounds or orders can change the forecast.
 
 ### Your first outing
 
@@ -84,6 +108,9 @@ From this directory, run the suites with `godot --headless --script res://tests/
 | `rescues_test` | Fixed-start rescues, loss, and restart |
 | `adventure_test` | Party selection and formation, deployment, combat and mission transitions |
 | `adventure_scene_test` | Party selection and formation through the controls, debrief, wound carryover, and guild return |
+| `three_mission_test` | Village Troubles mission rules and adventure boundaries |
+| `village_outing_scene_test` | Direct launches and the Village Troubles guild-to-result flow |
+| `hook_overlay_scene_test` | Hook landing and earlier movement appear as separate forecast paths |
 | `rogue_test` | Rogue dodge, redirect, retreat, and hybrid forecast consistency |
 | `necromancer_test` | Summons, corpse selection, greetings, round order and forecast consistency, and expedition boundaries |
 | `bard_test` | Both persistent songs, seeded listeners, skipped turns and full-round laughter immunity, damage, and direct-command interactions |
@@ -93,3 +120,5 @@ From this directory, run the suites with `godot --headless --script res://tests/
 In a graphical session, `godot --script res://tests/scene_smoke.gd -- --capture=/absolute/path.png` also saves the game viewport after the smoke run.
 
 Run `godot --script res://tests/bridge_art_test.gd` from this game directory in a graphical session to check the **rendered** shore tint and exit flag. It compares the board before and after moving the objective; no reference screenshot is required.
+
+Run `godot --script res://tests/outing_art_test.gd` in a graphical session to check the new figures and the marked objective zone with tactical overlays.

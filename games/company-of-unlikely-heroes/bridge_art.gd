@@ -18,6 +18,9 @@ const SHORE_WASH := Color("#7eac5b", 0.36)
 const AMBER := Color("#ffdc86")
 const MINT := Color("#d7edbc")
 const CORAL := Color("#ffc1a2")
+const ZONE_WASH := Color("#5bacaa", 0.35)
+const ZONE_EDGE := Color("#375e5a")
+const ZONE_CHALK := Color("#c0e6d7")
 const SUMMON_SPRITES := {
 	"skeleton": {"path": "res://assets/summons/skeleton.png", "pivot": Vector2(68, 233)},
 	"zombie": {"path": "res://assets/summons/zombie.png", "pivot": Vector2(52, 204)},
@@ -32,6 +35,7 @@ const TILE_FACE := [
 var _cells: Dictionary = {}
 var _units: Array = []
 var _overlay: Dictionary = {}
+var _objective_zone: Dictionary[Vector2i, bool] = {}
 var _bounds := Rect2i()
 var _hover: Variant = null
 var _map_origin := Vector2.ZERO
@@ -72,11 +76,17 @@ static func _load_summon_texture(path: String) -> Texture2D:
 ## guarded, objective, variant, label and color.
 ## overlay: selected/chosen_target/commanded (Vector2i), targets/impact/threat (arrays of Vector2i),
 ## paths (each an array of Vector2i), exit (Vector2i), safe (a set of Vector2i),
-## and obstacles (id, art_key, position, hp, max_hp).
+## objective_zone (array of [x, y] pairs or Vector2i), obstacles (id, art_key, position, hp, max_hp).
 func set_render_state(cells: Dictionary, units: Array, overlay: Dictionary = {}) -> void:
 	_cells = cells.duplicate()
 	_units = units.duplicate(true)
 	_overlay = overlay.duplicate(true)
+	_objective_zone.clear()
+	for at in _overlay.get("objective_zone", []):
+		if at is Vector2i:
+			_objective_zone[at] = true
+		elif at is Array and at.size() == 2:
+			_objective_zone[Vector2i(int(at[0]), int(at[1]))] = true
 	_bounds = Rect2i()
 	var first := true
 	for value in _cells:
@@ -179,6 +189,8 @@ func _draw() -> void:
 		_draw_tile(cell)
 		if shore.has(cell):
 			_piece(TILE_FACE, SHORE_WASH)
+		if _objective_zone.has(cell):
+			_draw_objective_square()
 		if _overlay.get("exit") == cell:
 			_draw_exit()
 	_at(Vector2.ZERO)
@@ -368,6 +380,18 @@ func _draw_exit() -> void:
 	_caption("EXIT", Vector2(86, 70), MINT, 10)
 
 
+func _draw_objective_square() -> void:
+	# A continuous chalk square reads as part of the floor, not as tactical brackets.
+	# Keep the side rules outside the figure's center and below every preview.
+	_piece([Vector2(11, 11), Vector2(51, 10), Vector2(85, 11), Vector2(86, 42),
+		Vector2(84, 69), Vector2(46, 70), Vector2(10, 69)], ZONE_WASH, ZONE_EDGE, 4.3)
+	_line([Vector2(11, 11), Vector2(51, 10), Vector2(85, 11), Vector2(86, 42),
+		Vector2(84, 69), Vector2(46, 70), Vector2(10, 69), Vector2(11, 11)], ZONE_CHALK, 1.7)
+	for x in [15, 81]:
+		_piece([Vector2(x - 3, 39), Vector2(x, 35), Vector2(x + 3, 39), Vector2(x, 43)],
+			ZONE_CHALK, ZONE_EDGE, 1.2)
+
+
 func _draw_obstacle() -> void:
 	_wash(Vector2(14, 62), Vector2(69, 11), Color(INK, 0.38))
 	_piece([Vector2(18, 30), Vector2(61, 28), Vector2(65, 60), Vector2(21, 63)],
@@ -472,7 +496,8 @@ func _draw_unit(unit: Dictionary) -> void:
 	var prone := bool(unit.get("prone", false))
 	var origin := _tile_origin(unit.cell)
 	var foot := origin + Vector2(49, 62)
-	var facing := -1.0 if float(unit.get("facing", -1 if role == "enemy" else 1)) < 0.0 else 1.0
+	var default_facing := -1 if role in ["enemy", "goblin", "hookhand", "bruiser"] else 1
+	var facing := -1.0 if float(unit.get("facing", default_facing)) < 0.0 else 1.0
 	_at(foot)
 	_wash(Vector2(-29, -1), Vector2(59, 9), Color("#24312a", 0.27))
 	_wash(Vector2(-22, 0), Vector2(48, 5), Color("#222824", 0.40))
@@ -493,6 +518,14 @@ func _draw_unit(unit: Dictionary) -> void:
 			_ferryman()
 		"skeleton", "zombie":
 			_draw_summon(role)
+		"goblin":
+			_goblin()
+		"hookhand":
+			_hookhand()
+		"bruiser":
+			_bruiser()
+		"village_troll":
+			_village_troll()
 		_:
 			_enemy(str(unit.get("variant", "")))
 	_at(origin)
@@ -746,6 +779,174 @@ func _enemy(variant: String) -> void:
 	_piece([Vector2(-20, -29), Vector2(-24, -24), Vector2(-20, -18), Vector2(-14, -19),
 		Vector2(-11, -26), Vector2(-15, -30)], hide, INK, 1.2)
 	_line([Vector2(21, -36), Vector2(23, -31), Vector2(25, -32)], Color("#c6ae82"), 1.55)
+
+
+func _goblin() -> void:
+	var olive := Color("#a1ac68")
+	var shadow := Color("#6d784b")
+	var leather := Color("#704f3b")
+	# Sprung knees, a torn tunic and two outsized ears make a small zigzag silhouette.
+	_piece([Vector2(-8, -25), Vector2(8, -23), Vector2(19, -15), Vector2(16, -7),
+		Vector2(24, -4), Vector2(23, 0), Vector2(10, 0), Vector2(9, -12), Vector2(1, -13),
+		Vector2(-11, -8), Vector2(-16, -3), Vector2(-16, 1), Vector2(-28, 1), Vector2(-27, -4),
+		Vector2(-21, -7), Vector2(-15, -17)], leather, INK, 1.7)
+	_piece([Vector2(-9, -36), Vector2(0, -36), Vector2(7, -32), Vector2(8, -23),
+		Vector2(12, -15), Vector2(2, -16), Vector2(-2, -12), Vector2(-10, -17),
+		Vector2(-19, -14), Vector2(-17, -25)], Color("#bb863f"), INK, 1.7)
+	_line([Vector2(-13, -24), Vector2(-1, -22), Vector2(7, -23)], Color("#644830"), 2.8)
+	_piece([Vector2(-13, -35), Vector2(-5, -33), Vector2(-10, -24), Vector2(-16, -22),
+		Vector2(-25, -25), Vector2(-25, -31), Vector2(-20, -30)], shadow, INK, 1.5)
+	_piece([Vector2(-7, -42), Vector2(-26, -51), Vector2(-21, -39), Vector2(-16, -36),
+		Vector2(-9, -37), Vector2(-2, -31), Vector2(9, -34), Vector2(11, -39), Vector2(20, -42),
+		Vector2(11, -44), Vector2(14, -53), Vector2(5, -48), Vector2(-2, -48)], olive, INK, 1.8)
+	_line([Vector2(-22, -46), Vector2(-17, -41), Vector2(-12, -40)], shadow, 1.6)
+	_line([Vector2(-8, -44), Vector2(-2, -46), Vector2(6, -46)], Color("#d4cb85"), 1.25)
+	_line([Vector2(2, -41), Vector2(7, -43)], INK, 2.0)
+	_line([Vector2(3, -36), Vector2(7, -37)], INK, 1.35)
+	_piece([Vector2(-10, -35), Vector2(-2, -33), Vector2(7, -34), Vector2(4, -28),
+		Vector2(-7, -29), Vector2(-15, -23), Vector2(-15, -31)], Color("#a5503e"), INK, 1.4)
+	# The little blade stays down by its hip, not on the harpooner's reach diagonal.
+	_piece([Vector2(15, -24), Vector2(24, -33), Vector2(31, -34), Vector2(29, -25),
+		Vector2(20, -17), Vector2(12, -17)], Color("#b9b9a3"), INK, 1.55)
+	_line([Vector2(21, -20), Vector2(28, -26), Vector2(29, -31)], Color("#f0d6a4"), 1.3)
+	_piece([Vector2(0, -30), Vector2(6, -30), Vector2(10, -25), Vector2(16, -26),
+		Vector2(19, -23), Vector2(16, -19), Vector2(8, -19), Vector2(2, -23)], olive, INK, 1.5)
+
+
+func _hookhand() -> void:
+	var coat := Color("#4d7370")
+	var seam := Color("#81a096")
+	var iron := Color("#acbab1")
+	var skin := Color("#bc8867")
+	_piece([Vector2(-20, -18), Vector2(14, -20), Vector2(17, -11), Vector2(15, -6),
+		Vector2(23, -3), Vector2(24, 1), Vector2(8, 2), Vector2(3, -4), Vector2(1, -12),
+		Vector2(-9, -13), Vector2(-13, -5), Vector2(-12, 1), Vector2(-31, 1), Vector2(-28, -6),
+		Vector2(-25, -13)], Color("#615147"), INK, 1.9)
+	# Wide oilskin shoulders and elbow; a single upright hook instead of a polearm.
+	_piece([Vector2(-36, -29), Vector2(-37, -40), Vector2(-28, -53), Vector2(-12, -57),
+		Vector2(8, -56), Vector2(18, -50), Vector2(21, -40), Vector2(28, -45), Vector2(37, -38),
+		Vector2(33, -28), Vector2(24, -23), Vector2(15, -26), Vector2(19, -12), Vector2(5, -13),
+		Vector2(-5, -10), Vector2(-11, -17), Vector2(-25, -13), Vector2(-27, -23)],
+		coat, INK, 2.25)
+	_piece([Vector2(-35, -39), Vector2(-28, -51), Vector2(-13, -55), Vector2(8, -54),
+		Vector2(17, -48), Vector2(14, -39), Vector2(5, -38), Vector2(-5, -44), Vector2(-16, -34),
+		Vector2(-22, -40)], Color("#6e8980"), INK, 1.45)
+	_line([Vector2(-32, -42), Vector2(-27, -48), Vector2(-18, -50)], seam, 1.65)
+	_line([Vector2(-5, -43), Vector2(-2, -32), Vector2(-4, -16)], Color("#2b4a48"), 1.8)
+	for y in [-34, -28, -22]:
+		draw_circle(Vector2(2, y), 1.4, Color("#cba66f"), true, -1.0, true)
+	_piece([Vector2(-7, -51), Vector2(-11, -61), Vector2(-5, -67), Vector2(7, -66),
+		Vector2(14, -59), Vector2(14, -54), Vector2(17, -51), Vector2(12, -48), Vector2(9, -42),
+		Vector2(1, -42), Vector2(-6, -45)], skin, INK, 1.75)
+	_piece([Vector2(-10, -54), Vector2(-14, -61), Vector2(-10, -69), Vector2(-1, -72),
+		Vector2(9, -69), Vector2(16, -62), Vector2(13, -58), Vector2(0, -59)],
+		Color("#733d38"), INK, 1.6)
+	_line([Vector2(-10, -61), Vector2(-1, -64), Vector2(13, -62)], Color("#b56a55"), 1.55)
+	_line([Vector2(6, -55), Vector2(11, -56)], INK, 1.7)
+	_line([Vector2(2, -47), Vector2(6, -50), Vector2(10, -49)], Color("#5d4033"), 1.5)
+	_piece([Vector2(26, -42), Vector2(27, -52), Vector2(36, -52), Vector2(40, -45),
+		Vector2(38, -38), Vector2(31, -35)], Color("#6a5d50"), INK, 1.85)
+	_piece([Vector2(29, -48), Vector2(28, -58), Vector2(31, -67), Vector2(37, -72),
+		Vector2(44, -72), Vector2(51, -67), Vector2(53, -60), Vector2(49, -53), Vector2(42, -51),
+		Vector2(46, -57), Vector2(46, -62), Vector2(42, -65), Vector2(37, -63), Vector2(35, -57),
+		Vector2(36, -47)], iron, INK, 2.0)
+	_line([Vector2(31, -57), Vector2(33, -66), Vector2(38, -69), Vector2(44, -70),
+		Vector2(49, -66)], Color("#ebdcb4"), 1.5)
+	_piece([Vector2(-35, -29), Vector2(-26, -28), Vector2(-23, -24), Vector2(-27, -19),
+		Vector2(-34, -20), Vector2(-37, -24)], skin, INK, 1.5)
+
+
+func _bruiser() -> void:
+	var mail := Color("#7a726c")
+	var brass := Color("#be965c")
+	var wool := Color("#884840")
+	var skin := Color("#c49571")
+	# A low, wide stance anchors the slab hammer and the big, squared gauntlets.
+	_piece([Vector2(-25, -23), Vector2(17, -22), Vector2(23, -16), Vector2(21, -7),
+		Vector2(31, -4), Vector2(30, 1), Vector2(9, 2), Vector2(6, -2), Vector2(8, -12),
+		Vector2(-8, -12), Vector2(-14, -3), Vector2(-14, 1), Vector2(-35, 1),
+		Vector2(-36, -4), Vector2(-29, -9)], Color("#5e4942"), INK, 2.15)
+	_piece([Vector2(-27, -43), Vector2(-16, -50), Vector2(8, -49), Vector2(22, -44),
+		Vector2(28, -34), Vector2(18, -25), Vector2(18, -18), Vector2(7, -14), Vector2(-19, -17),
+		Vector2(-27, -23), Vector2(-35, -34)], wool, INK, 2.1)
+	_piece([Vector2(-34, -39), Vector2(-29, -48), Vector2(-19, -49), Vector2(-10, -43),
+		Vector2(-11, -32), Vector2(-23, -27), Vector2(-35, -31)], mail, INK, 1.95)
+	_line([Vector2(-32, -38), Vector2(-27, -45), Vector2(-20, -46), Vector2(-15, -42)], brass, 2.0)
+	_piece([Vector2(-19, -40), Vector2(-11, -35), Vector2(7, -37), Vector2(16, -42),
+		Vector2(16, -31), Vector2(10, -24), Vector2(-10, -22), Vector2(-20, -27)], mail, INK, 1.55)
+	_line([Vector2(-16, -32), Vector2(-9, -29), Vector2(8, -32), Vector2(14, -36)], Color("#bdac91"), 1.7)
+	_line([Vector2(-16, -21), Vector2(-1, -19), Vector2(13, -21)], brass, 2.0)
+	_piece([Vector2(-10, -48), Vector2(-12, -56), Vector2(-7, -62), Vector2(5, -64), Vector2(12, -59),
+		Vector2(14, -50), Vector2(10, -44), Vector2(9, -40), Vector2(-1, -39), Vector2(-7, -43)],
+		skin, INK, 1.7)
+	_piece([Vector2(-12, -54), Vector2(-14, -63), Vector2(-8, -68), Vector2(5, -69),
+		Vector2(13, -64), Vector2(14, -55), Vector2(6, -55), Vector2(3, -47),
+		Vector2(-1, -49), Vector2(-1, -55)], mail, INK, 1.8)
+	_line([Vector2(-11, -61), Vector2(-5, -65), Vector2(6, -65), Vector2(11, -62)], brass, 1.4)
+	_line([Vector2(7, -52), Vector2(11, -53)], INK, 1.5)
+	_line([Vector2(3, -44), Vector2(9, -45)], INK, 1.3)
+	_piece([Vector2(-34, -31), Vector2(-24, -32), Vector2(-19, -25), Vector2(-23, -17),
+		Vector2(-34, -16), Vector2(-38, -23)], skin, INK, 1.75)
+	_line([Vector2(-35, -23), Vector2(-30, -25), Vector2(-25, -24)], Color("#765344"), 1.45)
+	_line([Vector2(13, -9), Vector2(32, -42)], INK, 6.4)
+	_line([Vector2(13, -9), Vector2(32, -42)], Color("#b08258"), 3.1)
+	_piece([Vector2(20, -54), Vector2(27, -57), Vector2(45, -49), Vector2(46, -43),
+		Vector2(39, -31), Vector2(19, -38), Vector2(16, -44)], Color("#a8a299"), INK, 2.2)
+	_piece([Vector2(36, -51), Vector2(45, -49), Vector2(46, -43), Vector2(39, -31), Vector2(31, -34)],
+		Color("#706d67"), INK, 1.5)
+	_line([Vector2(19, -45), Vector2(24, -53), Vector2(33, -51)], Color("#d3c2a1"), 1.55)
+	_piece([Vector2(12, -40), Vector2(20, -39), Vector2(22, -33), Vector2(23, -29), Vector2(27, -29),
+		Vector2(29, -24), Vector2(24, -19), Vector2(15, -20), Vector2(10, -28)], skin, INK, 1.8)
+	_line([Vector2(20, -27), Vector2(23, -24), Vector2(27, -25)], Color("#765344"), 1.45)
+
+
+func _village_troll() -> void:
+	var skin := Color("#9aa970")
+	var shade := Color("#727e56")
+	var pale := Color("#c6c58c")
+	var apron := Color("#b47648")
+	# Soft shoulders, big bare toes, open palm and work apron: large but not armored.
+	_piece([Vector2(-21, -24), Vector2(16, -26), Vector2(22, -19), Vector2(16, -9),
+		Vector2(19, -5), Vector2(29, -5), Vector2(32, -1), Vector2(28, 2), Vector2(8, 2),
+		Vector2(4, -3), Vector2(4, -12), Vector2(-7, -11), Vector2(-10, -3), Vector2(-13, 2),
+		Vector2(-32, 2), Vector2(-35, -1), Vector2(-31, -6), Vector2(-24, -8)], shade, INK, 2.0)
+	_line([Vector2(-29, -4), Vector2(-23, -4), Vector2(-20, -1)], pale, 1.5)
+	_line([Vector2(24, -3), Vector2(25, 0), Vector2(28, -2), Vector2(29, 0)], pale, 1.35)
+	_piece([Vector2(-17, -55), Vector2(-28, -52), Vector2(-36, -44), Vector2(-38, -32),
+		Vector2(-37, -21), Vector2(-29, -14), Vector2(-24, -14), Vector2(-22, -23),
+		Vector2(-16, -16), Vector2(5, -11), Vector2(18, -14), Vector2(24, -20), Vector2(24, -34),
+		Vector2(19, -48), Vector2(10, -56), Vector2(-3, -59)], skin, INK, 2.1)
+	_line([Vector2(-33, -43), Vector2(-28, -48), Vector2(-21, -50)], pale, 1.7)
+	_line([Vector2(-30, -31), Vector2(-29, -23), Vector2(-27, -22)], shade, 2.0)
+	_piece([Vector2(-21, -53), Vector2(-16, -55), Vector2(-8, -43), Vector2(6, -43),
+		Vector2(10, -56), Vector2(15, -53), Vector2(13, -42), Vector2(19, -33), Vector2(23, -15),
+		Vector2(18, -10), Vector2(9, -10), Vector2(6, -13), Vector2(-6, -10), Vector2(-20, -14),
+		Vector2(-18, -32), Vector2(-13, -40)], apron, INK, 1.85)
+	_line([Vector2(-19, -31), Vector2(-7, -29), Vector2(7, -30), Vector2(18, -32)], Color("#e0aa6d"), 1.75)
+	_piece([Vector2(-14, -26), Vector2(1, -24), Vector2(1, -15), Vector2(-11, -16)],
+		Color("#d7ae77"), Color("#6d4939"), 1.25)
+	_line([Vector2(-12, -23), Vector2(-6, -22), Vector2(-2, -22)], Color("#f2d3a2"), 1.35)
+	_piece([Vector2(-15, -65), Vector2(-11, -74), Vector2(-3, -79), Vector2(8, -78), Vector2(15, -73),
+		Vector2(16, -66), Vector2(23, -62), Vector2(23, -57), Vector2(18, -54), Vector2(16, -48),
+		Vector2(9, -45), Vector2(-2, -46), Vector2(-9, -51), Vector2(-15, -57), Vector2(-21, -59),
+		Vector2(-22, -65), Vector2(-19, -68)], skin, INK, 2.0)
+	_piece([Vector2(-15, -65), Vector2(-12, -74), Vector2(-5, -80), Vector2(4, -80),
+		Vector2(11, -77), Vector2(14, -71), Vector2(8, -72), Vector2(3, -75), Vector2(-1, -72),
+		Vector2(-7, -72), Vector2(-11, -64)], Color("#5e6049"), INK, 1.5)
+	_line([Vector2(-17, -64), Vector2(-16, -61), Vector2(-12, -60)], shade, 1.25)
+	_line([Vector2(-3, -66), Vector2(1, -68), Vector2(5, -67)], shade, 1.9)
+	draw_circle(Vector2(3, -63), 1.6, INK, true, -1.0, true)
+	draw_circle(Vector2(12, -64), 1.5, INK, true, -1.0, true)
+	_piece([Vector2(8, -61), Vector2(14, -63), Vector2(20, -60), Vector2(19, -56), Vector2(11, -55),
+		Vector2(7, -57)], Color("#ce9f71"), Color("#725f45"), 1.15)
+	_line([Vector2(-1, -55), Vector2(2, -52), Vector2(7, -51), Vector2(13, -53)], INK, 1.6)
+	_line([Vector2(1, -55), Vector2(4, -53), Vector2(8, -53)], Color("#eddeb1"), 1.4)
+	_piece([Vector2(15, -43), Vector2(21, -42), Vector2(25, -35), Vector2(30, -37), Vector2(29, -42),
+		Vector2(26, -46), Vector2(27, -50), Vector2(30, -50), Vector2(34, -45), Vector2(34, -52),
+		Vector2(38, -53), Vector2(40, -49), Vector2(43, -50), Vector2(46, -47), Vector2(44, -38),
+		Vector2(38, -32), Vector2(35, -27), Vector2(24, -23), Vector2(17, -27)], skin, INK, 1.8)
+	_line([Vector2(32, -39), Vector2(35, -42), Vector2(40, -42)], pale, 1.7)
+	_line([Vector2(37, -48), Vector2(37, -45), Vector2(40, -46), Vector2(40, -44)], shade, 1.3)
 
 
 # Freehand paths are authored in tile-local coordinates. Each wash is a broad,

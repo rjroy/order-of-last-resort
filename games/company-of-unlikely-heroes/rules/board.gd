@@ -77,6 +77,14 @@ static func distance(a: Vector2i, b: Vector2i) -> int:
 	return absi(a.x - b.x) + absi(a.y - b.y)
 
 
+static func in_zone(state: Dictionary, zone_id: String, position: Vector2i) -> bool:
+	var cells: Array = state.catalog.defs.boards[state.board_id].zones[zone_id]
+	for cell in cells:
+		if Catalog.Validator.position(cell) == position:
+			return true
+	return false
+
+
 static func tile(state: Dictionary, position: Vector2i) -> Dictionary:
 	var kind: String = state.default_tile
 	for entry in state.terrain:

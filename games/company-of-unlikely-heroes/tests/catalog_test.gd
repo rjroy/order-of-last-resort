@@ -14,6 +14,8 @@ func _initialize() -> void:
 		rules = load("res://rules.gd").new()
 		_test_validation()
 		_test_executable_authoring()
+		_test_hook_range()
+		_test_malformed_team_diagnostics()
 		_test_handler_event_requirements()
 		_test_malformed_status_handler_preserves_event_diagnostics()
 		_test_world_isolation()
@@ -113,6 +115,31 @@ func _test_executable_authoring() -> void:
 		"Non-heal abilities reject self-preference")
 
 
+func _test_hook_range() -> void:
+	var defs := _fixture()
+	defs.abilities["test_hook"] = defs.abilities.hook_pull.duplicate(true)
+	defs.abilities.test_hook.targeting.range = 2
+	_check(catalog.validate(defs).is_empty(), "Custom range-two hook fixture validates")
+	defs.abilities.test_hook.targeting.range = 1
+	var errors: PackedStringArray = catalog.validate(defs)
+	_check(not errors.is_empty(), "A range-one hook cannot pull into an intervening open tile")
+	_check("abilities.test_hook.targeting.range" in " ".join(errors),
+		"Range-one hook diagnostic identifies the custom ability's range")
+
+
+func _test_malformed_team_diagnostics() -> void:
+	var defs := _fixture()
+	defs.characters.bard["team"] = []
+	defs.missions.unwelcome_guest.default_party[0] = "ferryman"
+	var errors: PackedStringArray = catalog.validate(defs)
+	var text := " ".join(errors)
+	_check("characters.bard.team" in text, "Malformed Bard team reports its field")
+	_check("missions.unwelcome_guest.default_party" in text and "ferryman" in text,
+		"Malformed Bard team does not suppress the other bad default-party member")
+	_check("adventures.village_troubles.roster" in text and "bard" in text,
+		"Malformed Bard team does not suppress its adventure roster diagnostic")
+
+
 func _test_handler_event_requirements() -> void:
 	var defs := _fixture()
 	_check(catalog.validate(defs).is_empty(), "Handler event fixture starts valid")
@@ -125,7 +152,8 @@ func _test_handler_event_requirements() -> void:
 
 	# Old or independently authored catalogs need not support unused handlers.
 	var compatible := defs.duplicate(true)
-	compatible.adventures.first_outing.roster.erase("rogue")
+	for adventure in compatible.adventures.values():
+		adventure.roster.erase("rogue")
 	compatible.characters.erase("rogue")
 	compatible.abilities.erase("rogue_confusing_dodge")
 	compatible.abilities.erase("rogue_wasnt_me")

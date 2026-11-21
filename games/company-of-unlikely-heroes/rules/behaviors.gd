@@ -20,6 +20,10 @@ static func decide(state: Dictionary, actor: Dictionary, behavior_id: String) ->
 				return _move(state, actor, params.move_ability, enemy.position, 1)
 		"greet":
 			return _greet(state, actor, params)
+		"hook_and_seek":
+			return _hook_and_seek(state, actor, params)
+		"follow_party":
+			return _follow_party(state, actor, params.move_ability)
 		"rescue":
 			if state.objective.handler != "escort":
 				return {}
@@ -57,6 +61,35 @@ static func decide(state: Dictionary, actor: Dictionary, behavior_id: String) ->
 					return _action(params.move_ability, Board.cell_id(best))
 			return {"wait": "hold"}
 	return {}
+
+
+static func _hook_and_seek(state: Dictionary, actor: Dictionary, params: Dictionary) -> Dictionary:
+	var target := Statuses.retarget(state, actor, params.taunt_status)
+	if not target.is_empty():
+		if _legal_target(state, actor, params.ability, target.id):
+			return _action(params.ability, target.id)
+		return _move(state, actor, params.move_ability, target.position, 1)
+	target = Board.nearest(actor, Actions.targets(state, actor, params.ability))
+	if not target.is_empty():
+		return _action(params.ability, target.id)
+	target = Board.nearest(actor, Board.occupants(state, {"teams": [params.team]}))
+	if not target.is_empty():
+		return _move(state, actor, params.move_ability, target.position, 1)
+	return {"wait": "hold"}
+
+
+static func _follow_party(state: Dictionary, actor: Dictionary, move_ability: String) -> Dictionary:
+	var heroes := Board.occupants(state, {"teams": ["heroes"], "capabilities": ["commandable"]})
+	var party: Array = state.get("party", [])
+	heroes = heroes.filter(func(hero: Dictionary) -> bool:
+		return not Board.capable(state, hero, "minion") and (party.is_empty() or hero.id in party))
+	var target := Board.nearest(actor, heroes)
+	if target.is_empty() or Board.distance(actor.position, target.position) <= 1:
+		return {"wait": "hold"}
+	var action := _move(state, actor, move_ability, target.position, 1)
+	if action.has("ability_id"):
+		action["follow_target_id"] = target.id
+	return action
 
 
 static func _greet(state: Dictionary, actor: Dictionary, params: Dictionary) -> Dictionary:

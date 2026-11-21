@@ -13,11 +13,11 @@ const ABILITY_TARGETING := {
 	"blast": ["entity", "automatic"], "pull": ["entity", "automatic"], "attack": ["entity", "automatic"],
 	"swap_furthest": ["automatic"], "misdirect": ["entity"],
 	"summon": ["cell", "entity"], "sweep": ["none"], "repel": ["automatic"], "stop_target": ["automatic"],
-	"perform": ["automatic"],
+	"perform": ["automatic"], "hook": ["entity", "automatic"],
 }
 const ABILITY_EVENTS := {"swap_furthest": ["swap"], "misdirect": ["misdirect_mark"],
 	"sweep": ["sweep"], "stop_target": ["stop_target"], "repel": ["repel"],
-	"perform": ["performance_dry"]}
+	"perform": ["performance_dry"], "hook": ["hook_pull"]}
 const STATUS_EXPIRY := {"reflect": "actor_turn_start", "skip_action": "consume_action",
 	"retarget": "actor_turn_end", "misdirect": "consume_attack", "stop_move": "actor_turn_end"}
 
@@ -132,6 +132,9 @@ static func build(defs: Dictionary, mission_id: String, chosen_ids: Array = []) 
 	if mission.objective.handler == "escort":
 		objective["subject"] = mission.objective.subject
 		objective["destination"] = Validator.position(board.locations[mission.objective.destination])
+	elif mission.objective.handler == "leave_zone":
+		objective["subject"] = mission.objective.subject
+		objective["zone"] = mission.objective.zone
 	elif mission.objective.handler == "defeat_all":
 		objective["team"] = mission.objective.get("team", "enemies")
 	var units: Array = []
@@ -317,7 +320,7 @@ class Validator:
 			elif handler == "apply_status":
 				_error(path + ".targeting.range", "apply_status has no target range")
 			else:
-				_integer(targeting.range, path + ".targeting.range", 1)
+				_integer(targeting.range, path + ".targeting.range", 2 if handler == "hook" else 1)
 		if targeting.get("kind") == "cell" or handler in ["apply_status", "sweep"]:
 			for filter in ["teams", "objects", "capabilities"]:
 				if targeting.has(filter):
@@ -353,6 +356,11 @@ class Validator:
 				_integer(params.get("damage"), param_path + "damage")
 				if params.has("status"):
 					_ref(params.status, "statuses", param_path + "status")
+				if params.has("surround_bonus"):
+					var bonus := _dictionary(params.surround_bonus, param_path + "surround_bonus")
+					_ref(bonus.get("character"), "characters", param_path + "surround_bonus.character")
+					_integer(bonus.get("damage"), param_path + "surround_bonus.damage", 1)
+					_ref("surround_bonus", "events", param_path + "surround_bonus event")
 			"summon":
 				var id: Variant = params.get("character")
 				if _ref(id, "characters", param_path + "character"):
@@ -394,17 +402,20 @@ class Validator:
 	func _check_behavior(behavior: Dictionary, path: String) -> void:
 		var handler: Variant = behavior.get("handler")
 		var params := _dictionary(behavior.get("params"), path + ".params")
-		if not _choice(handler, ["use_ability", "pursue", "hold", "rescue", "threat", "escort", "retreat", "greet"], path + ".handler"):
+		if not _choice(handler, ["use_ability", "pursue", "hold", "rescue", "threat", "escort",
+				"retreat", "greet", "hook_and_seek", "follow_party"], path + ".handler"):
 			return
 		path += ".params."
-		if handler in ["use_ability", "pursue", "rescue", "threat"]:
+		if handler in ["use_ability", "pursue", "rescue", "threat", "hook_and_seek"]:
 			_check_behavior_ability(handler, params, path + "ability")
-		if handler in ["pursue", "threat", "escort", "retreat", "greet"]:
+		if handler in ["pursue", "threat", "escort", "retreat", "greet", "hook_and_seek", "follow_party"]:
 			var move: Variant = params.get("move_ability")
 			if _ref(move, "abilities", path + "move_ability") and not is_same(_defs.abilities[move].get("handler"), "move"):
 				_error(path + "move_ability", "ability must use the move handler")
-		if handler in ["pursue", "retreat", "greet"]:
+		if handler in ["pursue", "retreat", "greet", "hook_and_seek"]:
 			_text(params.get("team"), path + "team")
+		if handler == "follow_party":
+			_ref("follow_party", "events", "events.follow_party")
 		if handler == "greet":
 			_integer(params.get("greeting_range"), path + "greeting_range", 1)
 			var greetings := _id_list(params.get("greetings"), path + "greetings", "abilities")
@@ -417,6 +428,7 @@ class Validator:
 		if handler == "threat":
 			_integer(params.get("pursue_range"), path + "pursue_range", 1)
 			_id_list(params.get("fallback_teams"), path + "fallback_teams")
+		if handler in ["threat", "hook_and_seek"]:
 			var status: Variant = params.get("taunt_status")
 			if _ref(status, "statuses", path + "taunt_status") and not is_same(_defs.statuses[status].get("handler"), "retarget"):
 				_error(path + "taunt_status", "status must use the retarget handler")
@@ -437,9 +449,11 @@ class Validator:
 			_error(path, "%s requires entity targeting" % handler)
 		if handler == "rescue" and not is_same(ability.get("handler"), "pull"):
 			_error(path, "rescue requires an ability with the pull handler")
+		if handler == "hook_and_seek" and not is_same(ability.get("handler"), "hook"):
+			_error(path, "hook_and_seek requires an ability with the hook handler")
 		if handler == "threat" and ability.get("handler") not in ["attack", "bonk", "blast"]:
 			_error(path, "threat requires a damaging attack ability (attack, bonk, or blast)")
-		if handler == "pursue":
+		if handler in ["pursue", "hook_and_seek"]:
 			var teams: Variant = targeting.get("teams")
 			if teams is Array and not teams.is_empty() and params.get("team") not in teams:
 				_error(path, "ability cannot target the pursued team '%s'" % str(params.get("team")))
@@ -546,15 +560,30 @@ class Validator:
 			if at != null and _blocked(occupied.get(at, board.get("default_tile"))):
 				_error("%s.locations.%s" % [path, id], "named location is on impassable terrain")
 		if board.has("shore_cells"):
-			var shore := _array(board.shore_cells, path + ".shore_cells")
-			var seen: Dictionary = {}
-			for i in shore.size():
-				var cell_path := "%s.shore_cells[%d]" % [path, i]
-				var at: Variant = _board_position(shore[i], board, cell_path)
-				if at != null:
-					if seen.has(at):
-						_error(cell_path, "duplicate shore cell at %s" % str(at))
-					seen[at] = true
+			_check_board_cells(board.shore_cells, board, path + ".shore_cells", "shore cell")
+		if board.has("zones"):
+			var zones := _dictionary(board.zones, path + ".zones")
+			for id in zones:
+				_text(str(id), path + ".zones ID")
+				var zone_path := "%s.zones.%s" % [path, id]
+				var cells := _check_board_cells(zones[id], board, zone_path)
+				if cells.is_empty():
+					_error(zone_path, "requires at least one valid cell")
+				for at in cells:
+					if _blocked(occupied.get(at, board.get("default_tile"))):
+						_error(zone_path, "zone cell %s is on impassable terrain" % str(at))
+
+	func _check_board_cells(value: Variant, board: Dictionary, path: String, label := "cell") -> Dictionary:
+		var cells := _array(value, path)
+		var seen: Dictionary = {}
+		for i in cells.size():
+			var cell_path := "%s[%d]" % [path, i]
+			var at: Variant = _board_position(cells[i], board, cell_path)
+			if at != null:
+				if seen.has(at):
+					_error(cell_path, "duplicate %s at %s" % [label, str(at)])
+				seen[at] = true
+		return seen
 
 	func _check_encounter(encounter: Dictionary, path: String) -> void:
 		var board: Dictionary = {}
@@ -616,35 +645,74 @@ class Validator:
 		var encounter: Dictionary = {}
 		if _ref(mission.get("encounter"), "encounters", path + ".encounter"):
 			encounter = _defs.encounters[mission.encounter]
+		if mission.has("default_party"):
+			_check_default_party(mission.default_party, encounter, path + ".default_party")
 		var objective := _dictionary(mission.get("objective"), path + ".objective")
 		var objective_handler := ""
-		if _choice(objective.get("handler"), ["escort", "defeat_all"], path + ".objective.handler"):
+		if _choice(objective.get("handler"), ["escort", "defeat_all", "leave_zone"], path + ".objective.handler"):
 			objective_handler = objective.handler
 		if objective_handler == "defeat_all" and objective.has("team"):
 			_text(objective.team, path + ".objective.team")
 		for field in ["text", "victory_text", "defeat_text", "victory_event"]:
 			_text(objective.get(field), path + ".objective." + field)
-		var subject: Variant = objective.get("subject")
-		if objective_handler == "escort" and _text(subject, path + ".objective.subject") and not encounter.is_empty():
-			var found := false
-			var placements: Variant = encounter.get("placements")
-			if placements is Array:
-				for placement in placements:
-					if placement is Dictionary and is_same(placement.get("id"), subject) and placement.has("character"):
-						found = true
-						break
-			if not found:
-				_error(path + ".objective.subject", "no character placement has ID '%s'" % subject)
+		var subject: Dictionary = {}
+		if objective_handler in ["escort", "leave_zone"]:
+			subject = _check_objective_subject(objective.get("subject"), encounter, path + ".objective.subject")
+		var board: Dictionary = _defs.boards.get(encounter.get("board"), {})
 		var destination: Variant = objective.get("destination")
 		if objective_handler == "escort" and _text(destination, path + ".objective.destination") and not encounter.is_empty():
-			var board: Dictionary = _defs.boards.get(encounter.get("board"), {})
 			var locations: Variant = board.get("locations")
 			if locations is Dictionary and not locations.has(destination):
 				_error(path + ".objective.destination", "unknown board location '%s'" % destination)
-		var failures := _array(mission.get("failures"), path + ".failures")
+		if objective_handler == "leave_zone":
+			_check_objective_zone(objective.get("zone"), board, subject, path + ".objective.zone")
+		_check_mission_failures(mission.get("failures"), encounter, objective_handler, path + ".failures")
+
+	func _check_default_party(value: Variant, encounter: Dictionary, path: String) -> void:
+		var party := _id_list(value, path, "characters")
+		var slots: Variant = encounter.get("party_slots", [])
+		if not encounter.is_empty() and slots is Array and party.size() != slots.size():
+			_error(path, "expected %d characters for this encounter" % slots.size())
+		for id in party:
+			if id is not String or not _defs.characters.has(id):
+				continue
+			var profile := _effective_profile(_defs.characters[id])
+			var capabilities: Variant = profile.get("capabilities")
+			if not is_same(profile.get("team"), "heroes") or not capabilities is Array or "commandable" not in capabilities:
+				_error(path, "character '%s' is not a commandable hero" % id)
+			if encounter.get("placements") is Array and encounter.placements.any(func(placement: Variant) -> bool:
+					return placement is Dictionary and is_same(placement.get("id"), id)):
+				_error(path, "character '%s' collides with a placement" % id)
+
+	func _check_objective_subject(id: Variant, encounter: Dictionary, path: String) -> Dictionary:
+		if not _text(id, path) or encounter.is_empty():
+			return {}
+		var placements: Variant = encounter.get("placements")
+		if placements is Array:
+			for placement in placements:
+				if placement is Dictionary and is_same(placement.get("id"), id) and placement.has("character"):
+					return placement
+		_error(path, "no character placement has ID '%s'" % id)
+		return {}
+
+	func _check_objective_zone(id: Variant, board: Dictionary, subject: Dictionary, path: String) -> void:
+		if not _text(id, path) or board.is_empty():
+			return
+		var zones: Variant = board.get("zones", {})
+		if not zones is Dictionary or not zones.has(id):
+			_error(path, "unknown board zone '%s'" % id)
+			return
+		var cells: Variant = zones[id]
+		if cells is Array and _is_coordinate(subject.get("at")):
+			var start := position(subject.at)
+			if not cells.any(func(cell: Variant) -> bool: return _is_coordinate(cell) and position(cell) == start):
+				_error(path, "subject must start inside zone '%s'" % id)
+
+	func _check_mission_failures(value: Variant, encounter: Dictionary, objective_handler: String, path: String) -> void:
+		var failures := _array(value, path)
 		var seen: Dictionary = {}
 		for i in failures.size():
-			var failure_path := "%s.failures[%d]" % [path, i]
+			var failure_path := "%s[%d]" % [path, i]
 			var failure := _dictionary(failures[i], failure_path)
 			var handler: Variant = failure.get("handler")
 			if _choice(handler, ["subject_dead", "deadline", "party_wiped"], failure_path + ".handler"):
@@ -653,8 +721,8 @@ class Validator:
 				seen[handler] = true
 				if handler == "deadline" and not _is_integer(encounter.get("deadline"), 1):
 					_error(failure_path, "deadline failure requires a positive encounter deadline")
-				if handler == "subject_dead" and objective_handler != "escort":
-					_error(failure_path, "subject_dead requires an escort objective")
+				if handler == "subject_dead" and objective_handler not in ["escort", "leave_zone"]:
+					_error(failure_path, "subject_dead requires an escort or leave_zone objective")
 			_text(failure.get("event"), failure_path + ".event")
 
 	func _check_adventure(adventure: Dictionary, path: String) -> void:
@@ -673,7 +741,7 @@ class Validator:
 			if id is String and _defs.characters.has(id):
 				var hero := _effective_profile(_defs.characters[id])
 				var capabilities: Variant = hero.get("capabilities")
-				if hero.get("team") != "heroes" or not capabilities is Array or not "commandable" in capabilities:
+				if not is_same(hero.get("team"), "heroes") or not capabilities is Array or "commandable" not in capabilities:
 					_error(path + ".roster", "character '%s' is not a commandable hero" % id)
 		for index in missions.size():
 			var id: Variant = missions[index]

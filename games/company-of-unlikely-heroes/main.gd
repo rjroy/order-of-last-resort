@@ -18,6 +18,7 @@ const DARK_TEXT := Color("#2f281e")
 var _rules = Rules.new()
 var _definitions: Dictionary
 var _adventure: Dictionary
+var _adventure_id := DEFAULT_ADVENTURE
 var _run: Dictionary
 var _picked_recruits: Array = []
 var _screen := ""
@@ -86,7 +87,12 @@ func _ready() -> void:
 		return
 	_definitions = content.definitions
 	_fixed_mission = launch.mission
-	_adventure = _definitions.get("adventures", {}).get(DEFAULT_ADVENTURE, {})
+	var adventures: Dictionary = _definitions.get("adventures", {})
+	if not adventures.is_empty() and not adventures.has(_adventure_id):
+		var ids: Array = adventures.keys()
+		ids.sort()
+		_adventure_id = ids[0]
+	_adventure = adventures.get(_adventure_id, {})
 	if _fixed_mission.is_empty() and _adventure.is_empty() and not launch.content.is_empty():
 		if not _definitions.missions.has("ferryman"):
 			_show_launch_error("This content has no first_outing adventure. " + _fixed_mission_help())
@@ -97,15 +103,17 @@ func _ready() -> void:
 			_show_launch_error("No mission named \"%s\". %s" % [_fixed_mission, _fixed_mission_help()])
 			return
 		if _requires_party(_fixed_mission):
-			if _fixed_mission in _adventure.get("missions", []):
-				var party_size: int = int(_adventure.party_size)
+			var guild_adventure := _adventure_for_mission(_fixed_mission)
+			if not guild_adventure.is_empty():
+				var party_size: int = int(guild_adventure.party_size)
 				_show_launch_error("The mission \"%s\" needs a guild party. Launch without --mission and choose %d %s at the guild. %s" % [
 					_fixed_mission, party_size, "recruit" if party_size == 1 else "recruits", _fixed_mission_help()])
 			else:
 				_show_launch_error("The mission \"%s\" is not standalone, and this content has no guild route to it. %s" % [
 					_fixed_mission, _fixed_mission_help()])
 			return
-		_opening_state = _rules.new_game(_definitions, _fixed_mission)
+		var default_party: Array = _definitions.missions[_fixed_mission].get("default_party", [])
+		_opening_state = Rules.open_mission(_definitions, _fixed_mission, default_party)
 		if _opening_state.is_empty():
 			_show_launch_error("The mission \"%s\" could not be set up. Check your content file." % _fixed_mission)
 			return
@@ -120,7 +128,14 @@ func _ready() -> void:
 func _requires_party(mission_id: String) -> bool:
 	var mission: Dictionary = _definitions.missions[mission_id]
 	var encounter: Dictionary = _definitions.encounters[mission.encounter]
-	return not encounter.get("party_slots", []).is_empty()
+	return not encounter.get("party_slots", []).is_empty() and mission.get("default_party", []).is_empty()
+
+
+func _adventure_for_mission(mission_id: String) -> Dictionary:
+	for entry in _definitions.get("adventures", {}).values():
+		if mission_id in entry.get("missions", []):
+			return entry
+	return {}
 
 
 func _fixed_mission_help() -> String:
@@ -202,6 +217,12 @@ func _show_guild(focus_name := "") -> void:
 	_state = {}
 	var page := _page("guild", 36)
 	_label(page, "The Company of Unlikely Heroes", 42, PAPER, true)
+	_label(page, "Adventure", 13, MUTED)
+	var adventure_select := _picker(page, "AdventureSelect")
+	for id in _definitions.get("adventures", {}):
+		_add_choice(adventure_select, _definitions.adventures[id].label, id)
+	_pick(adventure_select, _adventure_id)
+	adventure_select.item_selected.connect(_select_adventure.bind(adventure_select))
 	_label(page, "%s  ·  %s" % [_adventure.label, _route_titles()], 15, MUTED)
 	_rule(page)
 	var columns := _row(page, 24)
@@ -222,7 +243,7 @@ func _show_guild(focus_name := "") -> void:
 	marching_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	var marching := _stack(marching_panel, 12)
 	_label(marching, "Deployment order", 26, PAPER, true)
-	_wrapped_label(marching, "The top hero acts first. This order places your party and sets who acts first in both missions.", 14, MUTED)
+	_wrapped_label(marching, "The top hero acts first. This order places your party and sets who acts first in each mission.", 14, MUTED)
 	var count := _label(marching, "%d / %d selected" % [_picked_recruits.size(), _adventure.party_size], 15, GOLD)
 	count.name = "PartyCount"
 	_rule(marching)
@@ -238,6 +259,17 @@ func _show_guild(focus_name := "") -> void:
 			focus = find_child(opposite, true, false) as Button
 		if focus != null and not focus.disabled:
 			focus.grab_focus()
+
+
+func _select_adventure(index: int, selector: OptionButton) -> void:
+	var id := str(selector.get_item_metadata(index))
+	if id == _adventure_id or not _definitions.adventures.has(id):
+		return
+	_adventure_id = id
+	_adventure = _definitions.adventures[id]
+	_picked_recruits = _picked_recruits.filter(func(recruit: String) -> bool: return recruit in _adventure.roster)
+	_picked_recruits.resize(mini(_picked_recruits.size(), int(_adventure.party_size)))
+	_show_guild()
 
 
 func _build_recruit(parent: VBoxContainer, id: String) -> void:
@@ -315,7 +347,7 @@ func _mission_title_for(mission_id: String) -> String:
 
 
 func _start_adventure() -> void:
-	_run = Adventure.start_adventure(_definitions, DEFAULT_ADVENTURE, _picked_recruits)
+	_run = Adventure.start_adventure(_definitions, _adventure_id, _picked_recruits)
 	if not _run.is_empty():
 		_begin_mission()
 
@@ -437,7 +469,7 @@ func _build_map(parent: VBoxContainer) -> void:
 	_initiative.name = "InitiativeText"
 	_board = BridgeArt.new()
 	_board.name = "BridgeBoard"
-	_board.custom_minimum_size.y = 355
+	_board.custom_minimum_size.y = 315
 	_board.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	parent.add_child(_board)
 	_board.cell_selected.connect(_select_board)
@@ -849,6 +881,12 @@ func _refresh_objective() -> void:
 			var progress: Dictionary = _rules.objective_progress(_state)
 			values.merge({"remaining": progress.alive, "total": progress.total})
 			_objective_progress.text = "%d / %d targets remaining" % [progress.alive, progress.total]
+		"leave_zone":
+			var subject := _find(_state.objective.subject)
+			if not subject.is_empty():
+				_objective_progress.text = "%s  ·  %d/%d HP" % [
+					_name_for(subject.id), subject.hp, subject.max_hp]
+				_objective_progress.text += "  ·  Damaging standing orders remain active."
 	_objective.text = str(objective.get(text_key, objective.text)).format(values)
 	_objective_progress.visible = not _objective_progress.text.is_empty()
 
@@ -978,6 +1016,9 @@ func _refresh_board() -> void:
 			"prone": unit.hp <= 0 or _rules.knocked_down(_state, unit.id),
 			"guarded": _rules.has_status_handler(_state, unit.id, "reflect")})
 	var overlay := {"safe": _safe_cells, "obstacles": []}
+	var board: Dictionary = _rules.definitions(_state).boards[_state.board_id]
+	var zone_id: String = _state.objective.get("zone", "")
+	overlay["objective_zone"] = board.get("zones", {}).get(zone_id, [])
 	if _state.objective.has("destination"):
 		overlay["exit"] = _state.objective.destination
 	for obstacle in _state.obstacles:
@@ -1002,19 +1043,55 @@ func _refresh_board() -> void:
 				overlay["targets"] = positions
 		var hits: Array = []
 		var paths: Array = []
+		var hooked: Dictionary = {}
+		for event in _plan.events:
+			if event.type == "pull" and event.has("from_position"):
+				hooked[event.target_id] = true
 		for entity in _state.units + _state.obstacles:
 			var predicted := _find(entity.id, _plan.result)
 			if predicted.is_empty():
 				continue
 			if predicted.hp < entity.hp:
 				hits.append(entity.position)
-			if predicted.position != entity.position:
+			if predicted.position != entity.position and not hooked.has(entity.id):
 				paths.append([entity.position, predicted.position])
+		paths.append_array(_hooked_paths(hooked))
 		overlay["impact"] = hits
 		overlay["paths"] = paths
 	_board.set_render_state(_painted_cells, units, overlay)
 	if _hover_cell != null:
 		_inspect_board(_hover_cell)
+
+
+func _hooked_paths(hooked: Dictionary) -> Array:
+	# Replay position-bearing events in order, so a move before or after a hook
+	# does not become a misleading straight line to the final position.
+	var positions: Dictionary = {}
+	for entity in _state.units + _state.obstacles:
+		positions[entity.id] = entity.position
+	var paths: Array = []
+	for event in _plan.events:
+		match event.type:
+			"move":
+				_trace_position(positions, paths, hooked, event.unit_id, event.position)
+			"push", "repel":
+				_trace_position(positions, paths, hooked, event.target_id, event.position)
+			"pull":
+				if event.has("from_position"):
+					positions[event.target_id] = event.from_position
+				_trace_position(positions, paths, hooked, event.target_id, event.position)
+				if event.has("recoil_position"):
+					_trace_position(positions, paths, hooked, event.unit_id, event.recoil_position)
+			"swap":
+				_trace_position(positions, paths, hooked, event.unit_id, event.position)
+				_trace_position(positions, paths, hooked, event.target_id, event.target_position)
+	return paths
+
+
+func _trace_position(positions: Dictionary, paths: Array, hooked: Dictionary, id: String, destination: Vector2i) -> void:
+	if hooked.has(id) and positions.has(id) and positions[id] != destination:
+		paths.append([positions[id], destination])
+	positions[id] = destination
 
 
 func _terrain() -> Dictionary:

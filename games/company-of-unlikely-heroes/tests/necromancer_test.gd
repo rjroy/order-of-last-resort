@@ -421,7 +421,7 @@ func _wave_hits(plan: Dictionary, target: String) -> bool:
 func _test_adventure_boundaries() -> void:
 	var adventure = preload("res://adventure.gd")
 	var picks := ["necromancer", "healer", "wizard"]
-	var ready: Dictionary = adventure.start_adventure(defs, "first_outing", picks)
+	var ready: Dictionary = adventure.start_adventure(defs, "first_outing", picks, 12345)
 	_check(ready.get("phase") == "ready" and ready.get("party") == picks,
 		"Necromancer occupies one ordinary company slot")
 	if ready.is_empty():
@@ -450,6 +450,12 @@ func _test_adventure_boundaries() -> void:
 	var settled: Dictionary = adventure.settle_mission(run, victory)
 	_check(settled.get("party") == picks and not settled.get("carry_by_id", {}).has("test_skeleton"),
 		"Minion is not a party member or carryover entry")
+	if settled.get("phase") == "reward":
+		var offers: Array = settled.get("reward_offers", [])
+		if offers.is_empty():
+			_check(false, "Reward transition provides a selectable offer")
+			return
+		settled = adventure.choose_reward(settled, offers[0].hero_id, offers[0].upgrade_id)
 	var next: Dictionary = adventure.begin_mission(settled)
 	_check(_character(next.get("mission", {}), "skeleton").is_empty(),
 		"Minion does not carry into the next mission")

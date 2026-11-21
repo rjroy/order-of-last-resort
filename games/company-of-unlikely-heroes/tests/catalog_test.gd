@@ -154,6 +154,9 @@ func _test_handler_event_requirements() -> void:
 	var compatible := defs.duplicate(true)
 	for adventure in compatible.adventures.values():
 		adventure.roster.erase("rogue")
+	for id in compatible.get("upgrades", {}).keys():
+		if compatible.upgrades[id].get("hero_id") == "rogue":
+			compatible.upgrades.erase(id)
 	compatible.characters.erase("rogue")
 	compatible.abilities.erase("rogue_confusing_dodge")
 	compatible.abilities.erase("rogue_wasnt_me")

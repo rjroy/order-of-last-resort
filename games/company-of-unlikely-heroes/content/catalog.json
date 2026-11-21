@@ -1,6 +1,7 @@
 {
   "parts": [
     "common.json",
+    "rewards.json",
     "first_outing.json",
     "village_troubles.json",
     "fixed_fixtures.json"

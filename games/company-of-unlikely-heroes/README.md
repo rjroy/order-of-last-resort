@@ -1,6 +1,6 @@
 # The Company of Unlikely Heroes
 
-**Choose a company, not just a loadout.** Choose an outing and recruit a company at the guild. Your heroes carry their wounds and orders between its missions. This is a playtest build; its artwork and interface are provisional.
+**Choose a company, not just a loadout.** Choose an outing and recruit a company at the guild. Your heroes carry their wounds, orders, and earned upgrades between its missions. This is a playtest build; its artwork and interface are provisional.
 
 From the repository root, with Godot 4.7:
 
@@ -10,7 +10,7 @@ godot --path games/company-of-unlikely-heroes
 
 ### Choose an outing
 
-At the guild, use **Adventure** to choose either **The company's first outing** or **Village Troubles**. Pick the required distinct recruits and arrange their deployment order, then depart. Village Troubles takes the same company through Goblin Mob, Harpoon Squad and Unwelcome Guest. Review the debrief after each victory and choose when to continue; failure ends the outing. Returning to the guild starts a fresh company.
+At the guild, use **Adventure** to choose either **The company's first outing** or **Village Troubles**. Pick the required distinct recruits and arrange their deployment order, then depart. Village Troubles takes the same company through Goblin Mob, Harpoon Squad and Unwelcome Guest. Before the next mission, review the debrief and choose a reward if any are offered. The final victory or a failure ends the outing. Returning to the guild starts a fresh company.
 
 In **Unwelcome Guest**, get the troll outside the marked village square alive. If it dies or your party falls, you lose. There is no deadline. The troll follows the nearest living party hero one tile each time it acts, stopping when adjacent. Your heroes' damaging standing orders remain active, so check and change them as needed. In particular, a carried Bard **Healing Sonnet** can damage or kill the troll even after it crosses the square's edge if the song happens later that round. Read the forecast before committing to see the troll's intended step and any pulls or follow-up actions.
 
@@ -38,7 +38,7 @@ At the guild, pick **exactly three** of the seven recruits and arrange them in t
 
 Give each hero a standing order. Each round you may queue **one** manual command instead: select a hero, action and target if needed, preview it, and read the ordered forecast. You can revise it, switch the hero you command, or clear it before committing the round. Everyone else follows their standing order. There is no full-manual or standing-only mode selector.
 
-After winning the fight, inspect the debrief before continuing. Survivors carry their current HP and standing orders forward. Downed heroes rejoin at **1 HP**; mission statuses clear. Failure ends the outing, as does a successful rescue. Return to the guild to start fresh. There are no mission upgrades, rewards or guild perks in this build.
+After winning the fight, inspect the debrief before continuing. Survivors carry their current HP and standing orders forward. Fallen heroes rejoin at **1 HP**; mission statuses clear. Failure ends the outing, as does a successful rescue.
 
 | Hero | Offensive action | Utility |
 |---|---|---|
@@ -61,6 +61,14 @@ The Bard can Move or perform either song as a direct command. It interrupts that
 To try it in the existing patrol, recruit Bard, Healer and Knight in that order. Leave the other two on their default orders and commit three rounds of **Inspiring Melody**, comparing the listeners. Switch to **Healing Sonnet** for round four to see damage against the raider who just laughed. Before committing, preview a Move for another hero to leave the song in place, then replace the command with a Bard Move to see the song drop out of the forecast. The Bard uses the existing Wizard drawing with a distinct gold name label.
 
 The game collects no playtest telemetry. The question to take away: **Did you enjoy trusting two of these people while you took charge of the third?**
+
+### Rewards between missions
+
+After a victory with another mission ahead, the debrief shows **one offer per eligible deployed hero**. Each entry describes what changes, its rarity, and how many times you can take it during this outing. Choose **one reward total** using its **Take reward** button, or use Tab and Enter. The claimed reward stays on the debrief while you review the party and continue. Passing on an offer does not count against its cap. The splash-and-ward Alchemist does not have a reward pool yet. If there are no eligible offers, you can continue without choosing.
+
+Rewards start in the next mission. Extra maximum HP comes with the same amount of current HP, but does not erase existing wounds. In combat, open **Outing upgrades** above the round controls to review what each hero gained. New actions and orders appear in the same pickers as the base kit. For example, **Shield Throw** shows an outlined shield where it will land in the forecast, then a filled marker while it is on the board. Point at the tile to inspect it; **Advance** heads toward it so the Knight can recover it. **Say Hello to That One** names the summons' directed target in the forecast and on tile inspection.
+
+There is no reward after a final victory or a defeat, or in standalone missions. Returning to the guild clears all outing upgrades; there are no permanent guild perks.
 
 ### Author a variation
 
@@ -107,9 +115,11 @@ From this directory, run the suites with `godot --headless --script res://tests/
 | `rules_test` | Ability interactions and command rules |
 | `rescues_test` | Fixed-start rescues, loss, and restart |
 | `adventure_test` | Party selection and formation, deployment, combat and mission transitions |
-| `adventure_scene_test` | Party selection and formation through the controls, debrief, wound carryover, and guild return |
+| `adventure_scene_test` | Party selection and formation through the controls, one reward choice on the debrief, wound carryover, and guild return |
+| `rewards_test` | Authored hero pools, seeded offers, caps, selection, carryover, and outing reset |
+| `hero_upgrade_effects_test` | Upgrade effects, learned actions and orders, and consistency between preview and commit |
 | `three_mission_test` | Village Troubles mission rules and adventure boundaries |
-| `village_outing_scene_test` | Direct launches and the Village Troubles guild-to-result flow |
+| `village_outing_scene_test` | Direct launches and the Village Troubles guild-to-result flow through both reward debriefs |
 | `hook_overlay_scene_test` | Hook landing and earlier movement appear as separate forecast paths |
 | `rogue_test` | Rogue dodge, redirect, retreat, and hybrid forecast consistency |
 | `necromancer_test` | Summons, corpse selection, greetings, round order and forecast consistency, and expedition boundaries |

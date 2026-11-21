@@ -279,6 +279,10 @@ func _start_patrol(packed: PackedScene, party: Array) -> void:
 		await _press("Recruit_" + id)
 	_require_control("StartAdventure", BaseButton)
 	await _press("StartAdventure")
+	var reward_rng := RandomNumberGenerator.new()
+	reward_rng.seed = 12345
+	var outing: Dictionary = scene.get("_run")
+	outing.reward_rng_state = reward_rng.state
 	_bind_battle_controls()
 
 
@@ -286,6 +290,12 @@ func _continue_to_rescue() -> bool:
 	if scene.current_screen() != "debrief":
 		_check(false, "Shipped patrol route reaches the debrief")
 		return false
+	for hero in scene.selected_recruits():
+		var reward := scene.find_child("Reward_" + hero, true, false) as BaseButton
+		if reward != null and reward.is_visible_in_tree() and not reward.disabled:
+			_require_control("Reward_" + hero, BaseButton)
+			await _press("Reward_" + hero)
+			break
 	_require_control("ContinueAdventure", BaseButton)
 	await _press("ContinueAdventure")
 	_bind_battle_controls()

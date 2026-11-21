@@ -4,7 +4,10 @@ const Catalog = preload("res://content/catalog.gd")
 const Actions = preload("res://rules/actions.gd")
 const Behaviors = preload("res://rules/behaviors.gd")
 const Board = preload("res://rules/board.gd")
+const Shield = preload("res://rules/shield.gd")
 const Statuses = preload("res://rules/statuses.gd")
+const Summons = preload("res://rules/summons.gd")
+const Upgrades = preload("res://rules/upgrades.gd")
 
 
 func new_game(definitions_input: Variant = null, mission_id := "ferryman") -> Dictionary:
@@ -42,8 +45,16 @@ static func coordinate(position: Vector2i) -> String:
 	return Board.coordinate(position)
 
 
-func ability_definition(state: Dictionary, id: String) -> Dictionary:
-	return definitions(state).abilities.get(id, {})
+func ability_definition(state: Dictionary, id: String, unit_id := "") -> Dictionary:
+	return Upgrades.ability(state, Board.entity(state, unit_id) if not unit_id.is_empty() else {}, id)
+
+
+func shield_position(state: Dictionary, unit_id: String) -> Variant:
+	return Shield.position(Board.entity(state, unit_id))
+
+
+func nominated_target(state: Dictionary, unit_id: String) -> String:
+	return Summons.nominated_target(state, Board.entity(state, unit_id)).get("id", "")
 
 
 func mission_definition(state: Dictionary) -> Dictionary:
@@ -123,7 +134,7 @@ func corpse_markers(state: Dictionary) -> Dictionary:
 		if not Board.alive(caster) or not Board.capable(state, caster, "commandable"):
 			continue
 		for id in Board.profile(state, caster).abilities:
-			var ability := ability_definition(state, id)
+			var ability := ability_definition(state, id, caster.id)
 			if ability.handler == "summon" and ability.targeting.kind == "entity":
 				for corpse in Actions.raisable_corpses(state, caster, ability):
 					if corpse.id != state.objective.get("subject") and Board.is_vacant(state, corpse.position):
@@ -137,7 +148,7 @@ func options(state: Dictionary, unit_id: String) -> Array:
 	if "commandable" not in profile.get("capabilities", []):
 		return result
 	for id in profile.abilities:
-		var ability := ability_definition(state, id)
+		var ability := ability_definition(state, id, unit_id)
 		result.append({"id": id, "label": ability.label, "kind": "action", "help": ability.help,
 			"target_kind": ability.targeting.kind})
 	for id in profile.habits:
@@ -259,8 +270,7 @@ func _matches_board_outcome(state: Dictionary) -> bool:
 
 func _resolve_turns(state: Dictionary, events: Array, stop_before := "") -> void:
 	for actor in Board.turn_order(state):
-		if Board.alive(actor):
-			Statuses.expire(state, actor, "actor_turn_start")
+		Statuses.begin_turn(state, actor)
 		if actor.id == stop_before:
 			return
 		if Board.alive(actor):
@@ -275,7 +285,9 @@ func _resolve_turn(state: Dictionary, actor: Dictionary, events: Array) -> void:
 
 	var name := Board.display_name(state, actor)
 	var action := _intent(state, actor)
-	if not action.has("ability_id"):
+	if action.get("wait") == "shield_away":
+		Board.event(events, "wait", "%s cannot guard until their shield is retrieved." % name, {"unit_id": actor.id})
+	elif not action.has("ability_id"):
 		Board.authored_event(state, events, "wait", action.get("wait", "hold"), {"actor": name}, {"unit_id": actor.id})
 	elif not Actions.execute(state, actor, action, events):
 		Board.authored_event(state, events, "wait", "invalid", {"actor": name},

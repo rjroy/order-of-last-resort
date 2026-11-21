@@ -1,0 +1,229 @@
+{
+  "reward_weights": {"common": 60, "uncommon": 28, "rare": 10, "legendary": 2},
+  "upgrades": {
+    "knight_hp_1": {
+      "hero_id": "knight", "rarity": "common", "cap": 5, "effect": "max_hp", "amount": 1,
+      "label": "+1 HP", "description": "The Knight gains 1 maximum HP and 1 current HP when next deployed."
+    },
+    "knight_hp_2": {
+      "hero_id": "knight", "rarity": "uncommon", "cap": 2, "effect": "max_hp", "amount": 2,
+      "label": "+2 HP", "description": "The Knight gains 2 maximum HP and 2 current HP when next deployed."
+    },
+    "knight_shield_damage_1": {
+      "hero_id": "knight", "rarity": "uncommon", "cap": 3, "effect": "shield_damage", "amount": 1,
+      "label": "+1 shield damage", "description": "Reflected damage and Shield Throw each deal 1 more damage."
+    },
+    "knight_hp_5": {
+      "hero_id": "knight", "rarity": "rare", "cap": 1, "effect": "max_hp", "amount": 5,
+      "label": "+5 HP", "description": "The Knight gains 5 maximum HP and 5 current HP when next deployed."
+    },
+    "knight_dig_in": {
+      "hero_id": "knight", "rarity": "rare", "cap": 1, "effect": "dig_in", "amount": 1,
+      "label": "Dig In", "description": "While guarding, reverse an enemy pull against the Knight and pull the enemy instead."
+    },
+    "knight_shield_throw": {
+      "hero_id": "knight", "rarity": "rare", "cap": 1, "effect": "shield_throw", "amount": 1,
+      "label": "Shield Throw", "description": "Gain a range-3 attack for 3 damage. Retrieve the shield before guarding or throwing again. Advance heads toward the shield while it is away.",
+      "ability": "knight_shield_throw"
+    },
+    "knight_shield_damage_3": {
+      "hero_id": "knight", "rarity": "rare", "cap": 1, "effect": "shield_damage", "amount": 3,
+      "label": "+3 shield damage", "description": "Reflected damage and Shield Throw each deal 3 more damage."
+    },
+    "knight_wide_guard": {
+      "hero_id": "knight", "rarity": "legendary", "cap": 1, "effect": "wide_guard", "amount": 1,
+      "label": "Wide Guard", "description": "Guard covers one additional tile of range."
+    },
+    "healer_hp_1": {
+      "hero_id": "healer", "rarity": "common", "cap": 3, "effect": "max_hp", "amount": 1,
+      "label": "+1 HP", "description": "The Healer gains 1 maximum HP and 1 current HP when next deployed."
+    },
+    "healer_bonk_damage_1": {
+      "hero_id": "healer", "rarity": "common", "cap": 2, "effect": "bonk_damage", "amount": 1,
+      "label": "+1 Bonk damage", "description": "Bonk deals 1 more damage."
+    },
+    "healer_hp_2": {
+      "hero_id": "healer", "rarity": "uncommon", "cap": 1, "effect": "max_hp", "amount": 2,
+      "label": "+2 HP", "description": "The Healer gains 2 maximum HP and 2 current HP when next deployed."
+    },
+    "healer_heal_1": {
+      "hero_id": "healer", "rarity": "uncommon", "cap": 2, "effect": "heal_amount", "amount": 1,
+      "label": "+1 heal", "description": "Heal restores 1 more HP."
+    },
+    "healer_bonk_damage_2": {
+      "hero_id": "healer", "rarity": "uncommon", "cap": 1, "effect": "bonk_damage", "amount": 2,
+      "label": "+2 Bonk damage", "description": "Bonk deals 2 more damage."
+    },
+    "healer_heal_2": {
+      "hero_id": "healer", "rarity": "rare", "cap": 1, "effect": "heal_amount", "amount": 2,
+      "label": "+2 heal", "description": "Heal restores 2 more HP."
+    },
+    "healer_long_staff": {
+      "hero_id": "healer", "rarity": "rare", "cap": 1, "effect": "long_staff", "amount": 1,
+      "label": "Long Staff", "description": "Bonk can reach one tile farther."
+    },
+    "healer_strong_swing": {
+      "hero_id": "healer", "rarity": "rare", "cap": 1, "effect": "strong_swing", "amount": 1,
+      "label": "Strong Swing", "description": "Bonk also strikes every other opponent within range."
+    },
+    "healer_me_or_you": {
+      "hero_id": "healer", "rarity": "legendary", "cap": 1, "effect": "me_or_you", "amount": 1,
+      "label": "Me or You", "description": "If hurt, the Healer receives the full heal. Otherwise split it evenly among the other living deployed heroes, including those at full HP. Extra points go in party order; unused healing is lost."
+    },
+    "wizard_spare_robes": {
+      "hero_id": "wizard", "rarity": "common", "cap": 3, "effect": "max_hp", "amount": 1,
+      "label": "Spare Robes", "description": "The Wizard gains 1 maximum HP and 1 current HP when next deployed."
+    },
+    "wizard_more_powder": {
+      "hero_id": "wizard", "rarity": "common", "cap": 2, "effect": "blast_damage", "amount": 1,
+      "label": "More Powder", "description": "Blast deals 1 more damage, whoever or whatever it hits."
+    },
+    "wizard_padded_landing": {
+      "hero_id": "wizard", "rarity": "uncommon", "cap": 2, "effect": "padded_landing", "amount": 1,
+      "label": "Padded Landing", "description": "Pull recoil deals 1 less damage, to a minimum of zero. The Wizard still falls over."
+    },
+    "wizard_demolition_practice": {
+      "hero_id": "wizard", "rarity": "uncommon", "cap": 2, "effect": "demolition_practice", "amount": 2,
+      "label": "Demolition Practice", "description": "Blast deals 2 more damage against obstacles."
+    },
+    "wizard_duck": {
+      "hero_id": "wizard", "rarity": "rare", "cap": 1, "effect": "duck", "amount": 1,
+      "label": "Duck!", "description": "An ally hit by Blast takes the damage but stays on their feet."
+    },
+    "wizard_braced_casting": {
+      "hero_id": "wizard", "rarity": "rare", "cap": 1, "effect": "braced_casting", "amount": 1,
+      "label": "Braced Casting", "description": "The Wizard stays standing if Pull recoil ends against the board edge or impassable terrain directly behind them."
+    },
+    "wizard_parting_gift": {
+      "hero_id": "wizard", "rarity": "rare", "cap": 1, "effect": "parting_gift", "amount": 1,
+      "label": "Parting Gift", "description": "Blast pushes its surviving primary target one tile away if that tile is open."
+    },
+    "wizard_conductive_personality": {
+      "hero_id": "wizard", "rarity": "legendary", "cap": 1, "effect": "conductive_personality", "amount": 1,
+      "label": "Conductive Personality", "description": "Blast jumps to the nearest other damageable target, even the Wizard, for half damage rounded up. The bolt has no other effects."
+    },
+    "rogue_thick_coat": {
+      "hero_id": "rogue", "rarity": "common", "cap": 2, "effect": "max_hp", "amount": 1,
+      "label": "Thick Coat", "description": "The Rogue gains 1 maximum HP and 1 current HP when next deployed."
+    },
+    "rogue_cheap_shot": {
+      "hero_id": "rogue", "rarity": "common", "cap": 2, "effect": "cheap_shot", "amount": 1,
+      "label": "Cheap Shot", "description": "A successful Wasn't Me redirect adds 1 damage to the victim. An attack that isn't redirected gains nothing."
+    },
+    "rogue_exit_strategy": {
+      "hero_id": "rogue", "rarity": "uncommon", "cap": 1, "effect": "exit_strategy", "amount": 1,
+      "label": "Exit Strategy", "description": "Retreat can take a second step if it increases distance from the nearest opponent. Direct Move stays one tile."
+    },
+    "rogue_borrowed_courage": {
+      "hero_id": "rogue", "rarity": "uncommon", "cap": 2, "effect": "borrowed_courage", "amount": 1,
+      "label": "Borrowed Courage", "description": "After swapping with an ally, reduce the next hit on that ally before the Rogue's next turn by 1."
+    },
+    "rogue_pass_the_buck": {
+      "hero_id": "rogue", "rarity": "rare", "cap": 1, "effect": "pass_the_buck", "amount": 1,
+      "label": "Pass the Buck", "description": "Confusing Dodge passes a swap partner's unused Wasn't Me mark to another enemy adjacent to their landing tile, if one exists."
+    },
+    "rogue_pocket_sand": {
+      "hero_id": "rogue", "rarity": "rare", "cap": 1, "effect": "pocket_sand", "amount": 1,
+      "label": "Pocket Sand", "description": "An enemy swapped by Confusing Dodge cannot move on its next turn, but can still attack."
+    },
+    "rogue_long_finger": {
+      "hero_id": "rogue", "rarity": "rare", "cap": 1, "effect": "long_finger", "amount": 1,
+      "label": "Long Finger", "description": "A marked attacker without an adjacent alternate victim can blame someone two tiles away. The Rogue still cannot choose the victim."
+    },
+    "rogue_body_double": {
+      "hero_id": "rogue", "rarity": "legendary", "cap": 1, "effect": "body_double", "amount": 1,
+      "label": "Body Double", "description": "After Dodge, the first attack aimed at the Rogue before their next turn hits their living swap partner instead, friend or foe."
+    },
+    "bard_road_legs": {
+      "hero_id": "bard", "rarity": "common", "cap": 2, "effect": "max_hp", "amount": 1,
+      "label": "Road Legs", "description": "The Bard gains 1 maximum HP and 1 current HP when next deployed."
+    },
+    "bard_sharper_notes": {
+      "hero_id": "bard", "rarity": "common", "cap": 2, "effect": "sonnet_damage", "amount": 1,
+      "label": "Sharper Notes", "description": "Healing Sonnet deals 1 more damage."
+    },
+    "bard_buskers_hat": {
+      "hero_id": "bard", "rarity": "uncommon", "cap": 2, "effect": "buskers_hat", "amount": 1,
+      "label": "Busker's Hat", "description": "If Melody has no eligible listener, heal the Bard for 1. This still uses the action."
+    },
+    "bard_front_row_seats": {
+      "hero_id": "bard", "rarity": "uncommon", "cap": 1, "effect": "front_row_seats", "amount": 1,
+      "label": "Front Row Seats", "description": "Sonnet draws from the two opponents with the fewest HP, including ties at the cutoff. If only one remains, it hits that one."
+    },
+    "bard_laughing_fit": {
+      "hero_id": "bard", "rarity": "rare", "cap": 1, "effect": "laughing_fit", "amount": 2,
+      "label": "Laughing Fit", "description": "After an opponent loses a turn to laughter, the next hit before their next activation deals 2 more damage."
+    },
+    "bard_heckler": {
+      "hero_id": "bard", "rarity": "rare", "cap": 1, "effect": "heckler", "amount": 1,
+      "label": "Heckler", "description": "An opponent who survives Sonnet directs their next attack at the Bard if the Bard is a legal target."
+    },
+    "bard_house_lights": {
+      "hero_id": "bard", "rarity": "legendary", "cap": 1, "effect": "house_lights", "amount": 1,
+      "label": "House Lights", "description": "Gain Take the Stage as a standing order and direct action. One random eligible opponent and every opponent adjacent to it take the current Sonnet damage.",
+      "ability": "bard_take_the_stage", "order": "order_take_the_stage", "behavior": "take_the_stage"
+    },
+    "necromancer_spare_ribs": {
+      "hero_id": "necromancer", "rarity": "common", "cap": 3, "effect": "spare_ribs", "amount": 1,
+      "label": "Spare Ribs", "description": "Skeletons start with 1 more maximum and current HP."
+    },
+    "necromancer_good_soil": {
+      "hero_id": "necromancer", "rarity": "common", "cap": 2, "effect": "good_soil", "amount": 1,
+      "label": "Good Soil", "description": "Zombies start with 1 more HP after halving the corpse's maximum HP and rounding up."
+    },
+    "necromancer_heavy_bouquet": {
+      "hero_id": "necromancer", "rarity": "uncommon", "cap": 2, "effect": "heavy_bouquet", "amount": 1,
+      "label": "Heavy Bouquet", "description": "Zombies' Offer Flower deals 1 more damage."
+    },
+    "necromancer_broad_wave": {
+      "hero_id": "necromancer", "rarity": "uncommon", "cap": 1, "effect": "broad_wave", "amount": 1,
+      "label": "Broad Wave", "description": "Skeletons' Wave also hits diagonal neighbors, friend or foe."
+    },
+    "necromancer_long_stemmed": {
+      "hero_id": "necromancer", "rarity": "rare", "cap": 1, "effect": "long_stemmed", "amount": 1,
+      "label": "Long-Stemmed", "description": "Offer Flower has 1 more tile of range, including the distance zombies try to reach."
+    },
+    "necromancer_warm_welcome": {
+      "hero_id": "necromancer", "rarity": "rare", "cap": 1, "effect": "warm_welcome", "amount": 2,
+      "label": "Warm Welcome", "description": "Say Hello makes the recipient back away up to two tiles, stopping at the first obstruction."
+    },
+    "necromancer_say_hello_to_that_one": {
+      "hero_id": "necromancer", "rarity": "rare", "cap": 1, "effect": "say_hello_to_that_one", "amount": 1,
+      "label": "Say Hello to That One", "description": "Gain a direct action to nominate an opponent for both undead to pursue until it falls or is replaced. They still choose their own greetings.",
+      "ability": "necromancer_say_hello_to_that_one"
+    },
+    "necromancer_wake_reception": {
+      "hero_id": "necromancer", "rarity": "legendary", "cap": 1, "effect": "wake_reception", "amount": 1,
+      "label": "Wake Reception", "description": "Once per mission, a fallen raised zombie becomes a skeleton if the skeleton slot is empty. It uses the current skeleton starting HP and first acts next round."
+    }
+  },
+  "abilities": {
+    "knight_shield_throw": {
+      "label": "Shield Throw",
+      "help": "Deal 3 damage to an enemy or obstacle up to three tiles away. Advance heads toward the thrown shield; retrieve it to guard or throw again.",
+      "handler": "attack",
+      "params": {"damage": 3, "source_suffix": "'s Shield Throw"},
+      "targeting": {"kind": "entity", "range": 3, "teams": ["enemies"], "objects": true, "capabilities": ["damageable"]}
+    },
+    "bard_take_the_stage": {
+      "label": "Take the Stage",
+      "help": "Sing Healing Sonnet to one random eligible opponent and every opponent next to them.",
+      "handler": "perform",
+      "params": {"damage_ability": "healing_sonnet", "listener_event": "sonnet_listener"},
+      "targeting": {"kind": "automatic", "teams": ["enemies"]}
+    },
+    "necromancer_say_hello_to_that_one": {
+      "label": "Say Hello to That One",
+      "help": "Nominate a living opponent for your undead to pursue. They still choose their own greetings.",
+      "handler": "nominate",
+      "params": {},
+      "targeting": {"kind": "entity", "teams": ["enemies"]}
+    }
+  },
+  "orders": {
+    "order_take_the_stage": {"label": "Take the Stage"}
+  },
+  "behaviors": {
+    "take_the_stage": {"handler": "use_ability", "params": {"ability": "bard_take_the_stage"}}
+  }
+}

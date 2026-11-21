@@ -1,15 +1,20 @@
 extends RefCounted
 
-const Catalog = preload("res://content/catalog.gd")
 const Board = preload("res://rules/board.gd")
+const Combat = preload("res://rules/combat.gd")
 const EncounterRandom = preload("res://rules/encounter_random.gd")
+const Performances = preload("res://rules/performances.gd")
+const Shield = preload("res://rules/shield.gd")
 const Statuses = preload("res://rules/statuses.gd")
+const Summons = preload("res://rules/summons.gd")
+const Support = preload("res://rules/support.gd")
+const Upgrades = preload("res://rules/upgrades.gd")
 
 
 static func owned_ability(state: Dictionary, actor: Dictionary, id: String) -> Dictionary:
 	if id not in Board.profile(state, actor).get("abilities", []):
 		return {}
-	return state.catalog.defs.abilities[id]
+	return Upgrades.ability(state, actor, id)
 
 
 static func can_act(state: Dictionary, actor: Dictionary) -> bool:
@@ -20,15 +25,17 @@ static func accepts_target_argument(ability: Dictionary, target_id: String) -> b
 	return target_id.is_empty() or ability.targeting.kind in ["cell", "entity"]
 
 
-static func _can_move(state: Dictionary, actor: Dictionary) -> bool:
+static func can_move(state: Dictionary, actor: Dictionary) -> bool:
 	return Board.capable(state, actor, "mobile") and Statuses.ids_with_handler(state, actor, "stop_move").is_empty()
 
 
 static func _pull_step(actor: Dictionary, target: Dictionary) -> Vector2i:
-	var delta: Vector2i = target.position - actor.position
-	if absi(delta.x) >= absi(delta.y) and delta.x != 0:
-		return Vector2i(-signi(delta.x), 0)
-	return Vector2i(0, -signi(delta.y))
+	return Combat.toward(target.position, actor.position)
+
+
+static func _digs_in(state: Dictionary, actor: Dictionary, target: Dictionary) -> bool:
+	return Board.opponents(state, target, actor) and Statuses.guarding(state, target) \
+		and Upgrades.amount(state, target, "dig_in") > 0
 
 
 static func _in_reach(actor: Dictionary, position: Vector2i, targeting: Dictionary) -> bool:
@@ -63,15 +70,16 @@ static func _entity_allowed(state: Dictionary, actor: Dictionary, candidate: Dic
 			return candidate.has("character_id")
 		"misdirect":
 			return Board.team(state, candidate) != Board.team(state, actor) \
-				and not Statuses.adjacent_victim(state, candidate).is_empty() \
+				and not Statuses.misdirection_victim(state, candidate, actor).is_empty() \
 				and Statuses.accepts(state, candidate, ability.params.status, actor)
+		"nominate":
+			return Board.opponents(state, actor, candidate)
 		"repel":
 			return candidate.has("character_id")
 		"stop_target":
 			return Statuses.accepts(state, candidate, ability.params.status, actor)
 		"perform":
-			if not candidate.has("character_id") \
-					or Board.team(state, candidate) in ["", "civilian", Board.team(state, actor)]:
+			if not Board.opponents(state, actor, candidate):
 				return false
 			return Statuses.accepts(state, candidate, ability.params.status, actor) if ability.params.has("status") \
 				else Board.capable(state, candidate, "damageable")
@@ -79,11 +87,7 @@ static func _entity_allowed(state: Dictionary, actor: Dictionary, candidate: Dic
 
 
 static func summon_capped(state: Dictionary, actor: Dictionary, ability: Dictionary) -> bool:
-	for unit in state.units:
-		if unit.get("summoner_id") == actor.id and unit.character_id == ability.params.character \
-				and Board.alive(unit):
-			return true
-	return false
+	return Summons.capped(state, actor, ability.params.character)
 
 
 static func _summon_choices(state: Dictionary, actor: Dictionary, ability: Dictionary) -> Array:
@@ -96,11 +100,11 @@ static func _summon_choices(state: Dictionary, actor: Dictionary, ability: Dicti
 			if Board.is_vacant(state, position):
 				result.append({"id": Board.cell_id(position), "label": Board.coordinate(position), "position": position})
 	else:
-		var minion_name: String = Catalog.profile(state.catalog.defs, ability.params.character).label
+		var minion_name: String = Board.profile(state, {"character_id": ability.params.character}).label
 		for corpse in raisable_corpses(state, actor, ability):
 			if not Board.is_vacant(state, corpse.position):
 				continue
-			var hp := _raised_hp(corpse)
+			var hp := Summons.starting_hp(state, actor, ability.params.character, corpse)
 			result.append({"id": corpse.id,
 				"label": "%s corpse (%d HP %s)" % [Board.display_name(state, corpse), hp, minion_name.to_lower()],
 				"position": corpse.position})
@@ -113,13 +117,8 @@ static func raisable_corpses(state: Dictionary, actor: Dictionary, ability: Dict
 			and _in_reach(actor, corpse.position, ability.targeting))
 
 
-@warning_ignore("integer_division")
-static func _raised_hp(corpse: Dictionary) -> int:
-	return (int(corpse.max_hp) + 1) / 2
-
-
 # The picker, behaviors and action execution all use these exact choices.
-static func _legal_choices(state: Dictionary, actor: Dictionary, ability: Dictionary) -> Array:
+static func _legal_choices(state: Dictionary, actor: Dictionary, ability: Dictionary, ability_id: String) -> Array:
 	var result: Array = []
 	if ability.is_empty() or not can_act(state, actor):
 		return result
@@ -128,7 +127,7 @@ static func _legal_choices(state: Dictionary, actor: Dictionary, ability: Dictio
 	var targeting: Dictionary = ability.targeting
 	match targeting.kind:
 		"cell":
-			if not _can_move(state, actor):
+			if not can_move(state, actor):
 				return result
 			for direction in Board.DIRECTIONS:
 				var position: Vector2i = actor.position + direction
@@ -140,7 +139,7 @@ static func _legal_choices(state: Dictionary, actor: Dictionary, ability: Dictio
 				if _entity_allowed(state, actor, candidate, ability):
 					var choice := {"id": candidate.id, "label": Board.display_name(state, candidate),
 						"position": candidate.position}
-					if ability.handler == "hook":
+					if ability.handler == "hook" and not _digs_in(state, actor, candidate):
 						choice["destination"] = candidate.position + _pull_step(actor, candidate)
 					result.append(choice)
 		"none":
@@ -148,28 +147,39 @@ static func _legal_choices(state: Dictionary, actor: Dictionary, ability: Dictio
 				result.append({"id": "", "position": actor.position})
 			elif ability.handler == "sweep":
 				for candidate in Board.occupants(state, {}):
-					if _in_reach(actor, candidate.position, targeting) \
-							and candidate.id != actor.id and Board.capable(state, candidate, "damageable"):
+					if candidate.id != actor.id and Board.capable(state, candidate, "damageable") \
+							and (_in_reach(actor, candidate.position, targeting) \
+								or extra_sweep_reaches(state, actor, candidate, ability_id)):
 						result.append(candidate)
 	return result
 
 
+static func extra_sweep_reaches(state: Dictionary, actor: Dictionary, candidate: Dictionary, id: String) -> bool:
+	var delta: Vector2i = candidate.position - actor.position
+	return id == "wave" and absi(delta.x) == 1 and absi(delta.y) == 1 \
+		and Board.capable(state, candidate, "damageable") \
+		and Upgrades.amount(state, Summons.owner(state, actor), "broad_wave") > 0
+
+
 static func targets(state: Dictionary, actor: Dictionary, ability_id: String) -> Array:
 	var ability := owned_ability(state, actor, ability_id)
-	if ability.is_empty() or ability.targeting.kind not in ["cell", "entity"]:
+	if ability.is_empty() or ability.targeting.kind not in ["cell", "entity"] or not Shield.available(actor, ability_id):
 		return []
-	return _legal_choices(state, actor, ability)
+	return _legal_choices(state, actor, ability, ability_id)
 
 
-static func selection(state: Dictionary, actor: Dictionary, ability: Dictionary, target_id: String) -> Dictionary:
-	if ability.is_empty() or not accepts_target_argument(ability, target_id):
+static func selection(state: Dictionary, actor: Dictionary, ability: Dictionary, target_id: String,
+		ability_id := "") -> Dictionary:
+	if ability.is_empty() or not accepts_target_argument(ability, target_id) or not Shield.available(actor, ability_id):
 		return {}
-	var choices := _legal_choices(state, actor, ability)
+	var choices := _legal_choices(state, actor, ability, ability_id)
 	if choices.is_empty():
 		return {}
 	if ability.handler == "sweep":
 		return {"id": "", "recipients": choices}
 	if ability.handler == "perform":
+		if ability_id == "healing_sonnet" and Upgrades.amount(state, actor, "front_row_seats") > 0:
+			choices = _front_row(state, choices)
 		var draw := EncounterRandom.uniform_draw(state.rng_state, choices.size())
 		var choice: Dictionary = choices[draw.index]
 		choice["rng_seed"] = draw.seed
@@ -186,7 +196,7 @@ static func selection(state: Dictionary, actor: Dictionary, ability: Dictionary,
 			return choices[0]
 		var nearest := Board.nearest(actor, choices)
 		if ability.handler == "repel" and not nearest.is_empty():
-			var destination := _step_away(state, actor, nearest)
+			var destination := _step_away(state, actor, nearest, ability_id)
 			if destination == nearest.position:
 				return {}
 			nearest["destination"] = destination
@@ -197,100 +207,72 @@ static func selection(state: Dictionary, actor: Dictionary, ability: Dictionary,
 	return {}
 
 
-static func _step_away(state: Dictionary, actor: Dictionary, target: Dictionary) -> Vector2i:
+static func _front_row(state: Dictionary, choices: Array) -> Array:
+	if choices.size() <= 2:
+		return choices
+	var health := choices.map(func(choice: Dictionary) -> int: return Board.entity(state, choice.id).hp)
+	health.sort()
+	return choices.filter(func(choice: Dictionary) -> bool: return Board.entity(state, choice.id).hp <= health[1])
+
+
+static func _step_away(state: Dictionary, actor: Dictionary, target: Dictionary, id: String) -> Vector2i:
 	var position: Vector2i = target.position
-	var destination := position - _pull_step(actor, target)
-	return destination if Board.can_enter(state, destination) else position
-
-
-static func _summon(state: Dictionary, actor: Dictionary, ability: Dictionary,
-		choice: Dictionary, corpse: Dictionary, events: Array) -> void:
-	var character: String = ability.params.character
-	var profile := Catalog.profile(state.catalog.defs, character)
-	var raising: bool = ability.targeting.kind == "entity"
-	var hp := _raised_hp(corpse) if raising else int(profile.max_hp)
-	var base_id := "%s_%s" % [actor.id, character]
-	var id := base_id
-	var index := 2
-	while not Board.entity(state, id).is_empty():
-		id = "%s_%d" % [base_id, index]
-		index += 1
-	var minion := {"id": id, "character_id": character, "position": choice.position,
-		"hp": hp, "max_hp": hp, "statuses": {}, "summoner_id": actor.id,
-		"summon_priority": int(ability.params.priority)}
-	var data := {"unit_id": actor.id, "summon_id": id, "position": choice.position, "hp": hp}
-	var copy := {"actor": Board.display_name(state, actor), "minion": profile.label,
-		"position": choice.position, "hp": hp}
-	if raising:
-		corpse["corpse_consumed"] = true
-		data["target_id"] = corpse.id
-		copy["corpse"] = Board.display_name(state, corpse)
-	state.units.append(minion)
-	Board.authored_event(state, events, "summon", "raise" if raising else "summon", copy, data)
-
-
-static func _perform(state: Dictionary, actor: Dictionary, ability: Dictionary, ability_id: String,
-		choice: Dictionary, events: Array) -> bool:
-	var name := Board.display_name(state, actor)
-	var copy := {"actor": name, "ability": ability.label}
-	var data := {"unit_id": actor.id, "ability_id": ability_id}
-	if choice.is_empty():
-		Board.authored_event(state, events, "performance", "performance_dry", copy, data)
-		return true
-	var listener := Board.entity(state, choice.id)
-	data["target_id"] = listener.id
-	data["target_label"] = choice.label
-	copy["target"] = choice.label
-	var params: Dictionary = ability.params
-	if params.has("status"):
-		if not Statuses.apply(state, listener, params.status, actor):
-			return false
-		data["status_id"] = params.status
-		Board.authored_event(state, events, "performance", params.listener_event, copy, data)
-	else:
-		# A performance affects its listener directly; it isn't a redirectable attack.
-		var amount := int(params.damage)
-		_hurt(listener, amount)
-		data.merge({"source_id": actor.id, "amount": amount})
-		copy["amount"] = amount
-		Board.authored_event(state, events, "damage", params.listener_event, copy, data)
-	state.rng_state = choice.rng_seed
-	return true
+	var direction := -_pull_step(actor, target)
+	if direction == Vector2i.ZERO:
+		return position
+	var steps := 1
+	if id == "say_hello":
+		steps = maxi(steps, Upgrades.amount(state, Summons.owner(state, actor), "warm_welcome"))
+	for index in range(steps):
+		if not Board.can_enter(state, position + direction):
+			break
+		position += direction
+	return position
 
 
 static func execute(state: Dictionary, actor: Dictionary, action: Dictionary, events: Array) -> bool:
-	var ability := owned_ability(state, actor, action.ability_id)
+	var id: String = action.ability_id
+	var ability := owned_ability(state, actor, id)
 	var target_id: String = action.get("target_id", "")
-	if ability.is_empty() or not can_act(state, actor) or not accepts_target_argument(ability, target_id):
+	if ability.is_empty() or not can_act(state, actor) or not accepts_target_argument(ability, target_id) \
+			or not Shield.available(actor, id):
 		return false
-	var choice := selection(state, actor, ability, target_id)
+	var choice := selection(state, actor, ability, target_id, id)
+	var first_event := events.size()
 	if ability.handler == "perform":
-		return _perform(state, actor, ability, action.ability_id, choice, events)
-	if choice.is_empty():
+		return Performances.perform(state, actor, ability, id, choice, events)
+	if ability.handler == "move" and action.get("retrieve_shield", false) and Shield.can_retrieve(actor):
+		Shield.retrieve(state, actor, events)
+	elif id == "healer_heal" and Upgrades.amount(state, actor, "me_or_you") > 0:
+		var amount := int(ability.params.amount)
+		if actor.hp < actor.max_hp:
+			Support.heal(state, actor, actor, amount, events)
+		else:
+			Support.split_heal(state, actor, amount, events)
+	elif choice.is_empty() or not _execute_choice(state, actor, action, ability, choice, events):
 		return false
+	for index in range(first_event, events.size()):
+		events[index]["ability_id"] = id
+	return true
+
+
+static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictionary, ability: Dictionary,
+		choice: Dictionary, events: Array) -> bool:
 	var target := Board.entity(state, choice.id)
 	var params: Dictionary = ability.params
 	var name := Board.display_name(state, actor)
 	var target_name := Board.display_name(state, target) if not target.is_empty() else ""
-	var first_event := events.size()
 	match ability.handler:
 		"move":
-			actor.position = choice.position
-			var copy := {"actor": name, "position": actor.position}
-			var data := {"unit_id": actor.id, "position": actor.position}
-			var template := "move"
-			if action.has("follow_target_id"):
-				var followed := Board.entity(state, action.follow_target_id)
-				copy["target"] = Board.display_name(state, followed)
-				data["target_id"] = followed.id
-				template = "follow_party"
-			Board.authored_event(state, events, "move", template, copy, data)
+			_move(state, actor, action, choice.position, events)
 		"summon":
-			_summon(state, actor, ability, choice, target, events)
+			Summons.summon(state, actor, ability, choice.position, target, events)
+		"nominate":
+			Summons.nominate(state, actor, target, events)
 		"sweep":
 			Board.authored_event(state, events, "wave", "sweep", {"actor": name}, {"unit_id": actor.id})
 			for recipient in choice.recipients:
-				_damage(state, actor, recipient, int(params.damage), name, "", events)
+				Combat.hurt(state, actor, recipient, int(params.damage), name, "", events)
 		"stop_target":
 			if not Statuses.apply(state, target, params.status, actor):
 				return false
@@ -301,6 +283,7 @@ static func execute(state: Dictionary, actor: Dictionary, action: Dictionary, ev
 			Board.authored_event(state, events, "repel", "repel",
 				{"actor": name, "target": target_name, "position": target.position},
 				{"unit_id": actor.id, "target_id": target.id, "position": target.position})
+			Shield.retrieve(state, target, events)
 		"push":
 			var destination: Vector2i = target.position - _pull_step(actor, target)
 			if Board.can_enter(state, destination):
@@ -308,9 +291,10 @@ static func execute(state: Dictionary, actor: Dictionary, action: Dictionary, ev
 				Board.authored_event(state, events, "push", "push",
 					{"actor": name, "target": target_name, "position": destination},
 					{"unit_id": actor.id, "target_id": target.id, "position": destination})
+				Shield.retrieve(state, target, events)
 			elif Board.capable(state, target, "damageable"):
-				_damage(state, actor, Statuses.attack_recipient(state, target, events), int(params.collision_damage),
-					name + Board.text(state, "collision_suffix"), "", events)
+				Combat.attack(state, actor, target, int(params.collision_damage),
+					{"source_name": name + Board.text(state, "collision_suffix"), "misdirect": false}, events)
 			else:
 				Board.authored_event(state, events, "wait", "cannot_advance",
 					{"actor": target_name}, {"unit_id": actor.id, "target_id": target.id})
@@ -321,97 +305,177 @@ static func execute(state: Dictionary, actor: Dictionary, action: Dictionary, ev
 			var status := Statuses.definition(state, id)
 			var data := {"unit_id": actor.id, "target_id": actor.id, "source_id": actor.id, "status_id": id}
 			if status.handler == "reflect":
-				Board.authored_event(state, events, "aura", "aura",
-					{"actor": name, "range": int(status.params.range)}, data)
+				var guard_range := Statuses.guard_range(state, actor, status)
+				data["range"] = guard_range
+				if Upgrades.amount(state, actor, "dig_in") > 0:
+					var guard_text := "%s guards at range %d and redirects incoming attacks. Dig In also reverses enemy pulls aimed at %s."
+					Board.event(events, "aura", guard_text % [name, guard_range, name], data)
+				else:
+					Board.authored_event(state, events, "aura", "aura", {"actor": name, "range": guard_range}, data)
 			else:
 				Board.authored_event(state, events, "status", "gain_status",
 					{"actor": name, "status": status.label}, data)
 		"bonk", "blast", "attack":
-			var suffix: String = params.get("source_suffix", "")
-			if ability.handler == "blast" and not params.has("source_suffix"):
-				suffix = Board.text(state, "blast_suffix")
-			target = Statuses.misdirect_attack(state, actor, target, events)
-			var damage: int = params.damage
-			if ability.handler == "attack" and params.has("surround_bonus"):
-				damage += _surround_bonus(state, actor, target, params.surround_bonus, events)
-			_damage(state, actor, Statuses.attack_recipient(state, target, events), damage,
-				name + suffix, params.get("status", ""), events)
+			_attack(state, actor, target, action.ability_id, ability, events)
 		"swap_furthest":
-			var old: Vector2i = actor.position
-			actor.position = target.position
-			target.position = old
-			Board.authored_event(state, events, "swap", "swap",
-				{"actor": name, "target": target_name, "position": actor.position},
-				{"unit_id": actor.id, "target_id": target.id, "position": actor.position, "target_position": old})
+			_swap(state, actor, target, events)
 		"misdirect":
 			if not Statuses.apply(state, target, params.status, actor):
 				return false
-			var victim := Statuses.adjacent_victim(state, target)
+			var victim := Statuses.misdirection_victim(state, target, actor)
 			Board.authored_event(state, events, "misdirect", "misdirect_mark",
 				{"actor": name, "target": target_name, "victim": Board.display_name(state, victim)},
 				{"unit_id": actor.id, "target_id": target.id, "victim_id": victim.id, "status_id": params.status})
 		"heal":
-			var amount := mini(int(params.amount), target.max_hp - target.hp)
-			target.hp += amount
-			Board.authored_event(state, events, "heal", "heal" if amount > 0 else "heal_full",
-				{"actor": name, "target": target_name, "amount": amount},
-				{"unit_id": actor.id, "target_id": target.id, "amount": amount})
-		"pull":
-			var old: Vector2i = actor.position
-			actor.position = old + _pull_step(actor, target)
-			target.position = old
-			Board.authored_event(state, events, "pull", "pull",
-				{"actor": name, "target": target_name, "position": old, "recoil": actor.position},
-				{"unit_id": actor.id, "target_id": target.id, "position": old, "recoil_position": actor.position})
-			_damage(state, actor, actor, int(params.recoil_damage), Board.text(state, "recoil_source"), params.status, events)
-		"hook":
-			var old: Vector2i = target.position
-			target.position = choice.destination
-			Board.authored_event(state, events, "pull", "hook_pull",
-				{"actor": name, "target": target_name, "from": old, "position": target.position},
-				{"unit_id": actor.id, "target_id": target.id, "from_position": old, "position": target.position})
+			Support.heal(state, actor, target, int(params.amount), events)
+		"pull", "hook":
+			_pull(state, actor, target, action.ability_id, ability, choice, events)
 		_:
 			return false
-	for index in range(first_event, events.size()):
-		events[index]["ability_id"] = action.ability_id
 	return true
 
 
-static func _surround_bonus(state: Dictionary, actor: Dictionary, target: Dictionary,
-		spec: Dictionary, events: Array) -> int:
-	var team := Board.team(state, actor)
-	for ally in state.units:
-		if ally.id == actor.id or ally.id == target.id or ally.character_id != spec.character \
-				or not Board.alive(ally) or Board.team(state, ally) != team \
-				or Board.distance(ally.position, target.position) != 1:
-			continue
-		var damage: int = spec.damage
-		Board.authored_event(state, events, "surround", "surround_bonus",
-			{"actor": Board.display_name(state, actor), "target": Board.display_name(state, target), "amount": damage},
-			{"unit_id": actor.id, "target_id": target.id, "ally_id": ally.id, "amount": damage})
-		return damage
-	return 0
+static func _move(state: Dictionary, actor: Dictionary, action: Dictionary, position: Vector2i, events: Array) -> void:
+	actor.position = position
+	var copy := {"actor": Board.display_name(state, actor), "position": position}
+	var data := {"unit_id": actor.id, "position": position}
+	var template := "move"
+	if action.has("follow_target_id"):
+		var followed := Board.entity(state, action.follow_target_id)
+		copy["target"] = Board.display_name(state, followed)
+		data["target_id"] = followed.id
+		template = "follow_party"
+	Board.authored_event(state, events, "move", template, copy, data)
+	Shield.retrieve(state, actor, events)
+	if action.has("retreat_second"):
+		var second: Vector2i = action.retreat_second
+		if Board.distance(position, second) == 1 and Board.can_enter(state, second):
+			actor.position = second
+			Board.event(events, "move", "Exit Strategy: %s retreats again to %s." % [
+				Board.display_name(state, actor), Board.coordinate(second)], {"unit_id": actor.id, "position": second})
 
 
-static func _hurt(target: Dictionary, amount: int) -> void:
-	target.hp = maxi(0, target.hp - amount)
+static func _attack(state: Dictionary, actor: Dictionary, target: Dictionary, id: String, ability: Dictionary,
+		events: Array) -> void:
+	var heckler := heckler_target(state, actor, ability)
+	actor.statuses.erase("heckler")
+	if not heckler.is_empty():
+		target = heckler
+		Board.event(events, "taunt", "Heckler draws %s's attack to %s." % [
+			Board.display_name(state, actor), Board.display_name(state, target)],
+			{"unit_id": actor.id, "target_id": target.id, "status_id": "heckler"})
+	var recipients := [target]
+	if id == "healer_bonk" and Upgrades.amount(state, actor, "strong_swing") > 0:
+		for candidate in Board.occupants(state, ability.targeting):
+			if target.id != candidate.id and Board.opponents(state, actor, candidate) \
+					and _entity_allowed(state, actor, candidate, ability):
+				recipients.append(candidate)
+	var params: Dictionary = ability.params
+	var suffix: String = params.get("source_suffix", "")
+	if ability.handler == "blast" and not params.has("source_suffix"):
+		suffix = Board.text(state, "blast_suffix")
+	var strike := {"source_name": Board.display_name(state, actor) + suffix,
+		"status": params.get("status", ""), "ability_id": id}
+	if params.has("surround_bonus"):
+		strike["surround_bonus"] = params.surround_bonus
+	for recipient in recipients:
+		if Board.alive(recipient):
+			Combat.attack(state, actor, recipient, int(params.damage), strike, events)
 
 
-static func _damage(state: Dictionary, source: Dictionary, target: Dictionary, amount: int,
-		source_name: String, status_id: String, events: Array) -> void:
-	if not Board.alive(target) or not Board.capable(state, target, "damageable"):
-		return
-	_hurt(target, amount)
-	var applied := not status_id.is_empty() and Statuses.apply(state, target, status_id, source)
-	var handler = Statuses.definition(state, status_id).get("handler", "") if applied else ""
-	var suffix := Board.text(state, "knockdown_suffix") if applied and Statuses.is_knockdown(state, status_id) else ""
+static func heckler_target(state: Dictionary, actor: Dictionary, ability: Dictionary) -> Dictionary:
+	if ability.get("handler", "") not in ["attack", "blast", "bonk"]:
+		return {}
+	var bard := Statuses.heckled_target(state, actor)
+	if bard.is_empty() or bard not in Board.occupants(state, ability.targeting) \
+			or not _entity_allowed(state, actor, bard, ability):
+		return {}
+	return bard
+
+
+static func _pull(state: Dictionary, actor: Dictionary, target: Dictionary, id: String, ability: Dictionary,
+		choice: Dictionary, events: Array) -> void:
+	var name := Board.display_name(state, actor)
 	var target_name := Board.display_name(state, target)
-	var data := {"source_id": source.id, "target_id": target.id, "amount": amount}
-	if applied:
-		data["status_id"] = status_id
-	Board.authored_event(state, events, "damage", "damage",
-		{"source": source_name, "amount": amount, "target": target_name, "effect": suffix}, data)
-	if handler == "retarget":
-		Board.authored_event(state, events, "taunt", "taunt",
-			{"actor": Board.display_name(state, source), "target": target_name},
-			{"source_id": source.id, "target_id": target.id, "status_id": status_id})
+	var move_from: Vector2i = target.position
+	if _digs_in(state, actor, target):
+		var origin: Vector2i = actor.position
+		var destination := origin - _pull_step(actor, target)
+		if Board.capable(state, actor, "pullable") and Board.is_vacant(state, destination):
+			actor.position = destination
+		Board.event(events, "pull", "Dig In: %s reverses %s's pull%s." % [target_name, name,
+			", pulling them to %s" % Board.coordinate(actor.position) if actor.position != origin else " and holds position"],
+			{"unit_id": target.id, "target_id": actor.id, "from_position": origin, "position": actor.position})
+		if actor.position != origin:
+			Shield.retrieve(state, actor, events)
+	elif ability.handler == "hook":
+		target.position = choice.destination
+		Board.authored_event(state, events, "pull", "hook_pull",
+			{"actor": name, "target": target_name, "from": move_from, "position": target.position},
+			{"unit_id": actor.id, "target_id": target.id, "from_position": move_from, "position": target.position})
+		Shield.retrieve(state, target, events)
+	else:
+		var old: Vector2i = actor.position
+		var direction := _pull_step(actor, target)
+		actor.position = old + direction
+		target.position = old
+		Board.authored_event(state, events, "pull", "pull",
+			{"actor": name, "target": target_name, "position": old, "recoil": actor.position},
+			{"unit_id": actor.id, "target_id": target.id, "position": old, "recoil_position": actor.position})
+		Shield.retrieve(state, target, events)
+		var status_id: String = ability.params.status
+		if id == "wizard_pull" and Upgrades.amount(state, actor, "braced_casting") > 0 \
+				and not Board.passable(state, actor.position + direction):
+			status_id = ""
+			Board.event(events, "status", "Braced Casting keeps %s upright." % name, {"unit_id": actor.id})
+		Combat.hurt(state, actor, actor, int(ability.params.recoil_damage),
+			Board.text(state, "recoil_source"), status_id, events)
+
+
+static func _swap(state: Dictionary, actor: Dictionary, target: Dictionary, events: Array) -> void:
+	var old: Vector2i = actor.position
+	actor.position = target.position
+	target.position = old
+	var name := Board.display_name(state, actor)
+	var target_name := Board.display_name(state, target)
+	Board.authored_event(state, events, "swap", "swap",
+		{"actor": name, "target": target_name, "position": actor.position},
+		{"unit_id": actor.id, "target_id": target.id, "position": actor.position, "target_position": old})
+	Shield.retrieve(state, actor, events)
+	Shield.retrieve(state, target, events)
+	if Upgrades.amount(state, actor, "body_double") > 0:
+		actor.statuses["body_double"] = {"source_id": actor.id, "partner_id": target.id}
+		Board.event(events, "status", "Body Double: %s stands in for %s until their next turn." % [target_name, name],
+			{"unit_id": actor.id, "target_id": target.id, "status_id": "body_double"})
+	if Board.team(state, target) == Board.team(state, actor):
+		var amount := Upgrades.amount(state, actor, "borrowed_courage")
+		if amount > 0:
+			target.statuses["borrowed_courage"] = {"source_id": actor.id, "amount": amount}
+			Board.event(events, "status", "Borrowed Courage protects %s from %d damage on their next hit." % [
+				target_name, amount], {"unit_id": actor.id, "target_id": target.id,
+					"status_id": "borrowed_courage", "amount": amount})
+	elif Board.opponents(state, actor, target):
+		if Upgrades.amount(state, actor, "pocket_sand") > 0 and Statuses.apply(state, target, "held_in_place", actor):
+			Board.event(events, "status", "Pocket Sand keeps %s from moving next turn." % target_name,
+				{"unit_id": actor.id, "target_id": target.id, "status_id": "held_in_place"})
+		if Upgrades.amount(state, actor, "pass_the_buck") > 0:
+			_pass_mark(state, actor, target, events)
+
+
+static func _pass_mark(state: Dictionary, rogue: Dictionary, partner: Dictionary, events: Array) -> void:
+	var ids := Statuses.ids_with_handler(state, partner, "misdirect")
+	if ids.is_empty():
+		return
+	ids.sort()
+	var id: String = ids[0]
+	var candidates := Board.occupants(state, {}).filter(func(candidate: Dictionary) -> bool:
+		return Board.opponents(state, rogue, candidate) and Board.distance(partner.position, candidate.position) == 1)
+	if candidates.is_empty():
+		return
+	candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.id < b.id)
+	var recipient: Dictionary = candidates[0]
+	recipient.statuses[id] = partner.statuses[id]
+	partner.statuses.erase(id)
+	Board.event(events, "misdirect", "Pass the Buck moves the mark from %s to %s." % [
+		Board.display_name(state, partner), Board.display_name(state, recipient)],
+		{"unit_id": rogue.id, "from_id": partner.id, "target_id": recipient.id, "status_id": id})

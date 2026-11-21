@@ -55,6 +55,10 @@ func _run() -> void:
 	await _press("PartyEarlier_healer")
 	_check(scene.selected_recruits() == PARTY, "Guild can select and order three heroes")
 	await _press("StartAdventure")
+	var reward_rng := RandomNumberGenerator.new()
+	reward_rng.seed = 12345
+	var outing: Dictionary = scene.get("_run")
+	outing.reward_rng_state = reward_rng.state
 	var preserved_orders: Dictionary = {}
 	for mission_index in MISSIONS.size():
 		var id: String = MISSIONS[mission_index]
@@ -86,6 +90,10 @@ func _run() -> void:
 			_check(_node("CarryReport") != null, id + " displays carry report")
 			await process_frame
 			_check(scene.current_screen() == "debrief", "Debrief waits for continuation")
+			var reward := _node("Reward_knight") as BaseButton
+			_check(reward != null and reward.is_visible_in_tree(), "Debrief offers Knight a reward")
+			if reward != null:
+				await _press("Reward_knight")
 			await _press("ContinueAdventure")
 		else:
 			var outcome := _node("RunOutcome")
@@ -94,6 +102,9 @@ func _run() -> void:
 			await _press("ReturnToGuild")
 			_check(scene.current_screen() == "guild" and scene.selected_recruits().is_empty(),
 				"Return to guild resets the company")
+			var guild_run: Dictionary = scene.get("_run")
+			_check(guild_run.get("upgrades_by_id", {}).is_empty() and guild_run.get("reward_offers", []).is_empty(),
+				"Return after victory clears outing rewards")
 			var returned := _node("AdventureSelect") as OptionButton
 			_check(returned != null and _has_id(returned, "first_outing"),
 				"Original outing remains selectable after return")

@@ -3,7 +3,10 @@ extends RefCounted
 const Actions = preload("res://rules/actions.gd")
 const Board = preload("res://rules/board.gd")
 const EncounterRandom = preload("res://rules/encounter_random.gd")
+const Shield = preload("res://rules/shield.gd")
 const Statuses = preload("res://rules/statuses.gd")
+const Summons = preload("res://rules/summons.gd")
+const Upgrades = preload("res://rules/upgrades.gd")
 
 
 static func decide(state: Dictionary, actor: Dictionary, behavior_id: String) -> Dictionary:
@@ -11,13 +14,24 @@ static func decide(state: Dictionary, actor: Dictionary, behavior_id: String) ->
 	var params: Dictionary = behavior.get("params", {})
 	match behavior.get("handler", ""):
 		"use_ability":
+			if not Shield.available(actor, params.ability):
+				return {"wait": "shield_away"}
 			return _action(params.ability)
 		"pursue":
+			if behavior_id == "advance" and actor.has("shield_position"):
+				if Shield.can_retrieve(actor):
+					return {"ability_id": params.move_ability, "retrieve_shield": true}
+				return _move(state, actor, params.move_ability, actor.shield_position, 1)
+			var heckler := Actions.heckler_target(state, actor, Actions.owned_ability(state, actor, params.ability))
+			if not heckler.is_empty():
+				return _action(params.ability, heckler.id)
 			var enemy := Board.nearest(actor, Board.occupants(state, {"teams": [params.team]}))
 			if not enemy.is_empty():
 				if _legal_target(state, actor, params.ability, enemy.id):
 					return _action(params.ability, enemy.id)
-				return _move(state, actor, params.move_ability, enemy.position, 1)
+				var ability := Actions.owned_ability(state, actor, params.ability)
+				var reach := int(ability.get("targeting", {}).get("range", 1))
+				return _move(state, actor, params.move_ability, enemy.position, reach)
 		"greet":
 			return _greet(state, actor, params)
 		"hook_and_seek":
@@ -38,29 +52,50 @@ static func decide(state: Dictionary, actor: Dictionary, behavior_id: String) ->
 			if state.objective.handler == "escort" and actor.id == state.objective.subject:
 				return _move(state, actor, params.move_ability, state.objective.destination, 0)
 		"retreat":
-			var enemies := Board.occupants(state, {"teams": [params.team]})
-			enemies.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.id < b.id)
-			var enemy := Board.nearest(actor, enemies)
-			if not enemy.is_empty():
-				var best: Vector2i = actor.position
-				var best_distance := Board.distance(best, enemy.position)
-				var best_alignment := -2147483647
-				for direction in Board.DIRECTIONS:
-					var position: Vector2i = actor.position + direction
-					var distance := Board.distance(position, enemy.position)
-					var away: Vector2i = actor.position - enemy.position
-					var alignment: int = direction.x * away.x + direction.y * away.y
-					if distance > Board.distance(actor.position, enemy.position) \
-							and (distance > best_distance or (distance == best_distance and alignment > best_alignment)) \
-							and Board.can_enter(state, position) \
-							and _legal_target(state, actor, params.move_ability, Board.cell_id(position)):
-						best = position
-						best_distance = distance
-						best_alignment = alignment
-				if best != actor.position:
-					return _action(params.move_ability, Board.cell_id(best))
-			return {"wait": "hold"}
+			return _retreat(state, actor, params)
 	return {}
+
+
+static func _retreat(state: Dictionary, actor: Dictionary, params: Dictionary) -> Dictionary:
+	var enemies := Board.occupants(state, {"teams": [params.team]})
+	if enemies.is_empty() or not Actions.can_move(state, actor):
+		return {"wait": "hold"}
+	enemies.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.id < b.id)
+	var origin: Vector2i = actor.position
+	var first := _retreat_step(state, actor, params.move_ability, enemies, origin, false)
+	if first == origin:
+		return {"wait": "hold"}
+	var intent := _action(params.move_ability, Board.cell_id(first))
+	if Upgrades.amount(state, actor, "exit_strategy") > 0:
+		var second := _retreat_step(state, actor, params.move_ability, enemies, first, true)
+		if second != first:
+			intent["retreat_second"] = second
+	return intent
+
+
+static func _retreat_step(state: Dictionary, actor: Dictionary, move_ability: String, enemies: Array,
+		start: Vector2i, second: bool) -> Vector2i:
+	var from := {"id": actor.id, "position": start}
+	var enemy := Board.nearest(from, enemies)
+	if enemy.is_empty():
+		return start
+	var best := start
+	var best_distance := Board.distance(start, enemy.position)
+	var best_alignment := -2147483647
+	for direction in Board.DIRECTIONS:
+		var position: Vector2i = start + direction
+		var threat := Board.nearest({"id": actor.id, "position": position}, enemies) if second else enemy
+		var distance := Board.distance(position, threat.position)
+		var away: Vector2i = start - enemy.position
+		var alignment: int = direction.x * away.x + direction.y * away.y
+		if distance > Board.distance(start, enemy.position) \
+				and (distance > best_distance or (distance == best_distance and alignment > best_alignment)) \
+				and Board.can_enter(state, position, actor.id) \
+				and (second or _legal_target(state, actor, move_ability, Board.cell_id(position))):
+			best = position
+			best_distance = distance
+			best_alignment = alignment
+	return best
 
 
 static func _hook_and_seek(state: Dictionary, actor: Dictionary, params: Dictionary) -> Dictionary:
@@ -93,36 +128,67 @@ static func _follow_party(state: Dictionary, actor: Dictionary, move_ability: St
 
 
 static func _greet(state: Dictionary, actor: Dictionary, params: Dictionary) -> Dictionary:
-	var enemy := Board.nearest(actor, Board.occupants(state, {"teams": [params.team]}))
+	var enemy := Summons.nominated_target(state, actor)
+	var opponents: Array = []
+	if enemy.is_empty():
+		opponents = Board.occupants(state, {"teams": [params.team]})
+		enemy = Board.nearest(actor, opponents)
 	if enemy.is_empty():
 		return {"wait": "hold"}
 	var reach: int = params.greeting_range
-	if Board.distance(actor.position, enemy.position) <= reach:
-		var options := _greeting_options(state, actor, params.greetings)
-		if not options.is_empty():
-			state.rng_state = EncounterRandom.step(state.rng_state)
-			return options[state.rng_state % options.size()]
+	var options := _greeting_options(state, actor, enemy, reach, params.greetings)
+	var distance := Board.distance(actor.position, enemy.position)
+	if options.is_empty() and distance > reach:
+		# Outside normal range, an equally near opponent may still be reachable
+		# by an upgraded greeting. A nomination never considers alternatives.
+		for opponent in opponents:
+			if opponent.id != enemy.id and Board.distance(actor.position, opponent.position) == distance:
+				options = _greeting_options(state, actor, opponent, reach, params.greetings)
+				if not options.is_empty():
+					break
+	if not options.is_empty():
+		state.rng_state = EncounterRandom.step(state.rng_state)
+		return options[state.rng_state % options.size()]
 	if Actions.targets(state, actor, params.move_ability).is_empty():
 		return {"wait": "cannot_advance"}
 	var start: Vector2i = actor.position
-	var step := _step_to_greet(state, actor, enemy.position, reach, params.greetings)
+	var step := _step_to_greet(state, actor, enemy, reach, params.greetings)
 	return _action(params.move_ability, Board.cell_id(step)) if step != start else {"wait": "cannot_advance"}
 
 
-static func _greeting_options(state: Dictionary, actor: Dictionary, greetings: Array) -> Array:
+static func _greeting_options(state: Dictionary, actor: Dictionary, opponent: Dictionary,
+		reach: int, greetings: Array) -> Array:
 	var options: Array = []
+	var distance := Board.distance(actor.position, opponent.position)
 	for id in greetings:
 		var ability := Actions.owned_ability(state, actor, id)
+		if distance > reach:
+			# Only the upgraded greeting can go beyond the usual pursuit radius.
+			if ability.get("handler") == "sweep" and Actions.extra_sweep_reaches(state, actor, opponent, id):
+				options.append(_action(id))
+			elif id == "offer_flower" and distance <= int(ability.get("targeting", {}).get("range", reach)) \
+					and Upgrades.amount(state, Summons.owner(state, actor), "long_stemmed") > 0:
+				for choice in Actions.targets(state, actor, id):
+					if choice.id == opponent.id:
+						options.append(_action(id, choice.id))
+						break
+			continue
 		if ability.targeting.kind == "entity":
-			var target := Board.nearest(actor, Actions.targets(state, actor, id))
+			var choices := Actions.targets(state, actor, id)
+			var nominated := Summons.nominated_target(state, actor)
+			var target := Board.nearest(actor, choices)
+			for choice in choices:
+				if choice.id == nominated.get("id"):
+					target = choice
+					break
 			if not target.is_empty():
 				options.append(_action(id, target.id))
-		elif not Actions.selection(state, actor, ability, "").is_empty():
+		elif not Actions.selection(state, actor, ability, "", id).is_empty():
 			options.append(_action(id))
 	return options
 
 
-static func _step_to_greet(state: Dictionary, actor: Dictionary, opponent: Vector2i, reach: int,
+static func _step_to_greet(state: Dictionary, actor: Dictionary, opponent: Dictionary, reach: int,
 		greetings: Array) -> Vector2i:
 	# Project only this actor onto potential destinations. Reuse actual targeting policy
 	# without advancing the RNG or modifying the running forecast.
@@ -131,13 +197,16 @@ static func _step_to_greet(state: Dictionary, actor: Dictionary, opponent: Vecto
 	projected.units = state.units.duplicate()
 	projected.units[state.units.find(actor)] = walker
 	return Board.step_to(state, actor.position, func(cell: Vector2i) -> bool:
-		if cell == actor.position or Board.distance(cell, opponent) > reach:
+		if cell == actor.position:
 			return false
 		walker.position = cell
-		return not _greeting_options(projected, walker, greetings).is_empty())
+		return not _greeting_options(projected, walker, opponent, reach, greetings).is_empty())
 
 
 static func _threat(state: Dictionary, actor: Dictionary, params: Dictionary) -> Dictionary:
+	var heckler := Actions.heckler_target(state, actor, Actions.owned_ability(state, actor, params.ability))
+	if not heckler.is_empty():
+		return _action(params.ability, heckler.id)
 	var target := Statuses.retarget(state, actor, params.taunt_status)
 	var candidates := Board.occupants(state, {"teams": params.fallback_teams})
 	if state.objective.handler != "escort":
@@ -182,11 +251,11 @@ static func _action(ability_id: String, target_id := "") -> Dictionary:
 
 static func _legal_target(state: Dictionary, actor: Dictionary, ability_id: String, target_id: String) -> bool:
 	var ability := Actions.owned_ability(state, actor, ability_id)
-	return not Actions.selection(state, actor, ability, target_id).is_empty()
+	return not Actions.selection(state, actor, ability, target_id, ability_id).is_empty()
 
 
 static func _move(state: Dictionary, actor: Dictionary, ability_id: String, goal: Vector2i, reach: int) -> Dictionary:
-	if Board.capable(state, actor, "mobile") and not Actions.owned_ability(state, actor, ability_id).is_empty():
+	if Actions.can_move(state, actor) and not Actions.owned_ability(state, actor, ability_id).is_empty():
 		var position := Board.step_toward(state, actor, goal, reach)
 		var id := Board.cell_id(position)
 		if position != actor.position and _legal_target(state, actor, ability_id, id):

@@ -171,6 +171,10 @@ func _exercise_transition_fixture() -> void:
 	for id in ["wizard", "knight", "alchemist"]:
 		await _press("Recruit_" + id)
 	await _press("StartAdventure")
+	var reward_rng := RandomNumberGenerator.new()
+	reward_rng.seed = 12345
+	var outing: Dictionary = scene.get("_run")
+	outing.reward_rng_state = reward_rng.state
 	if scene.current_screen() == "battle":
 		var order := _order_picker("alchemist")
 		if order != null:
@@ -189,11 +193,52 @@ func _exercise_transition_fixture() -> void:
 			"Debrief reports the wizard's recoil wound and carry")
 		await process_frame
 		_check(scene.current_screen() == "debrief", "Debrief waits for explicit continuation")
+		var reward := _node("Reward_knight") as BaseButton
+		_check(reward != null and reward.is_visible_in_tree(), "Knight has a visible reward offer")
+		_check(_node("Reward_wizard") != null and _node("Reward_alchemist") == null,
+			"Only eligible heroes have reward offers")
+		var continue_button := _node("ContinueAdventure") as BaseButton
+		_check(continue_button != null and continue_button.disabled, "Continuation requires one reward")
+		var offered_run: Dictionary = scene.get("_run")
+		_check(offered_run.get("phase") == "reward" and offered_run.get("reward_offers", []).size() == 2,
+			"Debrief offers one choice per eligible hero")
+		# A disabled continuation cannot bypass the choice through its public handler.
+		if continue_button != null:
+			_check(continue_button.disabled, "No unchosen reward can be bypassed")
+		if reward != null:
+			await _press("Reward_knight")
+			var chosen_run: Dictionary = scene.get("_run")
+			_check(chosen_run.get("phase") == "ready", "Selecting one reward completes the choice")
+			_check(_node("Reward_knight") == null and _node("Reward_wizard") == null,
+				"Claimed debrief exposes no second reward button")
+			var counts: Dictionary = chosen_run.get("upgrades_by_id", {})
+			var count := 0
+			for hero in counts:
+				for value in counts[hero].values():
+					count += int(value)
+			_check(count == 1 and counts.get("alchemist", {}).is_empty(), "Only one eligible hero gains a reward")
 		await _press("ContinueAdventure")
 		_check(scene.current_screen() == "battle", "Continue starts the second mission")
 		if scene.current_screen() == "battle":
 			var second: Dictionary = scene.battle_snapshot()
 			_check(second.get("mission_id") == "company_rescue", "Second mission is the rescue")
+			var run: Dictionary = scene.get("_run")
+			var knight_rewards: Dictionary = run.get("upgrades_by_id", {}).get("knight", {})
+			var loadout := _node("ShowLoadout") as BaseButton
+			_check(loadout != null and loadout.is_visible_in_tree(), "Battle shows outing upgrades control")
+			if loadout != null and not knight_rewards.is_empty():
+				var upgrade_id: String = knight_rewards.keys()[0]
+				var upgrade: Dictionary = defs.upgrades[upgrade_id]
+				await _press("ShowLoadout")
+				var dialog := _node("OutingLoadout") as Window
+				_check(dialog != null and dialog.visible, "Outing loadout opens")
+				if dialog != null:
+					var text := ""
+					for label in dialog.find_children("*", "Label", true, false):
+						text += str(label.text) + "\n"
+					_check(upgrade.label in text and upgrade.description in text and "Knight" in text,
+						"Loadout displays the claimed hero, reward and description")
+					dialog.hide()
 			var wizard_hp := -1
 			for unit in second.get("units", []):
 				if unit.get("id") == "wizard":
@@ -208,6 +253,9 @@ func _exercise_transition_fixture() -> void:
 				await _press("ReturnToGuild")
 				_check(scene.current_screen() == "guild" and scene.selected_recruits().is_empty(),
 					"Returning to guild resets the selection")
+				var guild_run: Dictionary = scene.get("_run")
+				_check(guild_run.get("upgrades_by_id", {}).is_empty() and guild_run.get("reward_offers", []).is_empty(),
+					"Returning after defeat clears rewards")
 	_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(path)) == OK,
 		"Temporary content fixture is removed")
 

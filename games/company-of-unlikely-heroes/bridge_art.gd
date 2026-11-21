@@ -73,10 +73,11 @@ static func _load_summon_texture(path: String) -> Texture2D:
 ## cells: Vector2i -> "stone", "bridge", "broken", "safe", "exit", "obstacle", or "water".
 ## An absent cell is scenery only. The canvas emits input for supplied cells; it never authorizes moves.
 ## units: {id, art_key, cell, hp, max_hp, prone}; optional facing (-1 left, 1 right),
-## guarded, objective, variant, label and color.
+## guarded, shield_away, objective, variant, label and color.
 ## overlay: selected/chosen_target/commanded (Vector2i), targets/impact/threat (arrays of Vector2i),
 ## paths (each an array of Vector2i), exit (Vector2i), safe (a set of Vector2i),
-## objective_zone (array of [x, y] pairs or Vector2i), obstacles (id, art_key, position, hp, max_hp).
+## objective_zone (array of [x, y] pairs or Vector2i), obstacles (id, art_key, position, hp, max_hp),
+## shields/forecast_shields (arrays of Vector2i).
 func set_render_state(cells: Dictionary, units: Array, overlay: Dictionary = {}) -> void:
 	_cells = cells.duplicate()
 	_units = units.duplicate(true)
@@ -213,6 +214,15 @@ func _draw() -> void:
 	for unit in occupants:
 		if _cells.has(unit.cell):
 			_draw_unit_marker(unit)
+	# Loose equipment is a tile marker, even when a unit occupies that tile.
+	for cell in _overlay.get("forecast_shields", []):
+		if _cells.has(cell):
+			_at(_tile_origin(cell))
+			_draw_shield_marker(true)
+	for cell in _overlay.get("shields", []):
+		if _cells.has(cell):
+			_at(_tile_origin(cell))
+			_draw_shield_marker(false)
 	if not _cells.is_empty():
 		_at(Vector2.ZERO)
 		_draw_coordinates()
@@ -468,6 +478,19 @@ func _brackets(color: Color, pad: float, weight: float) -> void:
 		_line(points, color, weight)
 
 
+func _draw_shield_marker(forecast: bool) -> void:
+	var center := Vector2(17, 27)
+	var shape := [center + Vector2(-8, -8), center + Vector2(8, -8),
+		center + Vector2(7, 1), center + Vector2(4, 6), center + Vector2(0, 9),
+		center + Vector2(-4, 6), center + Vector2(-7, 1)]
+	var fill := INK if forecast else AMBER
+	if forecast:
+		_piece(shape, fill, INK, 5.0)
+	_piece(shape, fill, AMBER if forecast else INK, 2.25)
+	if not forecast:
+		draw_circle(center - Vector2(0, 1), 2.5, INK, true, -1.0, true)
+
+
 func _draw_coordinates() -> void:
 	for column in range(_bounds.position.x, _bounds.end.x):
 		var x := _tile_origin(Vector2i(column, _bounds.position.y)).x + TILE.x * 0.5
@@ -509,7 +532,7 @@ func _draw_unit(unit: Dictionary) -> void:
 		_at(foot, 0.0, Vector2(facing * 0.90, 0.90))
 	match role:
 		"knight":
-			_knight()
+			_knight(not unit.get("shield_away", false))
 		"healer":
 			_healer()
 		"wizard":
@@ -575,7 +598,7 @@ func _draw_health(unit: Dictionary, prone: bool) -> void:
 		_caption("FALLEN" if hp == 0 else "DOWN", Vector2(85, 19), CORAL, 11)
 
 
-func _knight() -> void:
+func _knight(with_shield: bool) -> void:
 	var steel := Color("#969b8e")
 	var light := Color("#d1c39e")
 	var blue := Color("#4f6b70")
@@ -604,6 +627,12 @@ func _knight() -> void:
 	_line([Vector2(-1, -56), Vector2(3, -57), Vector2(5, -55)], INK, 1.15)
 	draw_circle(Vector2(3, -54), 0.9, INK, true, -1.0, true)
 	_line([Vector2(0, -49), Vector2(3, -51), Vector2(5, -50)], INK, 1.0)
+	if not with_shield:
+		_piece([Vector2(7, -43), Vector2(15, -43), Vector2(19, -33), Vector2(18, -25),
+			Vector2(22, -20), Vector2(20, -16), Vector2(14, -15), Vector2(10, -24), Vector2(8, -32)],
+			steel, INK, 1.7)
+		_line([Vector2(14, -23), Vector2(18, -24)], light, 1.2)
+		return
 	_piece([Vector2(2, -48), Vector2(15, -50), Vector2(30, -43), Vector2(27, -27),
 		Vector2(24, -17), Vector2(14, -9), Vector2(4, -16), Vector2(-2, -26), Vector2(-4, -40)],
 		brass, INK, 2.1)

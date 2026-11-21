@@ -1,6 +1,7 @@
 extends RefCounted
 
 const Catalog = preload("res://content/catalog.gd")
+const Upgrades = preload("res://rules/upgrades.gd")
 const DIRECTIONS := [Vector2i.RIGHT, Vector2i.DOWN, Vector2i.UP, Vector2i.LEFT]
 
 
@@ -15,6 +16,10 @@ static func entity(state: Dictionary, id: String) -> Dictionary:
 
 
 static func profile(state: Dictionary, subject: Dictionary) -> Dictionary:
+	return Upgrades.with_grants(state, subject, _base_profile(state, subject))
+
+
+static func _base_profile(state: Dictionary, subject: Dictionary) -> Dictionary:
 	if subject.has("character_id"):
 		return Catalog.profile(state.catalog.defs, subject.character_id)
 	if subject.has("object_id"):
@@ -23,17 +28,21 @@ static func profile(state: Dictionary, subject: Dictionary) -> Dictionary:
 
 
 static func capable(state: Dictionary, subject: Dictionary, capability: String) -> bool:
-	return capability in profile(state, subject).get("capabilities", [])
+	return capability in _base_profile(state, subject).get("capabilities", [])
 
 
 static func team(state: Dictionary, subject: Dictionary) -> String:
-	return profile(state, subject).get("team", "")
+	return _base_profile(state, subject).get("team", "")
+
+
+static func opponents(state: Dictionary, first: Dictionary, second: Dictionary) -> bool:
+	return second.has("character_id") and team(state, second) not in ["", "civilian", team(state, first)]
 
 
 static func display_name(state: Dictionary, subject: Dictionary) -> String:
-	var name: String = profile(state, subject).get("label", subject.get("id", ""))
+	var name: String = _base_profile(state, subject).get("label", subject.get("id", ""))
 	for other in state.units + state.obstacles:
-		if other.id != subject.get("id", "") and profile(state, other).get("label", "") == name:
+		if other.id != subject.get("id", "") and _base_profile(state, other).get("label", "") == name:
 			return "%s (%s)" % [name, subject.id]
 	return name
 
@@ -94,13 +103,13 @@ static func tile(state: Dictionary, position: Vector2i) -> Dictionary:
 	return state.catalog.defs.tiles[kind]
 
 
-static func _passable(state: Dictionary, position: Vector2i) -> bool:
+static func passable(state: Dictionary, position: Vector2i) -> bool:
 	return position.x >= 0 and position.y >= 0 and position.x < state.width and position.y < state.height \
 		and tile(state, position).passable
 
 
 static func can_enter(state: Dictionary, position: Vector2i, ignore := "") -> bool:
-	if not _passable(state, position):
+	if not passable(state, position):
 		return false
 	for candidate in state.units + state.obstacles:
 		if candidate.id != ignore and candidate.position == position and alive(candidate) \
@@ -110,7 +119,7 @@ static func can_enter(state: Dictionary, position: Vector2i, ignore := "") -> bo
 
 
 static func is_vacant(state: Dictionary, position: Vector2i) -> bool:
-	if not _passable(state, position):
+	if not passable(state, position):
 		return false
 	for candidate in state.units + state.obstacles:
 		if alive(candidate) and candidate.position == position:
@@ -131,7 +140,7 @@ static func occupants(state: Dictionary, filters: Dictionary) -> Array:
 
 
 static func _qualifies(state: Dictionary, subject: Dictionary, filters: Dictionary, ignore_team := false) -> bool:
-	var spec := profile(state, subject)
+	var spec := _base_profile(state, subject)
 	if not ignore_team and filters.has("teams") and spec.get("team", "") not in filters.teams:
 		return false
 	var capabilities: Array = spec.get("capabilities", [])

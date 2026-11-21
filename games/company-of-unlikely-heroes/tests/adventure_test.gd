@@ -22,7 +22,9 @@ func _initialize() -> void:
 		_test_deployment_and_override()
 		_test_pressure()
 		_test_invalid_transitions()
-		_test_controlled_carry_and_reset()
+		for seed_value in [1, 12345, 98765]:
+			_test_controlled_carry_and_reset(seed_value)
+		_test_controlled_carry_and_reset(12345, true)
 		_test_authored_patrol_route()
 		_test_authored_defeat()
 	if failures.is_empty():
@@ -38,8 +40,18 @@ func _check(condition: bool, message: String) -> void:
 		failures.append(message)
 
 
-func _start(picks: Array) -> Dictionary:
-	return adventure.call("start_adventure", defs, "first_outing", picks)
+func _start(picks: Array, reward_seed := 12345) -> Dictionary:
+	return adventure.call("start_adventure", defs, "first_outing", picks, reward_seed)
+
+
+func _choose_if_offered(run: Dictionary) -> Dictionary:
+	if run.get("phase") != "reward":
+		return run
+	var offers: Array = run.get("reward_offers", [])
+	if offers.is_empty() or not adventure.has_method("choose_reward"):
+		_check(false, "Reward transition provides a selectable offer")
+		return run
+	return adventure.call("choose_reward", run, offers[0].hero_id, offers[0].upgrade_id)
 
 
 func _entity(state: Dictionary, id: String) -> Dictionary:
@@ -164,9 +176,13 @@ func _test_invalid_transitions() -> void:
 
 ## Controlled transition fixture: stage terminal boards, then use real round
 ## commits. The authored-route test must independently play both missions.
-func _test_controlled_carry_and_reset() -> void:
+func _test_controlled_carry_and_reset(reward_seed: int, force_hp := false) -> void:
 	var picks := ["wizard", "healer", "knight"]
-	var ready := _start(picks)
+	var fixture := defs.duplicate(true)
+	if force_hp:
+		fixture.upgrades = {"wizard_spare_robes": defs.upgrades.wizard_spare_robes.duplicate(true)}
+		fixture.upgrades.wizard_spare_robes.amount = 2
+	var ready: Dictionary = adventure.call("start_adventure", fixture, "first_outing", picks, reward_seed)
 	if ready.is_empty():
 		_check(false, "Controlled transition company starts")
 		return
@@ -191,7 +207,10 @@ func _test_controlled_carry_and_reset() -> void:
 	_check(not _entity(terminal, picks[0]).get("statuses", {}).is_empty(),
 		"Controlled fixture carries a transient status into the victory")
 	_check(_entity(terminal, picks[1]).get("hp") == 3, "Controlled fixture contains a wounded survivor")
-	var settled: Dictionary = adventure.call("settle_mission", run, terminal)
+	var settled: Dictionary = _choose_if_offered(adventure.call("settle_mission", run, terminal))
+	if force_hp:
+		_check(settled.get("upgrades_by_id", {}).get("wizard", {}).get("wizard_spare_robes") == 1,
+			"Controlled wounded wizard claims the maximum-HP reward")
 	_check(settled.get("phase") == "ready" and settled.get("mission_index") == 1,
 		"First victory advances exactly once")
 	if settled.get("phase") != "ready":
@@ -228,8 +247,17 @@ func _test_controlled_carry_and_reset() -> void:
 		var id: String = picks[index]
 		_check(next.units[index].id == id, "Next mission preserves chosen turn order")
 		_check(_entity(next, id).get("statuses", {}).is_empty(), "Next mission clears transient status for " + id)
-		_check(_entity(next, id).get("hp") == settled.carry_by_id[id].hp,
-			"Next mission deploys carried HP for " + id)
+		var carried: Dictionary = settled.carry_by_id[id]
+		var bonus := 0
+		for upgrade_id in settled.get("upgrades_by_id", {}).get(id, {}):
+			var upgrade: Dictionary = fixture.upgrades[upgrade_id]
+			if upgrade.get("effect") == "max_hp":
+				bonus += int(upgrade.amount) * int(settled.upgrades_by_id[id][upgrade_id])
+		var next_hero := _entity(next, id)
+		_check(next_hero.get("max_hp") == carried.max_hp + bonus,
+			"Next mission applies the selected maximum HP gain for " + id)
+		_check(next_hero.get("max_hp") - next_hero.get("hp") == carried.max_hp - carried.hp,
+			"Next mission preserves carried missing HP for " + id)
 	_check(adventure.call("settle_mission", second, terminal) == second,
 		"Cannot reuse a previous mission's terminal result")
 	var last := next.duplicate(true)
@@ -317,7 +345,7 @@ func _test_authored_patrol_route() -> void:
 		if terminal.get("outcome") != "victory":
 			continue
 		_check(route_hostile_attack, label + ": patrol victory survives an actual hostile attack")
-		var ready: Dictionary = adventure.call("settle_mission", run, terminal)
+		var ready: Dictionary = _choose_if_offered(adventure.call("settle_mission", run, terminal))
 		_check(ready.get("phase") == "ready" and ready.get("mission_index") == 1,
 			label + ": patrol opens the second mission")
 		if ready.get("phase") != "ready":
@@ -356,7 +384,7 @@ func _test_authored_defeat() -> void:
 	], "victory", "Authored defeat route patrol")
 	if patrol.get("outcome") != "victory":
 		return
-	var ready: Dictionary = adventure.call("settle_mission", first, patrol)
+	var ready: Dictionary = _choose_if_offered(adventure.call("settle_mission", first, patrol))
 	var second: Dictionary = adventure.call("begin_mission", ready)
 	var state: Dictionary = second.get("mission", {}).duplicate(true)
 	if state.is_empty():

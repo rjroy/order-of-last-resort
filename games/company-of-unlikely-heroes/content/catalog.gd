@@ -2,6 +2,7 @@ extends RefCounted
 ## Reads authored JSON and builds independent encounters without embedding definitions in snapshots.
 
 const DEFAULT_PATH := "res://content/catalog.json"
+const Rewards = preload("res://rewards.gd")
 const TABLES := ["missions", "encounters", "boards", "tiles", "classes", "characters",
 	"capabilities", "objects", "abilities", "orders", "behaviors", "statuses", "events", "presentation"]
 const REQUIRED_EVENTS := ["move", "damage", "knockdown_suffix", "reflect_absorb", "reflect_redirect",
@@ -13,13 +14,27 @@ const ABILITY_TARGETING := {
 	"blast": ["entity", "automatic"], "pull": ["entity", "automatic"], "attack": ["entity", "automatic"],
 	"swap_furthest": ["automatic"], "misdirect": ["entity"],
 	"summon": ["cell", "entity"], "sweep": ["none"], "repel": ["automatic"], "stop_target": ["automatic"],
-	"perform": ["automatic"], "hook": ["entity", "automatic"],
+	"perform": ["automatic"], "hook": ["entity", "automatic"], "nominate": ["entity"],
 }
 const ABILITY_EVENTS := {"swap_furthest": ["swap"], "misdirect": ["misdirect_mark"],
 	"sweep": ["sweep"], "stop_target": ["stop_target"], "repel": ["repel"],
 	"perform": ["performance_dry"], "hook": ["hook_pull"]}
 const STATUS_EXPIRY := {"reflect": "actor_turn_start", "skip_action": "consume_action",
 	"retarget": "actor_turn_end", "misdirect": "consume_attack", "stop_move": "actor_turn_end"}
+const REWARD_EFFECTS := ["max_hp", "shield_damage", "dig_in", "shield_throw", "wide_guard",
+	"bonk_damage", "heal_amount", "long_staff", "strong_swing", "me_or_you",
+	"blast_damage", "padded_landing", "demolition_practice", "duck", "braced_casting", "parting_gift", "conductive_personality",
+	"cheap_shot", "exit_strategy", "borrowed_courage", "pass_the_buck", "pocket_sand", "long_finger", "body_double",
+	"sonnet_damage", "buskers_hat", "front_row_seats", "laughing_fit", "heckler", "house_lights",
+	"spare_ribs", "good_soil", "heavy_bouquet", "broad_wave", "long_stemmed", "warm_welcome",
+	"say_hello_to_that_one", "wake_reception"]
+const REWARD_FIELDS := ["hero_id", "rarity", "cap", "label", "description", "effect", "amount",
+	"ability", "order", "behavior"]
+const REWARD_GRANTS := {
+	"shield_throw": {"ability": "knight_shield_throw", "handler": "attack", "kind": "entity"},
+	"house_lights": {"ability": "bard_take_the_stage", "handler": "perform", "kind": "automatic"},
+	"say_hello_to_that_one": {"ability": "necromancer_say_hello_to_that_one", "handler": "nominate", "kind": "entity"}
+}
 
 
 class FrozenCatalog extends RefCounted:
@@ -251,6 +266,17 @@ class Validator:
 			for id in adventures:
 				_text(str(id), "adventures ID")
 				_check_adventure(_dictionary(adventures[id], "adventures." + str(id)), "adventures." + str(id))
+		if _defs.has("reward_weights"):
+			_check_reward_weights(_dictionary(_defs.reward_weights, "reward_weights"))
+		if _defs.has("upgrades"):
+			var upgrades := _dictionary(_defs.upgrades, "upgrades")
+			for id in upgrades:
+				var path := "upgrades." + str(id)
+				_text(str(id), path)
+				if upgrades[id] is Dictionary:
+					_check_reward(upgrades[id], path)
+				else:
+					_error(path, "expected a dictionary")
 		return _errors
 
 	func _check_json_shape(value: Variant, path: String, ancestors: Array) -> void:
@@ -329,6 +355,8 @@ class Validator:
 			_check_target_filters(targeting, path + ".targeting")
 		var params := _dictionary(ability.get("params"), path + ".params")
 		var param_path := path + ".params."
+		if params.has("damage_ability") and handler != "perform":
+			_error(param_path + "damage_ability", "requires the perform handler")
 		if params.has("prefer_wounded_self"):
 			_boolean(params.prefer_wounded_self, param_path + "prefer_wounded_self")
 			if handler != "heal" or targeting.get("kind") != "automatic":
@@ -379,17 +407,36 @@ class Validator:
 				if _ref(status, "statuses", param_path + "status") and not is_same(_defs.statuses[status].get("handler"), "stop_move"):
 					_error(param_path + "status", "status must use the stop_move handler")
 			"perform":
+				_check_performance(params, targeting, path)
+			"nominate":
 				if is_same(targeting.get("objects"), true):
-					_error(path + ".targeting.objects", "perform only targets living opponents")
-				if params.has("status"):
-					if params.has("damage"):
-						_error(param_path + "damage", "perform accepts either damage or status, not both")
-					_ref(params.status, "statuses", param_path + "status")
-				else:
-					_integer(params.get("damage"), param_path + "damage", 1)
-				_ref(params.get("listener_event"), "events", param_path + "listener_event")
+					_error(path + ".targeting.objects", "nominate only targets living opponents")
 		if handler in ["bonk", "blast", "attack"] and params.has("source_suffix"):
 			_text(params.source_suffix, param_path + "source_suffix", true)
+
+	func _check_performance(params: Dictionary, targeting: Dictionary, path: String) -> void:
+		if is_same(targeting.get("objects"), true):
+			_error(path + ".targeting.objects", "perform only targets living opponents")
+		var param_path := path + ".params."
+		if params.has("status"):
+			for field in ["damage", "damage_ability"]:
+				if params.has(field):
+					_error(param_path + field, "a status performance cannot also deal damage")
+			_ref(params.status, "statuses", param_path + "status")
+		elif params.has("damage_ability"):
+			if params.has("damage"):
+				_error(param_path + "damage", "cannot specify damage when using damage_ability")
+			var source: Variant = params.damage_ability
+			if _ref(source, "abilities", param_path + "damage_ability"):
+				var spec: Dictionary = _defs.abilities[source]
+				var source_params: Variant = spec.get("params")
+				if not is_same(spec.get("handler"), "perform") or not source_params is Dictionary \
+						or source_params.has("status") or source_params.has("damage_ability") \
+						or not _is_integer(source_params.get("damage"), 1):
+					_error(param_path + "damage_ability", "must refer to a performance with its own damage")
+		else:
+			_integer(params.get("damage"), param_path + "damage", 1)
+		_ref(params.get("listener_event"), "events", param_path + "listener_event")
 
 	func _check_target_filters(filters: Dictionary, path: String) -> void:
 		if filters.has("teams"):
@@ -761,6 +808,274 @@ class Validator:
 				for placement in placements:
 					if placement is Dictionary and placement.get("id") in roster:
 						_error(path + ".missions", "mission '%s' placement collides with roster ID" % id)
+
+	func _check_reward_weights(weights: Dictionary) -> void:
+		var total := 0
+		for tier in Rewards.DEFAULT_WEIGHTS:
+			var weight: Variant = weights.get(tier)
+			var path := "reward_weights." + str(tier)
+			_integer(weight, path, 1)
+			if _is_integer(weight, 1):
+				total += int(weight)
+		for tier in weights:
+			if not Rewards.DEFAULT_WEIGHTS.has(tier):
+				_error("reward_weights." + str(tier), "unknown rarity")
+		if total > 2147483647:
+			_error("reward_weights", "sum of rarity weights cannot exceed 2147483647")
+
+	func _check_reward(upgrade: Dictionary, path: String) -> void:
+		for field in upgrade:
+			if field not in REWARD_FIELDS:
+				_error(path + "." + str(field), "unknown upgrade field")
+		var id: Variant = upgrade.get("hero_id")
+		var profile: Dictionary = {}
+		if _ref(id, "characters", path + ".hero_id"):
+			profile = _effective_profile(_defs.characters[id])
+			var capabilities: Variant = profile.get("capabilities")
+			if not is_same(profile.get("team"), "heroes") or not capabilities is Array \
+					or "commandable" not in capabilities or "minion" in capabilities:
+				_error(path + ".hero_id", "character must be a commandable hero, not a minion")
+		_choice(upgrade.get("rarity"), Rewards.DEFAULT_WEIGHTS.keys(), path + ".rarity")
+		_integer(upgrade.get("cap"), path + ".cap", 1)
+		_integer(upgrade.get("amount"), path + ".amount", 1)
+		_text(upgrade.get("label"), path + ".label")
+		_text(upgrade.get("description"), path + ".description")
+		var effect: Variant = upgrade.get("effect")
+		if _choice(effect, REWARD_EFFECTS, path + ".effect"):
+			_check_reward_grants(upgrade, profile, path, effect)
+			if not profile.is_empty():
+				_check_reward_kit(effect, str(id), profile, path + ".effect")
+
+	func _check_reward_grants(upgrade: Dictionary, profile: Dictionary, path: String, effect: String) -> void:
+		var grant: Dictionary = REWARD_GRANTS.get(effect, {})
+		var ability: Variant = upgrade.get("ability")
+		if not grant.is_empty():
+			if _ref(ability, "abilities", path + ".ability"):
+				var spec: Dictionary = _defs.abilities[ability]
+				var targeting: Variant = spec.get("targeting")
+				if ability != grant.ability or not is_same(spec.get("handler"), grant.handler) \
+						or not targeting is Dictionary or not is_same(targeting.get("kind"), grant.kind):
+					_error(path + ".ability", "expected '%s' with %s targeting and the %s handler" % [
+						grant.ability, grant.kind, grant.handler])
+				if effect == "shield_throw":
+					if not targeting is Dictionary or not _is_integer(targeting.get("range"), 1):
+						_error(path + ".ability", "Shield Throw requires a finite positive targeting range")
+				var params: Variant = spec.get("params")
+				if effect == "house_lights" and (not params is Dictionary
+						or not is_same(params.get("damage_ability"), "healing_sonnet")):
+					_error(path + ".ability", "House Lights must use healing_sonnet as its damage_ability")
+				var abilities: Variant = profile.get("abilities")
+				if abilities is Array and ability in abilities:
+					_error(path + ".ability", "ability is already in the hero's base kit")
+		elif upgrade.has("ability"):
+			_error(path + ".ability", "effect does not grant an ability")
+
+		if effect != "house_lights":
+			for field in ["order", "behavior"]:
+				if upgrade.has(field):
+					_error(path + "." + field, "effect does not grant a standing order")
+			return
+
+		var order: Variant = upgrade.get("order")
+		if _ref(order, "orders", path + ".order"):
+			var habits: Variant = profile.get("habits")
+			if habits is Dictionary and habits.has(order):
+				_error(path + ".order", "order is already in the hero's base habits")
+		var behavior: Variant = upgrade.get("behavior")
+		if _ref(behavior, "behaviors", path + ".behavior"):
+			var spec: Dictionary = _defs.behaviors[behavior]
+			var params: Variant = spec.get("params")
+			if not is_same(spec.get("handler"), "use_ability") or not params is Dictionary \
+					or not is_same(params.get("ability"), grant.ability):
+				_error(path + ".behavior", "expected use_ability with '%s'" % grant.ability)
+
+	func _check_reward_kit(effect: String, hero_id: String, hero: Dictionary, path: String) -> void:
+		var damage_handlers := ["bonk", "blast", "attack"]
+		match effect:
+			"dig_in", "wide_guard":
+				_require_reward(_kit_has_status(hero, "apply_status", "reflect"), path,
+					"the hero to be able to apply a reflecting guard")
+				if effect == "dig_in":
+					_require_reward(_has_capability(hero, "pullable"), path, "a pullable hero for Dig In")
+			"shield_damage":
+				_require_reward(_kit_has_status(hero, "apply_status", "reflect") \
+					or not _kit_ability(hero, "knight_shield_throw", ["attack"]).is_empty() \
+					or _has_shield_throw_reward(hero_id), path, "reflecting guard or access to knight_shield_throw")
+			"shield_throw":
+				_require_reward(_has_capability(hero, "mobile") and _kit_has_handler(hero, "move"), path,
+					"a mobile hero with a Move ability to retrieve the shield")
+			"bonk_damage", "long_staff", "strong_swing":
+				var bonk := _kit_ability(hero, "healer_bonk", damage_handlers)
+				_require_reward(not bonk.is_empty(), path, "healer_bonk in the hero's ability kit")
+				if effect == "long_staff" and not bonk.is_empty():
+					_require_reward(_has_finite_range(bonk), path, "healer_bonk to have a finite positive range")
+			"heal_amount", "me_or_you":
+				var heal := _kit_ability(hero, "healer_heal", ["heal"])
+				_require_reward(not heal.is_empty(), path, "healer_heal in the hero's ability kit")
+				if effect == "me_or_you" and not heal.is_empty():
+					_require_reward(is_same(_record(heal, "targeting").get("kind"), "automatic") \
+						and is_same(_record(heal, "params").get("prefer_wounded_self"), true) \
+						and _has_capability(hero, "healable"), path, "healer_heal to support wounded self-healing")
+			"blast_damage", "demolition_practice", "duck", "parting_gift", "conductive_personality":
+				var blast := _kit_ability(hero, "wizard_blast", damage_handlers)
+				_require_reward(not blast.is_empty(), path, "wizard_blast in the hero's ability kit")
+				if not blast.is_empty() and effect == "demolition_practice":
+					_require_reward(is_same(_record(blast, "targeting").get("objects"), true), path,
+						"wizard_blast to target obstacles")
+				if not blast.is_empty() and effect == "duck":
+					_require_reward(_knocks_down(blast), path, "wizard_blast to knock down its target")
+			"padded_landing", "braced_casting":
+				var pull := _kit_ability(hero, "wizard_pull", ["pull"])
+				_require_reward(_has_capability(hero, "mobile") and not pull.is_empty(), path,
+					"a mobile hero with wizard_pull")
+				if effect == "braced_casting" and not pull.is_empty():
+					_require_reward(_knocks_down(pull), path, "wizard_pull to knock down the caster in recoil")
+			"cheap_shot", "long_finger":
+				_require_reward(_kit_has_handler(hero, "misdirect"), path, "a misdirect ability in the hero's kit")
+			"exit_strategy":
+				_require_reward(_has_capability(hero, "mobile") and not _kit_behavior(hero, "retreat").is_empty(),
+					path, "a mobile hero with a retreat behavior")
+			"borrowed_courage", "pass_the_buck", "pocket_sand", "body_double":
+				_require_reward(_kit_has_handler(hero, "swap_furthest"), path, "a swap_furthest ability in the hero's kit")
+				if effect == "pocket_sand":
+					_require_reward(is_same(_defs.statuses.get("held_in_place", {}).get("handler"), "stop_move"),
+						path, "statuses.held_in_place with the stop_move handler")
+				if effect == "pass_the_buck":
+					_require_reward(_defs.abilities.values().any(func(ability: Dictionary) -> bool:
+						return is_same(ability.get("handler"), "misdirect")), path, "an authored ability able to mark an opponent")
+			"sonnet_damage", "front_row_seats", "heckler":
+				var sonnet := _kit_ability(hero, "healing_sonnet", ["perform"])
+				var params := _record(sonnet, "params")
+				_require_reward(not sonnet.is_empty() and not params.has("status") \
+					and (_is_integer(params.get("damage"), 1) or params.has("damage_ability")), path,
+					"healing_sonnet as a damage performance in the hero's ability kit")
+			"buskers_hat":
+				_require_reward(not _kit_ability(hero, "inspiring_melody", ["perform"]).is_empty(), path,
+					"inspiring_melody in the hero's ability kit")
+			"laughing_fit":
+				_require_reward(_kit_has_status(hero, "", "skip_action", "laugh_skip"), path,
+					"an ability that makes opponents skip a turn with the laugh_skip event")
+			"spare_ribs", "good_soil", "broad_wave", "heavy_bouquet", "long_stemmed", "warm_welcome", \
+			"say_hello_to_that_one", "wake_reception":
+				_check_summon_reward(effect, hero, path)
+
+	func _check_summon_reward(effect: String, hero: Dictionary, path: String) -> void:
+		var skeletons := _kit_summons(hero, "cell", "skeleton")
+		var zombies := _kit_summons(hero, "entity", "zombie")
+		var skeleton := _reward_profile("skeleton")
+		var zombie := _reward_profile("zombie")
+		match effect:
+			"spare_ribs", "broad_wave":
+				_require_reward(not skeletons.is_empty(), path, "a cell summon for the skeleton in the hero's kit")
+				if effect == "broad_wave":
+					_require_reward(_kit_has_handler(skeleton, "sweep"), path, "a sweep ability in the skeleton's kit")
+			"good_soil":
+				_require_reward(not _kit_summons(hero, "entity").is_empty(), path, "a corpse-raising ability in the hero's kit")
+			"heavy_bouquet", "long_stemmed", "warm_welcome":
+				_require_reward(not zombies.is_empty(), path, "a corpse summon for the zombie in the hero's kit")
+				if effect == "warm_welcome":
+					_require_reward(_kit_has_handler(zombie, "repel"), path, "a repel ability in the zombie's kit")
+				else:
+					var flower := _kit_ability(zombie, "offer_flower", ["attack", "bonk", "blast"])
+					_require_reward(not flower.is_empty(), path, "offer_flower in the zombie's ability kit")
+					if effect == "long_stemmed" and not flower.is_empty():
+						_require_reward(_has_finite_range(flower), path, "offer_flower to have a finite positive range")
+						var greet := _kit_behavior(zombie, "greet")
+						var greetings: Variant = _record(greet, "params").get("greetings")
+						_require_reward(greetings is Array and "offer_flower" in greetings, path,
+							"the zombie to use offer_flower in its greeting behavior")
+			"say_hello_to_that_one":
+				_require_reward(_has_greeting_summon(hero), path, "a summon with a greet behavior to pursue the nominee")
+			"wake_reception":
+				_require_reward(not zombies.is_empty(), path, "a corpse summon for the zombie in the hero's kit")
+				_require_reward("summon_skeleton" in skeletons, path,
+					"summon_skeleton in the hero's kit as a cell summon for the skeleton")
+
+	func _require_reward(valid: bool, path: String, requirement: String) -> void:
+		if not valid:
+			_error(path, "requires " + requirement)
+
+	func _record(parent: Dictionary, field: String) -> Dictionary:
+		var value: Variant = parent.get(field)
+		return value if value is Dictionary else {}
+
+	func _reward_profile(id: String) -> Dictionary:
+		return _effective_profile(_defs.characters[id]) if _defs.characters.has(id) else {}
+
+	func _has_capability(profile: Dictionary, id: String) -> bool:
+		var kit: Variant = profile.get("capabilities")
+		return kit is Array and id in kit
+
+	func _kit_ability(profile: Dictionary, id: String, handlers: Array) -> Dictionary:
+		var kit: Variant = profile.get("abilities")
+		var ability: Dictionary = _defs.abilities.get(id, {})
+		return ability if kit is Array and id in kit and ability.get("handler") in handlers else {}
+
+	func _kit_has_handler(profile: Dictionary, handler: String) -> bool:
+		var kit: Variant = profile.get("abilities")
+		return kit is Array and kit.any(func(id: Variant) -> bool:
+			return is_same(_defs.abilities.get(id, {}).get("handler"), handler))
+
+	func _kit_has_status(profile: Dictionary, ability_handler: String, status_handler: String,
+			skip_event := "") -> bool:
+		var kit: Variant = profile.get("abilities")
+		if not kit is Array:
+			return false
+		for id in kit:
+			var ability: Dictionary = _defs.abilities.get(id, {})
+			if not ability_handler.is_empty() and not is_same(ability.get("handler"), ability_handler):
+				continue
+			var status := _ability_status(ability)
+			if is_same(status.get("handler"), status_handler) and (skip_event.is_empty() \
+					or is_same(_record(status, "params").get("skip_event"), skip_event)):
+				return true
+		return false
+
+	func _ability_status(ability: Dictionary) -> Dictionary:
+		return _defs.statuses.get(_record(ability, "params").get("status"), {})
+
+	func _knocks_down(ability: Dictionary) -> bool:
+		var status := _ability_status(ability)
+		return is_same(status.get("handler"), "skip_action") \
+			and is_same(_record(status, "params").get("skip_event", "recover"), "recover")
+
+	func _has_finite_range(ability: Dictionary) -> bool:
+		return _is_integer(_record(ability, "targeting").get("range"), 1)
+
+	func _kit_behavior(profile: Dictionary, handler: String) -> Dictionary:
+		var ids := _record(profile, "habits").values()
+		ids.append(profile.get("behavior"))
+		for id in ids:
+			var behavior: Dictionary = _defs.behaviors.get(id, {})
+			if is_same(behavior.get("handler"), handler):
+				return behavior
+		return {}
+
+	func _has_shield_throw_reward(hero_id: String) -> bool:
+		for value in _defs.upgrades.values():
+			if value is Dictionary and is_same(value.get("hero_id"), hero_id) \
+					and is_same(value.get("effect"), "shield_throw"):
+				return true
+		return false
+
+	func _kit_summons(profile: Dictionary, kind := "", character := "") -> Array:
+		var result: Array = []
+		var kit: Variant = profile.get("abilities")
+		if kit is Array:
+			for id in kit:
+				var ability: Dictionary = _defs.abilities.get(id, {})
+				if is_same(ability.get("handler"), "summon") \
+						and (kind.is_empty() or is_same(_record(ability, "targeting").get("kind"), kind)) \
+						and (character.is_empty() or is_same(_record(ability, "params").get("character"), character)):
+					result.append(id)
+		return result
+
+	func _has_greeting_summon(profile: Dictionary) -> bool:
+		for id in _kit_summons(profile):
+			var character: Variant = _record(_defs.abilities[id], "params").get("character")
+			if character is String and not _kit_behavior(_reward_profile(character), "greet").is_empty():
+				return true
+		return false
 
 	func _terrain_index(board: Dictionary) -> Dictionary:
 		var result: Dictionary = {}

@@ -34,6 +34,17 @@ func _check(ok: bool, message: String) -> void:
 		failures.append(message)
 
 
+func _choose_if_offered(run: Dictionary) -> Dictionary:
+	if run.get("phase") != "reward":
+		return run
+	var offers: Array = run.get("reward_offers", [])
+	var script: Script = load("res://adventure.gd")
+	if offers.is_empty() or not script.has_method("choose_reward"):
+		_check(false, "Reward transition provides a selectable offer")
+		return run
+	return script.call("choose_reward", run, offers[0].hero_id, offers[0].upgrade_id)
+
+
 func _entity(state: Dictionary, id: String) -> Dictionary:
 	for unit in state.get("units", []):
 		if unit.get("id") == id:
@@ -108,7 +119,7 @@ func _test_openings() -> void:
 
 func _test_sequence() -> void:
 	var party := ["healer", "knight", "bard"]
-	var run: Dictionary = Adventure.start_adventure(defs, "village_troubles", party)
+	var run: Dictionary = Adventure.start_adventure(defs, "village_troubles", party, 12345)
 	if run.is_empty():
 		return
 	for index in range(MISSIONS.size()):
@@ -133,7 +144,7 @@ func _test_sequence() -> void:
 		if result.is_empty() or result.state.get("outcome") != "victory":
 			_check(false, "Sequence mission %d commits victory" % (index + 1))
 			return
-		run = Adventure.settle_mission(run, result.state)
+		run = _choose_if_offered(Adventure.settle_mission(run, result.state))
 		if index < 2:
 			_check(run.get("phase") == "ready" and run.get("mission_index") == index + 1,
 				"Victory advances exactly one mission")
@@ -148,7 +159,7 @@ func _test_persistent_sonnet_on_troll() -> void:
 	_check("bard" in party, "The guest mission's default company includes Bard")
 	if "bard" not in party:
 		return
-	var run: Dictionary = Adventure.start_adventure(defs, "village_troubles", party)
+	var run: Dictionary = Adventure.start_adventure(defs, "village_troubles", party, 12345)
 	_check(not run.is_empty(), "Sonnet carry company starts")
 	if run.is_empty():
 		return
@@ -171,7 +182,7 @@ func _test_persistent_sonnet_on_troll() -> void:
 		if result.is_empty() or result.state.get("outcome") != "victory":
 			_check(false, "Sonnet carry mission commits victory")
 			return
-		run = Adventure.settle_mission(run, result.state)
+		run = _choose_if_offered(Adventure.settle_mission(run, result.state))
 		_check(run.get("phase") == "ready"
 			and run.get("carry_by_id", {}).get("bard", {}).get("order") == "order_healing_sonnet",
 			"Sonnet remains active between missions")

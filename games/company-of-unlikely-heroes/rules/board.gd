@@ -51,6 +51,19 @@ static func alive(subject: Dictionary) -> bool:
 	return subject.get("hp", 0) > 0
 
 
+## Fixed regression missions use commandable actors in place of a selected party.
+static func deployed_hero(state: Dictionary, subject: Dictionary) -> bool:
+	return subject.id in state.party if state.has("party") \
+		else capable(state, subject, "commandable")
+
+
+static func living_character_at(state: Dictionary, position: Vector2i) -> bool:
+	for unit in state.units:
+		if unit.position == position and alive(unit):
+			return true
+	return false
+
+
 static func corpses(state: Dictionary, filters: Dictionary) -> Array:
 	var result: Array = []
 	for unit in state.units:
@@ -95,12 +108,33 @@ static func in_zone(state: Dictionary, zone_id: String, position: Vector2i) -> b
 
 
 static func tile(state: Dictionary, position: Vector2i) -> Dictionary:
-	var kind: String = state.default_tile
+	var entry := _terrain_at(state, position)
+	var definition: Dictionary = state.catalog.defs.tiles[entry.get("type", state.default_tile)]
+	var objective: Dictionary = state.get("objective", {})
+	if objective.get("handler") == "pressure_gate" and objective.gate == position:
+		definition = definition.duplicate()
+		definition["passable"] = pressure_gate_open(state)
+	return definition
+
+
+static func pressure_gate_open(state: Dictionary) -> bool:
+	var objective: Dictionary = state.get("objective", {})
+	return objective.get("handler") == "pressure_gate" and living_character_at(state, objective.plate)
+
+
+static func set_tile(state: Dictionary, position: Vector2i, kind: String) -> void:
+	var entry := _terrain_at(state, position)
+	if entry.is_empty():
+		state.terrain.append({"position": position, "type": kind})
+	else:
+		entry.type = kind
+
+
+static func _terrain_at(state: Dictionary, position: Vector2i) -> Dictionary:
 	for entry in state.terrain:
 		if entry.position == position:
-			kind = entry.type
-			break
-	return state.catalog.defs.tiles[kind]
+			return entry
+	return {}
 
 
 static func passable(state: Dictionary, position: Vector2i) -> bool:

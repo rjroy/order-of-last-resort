@@ -4,6 +4,9 @@
     "rewards.json",
     "first_outing.json",
     "village_troubles.json",
-    "fixed_fixtures.json"
+    "fixed_fixtures.json",
+    "frontier_combats.json",
+    "frontier_objectives.json",
+    "frontier_outings.json"
   ]
 }

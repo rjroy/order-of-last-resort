@@ -1,0 +1,40 @@
+{
+  "adventures": {
+    "powder_run": {
+      "label": "Powder Run",
+      "roster": [
+        "knight",
+        "healer",
+        "wizard",
+        "alchemist",
+        "rogue",
+        "necromancer",
+        "bard"
+      ],
+      "missions": [
+        "explosive_situation",
+        "bridge_is_out",
+        "last_wagon"
+      ],
+      "party_size": 3
+    },
+    "fairground_fracas": {
+      "label": "Fairground Fracas",
+      "roster": [
+        "knight",
+        "healer",
+        "wizard",
+        "alchemist",
+        "rogue",
+        "necromancer",
+        "bard"
+      ],
+      "missions": [
+        "duelists",
+        "great_sheep_escape",
+        "odd_couple"
+      ],
+      "party_size": 3
+    }
+  }
+}

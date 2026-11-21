@@ -1,0 +1,391 @@
+{
+  "missions": {
+    "explosive_situation": {
+      "title": "The Explosive Situation",
+      "encounter": "frontier_explosive_situation",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. When a Bomber dies, it deals 2 damage to every adjacent living character, friend or foe. Bombers can set each other off.",
+        "victory_text": "The company wins the fight.",
+        "defeat_text": "The company falls.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ],
+      "tier": 2
+    },
+    "duelists": {
+      "title": "The Duelists",
+      "encounter": "frontier_duelists",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. A surviving Duelist deals 1 damage back to a living attacker still adjacent after a damaging action. Attack from range or move them apart.",
+        "victory_text": "The company wins the fight.",
+        "defeat_text": "The company falls.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ],
+      "tier": 2
+    },
+    "odd_couple": {
+      "title": "The Odd Couple",
+      "encounter": "frontier_odd_couple",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. The Trickster can swap places with the Ogre once per battle. The Ogre is slow but hits hard.",
+        "victory_text": "The company wins the fight.",
+        "defeat_text": "The company falls.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ],
+      "tier": 2
+    }
+  },
+  "encounters": {
+    "frontier_explosive_situation": {
+      "board": "frontier_field",
+      "party_slots": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "bomber_1",
+          "character": "bomber",
+          "at": [
+            4,
+            1
+          ]
+        },
+        {
+          "id": "bomber_2",
+          "character": "bomber",
+          "at": [
+            4,
+            2
+          ]
+        },
+        {
+          "id": "harpooner_3",
+          "character": "harpooner",
+          "at": [
+            5,
+            3
+          ]
+        }
+      ]
+    },
+    "frontier_duelists": {
+      "board": "frontier_field",
+      "party_slots": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "duelist_1",
+          "character": "duelist",
+          "at": [
+            4,
+            1
+          ]
+        },
+        {
+          "id": "duelist_2",
+          "character": "duelist",
+          "at": [
+            4,
+            3
+          ]
+        }
+      ]
+    },
+    "frontier_odd_couple": {
+      "board": "frontier_field",
+      "party_slots": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "ogre_1",
+          "character": "ogre",
+          "at": [
+            4,
+            2
+          ]
+        },
+        {
+          "id": "trickster_2",
+          "character": "trickster",
+          "at": [
+            5,
+            3
+          ]
+        }
+      ]
+    }
+  },
+  "boards": {
+    "frontier_field": {
+      "width": 7,
+      "height": 5,
+      "default_tile": "stone",
+      "tiles": [],
+      "locations": {}
+    }
+  },
+  "characters": {
+    "bomber": {
+      "class": "enemy",
+      "label": "Bomber",
+      "art_key": "enemy",
+      "art_variant": "spear",
+      "max_hp": 2,
+      "abilities": [
+        "move",
+        "bomber_strike"
+      ],
+      "behavior": "frontier_bomber_strike",
+      "traits": [
+        {
+          "kind": "death_blast",
+          "damage": 2,
+          "range": 1
+        }
+      ]
+    },
+    "duelist": {
+      "class": "enemy",
+      "label": "Duelist",
+      "art_key": "enemy",
+      "art_variant": "spear",
+      "max_hp": 4,
+      "abilities": [
+        "move",
+        "duelist_strike"
+      ],
+      "behavior": "frontier_duelist_strike",
+      "traits": [
+        {
+          "kind": "retaliate",
+          "damage": 1,
+          "range": 1
+        }
+      ]
+    },
+    "ogre": {
+      "class": "enemy",
+      "label": "Ogre",
+      "art_key": "enemy",
+      "art_variant": "spear",
+      "max_hp": 6,
+      "abilities": [
+        "move",
+        "ogre_strike"
+      ],
+      "behavior": "frontier_ogre_strike"
+    },
+    "trickster": {
+      "class": "enemy",
+      "label": "Trickster",
+      "art_key": "enemy",
+      "art_variant": "spear",
+      "max_hp": 3,
+      "abilities": [
+        "move",
+        "trickster_strike",
+        "ogre_swap"
+      ],
+      "behavior": "trickster_swap"
+    }
+  },
+  "abilities": {
+    "bomber_strike": {
+      "label": "Bomber Strike",
+      "help": "Deals 1 damage to a hero or summon within 1 tile.",
+      "handler": "attack",
+      "params": {
+        "damage": 1,
+        "source_suffix": "'s bomber strike"
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 1,
+        "teams": [
+          "heroes"
+        ]
+      }
+    },
+    "duelist_strike": {
+      "label": "Duelist Strike",
+      "help": "Deals 2 damage to a hero or summon within 1 tile.",
+      "handler": "attack",
+      "params": {
+        "damage": 2,
+        "source_suffix": "'s duelist strike"
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 1,
+        "teams": [
+          "heroes"
+        ]
+      }
+    },
+    "ogre_strike": {
+      "label": "Ogre Strike",
+      "help": "Deals 3 damage to a hero or summon within 1 tile.",
+      "handler": "attack",
+      "params": {
+        "damage": 3,
+        "source_suffix": "'s ogre strike"
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 1,
+        "teams": [
+          "heroes"
+        ]
+      }
+    },
+    "trickster_strike": {
+      "label": "Trickster Strike",
+      "help": "Deals 1 damage to a hero or summon within 1 tile.",
+      "handler": "attack",
+      "params": {
+        "damage": 1,
+        "source_suffix": "'s trickster strike"
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 1,
+        "teams": [
+          "heroes"
+        ]
+      }
+    },
+    "ogre_swap": {
+      "label": "Switch Places",
+      "help": "Swap places with the living Ogre within 7 tiles, once per battle.",
+      "handler": "swap_ally",
+      "params": {
+        "character": "ogre",
+        "range": 7
+      },
+      "targeting": {
+        "kind": "automatic",
+        "teams": [
+          "enemies"
+        ]
+      }
+    }
+  },
+  "behaviors": {
+    "frontier_bomber_strike": {
+      "handler": "threat",
+      "params": {
+        "fallback_teams": [
+          "heroes"
+        ],
+        "pursue_range": 7,
+        "taunt_status": "taunt",
+        "move_ability": "move",
+        "ability": "bomber_strike"
+      }
+    },
+    "frontier_duelist_strike": {
+      "handler": "threat",
+      "params": {
+        "fallback_teams": [
+          "heroes"
+        ],
+        "pursue_range": 7,
+        "taunt_status": "taunt",
+        "move_ability": "move",
+        "ability": "duelist_strike"
+      }
+    },
+    "frontier_ogre_strike": {
+      "handler": "threat",
+      "params": {
+        "fallback_teams": [
+          "heroes"
+        ],
+        "pursue_range": 7,
+        "taunt_status": "taunt",
+        "move_ability": "move",
+        "ability": "ogre_strike"
+      }
+    },
+    "trickster_swap": {
+      "handler": "swap_ally",
+      "params": {
+        "team": "heroes",
+        "ally": "ogre",
+        "move_ability": "move",
+        "swap_ability": "ogre_swap",
+        "ability": "trickster_strike"
+      }
+    }
+  }
+}

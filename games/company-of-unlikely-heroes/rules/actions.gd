@@ -3,6 +3,7 @@ extends RefCounted
 const Board = preload("res://rules/board.gd")
 const Combat = preload("res://rules/combat.gd")
 const EncounterRandom = preload("res://rules/encounter_random.gd")
+const Frontier = preload("res://rules/frontier_combat.gd")
 const Performances = preload("res://rules/performances.gd")
 const Shield = preload("res://rules/shield.gd")
 const Statuses = preload("res://rules/statuses.gd")
@@ -66,6 +67,16 @@ static func _entity_allowed(state: Dictionary, actor: Dictionary, candidate: Dic
 			return Board.capable(state, candidate, "damageable")
 		"heal":
 			return Board.capable(state, candidate, "healable")
+		"enemy_heal":
+			return candidate.has("character_id") and candidate.hp < candidate.max_hp \
+				and Board.team(state, candidate) == Board.team(state, actor)
+		"swap_ally":
+			return candidate.get("character_id") == ability.params.character \
+				and Board.team(state, candidate) == Board.team(state, actor) \
+				and actor.position != candidate.position \
+				and Board.distance(actor.position, candidate.position) <= int(ability.params.range) \
+				and Board.can_enter(state, candidate.position, candidate.id) \
+				and Board.can_enter(state, actor.position, actor.id)
 		"swap_furthest":
 			return candidate.has("character_id")
 		"misdirect":
@@ -117,10 +128,26 @@ static func raisable_corpses(state: Dictionary, actor: Dictionary, ability: Dict
 			and _in_reach(actor, corpse.position, ability.targeting))
 
 
+static func _use_limit(ability: Dictionary) -> int:
+	match ability.handler:
+		"swap_ally":
+			return 1
+		"enemy_heal":
+			return int(ability.params.charges)
+	return -1
+
+
+static func _uses(actor: Dictionary, ability_id: String) -> int:
+	return actor.get("ability_uses", {}).get(ability_id, 0)
+
+
 # The picker, behaviors and action execution all use these exact choices.
 static func _legal_choices(state: Dictionary, actor: Dictionary, ability: Dictionary, ability_id: String) -> Array:
 	var result: Array = []
 	if ability.is_empty() or not can_act(state, actor):
+		return result
+	var limit := _use_limit(ability)
+	if limit >= 0 and _uses(actor, ability_id) >= limit:
 		return result
 	if ability.handler == "summon":
 		return _summon_choices(state, actor, ability)
@@ -129,6 +156,10 @@ static func _legal_choices(state: Dictionary, actor: Dictionary, ability: Dictio
 		"cell":
 			if not can_move(state, actor):
 				return result
+			if ability.handler == "move" and int(targeting.get("range", 1)) > 0:
+				var extra := Frontier.ally_death_bonus(state, actor, "movement")
+				if extra > 0:
+					return _move_routes(state, actor, 1 + extra)
 			for direction in Board.DIRECTIONS:
 				var position: Vector2i = actor.position + direction
 				if _in_reach(actor, position, targeting) and Board.can_enter(state, position):
@@ -152,6 +183,32 @@ static func _legal_choices(state: Dictionary, actor: Dictionary, ability: Dictio
 								or extra_sweep_reaches(state, actor, candidate, ability_id)):
 						result.append(candidate)
 	return result
+
+
+# Each destination has a deterministic shortest route; execution walks all
+# intermediate cells instead of jumping over obstacles or occupants.
+static func _move_routes(state: Dictionary, actor: Dictionary, steps: int) -> Array:
+	var origin: Vector2i = actor.position
+	var queue: Array[Vector2i] = [origin]
+	var routes := {origin: []}
+	var choices: Array = []
+	var index := 0
+	while index < queue.size():
+		var position := queue[index]
+		var prefix: Array = routes[position]
+		index += 1
+		if prefix.size() >= steps:
+			continue
+		for direction in Board.DIRECTIONS:
+			var next: Vector2i = position + direction
+			if routes.has(next) or not Board.can_enter(state, next):
+				continue
+			var route := prefix + [next]
+			routes[next] = route
+			queue.append(next)
+			choices.append({"id": Board.cell_id(next), "label": Board.coordinate(next),
+				"position": next, "route": route})
+	return choices
 
 
 static func extra_sweep_reaches(state: Dictionary, actor: Dictionary, candidate: Dictionary, id: String) -> bool:
@@ -251,6 +308,18 @@ static func execute(state: Dictionary, actor: Dictionary, action: Dictionary, ev
 			Support.split_heal(state, actor, amount, events)
 	elif choice.is_empty() or not _execute_choice(state, actor, action, ability, choice, events):
 		return false
+	var limit := _use_limit(ability)
+	if limit >= 0:
+		var used := _uses(actor, id) + 1
+		var usage: Dictionary = actor.get("ability_uses", {})
+		usage[id] = used
+		actor["ability_uses"] = usage
+		var event: Dictionary = events[first_event]
+		event["remaining_uses"] = limit - used
+		if limit == used:
+			event.text += " No uses left this battle."
+		else:
+			event.text += " Uses left this battle: %d." % (limit - used)
 	for index in range(first_event, events.size()):
 		events[index]["ability_id"] = id
 	return true
@@ -264,15 +333,17 @@ static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictio
 	var target_name := Board.display_name(state, target) if not target.is_empty() else ""
 	match ability.handler:
 		"move":
-			_move(state, actor, action, choice.position, events)
+			_move(state, actor, action, choice.get("route", [choice.position]), events)
 		"summon":
 			Summons.summon(state, actor, ability, choice.position, target, events)
 		"nominate":
 			Summons.nominate(state, actor, target, events)
 		"sweep":
 			Board.authored_event(state, events, "wave", "sweep", {"actor": name}, {"unit_id": actor.id})
+			var retaliation := Combat.RetaliationBatch.new() if choice.recipients.size() > 1 else null
 			for recipient in choice.recipients:
-				Combat.hurt(state, actor, recipient, int(params.damage), name, "", events)
+				Combat.hurt(state, actor, recipient, int(params.damage), name, "", events, {}, retaliation)
+			Combat.flush_retaliation(state, actor, events, retaliation)
 		"stop_target":
 			if not Statuses.apply(state, target, params.status, actor):
 				return false
@@ -317,7 +388,7 @@ static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictio
 					{"actor": name, "status": status.label}, data)
 		"bonk", "blast", "attack":
 			_attack(state, actor, target, action.ability_id, ability, events)
-		"swap_furthest":
+		"swap_furthest", "swap_ally":
 			_swap(state, actor, target, events)
 		"misdirect":
 			if not Statuses.apply(state, target, params.status, actor):
@@ -326,7 +397,7 @@ static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictio
 			Board.authored_event(state, events, "misdirect", "misdirect_mark",
 				{"actor": name, "target": target_name, "victim": Board.display_name(state, victim)},
 				{"unit_id": actor.id, "target_id": target.id, "victim_id": victim.id, "status_id": params.status})
-		"heal":
+		"heal", "enemy_heal":
 			Support.heal(state, actor, target, int(params.amount), events)
 		"pull", "hook":
 			_pull(state, actor, target, action.ability_id, ability, choice, events)
@@ -335,7 +406,18 @@ static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictio
 	return true
 
 
-static func _move(state: Dictionary, actor: Dictionary, action: Dictionary, position: Vector2i, events: Array) -> void:
+static func _move(state: Dictionary, actor: Dictionary, action: Dictionary, route: Array, events: Array) -> void:
+	for position: Vector2i in route:
+		_move_step(state, actor, action, position, events)
+	if action.has("retreat_second"):
+		var second: Vector2i = action.retreat_second
+		if Board.distance(actor.position, second) == 1 and Board.can_enter(state, second):
+			actor.position = second
+			Board.event(events, "move", "Exit Strategy: %s retreats again to %s." % [
+				Board.display_name(state, actor), Board.coordinate(second)], {"unit_id": actor.id, "position": second})
+
+
+static func _move_step(state: Dictionary, actor: Dictionary, action: Dictionary, position: Vector2i, events: Array) -> void:
 	actor.position = position
 	var copy := {"actor": Board.display_name(state, actor), "position": position}
 	var data := {"unit_id": actor.id, "position": position}
@@ -345,14 +427,13 @@ static func _move(state: Dictionary, actor: Dictionary, action: Dictionary, posi
 		copy["target"] = Board.display_name(state, followed)
 		data["target_id"] = followed.id
 		template = "follow_party"
-	Board.authored_event(state, events, "move", template, copy, data)
+	if action.get("tactical_retreat", false):
+		actor["last_retreat_round"] = state.round
+		Board.event(events, "move", "%s retreats to %s and cannot retreat next round." % [
+			copy.actor, Board.coordinate(position)], data)
+	else:
+		Board.authored_event(state, events, "move", template, copy, data)
 	Shield.retrieve(state, actor, events)
-	if action.has("retreat_second"):
-		var second: Vector2i = action.retreat_second
-		if Board.distance(position, second) == 1 and Board.can_enter(state, second):
-			actor.position = second
-			Board.event(events, "move", "Exit Strategy: %s retreats again to %s." % [
-				Board.display_name(state, actor), Board.coordinate(second)], {"unit_id": actor.id, "position": second})
 
 
 static func _attack(state: Dictionary, actor: Dictionary, target: Dictionary, id: String, ability: Dictionary,
@@ -378,9 +459,11 @@ static func _attack(state: Dictionary, actor: Dictionary, target: Dictionary, id
 		"status": params.get("status", ""), "ability_id": id}
 	if params.has("surround_bonus"):
 		strike["surround_bonus"] = params.surround_bonus
+	var retaliation := Combat.RetaliationBatch.new() if recipients.size() > 1 else null
 	for recipient in recipients:
 		if Board.alive(recipient):
-			Combat.attack(state, actor, recipient, int(params.damage), strike, events)
+			Combat.attack(state, actor, recipient, int(params.damage), strike, events, retaliation)
+	Combat.flush_retaliation(state, actor, events, retaliation)
 
 
 static func heckler_target(state: Dictionary, actor: Dictionary, ability: Dictionary) -> Dictionary:

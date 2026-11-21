@@ -10,21 +10,56 @@ godot --path games/company-of-unlikely-heroes
 
 ### Choose an outing
 
-At the guild, use **Adventure** to choose either **The company's first outing** or **Village Troubles**. Pick the required distinct recruits and arrange their deployment order, then depart. Village Troubles takes the same company through Goblin Mob, Harpoon Squad and Unwelcome Guest. Before the next mission, review the debrief and choose a reward if any are offered. The final victory or a failure ends the outing. Returning to the guild starts a fresh company.
+At the guild, use **Adventure** to choose one of four outings. Pick three distinct recruits and arrange their deployment order, then depart. After each victory with another mission ahead, review the debrief and choose one reward if offers are available. The final victory or a defeat ends the outing. Returning to the guild starts a fresh company.
+
+The guild has **11 playable missions**: two in **The company's first outing**, three in **Village Troubles**, and three in each of the two outings below. The fixed test fixtures (`ferryman`, `necromancer_wave`, and `extra_knight`) are not part of that count and do not appear in guild itineraries.
+
+**The company's first outing** (`first_outing`) starts with Trouble on the road (`bridge_patrol`) and ends with The last ferryman (`company_rescue`). **Village Troubles** (`village_troubles`) takes the same company through The Goblin Mob (`goblin_mob`), The Harpoon Squad (`harpoon_squad`), and The Unwelcome Guest (`unwelcome_guest`).
 
 In **Unwelcome Guest**, get the troll outside the marked village square alive. If it dies or your party falls, you lose. There is no deadline. The troll follows the nearest living party hero one tile each time it acts, stopping when adjacent. Your heroes' damaging standing orders remain active, so check and change them as needed. In particular, a carried Bard **Healing Sonnet** can damage or kill the troll even after it crosses the square's edge if the song happens later that round. Read the forecast before committing to see the troll's intended step and any pulls or follow-up actions.
 
-Each Village Troubles mission can also be opened as a standalone battle with its authored default party:
+#### New guild outings
+
+Missions are listed in play order within each outing.
+
+| Outing | Mission | What to watch for |
+|---|---|---|
+| **Powder Run** (`powder_run`) | The Explosive Situation (`explosive_situation`) | A dying Bomber hurts anyone adjacent. Set off a chain reaction without catching your own company in it. |
+| | The Bridge Is Out (`bridge_is_out`) | Get one hero to the far bank. The spans collapse at the ends of rounds 4 and 6, defeating anyone still on them. |
+| | The Last Wagon (`last_wagon`) | Raiders target the wagon. Clear adjacent enemies to keep it moving, or intercept the next attacker. |
+| **Fairground Fracas** (`fairground_fracas`) | The Duelists (`duelists`) | A surviving Duelist retaliates if the attacker is still adjacent after the hit. Use range or end the attack out of reach. |
+| | The Great Sheep Escape (`great_sheep_escape`) | Get all three living sheep into the east pen at once. Unpenned sheep flee nearby characters, including the opposing shepherd. |
+| | The Odd Couple (`odd_couple`) | The Trickster can swap with the hard-hitting Ogre once. Watch where that leaves exposed heroes. |
+
+#### Launch a standalone mission
+
+Launch without options for normal guild play. A direct launch instead opens one isolated battle with its authored starting party and a restart button. It does not offer guild rewards or carry wounds, orders, or upgrades into another mission. The two missions in the company's first outing require guild recruitment; the separate `ferryman` fixture is the fixed-party version of the rescue.
+
+From the repository root:
 
 ```sh
+# Village Troubles
 godot --path games/company-of-unlikely-heroes -- --mission=goblin_mob
 godot --path games/company-of-unlikely-heroes -- --mission=harpoon_squad
 godot --path games/company-of-unlikely-heroes -- --mission=unwelcome_guest
+
+# Powder Run
+godot --path games/company-of-unlikely-heroes -- --mission=explosive_situation
+godot --path games/company-of-unlikely-heroes -- --mission=bridge_is_out
+godot --path games/company-of-unlikely-heroes -- --mission=last_wagon
+
+# Fairground Fracas
+godot --path games/company-of-unlikely-heroes -- --mission=duelists
+godot --path games/company-of-unlikely-heroes -- --mission=great_sheep_escape
+godot --path games/company-of-unlikely-heroes -- --mission=odd_couple
+
+# Rival Claims
+godot --path games/company-of-unlikely-heroes -- --mission=last_one_standing
+godot --path games/company-of-unlikely-heroes -- --mission=unfortunate_ritual
+godot --path games/company-of-unlikely-heroes -- --mission=mirror_company
 ```
 
-Standalone missions have a restart button and do not carry results to another mission. They are optional: normal play starts at the guild without command-line options.
-
-To explore the standalone openings, leave standing orders at their defaults:
+To explore the Village Troubles standalone openings, leave standing orders at their defaults:
 
 - **The Goblin Mob:** Select Necromancer → **Summon Skeleton** → **C3**, then preview and commit. The skeleton joins the fight next round; its Wave can hit allies as well as goblins.
 - **The Harpoon Squad:** Read the opening forecast: Hookhand pulls the Healer from **B3** to **C3**, setting up the Bruiser's strike. Preview Knight → **Push** → Bruiser at **C4**. The push moves the Bruiser to **D4** and removes that follow-up from the forecast. Compare before committing.
@@ -100,7 +135,13 @@ The Blast knight starts at A1, with crates at B1 and C3 and the exit at C1. The 
 godot --headless --path games/company-of-unlikely-heroes --script res://tests/content_scene_test.gd
 ```
 
-These are **fixed regression scenarios**, not adventures in which the player is handed a predetermined company. Launch the original fixed rescue with `-- --mission=ferryman`. The `extra_knight` exit is `near_landing`; the original rescue uses `safe_bank`. The fixtures use the same hybrid resolver as the adventure. See the [catalog guide](content/README.md) for the authoring rules.
+To launch the original fixed rescue:
+
+```sh
+godot --path games/company-of-unlikely-heroes -- --mission=ferryman
+```
+
+These are **fixed regression scenarios**, not guild outings. The `extra_knight` exit is `near_landing`; the original rescue uses `safe_bank`. The fixtures use the same hybrid resolver as the adventure. See the [catalog guide](content/README.md) for the authoring rules.
 
 ### Recheck the build
 

@@ -4,6 +4,7 @@ const Catalog = preload("res://content/catalog.gd")
 const Actions = preload("res://rules/actions.gd")
 const Behaviors = preload("res://rules/behaviors.gd")
 const Board = preload("res://rules/board.gd")
+const FrontierObjectives = preload("res://rules/frontier_objectives.gd")
 const Shield = preload("res://rules/shield.gd")
 const Statuses = preload("res://rules/statuses.gd")
 const Summons = preload("res://rules/summons.gd")
@@ -61,10 +62,10 @@ func mission_definition(state: Dictionary) -> Dictionary:
 	return definitions(state).missions[state.mission_id]
 
 
-## Elimination progress, using the same authored team and living check as victory.
+## Live objective progress; elimination also exposes counts for existing UI.
 func objective_progress(state: Dictionary) -> Dictionary:
 	if state.objective.handler != "defeat_all":
-		return {}
+		return FrontierObjectives.progress(state)
 	var team: String = state.objective.team
 	var alive := 0
 	var total := 0
@@ -74,6 +75,10 @@ func objective_progress(state: Dictionary) -> Dictionary:
 			if Board.alive(unit):
 				alive += 1
 	return {"alive": alive, "total": total}
+
+
+func objective_markers(state: Dictionary) -> Dictionary:
+	return FrontierObjectives.markers(state)
 
 
 func tile_definition(state: Dictionary, position: Vector2i) -> Dictionary:
@@ -171,7 +176,7 @@ func targets(state: Dictionary, unit_id: String, ability_id: String) -> Array:
 func preview(state: Dictionary, unit_id: String, ability_id: String, target_id := "") -> Dictionary:
 	var result := state.duplicate(true)
 	var events: Array = []
-	var valid: bool = state.get("outcome") == "ongoing" and Actions.execute(result, Board.entity(result, unit_id),
+	var valid: bool = state.get("outcome") == "ongoing" and _execute_action(result, Board.entity(result, unit_id),
 		{"ability_id": ability_id, "target_id": target_id}, events)
 	return _plan("action", state, result, events, valid)
 
@@ -227,6 +232,7 @@ func preview_round(state: Dictionary) -> Dictionary:
 	if state.get("outcome") != "ongoing":
 		return _plan("round", state, result, events, false)
 	_resolve_turns(result, events)
+	FrontierObjectives.finish_round(result, events)
 	var ending := _end_condition(result)
 	if ending.is_empty():
 		result.round += 1
@@ -289,9 +295,23 @@ func _resolve_turn(state: Dictionary, actor: Dictionary, events: Array) -> void:
 		Board.event(events, "wait", "%s cannot guard until their shield is retrieved." % name, {"unit_id": actor.id})
 	elif not action.has("ability_id"):
 		Board.authored_event(state, events, "wait", action.get("wait", "hold"), {"actor": name}, {"unit_id": actor.id})
-	elif not Actions.execute(state, actor, action, events):
+	elif not _execute_action(state, actor, action, events):
 		Board.authored_event(state, events, "wait", "invalid", {"actor": name},
 			{"unit_id": actor.id, "ability_id": action.ability_id})
+
+
+func _execute_action(state: Dictionary, actor: Dictionary, action: Dictionary, events: Array) -> bool:
+	var gate_was_open := Board.pressure_gate_open(state)
+	if not Actions.execute(state, actor, action, events):
+		return false
+	match state.objective.handler:
+		"pressure_gate":
+			FrontierObjectives.report_gate_change(state, actor, gate_was_open, events)
+		"treasure_noise":
+			if Board.deployed_hero(state, actor):
+				var ability := Actions.owned_ability(state, actor, action.ability_id)
+				FrontierObjectives.add_noise(state, actor, ability.handler, events)
+	return true
 
 
 func _intent(state: Dictionary, actor: Dictionary) -> Dictionary:
@@ -314,14 +334,12 @@ func _objective_met(state: Dictionary) -> bool:
 			return Board.alive(subject) and not Board.in_zone(state, objective.zone, subject.position)
 		"defeat_all":
 			return objective_progress(state).alive == 0
-	return false
+	return FrontierObjectives.met(state)
 
 
 func _party_survives(state: Dictionary) -> bool:
 	for actor in state.units:
-		var belongs: bool = actor.id in state.party if state.has("party") \
-			else Board.capable(state, actor, "commandable")
-		if belongs and Board.alive(actor):
+		if Board.alive(actor) and Board.deployed_hero(state, actor):
 			return true
 	return false
 
@@ -332,6 +350,13 @@ func _end_condition(state: Dictionary) -> Dictionary:
 	for failure in mission.failures:
 		if failure.handler == "party_wiped" and not _party_survives(state):
 			return {"outcome": "defeat", "event": failure.event}
+	var objective_failure := FrontierObjectives.failure(state)
+	if not objective_failure.is_empty():
+		if state.objective.handler == "wagon":
+			for failure in mission.failures:
+				if failure.handler == "subject_dead":
+					return {"outcome": "defeat", "event": failure.event}
+		return {"outcome": "defeat", "event": objective_failure}
 	if _objective_met(state):
 		return {"outcome": "victory", "event": mission.objective.victory_event}
 	for failure in mission.failures:
@@ -356,7 +381,7 @@ func _collapse(state: Dictionary) -> void:
 func _mission_end_event(state: Dictionary, ending: Dictionary) -> Dictionary:
 	var substitutions: Dictionary = {}
 	var event := {"type": ending.outcome}
-	if state.objective.handler == "escort":
+	if state.objective.handler in ["escort", "wagon"]:
 		var subject := Board.entity(state, state.objective.subject)
 		var name := Board.display_name(state, subject)
 		var destination: Vector2i = state.objective.destination

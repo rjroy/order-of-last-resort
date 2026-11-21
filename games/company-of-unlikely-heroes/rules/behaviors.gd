@@ -3,6 +3,7 @@ extends RefCounted
 const Actions = preload("res://rules/actions.gd")
 const Board = preload("res://rules/board.gd")
 const EncounterRandom = preload("res://rules/encounter_random.gd")
+const Frontier = preload("res://rules/frontier_combat.gd")
 const Shield = preload("res://rules/shield.gd")
 const Statuses = preload("res://rules/statuses.gd")
 const Summons = preload("res://rules/summons.gd")
@@ -53,7 +54,63 @@ static func decide(state: Dictionary, actor: Dictionary, behavior_id: String) ->
 				return _move(state, actor, params.move_ability, state.objective.destination, 0)
 		"retreat":
 			return _retreat(state, actor, params)
+		"retreat_attack":
+			return _retreat_attack(state, actor, params)
+		"finite_healer":
+			if Board.team(state, actor) == params.team and _legal_target(state, actor, params.heal_ability, ""):
+				return _action(params.heal_ability)
+			var targeting: Dictionary = Actions.owned_ability(state, actor, params.ability).get("targeting", {})
+			var opponents := Board.occupants(state, targeting).filter(func(unit: Dictionary) -> bool:
+				return Board.opponents(state, actor, unit))
+			return _frontier_engage(state, actor, params, opponents)
+		"swap_ally":
+			return _swap_or_attack(state, actor, params)
 	return {}
+
+
+static func _retreat_attack(state: Dictionary, actor: Dictionary, params: Dictionary) -> Dictionary:
+	var enemies := Board.occupants(state, {"teams": [params.team]})
+	var enemy := Board.nearest(actor, enemies)
+	if enemy.is_empty():
+		return {"wait": "hold"}
+	if Board.distance(actor.position, enemy.position) == 1 \
+			and state.round > int(actor.get("last_retreat_round", -1)) + 1:
+		var best_distance := 1
+		var best: Dictionary = {}
+		for choice in Actions.targets(state, actor, params.move_ability):
+			var threat := Board.nearest({"id": actor.id, "position": choice.position}, enemies)
+			var distance := Board.distance(choice.position, threat.position)
+			if distance > best_distance:
+				best_distance = distance
+				best = choice
+		if not best.is_empty():
+			var action := _action(params.move_ability, best.id)
+			action["tactical_retreat"] = true
+			return action
+	return _frontier_engage(state, actor, params, enemies)
+
+
+static func _swap_or_attack(state: Dictionary, actor: Dictionary, params: Dictionary) -> Dictionary:
+	var enemies := Board.occupants(state, {"teams": [params.team]})
+	var nearest := Board.nearest(actor, enemies)
+	if nearest.is_empty():
+		return {"wait": "hold"}
+	var ability := Actions.owned_ability(state, actor, params.swap_ability)
+	var choice := Actions.selection(state, actor, ability, "", params.swap_ability)
+	var ally := Board.entity(state, choice.id) if not choice.is_empty() else {}
+	if ally.get("character_id") == params.ally:
+		var ally_threat := Board.nearest(ally, enemies)
+		if Board.distance(actor.position, nearest.position) < Board.distance(ally.position, ally_threat.position):
+			return _action(params.swap_ability)
+	return _frontier_engage(state, actor, params, enemies)
+
+
+static func _frontier_engage(state: Dictionary, actor: Dictionary, params: Dictionary,
+		candidates: Array) -> Dictionary:
+	var heckler := Actions.heckler_target(state, actor, Actions.owned_ability(state, actor, params.ability))
+	if not heckler.is_empty():
+		return _action(params.ability, heckler.id)
+	return _engage(state, actor, params, Statuses.retarget(state, actor, "taunt"), candidates)
 
 
 static func _retreat(state: Dictionary, actor: Dictionary, params: Dictionary) -> Dictionary:
@@ -257,7 +314,29 @@ static func _legal_target(state: Dictionary, actor: Dictionary, ability_id: Stri
 static func _move(state: Dictionary, actor: Dictionary, ability_id: String, goal: Vector2i, reach: int) -> Dictionary:
 	if Actions.can_move(state, actor) and not Actions.owned_ability(state, actor, ability_id).is_empty():
 		var position := Board.step_toward(state, actor, goal, reach)
-		var id := Board.cell_id(position)
-		if position != actor.position and _legal_target(state, actor, ability_id, id):
-			return _action(ability_id, id)
+		if position == actor.position:
+			return {"wait": "cannot_advance"}
+		var extra := Frontier.ally_death_bonus(state, actor, "movement")
+		if extra > 0:
+			position = _continue_move(state, actor, position, goal, reach, extra)
+		var target_id := Board.cell_id(position)
+		if _legal_target(state, actor, ability_id, target_id):
+			return _action(ability_id, target_id)
 	return {"wait": "cannot_advance"}
+
+
+static func _continue_move(state: Dictionary, actor: Dictionary, first: Vector2i,
+		goal: Vector2i, reach: int, extra: int) -> Vector2i:
+	# Project the actor only. The route uses the same deterministic search
+	# each step, and must stay legal under Actions' move selection.
+	var projected := state.duplicate()
+	var walker := actor.duplicate()
+	projected.units = state.units.duplicate()
+	projected.units[state.units.find(actor)] = walker
+	walker.position = first
+	for index in range(extra):
+		var step := Board.step_toward(projected, walker, goal, reach)
+		if step == walker.position:
+			break
+		walker.position = step
+	return walker.position

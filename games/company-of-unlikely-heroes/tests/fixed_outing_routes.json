@@ -1,0 +1,210 @@
+{
+  "explosive_situation": {
+    "party": [
+      "knight",
+      "healer",
+      "bard"
+    ],
+    "reward": "healer",
+    "rounds": [
+      {
+        "orders": {
+          "bard": "order_healing_sonnet",
+          "healer": "order_aggressive"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "1,2"
+        }
+      },
+      {
+        "command": {
+          "ability": "healer_heal",
+          "actor": "healer"
+        }
+      },
+      {
+        "command": {
+          "ability": "knight_push",
+          "actor": "knight",
+          "target": "healer"
+        }
+      }
+    ]
+  },
+  "duelists": {
+    "party": [
+      "knight",
+      "healer",
+      "bard"
+    ],
+    "reward": "bard",
+    "rounds": [
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "2,1"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "healer",
+          "target": "2,2"
+        }
+      },
+      {
+        "command": {
+          "ability": "healer_bonk",
+          "actor": "healer",
+          "target": "duelist_2"
+        }
+      }
+    ]
+  },
+  "odd_couple": {
+    "rounds": [
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "2,1"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "healer",
+          "target": "2,2"
+        }
+      },
+      {
+        "command": {
+          "ability": "healer_bonk",
+          "actor": "healer",
+          "target": "ogre_1"
+        }
+      },
+      {
+        "command": {
+          "ability": "healer_bonk",
+          "actor": "healer",
+          "target": "ogre_1"
+        }
+      }
+    ]
+  },
+  "great_sheep_escape": {
+    "reward": "healer",
+    "rounds": [
+      {
+        "command": {
+          "ability": "move",
+          "actor": "bard",
+          "target": "1,3"
+        }
+      },
+      {},
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "1,1"
+        }
+      },
+      {},
+      {},
+      {
+        "command": {
+          "ability": "inspiring_melody",
+          "actor": "bard"
+        }
+      },
+      {}
+    ]
+  },
+  "bridge_is_out": {
+    "reward": "bard",
+    "rounds": [
+      {},
+      {
+        "command": {
+          "ability": "move",
+          "actor": "healer",
+          "target": "2,2"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "healer",
+          "target": "3,2"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "healer",
+          "target": "4,2"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "healer",
+          "target": "5,2"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "healer",
+          "target": "6,2"
+        }
+      }
+    ]
+  },
+  "last_wagon": {
+    "rounds": [
+      {
+        "command": {
+          "ability": "inspiring_melody",
+          "actor": "bard"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "2,1"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "3,1"
+        }
+      },
+      {
+        "command": {
+          "ability": "inspiring_melody",
+          "actor": "bard"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "4,1"
+        }
+      },
+      {},
+      {}
+    ]
+  }
+}

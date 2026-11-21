@@ -2,6 +2,7 @@ extends Control
 
 const Rules = preload("res://rules.gd")
 const BridgeArt = preload("res://bridge_art.gd")
+const BattleCues = preload("res://battle_cues.gd")
 const Catalog = preload("res://content/catalog.gd")
 const Adventure = preload("res://adventure.gd")
 const Upgrades = preload("res://rules/upgrades.gd")
@@ -50,10 +51,13 @@ var _painted_cells: Dictionary = {}
 var _tile_labels: Dictionary = {}
 var _safe_cells: Dictionary = {}
 var _corpse_markers: Dictionary = {}
+var _objective_markers: Dictionary = {}
 var _hover_cell: Variant = null
 
 var _display_font: SystemFont
 var _board: BridgeArt
+var _board_cues: BattleCues
+var _legend: HFlowContainer
 var _actor_select: OptionButton
 var _ability_select: OptionButton
 var _target_select: OptionButton
@@ -70,6 +74,7 @@ var _hover_text: Label
 var _command_note: Label
 var _action_help: Label
 var _forecast: RichTextLabel
+var _objective_forecast: Label
 var _last_title: Label
 var _last_result: RichTextLabel
 var _order_grid: GridContainer
@@ -217,26 +222,33 @@ func _page(screen: String, top_margin := 22) -> VBoxContainer:
 
 func _show_guild(focus_name := "") -> void:
 	_state = {}
+	var previous_scroll := find_child("RecruitScroll", true, false) as ScrollContainer if _screen == "guild" else null
+	var scroll_position := previous_scroll.scroll_vertical if previous_scroll != null else 0
 	var page := _page("guild", 36)
 	_label(page, "The Company of Unlikely Heroes", 42, PAPER, true)
-	_label(page, "Adventure", 13, MUTED)
-	var adventure_select := _picker(page, "AdventureSelect")
+	var itinerary := _row(page, 24)
+	var selection := _stack(itinerary, 4)
+	selection.custom_minimum_size.x = 294
+	_label(selection, "Adventure", 13, MUTED)
+	var adventure_select := _picker(selection, "AdventureSelect")
 	for id in _definitions.get("adventures", {}):
 		_add_choice(adventure_select, _definitions.adventures[id].label, id)
 	_pick(adventure_select, _adventure_id)
+	adventure_select.tooltip_text = _adventure.label
 	adventure_select.item_selected.connect(_select_adventure.bind(adventure_select))
-	_label(page, "%s  ·  %s" % [_adventure.label, _route_titles()], 15, MUTED)
+	var route := _stack(itinerary, 4)
+	route.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_label(route, "%d missions" % _adventure.missions.size() if _adventure.missions.size() != 1 else "1 mission", 13, MUTED)
+	_wrapped_label(route, _route_titles(), 15, PAPER)
 	_rule(page)
 	var columns := _row(page, 24)
+	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var roster := _stack(columns, 10)
 	roster.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_label(roster, "Choose your company", 30, PAPER, true)
 	_wrapped_label(roster, "Take %d distinct recruits. Each round, you can command one hero; the others follow standing orders." % _adventure.party_size, 15, MUTED)
-	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size.y = 496
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.follow_focus = true
-	roster.add_child(scroll)
+	var scroll := _scroll(roster)
+	scroll.name = "RecruitScroll"
 	var recruits := _stack(scroll, 10)
 	recruits.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for recruit_id in _adventure.roster:
@@ -261,6 +273,7 @@ func _show_guild(focus_name := "") -> void:
 			focus = find_child(opposite, true, false) as Button
 		if focus != null and not focus.disabled:
 			focus.grab_focus()
+	scroll.set_deferred("scroll_vertical", scroll_position)
 
 
 func _select_adventure(index: int, selector: OptionButton) -> void:
@@ -271,7 +284,7 @@ func _select_adventure(index: int, selector: OptionButton) -> void:
 	_adventure = _definitions.adventures[id]
 	_picked_recruits = _picked_recruits.filter(func(recruit: String) -> bool: return recruit in _adventure.roster)
 	_picked_recruits.resize(mini(_picked_recruits.size(), int(_adventure.party_size)))
-	_show_guild()
+	_show_guild("AdventureSelect")
 
 
 func _build_recruit(parent: VBoxContainer, id: String) -> void:
@@ -603,10 +616,13 @@ func _build_map(parent: VBoxContainer) -> void:
 	_objective = _label(parent, "", 14, MUTED)
 	_objective.name = "ObjectiveText"
 	_objective.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_objective.max_lines_visible = 3
+	_objective.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_objective_progress = _wrapped_label(parent, "", 14, GOLD)
 	_objective_progress.name = "ObjectiveProgress"
-	_initiative = _wrapped_label(parent, "", 13, PAPER)
+	_initiative = _label(parent, "", 13, PAPER)
 	_initiative.name = "InitiativeText"
+	_initiative.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_board = BridgeArt.new()
 	_board.name = "BridgeBoard"
 	_board.custom_minimum_size.y = 315
@@ -615,16 +631,18 @@ func _build_map(parent: VBoxContainer) -> void:
 	_board.cell_selected.connect(_select_board)
 	_board.cell_hovered.connect(_inspect_board)
 	_board.hover_cleared.connect(_clear_inspection)
-	var key := _row(parent, 14)
-	if _state.objective.has("destination"):
-		_legend_key(key, "safe", "Safe bank", Color("#a0a67a"))
-		_legend_key(key, "broken", "Bridge gap", Color("#5c918e"))
-	_legend_key(key, "obstacle", "Blocked", Color("#b38b60"))
-	_legend_key(key, "target", "Target", MINT)
-	_legend_key(key, "impact", "Net HP loss", RUST)
-	_legend_key(key, "path", "Forecast end", GOLD)
+	_board_cues = BattleCues.new()
+	_board_cues.name = "ObjectiveMarkers"
+	_board.add_child(_board_cues)
+	_board_cues.attach_to(_board)
+	_legend = HFlowContainer.new()
+	_legend.name = "MapLegend"
+	_legend.add_theme_constant_override("h_separation", 14)
+	_legend.add_theme_constant_override("v_separation", 4)
+	parent.add_child(_legend)
 	_hover_text = _label(parent, "Point at a tile to inspect it.", 13, MUTED)
-	_hover_text.clip_text = true
+	_hover_text.name = "TileInspection"
+	_hover_text.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 
 
 func _build_orders(parent: VBoxContainer) -> void:
@@ -718,6 +736,8 @@ func _build_desk(parent: HBoxContainer) -> void:
 	forecast_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var hint := _label(heading, "In execution order", 13, MUTED)
 	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_objective_forecast = _wrapped_label(desk, "", 13, GOLD)
+	_objective_forecast.name = "ObjectiveForecast"
 	_forecast = _log(desk, "PreviewText", 142, true)
 	_last_title = _label(desk, "Last round", 18, PAPER, true)
 	_last_result = _log(desk, "LastResult", 63)
@@ -1029,7 +1049,10 @@ func _refresh_objective() -> void:
 	_round_text.text = "Round %d / %d" % [_state.round, deadline] if deadline > 0 else "Round %d · No deadline" % _state.round
 	var text_key: String = "text" if _ongoing() else _state.outcome + "_text"
 	var values := {"deadline": deadline}
-	_objective_progress.text = ""
+	var progress: Dictionary = _rules.objective_progress(_state)
+	_objective_progress.text = _objective_progress_text(_state, progress)
+	if _state.objective.handler == "leave_zone" and _ongoing():
+		_objective_progress.text += "  ·  Damaging standing orders remain active."
 	match _state.objective.handler:
 		"escort":
 			var subject := _find(_state.objective.subject)
@@ -1039,20 +1062,28 @@ func _refresh_objective() -> void:
 			values.merge({"subject": subject_label.to_lower(), "subject_label": subject_label,
 				"destination": destination, "hp": subject.hp, "max_hp": subject.max_hp,
 				"position": position})
-			_objective_progress.text = "%s  ·  %d/%d HP  ·  %s → %s" % [
-				subject_label, subject.hp, subject.max_hp, position, destination]
 		"defeat_all":
-			var progress: Dictionary = _rules.objective_progress(_state)
 			values.merge({"remaining": progress.alive, "total": progress.total})
-			_objective_progress.text = "%d / %d targets remaining" % [progress.alive, progress.total]
-		"leave_zone":
-			var subject := _find(_state.objective.subject)
-			if not subject.is_empty():
-				_objective_progress.text = "%s  ·  %d/%d HP" % [
-					_name_for(subject.id), subject.hp, subject.max_hp]
-				_objective_progress.text += "  ·  Damaging standing orders remain active."
 	_objective.text = str(objective.get(text_key, objective.text)).format(values)
+	_objective.tooltip_text = _objective.text
 	_objective_progress.visible = not _objective_progress.text.is_empty()
+
+
+func _objective_progress_text(state: Dictionary, progress: Dictionary) -> String:
+	match state.objective.handler:
+		"escort":
+			var subject := _find(state.objective.subject, state)
+			return "%s  ·  %d/%d HP  ·  %s → %s" % [
+				_name_for(subject.id), subject.hp, subject.max_hp,
+				BridgeArt.coordinate(subject.position), BridgeArt.coordinate(state.objective.destination)]
+		"defeat_all":
+			return "%d / %d targets remaining" % [progress.alive, progress.total]
+		"leave_zone":
+			var subject := _find(state.objective.subject, state)
+			return "%s  ·  %d/%d HP  ·  %s" % [
+				_name_for(subject.id), subject.hp, subject.max_hp, BridgeArt.coordinate(subject.position)] \
+				if not subject.is_empty() else ""
+	return progress.get("text", "")
 
 
 func _refresh_initiative() -> void:
@@ -1062,6 +1093,7 @@ func _refresh_initiative() -> void:
 		labels.append("%s. %s" % [labels.size() + 1, _name_for(unit.id)])
 		ids.append(unit.id)
 	_initiative.text = "Initiative: " + "   ".join(labels) if not labels.is_empty() else "Initiative: none"
+	_initiative.tooltip_text = _initiative.text
 	_initiative.set_meta("actor_ids", ids)
 
 
@@ -1094,6 +1126,7 @@ func _refresh_orders(active: bool) -> void:
 
 
 func _refresh_forecast() -> void:
+	_refresh_objective_forecast()
 	if not _ongoing():
 		_forecast.text = "[color=#e3b970][b]%s[/b][/color]\n%s" % [
 			_escape_log_text(_objective.text),
@@ -1116,6 +1149,34 @@ func _refresh_forecast() -> void:
 	_last_title.text = "Last round" if _last_round == 0 else "Round %d result" % _last_round
 	_last_result.text = "[color=#c0c7ad]Nothing resolved yet.[/color]" if _last_events.is_empty() else _last_report()
 	_last_result.scroll_to_line(0)
+
+
+func _refresh_objective_forecast() -> void:
+	var text := ""
+	var outcome := ""
+	var ink := GOLD
+	if _ongoing() and _plan.get("valid", false):
+		var projected: Dictionary = _plan.result
+		outcome = projected.outcome
+		if outcome in ["victory", "defeat"]:
+			text = "Forecast: Victory this round." if outcome == "victory" else "Forecast: Defeat this round."
+			ink = MINT if outcome == "victory" else RUST
+			for event in _plan.events:
+				if event.type == outcome:
+					text += " " + str(event.text)
+					break
+		elif projected.objective.handler != "defeat_all":
+			var next := _objective_progress_text(projected, _rules.objective_progress(projected))
+			var now := _objective_progress_text(_state, _rules.objective_progress(_state))
+			if not next.is_empty() and next != now:
+				text = "After this round: " + next
+		if not text.is_empty() and _unpreviewed_edit:
+			text += " (Edit not previewed.)"
+	_objective_forecast.text = text
+	_objective_forecast.tooltip_text = text
+	_objective_forecast.add_theme_color_override("font_color", ink)
+	_objective_forecast.set_meta("outcome", outcome)
+	_objective_forecast.visible = not text.is_empty()
 
 
 func _forecast_upgrade_details() -> String:
@@ -1186,14 +1247,19 @@ func _refresh_board() -> void:
 		var profile: Dictionary = _rules.entity_profile(_state, corpse.id)
 		units.append({"id": corpse.id, "art_key": profile.art_key, "variant": profile.get("art_variant", ""),
 			"label": "Corpse", "cell": corpse.position, "hp": 0, "max_hp": 0, "prone": true})
+	var shared_art := _shared_enemy_art()
 	for unit in _state.units:
-		var is_objective: bool = unit.id == _state.objective.get("subject")
+		var is_objective: bool = unit.id == _state.objective.get("subject") \
+			or unit.id in _state.objective.get("subjects", [])
 		if unit.hp <= 0 and not is_objective:
 			continue
 		var profile: Dictionary = _rules.entity_profile(_state, unit.id)
 		var show_label: bool = "commandable" in profile.capabilities or "minion" in profile.capabilities
-		var figure := {"id": unit.id, "art_key": profile.art_key, "variant": profile.get("art_variant", ""),
-			"label": _name_for(unit.id) if show_label else "", "color": profile.get("color", ""),
+		var art_variant := str(profile.get("art_variant", ""))
+		var caption := _name_for(unit.id) if show_label else str(profile.label) \
+			if is_objective or shared_art.has([profile.art_key, art_variant]) else ""
+		var figure := {"id": unit.id, "art_key": profile.art_key, "variant": art_variant,
+			"label": caption, "color": profile.get("color", ""),
 			"cell": unit.position, "hp": unit.hp, "max_hp": unit.max_hp, "objective": is_objective,
 			"prone": unit.hp <= 0 or _rules.knocked_down(_state, unit.id),
 			"guarded": _rules.has_status_handler(_state, unit.id, "reflect"),
@@ -1214,9 +1280,18 @@ func _refresh_board() -> void:
 				overlay.forecast_shields.append(predicted)
 	var board: Dictionary = _rules.definitions(_state).boards[_state.board_id]
 	var zone_id: String = _state.objective.get("zone", "")
-	overlay["objective_zone"] = board.get("zones", {}).get(zone_id, [])
-	if _state.objective.has("destination"):
+	var native_exit: bool = _state.objective.handler == "escort"
+	_objective_markers = _rules.objective_markers(_state).duplicate()
+	if _state.objective.handler == "leave_zone":
+		overlay["objective_zone"] = board.get("zones", {}).get(zone_id, [])
+		for at in overlay.objective_zone:
+			var cell := Vector2i(int(at[0]), int(at[1]))
+			if not _objective_markers.has(cell):
+				_objective_markers[cell] = {"kind": "zone", "label": "Village square"}
+	if native_exit:
 		overlay["exit"] = _state.objective.destination
+		if not _objective_markers.has(overlay.exit):
+			_objective_markers[overlay.exit] = {"kind": "exit", "label": _presentation("exit", "Destination")}
 	for obstacle in _state.obstacles:
 		if obstacle.hp <= 0:
 			continue
@@ -1255,8 +1330,54 @@ func _refresh_board() -> void:
 		overlay["impact"] = hits
 		overlay["paths"] = paths
 	_board.set_render_state(_painted_cells, units, overlay)
+	_board_cues.update_markers(_objective_markers, native_exit)
+	_refresh_map_legend(native_exit)
 	if _hover_cell != null:
 		_inspect_board(_hover_cell)
+
+
+func _shared_enemy_art() -> Dictionary:
+	var first_roles := {}
+	var shared := {}
+	for unit in _state.units:
+		var profile: Dictionary = _rules.entity_profile(_state, unit.id)
+		if profile.get("team") == "heroes":
+			continue
+		var art := [profile.art_key, str(profile.get("art_variant", ""))]
+		var role: String = unit.character_id
+		if not first_roles.has(art):
+			first_roles[art] = role
+		elif first_roles[art] != role:
+			shared[art] = true
+	return shared
+
+
+func _refresh_map_legend(native_exit: bool) -> void:
+	var kinds: PackedStringArray = []
+	for marker in _objective_markers.values():
+		if not marker.kind in kinds:
+			kinds.append(marker.kind)
+	if _legend.has_meta("objective_kinds") and _legend.get_meta("objective_kinds") == kinds:
+		return
+	_legend.set_meta("objective_kinds", kinds)
+	for entry in _legend.get_children():
+		_legend.remove_child(entry)
+		entry.queue_free()
+	for kind in kinds:
+		var mark: Array = BattleCues.MARKS.get(kind, ["", "Objective", GOLD])
+		var glyph: String = mark[0]
+		var title: String = mark[1]
+		if kind == "exit" and native_exit:
+			glyph = ""
+			title = _presentation("exit", "Destination")
+		_legend_key(_legend, kind, title, mark[2], glyph)
+	if native_exit:
+		_legend_key(_legend, "safe", "Safe bank", Color("#a0a67a"))
+		_legend_key(_legend, "broken", "Bridge gap", Color("#5c918e"))
+	_legend_key(_legend, "obstacle", "Blocked", Color("#b38b60"))
+	_legend_key(_legend, "target", "Target", MINT)
+	_legend_key(_legend, "impact", "Net HP loss", RUST)
+	_legend_key(_legend, "path", "Forecast end", GOLD)
 
 
 func _hooked_paths(hooked: Dictionary) -> Array:
@@ -1351,44 +1472,70 @@ func _select_board(cell: Vector2i) -> void:
 
 func _inspect_board(cell: Vector2i) -> void:
 	_hover_cell = cell
-	var place := BridgeArt.coordinate(cell)
+	var marker: Dictionary = _objective_markers.get(cell, {})
+	var place := BridgeArt.coordinate(cell) if marker.is_empty() else \
+		"%s  ·  %s" % [BridgeArt.coordinate(cell), marker.label]
 	var shield_note := _shield_tile_note(cell)
+	var target_note := ""
 	if _ongoing():
 		var target_kind := _target_kind()
 		var matching := _targets_at(cell)
 		if not matching.is_empty():
-			var target_name := "Summon destination" if _is_summon() else "Move destination"
-			if target_kind != "cell":
-				target_name = "%s target" % matching[0].label if matching.size() == 1 else "%d targets; choose in Target" % matching.size()
-			_hover_text.text = "%s%s  ·  %s when %s acts" % [place, shield_note, target_name, _name_for(_actor_id)]
-			_board.tooltip_text = _hover_text.text
-			return
+			if target_kind == "cell":
+				target_note = "Summon destination" if _is_summon() else "Move destination"
+			else:
+				target_note = "Legal target" if matching.size() == 1 else "%d targets; choose in Target" % matching.size()
+			target_note = "  ·  %s when %s acts" % [target_note, _name_for(_actor_id)]
 	for unit in _state.units:
 		if unit.position == cell and unit.hp > 0:
-			_hover_text.text = "%s%s  ·  %s  %d/%d HP" % [place, shield_note, _name_for(unit.id), unit.hp, unit.max_hp]
+			var text := "%s%s  ·  %s  %d/%d HP" % [place, shield_note, _name_for(unit.id), unit.hp, unit.max_hp]
 			for label in _rules.status_labels(_state, unit.id):
-				_hover_text.text += "  ·  " + label
+				text += "  ·  " + label
 			var focus_id: String = _rules.nominated_target(_state, unit.id)
 			if not focus_id.is_empty():
 				var prefix := "Summons pursue " if _rules.has_capability(_state, unit.id, "commandable") else "Pursuing "
-				_hover_text.text += "  ·  " + prefix + _name_for(focus_id)
-			_board.tooltip_text = _hover_text.text
+				text += "  ·  " + prefix + _name_for(focus_id)
+			_set_inspection(text + target_note, _enemy_inspection_notes(unit.id))
 			return
 	for obstacle in _state.obstacles:
 		if obstacle.position == cell and obstacle.hp > 0:
-			_hover_text.text = "%s%s  ·  %s  %d/%d HP" % [place, shield_note, _name_for(obstacle.id), obstacle.hp, obstacle.max_hp]
-			_board.tooltip_text = _hover_text.text
+			_set_inspection("%s%s  ·  %s  %d/%d HP%s" % [
+				place, shield_note, _name_for(obstacle.id), obstacle.hp, obstacle.max_hp, target_note])
 			return
 	var label: String = _tile_labels.get(cell, "")
-	if cell == _state.objective.get("destination"):
-		var destination := _presentation("exit", "Destination")
-		label = destination if _safe_cells.has(cell) else "%s  ·  %s" % [label, destination]
-	elif _safe_cells.has(cell):
+	if _safe_cells.has(cell) and marker.is_empty():
 		label = _presentation("safe", label)
 	if _corpse_markers.has(cell):
 		label = "%s  ·  %s corpse" % [label, _name_for(_corpse_markers[cell].id)]
-	_hover_text.text = "%s%s  ·  %s" % [place, shield_note, label]
-	_board.tooltip_text = _hover_text.text
+	_set_inspection("%s%s  ·  %s%s" % [place, shield_note, label, target_note])
+
+
+func _set_inspection(text: String, details := PackedStringArray()) -> void:
+	_hover_text.text = text if details.is_empty() else text + "  ·  " + details[0]
+	var full := text if details.is_empty() else text + "\n" + "\n".join(details)
+	_hover_text.tooltip_text = full
+	_board.tooltip_text = full
+
+
+func _enemy_inspection_notes(id: String) -> PackedStringArray:
+	var profile: Dictionary = _rules.entity_profile(_state, id)
+	if profile.get("team") != "enemies":
+		return []
+	var definitions: Dictionary = _rules.definitions(_state)
+	var notes := BattleCues.trait_notes(profile, definitions)
+	var behavior: Dictionary = definitions.behaviors.get(profile.get("behavior", ""), {})
+	var options: Dictionary = behavior.get("params", {})
+	if behavior.get("handler") == "retreat_attack":
+		notes.append("Retreats from nearby heroes.")
+	for key in ["heal_ability", "swap_ability"]:
+		if options.has(key):
+			var ability: Dictionary = definitions.abilities[options[key]]
+			notes.append(ability.help)
+	if behavior.get("handler") == "use_ability" and options.has("ability"):
+		var ability: Dictionary = definitions.abilities[options.ability]
+		if ability.get("handler") == "blast":
+			notes.append(ability.help)
+	return notes
 
 
 func _shield_tile_note(cell: Vector2i) -> String:
@@ -1409,6 +1556,7 @@ func _targets_at(cell: Vector2i) -> Array:
 func _clear_inspection() -> void:
 	_hover_cell = null
 	_hover_text.text = "Point at a tile to inspect it."
+	_hover_text.tooltip_text = ""
 	_board.tooltip_text = ""
 
 
@@ -1603,16 +1751,19 @@ func _presentation_entry(art_key: String) -> Dictionary:
 	return _rules.definitions(_state).get("presentation", {}).get(art_key, {})
 
 
-func _legend_key(parent: Control, art_key: String, fallback_label: String, fallback_color: Color) -> void:
-	var definition := _presentation_entry(art_key)
+func _legend_key(parent: Control, art_key: String, fallback_label: String, fallback_color: Color, glyph := "") -> void:
+	var definition := _presentation_entry(art_key) if glyph.is_empty() else {}
 	var title: String = definition.get("label", fallback_label)
 	var color := Color.from_string(definition.get("color", ""), fallback_color)
 	var entry := _row(parent, 6)
-	var swatch := ColorRect.new()
-	swatch.custom_minimum_size = Vector2(8, 8)
-	swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	swatch.color = color
-	entry.add_child(swatch)
+	if glyph.is_empty():
+		var swatch := ColorRect.new()
+		swatch.custom_minimum_size = Vector2(8, 8)
+		swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		swatch.color = color
+		entry.add_child(swatch)
+	else:
+		_label(entry, glyph, 12, color)
 	var caption := _label(entry, title, 12, MUTED)
 	caption.custom_minimum_size.x = minf(caption.get_minimum_size().x, 105.0)
 	caption.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS

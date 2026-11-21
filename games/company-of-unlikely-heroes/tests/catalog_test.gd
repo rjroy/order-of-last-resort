@@ -151,16 +151,8 @@ func _test_handler_event_requirements() -> void:
 		_check(event_id in " ".join(errors), "Missing event diagnostic identifies " + event_id)
 
 	# Old or independently authored catalogs need not support unused handlers.
-	var compatible := defs.duplicate(true)
-	for adventure in compatible.adventures.values():
-		adventure.roster.erase("rogue")
-	for id in compatible.get("upgrades", {}).keys():
-		if compatible.upgrades[id].get("hero_id") == "rogue":
-			compatible.upgrades.erase(id)
-	compatible.characters.erase("rogue")
-	compatible.abilities.erase("rogue_confusing_dodge")
-	compatible.abilities.erase("rogue_wasnt_me")
-	compatible.statuses.erase("misdirected")
+	var compatible: Dictionary = preload("res://tests/fixtures/rules_catalog.gd").definitions()
+	_check(catalog.validate(compatible).is_empty(), "Handler-free controlled fixture starts valid")
 	for event_id in ["swap", "misdirect_mark", "misdirect_redirect", "misdirect_missing"]:
 		compatible.events.erase(event_id)
 	var errors: PackedStringArray = catalog.validate(compatible)

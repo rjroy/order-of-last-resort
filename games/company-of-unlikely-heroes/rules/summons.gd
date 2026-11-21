@@ -44,7 +44,8 @@ static func _spawn(state: Dictionary, summoner: Dictionary, character: String, p
 	var base_id := "%s_%s" % [summoner.id, character]
 	var id := base_id
 	var index := 2
-	while not Board.entity(state, id).is_empty():
+	var reserves: Array = state.objective.get("reserves", [])
+	while not Board.entity(state, id).is_empty() or reserves.any(func(unit: Dictionary) -> bool: return unit.id == id):
 		id = "%s_%d" % [base_id, index]
 		index += 1
 	var minion := {"id": id, "character_id": character, "position": position,

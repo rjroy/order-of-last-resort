@@ -192,9 +192,10 @@ func _test_adventure_wipe_boundary() -> void:
 			"Adventure rejects mission %s without party_wiped, even if a summon survives" % mission_id)
 	var standalone := defs.duplicate(true)
 	standalone.adventures.first_outing.missions.erase("bridge_patrol")
+	standalone.mission_reports.erase("bridge_patrol")
 	standalone.missions.bridge_patrol.failures = []
 	_check(catalog.validate(standalone).is_empty(),
-		"A mission not used by an adventure may omit party_wiped")
+		"A mission not used by an adventure or commission may omit party_wiped")
 
 
 func _test_optional_descriptions() -> void:

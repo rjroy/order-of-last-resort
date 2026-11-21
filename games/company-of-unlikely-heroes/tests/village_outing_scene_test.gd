@@ -37,8 +37,8 @@ func _run() -> void:
 			_check(opening.get("party", []).size() == 3, id + " has an authored three-hero party")
 			direct_openings[id] = opening
 			await _capture(id + "_direct")
-	await _launch(PackedStringArray())
-	_check(scene.current_screen() == "guild", "Normal launch opens the guild")
+	await _launch(PackedStringArray(["--fixed-outings"]))
+	_check(scene.current_screen() == "guild", "Fixed outings launch opens the guild")
 	var selector := _node("AdventureSelect") as OptionButton
 	if selector == null:
 		_check(false, "Guild exposes AdventureSelect")
@@ -117,6 +117,10 @@ func _run() -> void:
 func _test_custom_adventure_bootstrap() -> void:
 	var catalog = load("res://content/catalog.gd")
 	var data: Dictionary = catalog.read_default().duplicate(true)
+	# This legacy custom catalog has no commission board; its roster adventure
+	# is deliberately removed below.
+	for table in ["mission_reports", "mission_kinds", "commission_settings"]:
+		data.erase(table)
 	data.adventures.erase("first_outing")
 	var errors: PackedStringArray = catalog.validate(data)
 	_check(errors.is_empty() and data.adventures.has("village_troubles"),

@@ -6,6 +6,8 @@ const BattleCues = preload("res://battle_cues.gd")
 const Catalog = preload("res://content/catalog.gd")
 const Adventure = preload("res://adventure.gd")
 const Upgrades = preload("res://rules/upgrades.gd")
+const Commissions = preload("res://commissions.gd")
+const GuildProfile = preload("res://guild_profile.gd")
 const DEFAULT_ADVENTURE := "first_outing"
 
 const PAPER := Color("#f1dfb8")
@@ -27,6 +29,10 @@ var _picked_recruits: Array = []
 var _screen := ""
 var _screen_root: Control
 var _launch_args: Variant
+var _profile_path := GuildProfile.DEFAULT_PATH
+var _guild_profile: Dictionary
+var _commission: Dictionary
+var _practice_from_guild := false
 var _fixed_mission := ""
 var _opening_state: Dictionary
 var _state: Dictionary
@@ -111,13 +117,17 @@ func _ready() -> void:
 			return
 		if _requires_party(_fixed_mission):
 			var guild_adventure := _adventure_for_mission(_fixed_mission)
-			if not guild_adventure.is_empty():
-				var party_size: int = int(guild_adventure.party_size)
-				_show_launch_error("The mission \"%s\" needs a guild party. Launch without --mission and choose %d %s at the guild. %s" % [
-					_fixed_mission, party_size, "recruit" if party_size == 1 else "recruits", _fixed_mission_help()])
-			else:
+			var via_commissions := guild_adventure.is_empty()
+			if via_commissions:
+				guild_adventure = _commission_roster_for_mission(_fixed_mission)
+			if guild_adventure.is_empty():
 				_show_launch_error("The mission \"%s\" is not standalone, and this content has no guild route to it. %s" % [
 					_fixed_mission, _fixed_mission_help()])
+			else:
+				var party_size := int(guild_adventure.party_size)
+				var flags := "--mission or --fixed-outings" if via_commissions else "--mission"
+				_show_launch_error("The mission \"%s\" needs a guild party. Launch without %s and choose %d %s at the guild. %s" % [
+					_fixed_mission, flags, party_size, "recruit" if party_size == 1 else "recruits", _fixed_mission_help()])
 			return
 		var default_party: Array = _definitions.missions[_fixed_mission].get("default_party", [])
 		_opening_state = Rules.open_mission(_definitions, _fixed_mission, default_party)
@@ -125,6 +135,9 @@ func _ready() -> void:
 			_show_launch_error("The mission \"%s\" could not be set up. Check your content file." % _fixed_mission)
 			return
 		_show_battle(_opening_state.duplicate(true))
+		return
+	if not launch.fixed_outings and not _definitions.get("commission_settings", {}).is_empty():
+		_open_commission_hub()
 		return
 	if _adventure.is_empty():
 		_show_launch_error("The content has no first_outing adventure. " + _fixed_mission_help())
@@ -145,6 +158,14 @@ func _adventure_for_mission(mission_id: String) -> Dictionary:
 	return {}
 
 
+func _commission_roster_for_mission(mission_id: String) -> Dictionary:
+	if not _definitions.get("mission_reports", {}).has(mission_id):
+		return {}
+	# Catalog validation checks each reported mission can deploy the commission roster.
+	var roster_id: String = _definitions.get("commission_settings", {}).get("roster_adventure", "")
+	return _definitions.get("adventures", {}).get(roster_id, {})
+
+
 func _fixed_mission_help() -> String:
 	var ids: PackedStringArray = []
 	for id in _definitions.missions:
@@ -161,6 +182,11 @@ func configure_launch(args: PackedStringArray) -> void:
 	_launch_args = args.duplicate()
 
 
+func configure_profile_path(path: String) -> void:
+	assert(not is_inside_tree(), "Set the profile path before adding the scene.")
+	_profile_path = path
+
+
 func current_screen() -> String:
 	return _screen
 
@@ -174,11 +200,16 @@ func battle_snapshot() -> Dictionary:
 
 
 func _read_launch_options(args: PackedStringArray) -> Dictionary:
-	var launch := {"content": "", "mission": ""}
+	var launch := {"content": "", "mission": "", "fixed_outings": false}
 	var seen: Dictionary = {}
 	for arg in args:
 		var key := arg.get_slice("=", 0).trim_prefix("--")
-		if not arg.begins_with("--") or not launch.has(key):
+		if arg.begins_with("--") and key == "fixed-outings":
+			if arg != "--fixed-outings" or launch.fixed_outings:
+				return {"error": "Use --fixed-outings once, without a value."}
+			launch.fixed_outings = true
+			continue
+		if not arg.begins_with("--") or key not in ["content", "mission"]:
 			continue
 		var value := arg.substr(arg.find("=") + 1) if "=" in arg else ""
 		if value.strip_edges().is_empty() or seen.has(key):
@@ -220,12 +251,236 @@ func _page(screen: String, top_margin := 22) -> VBoxContainer:
 	return _stack(padding, 13)
 
 
+func _open_commission_hub(board_refresh_failed := false) -> void:
+	_practice_from_guild = false
+	_commission = {}
+	_picked_recruits.clear()
+	_run = {}
+	_state = {}
+	print_verbose("Loading the guild profile.")
+	_guild_profile = GuildProfile.load_profile(_profile_path)
+	if _guild_profile.has("error"):
+		print_verbose("Could not load the guild profile: %s" % _guild_profile.error)
+		_show_profile_error(str(_guild_profile.error))
+	elif _guild_profile.is_empty():
+		print_verbose("No guild profile found.")
+		_show_guild_creation(board_refresh_failed)
+	else:
+		print_verbose("Guild profile loaded.")
+		_show_commissions(board_refresh_failed)
+
+
+func _show_profile_error(message: String) -> void:
+	var page := _page("profile_error", 48)
+	_guild_masthead(page, "Could not open the guild", "The saved profile hasn’t been changed.",
+		"PracticeOutings", "Practice outings", _open_practice_outings)
+	_wrapped_label(page, message, 17, RUST)
+	_wrapped_label(page, "Check the guild profile file and try again:", 16, MUTED)
+	_wrapped_label(page, ProjectSettings.globalize_path(_profile_path), 15, PAPER)
+	var retry := _primary_button(page, "ReloadGuild", "Reload profile")
+	retry.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	retry.pressed.connect(_open_commission_hub)
+	retry.grab_focus()
+
+
+func _show_guild_creation(after_missing_profile := false) -> void:
+	var page := _page("guild_creation", 48)
+	_guild_masthead(page, "Name your guild", "The Company of Unlikely Heroes",
+		"PracticeOutings", "Practice outings", _open_practice_outings)
+	if after_missing_profile:
+		_wrapped_label(page, "The previous guild profile could not be found. Create a guild to choose another commission.", 16, RUST)
+	var form_panel := _panel(page, 568)
+	form_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var form := _stack(form_panel, 15)
+	_wrapped_label(form, "Your guild keeps its name between outings. Once it’s founded, choose a commission and recruit your company.", 17, PAPER)
+	_rule(form)
+	_label(form, "Guild name", 15, MUTED)
+	var input := LineEdit.new()
+	input.name = "GuildName"
+	input.placeholder_text = "Enter a guild name"
+	input.accessibility_name = "Guild name"
+	input.max_length = GuildProfile.MAX_NAME_LENGTH
+	input.custom_minimum_size.y = 46
+	form.add_child(input)
+	var create := _primary_button(form, "CreateGuild", "Create guild")
+	create.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	create.disabled = true
+	var feedback := _wrapped_label(form, "", 15, RUST)
+	feedback.hide()
+	input.text_changed.connect(func(value: String) -> void:
+		create.disabled = value.strip_edges().is_empty()
+		feedback.hide())
+	input.text_submitted.connect(func(_value: String) -> void:
+		if not create.disabled:
+			_create_guild(input.text, feedback))
+	create.pressed.connect(func() -> void: _create_guild(input.text, feedback))
+	input.grab_focus()
+
+
+func _create_guild(guild_name: String, feedback: Label) -> void:
+	print_verbose("Creating a guild profile.")
+	var created := GuildProfile.create(_profile_path, guild_name, randi())
+	if created.has("error"):
+		print_verbose("Could not create the guild profile: %s" % created.error)
+		feedback.text = str(created.error)
+		feedback.show()
+		return
+	_guild_profile = created
+	print_verbose("Guild profile created.")
+	_show_commissions()
+
+
+func _show_commissions(board_refresh_failed := false) -> void:
+	var page := _page("commissions", 48)
+	_guild_masthead(page, "Commission board", str(_guild_profile.name),
+		"PracticeOutings", "Practice outings", _open_practice_outings)
+	if board_refresh_failed:
+		_wrapped_label(page, "The board wasn’t refreshed. These commissions are from the current saved guild.", 16, RUST)
+	_wrapped_label(page, "Choose a destination. The mission count includes the final mission.", 17, MUTED)
+	var cards := _row(page, 20)
+	var offers := Commissions.board(_definitions, int(_guild_profile.board_seed))
+	for index in range(offers.size()):
+		var offer: Dictionary = offers[index]
+		var title := _mission_title_for(offer.destination_id)
+		var card := _guild_card(cards, 360)
+		var copy := _guild_card_text(card, "CommissionText_%d" % index)
+		_wrapped_label(copy, title, 32, PAPER, true)
+		_label(copy, "%d missions" % offer.length, 16, GOLD)
+		_rule(copy)
+		_wrapped_label(copy, offer.description, 18, PAPER)
+		var choose := _primary_button(card, "Commission_%d" % index, "Choose " + title)
+		choose.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		choose.accessibility_name = "Choose commission: " + title
+		choose.accessibility_description = "%d missions. %s" % [offer.length, offer.description]
+		choose.pressed.connect(_select_commission.bind(offer))
+
+
+func _select_commission(offer: Dictionary) -> void:
+	_commission = offer
+	_adventure = _definitions.adventures[_definitions.commission_settings.roster_adventure]
+	_show_guild()
+
+
+func _open_practice_outings() -> void:
+	_practice_from_guild = true
+	_picked_recruits.clear()
+	_adventure = _definitions.adventures[_adventure_id]
+	_show_guild()
+
+
+func _guild_masthead(page: VBoxContainer, title: String, subtitle: String,
+		link_name := "", link_text := "", action := Callable()) -> void:
+	var line := _row(page, 18)
+	var titles := _stack(line, 3)
+	titles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_wrapped_label(titles, title, 44, PAPER, true)
+	_wrapped_label(titles, subtitle, 17, GOLD)
+	if action.is_valid():
+		var nav := LinkButton.new()
+		nav.name = link_name
+		nav.text = link_text
+		nav.custom_minimum_size.y = 43
+		nav.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		line.add_child(nav)
+		nav.pressed.connect(action)
+	_rule(page)
+
+
+func _guild_card(parent: Control, height: float) -> VBoxContainer:
+	var panel := _panel(parent, 0)
+	panel.custom_minimum_size.y = height
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_theme_stylebox_override("panel", _box(Color("#1d302e"), LINE, 1, 2, 23, 21))
+	return _stack(panel, 13)
+
+
+func _guild_card_text(card: VBoxContainer, node_name: String) -> VBoxContainer:
+	var scroll := _scroll(card)
+	scroll.name = node_name
+	var bar := scroll.get_v_scroll_bar()
+	bar.focus_mode = Control.FOCUS_ALL
+	bar.accessibility_name = "Scroll card text"
+	var copy := _stack(scroll, 13)
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	return copy
+
+
 func _show_guild(focus_name := "") -> void:
 	_state = {}
 	var previous_scroll := find_child("RecruitScroll", true, false) as ScrollContainer if _screen == "guild" else null
 	var scroll_position := previous_scroll.scroll_vertical if previous_scroll != null else 0
+	var previous_slots := find_child("DeploymentScroll", true, false) as ScrollContainer if _screen == "guild" else null
+	var slot_position := previous_slots.scroll_vertical if previous_slots != null else 0
 	var page := _page("guild", 36)
-	_label(page, "The Company of Unlikely Heroes", 42, PAPER, true)
+	if _commission.is_empty():
+		_build_practice_itinerary(page)
+	else:
+		_guild_masthead(page, "Choose your company",
+			"%s  ·  %s  ·  %d missions" % [
+				_guild_profile.name, _mission_title_for(_commission.destination_id), _commission.length],
+			"BackToCommissions", "Commission board", _open_commission_hub)
+	var columns := _row(page, 24)
+	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var roster := _stack(columns, 10)
+	roster.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_label(roster, "Choose your company" if _commission.is_empty() else "Available recruits", 30, PAPER, true)
+	_wrapped_label(roster, "Take %d distinct recruits. Each round, you can command one hero; the others follow standing orders." % _adventure.party_size, 15, MUTED)
+	var scroll := _scroll(roster)
+	scroll.name = "RecruitScroll"
+	var recruits := _stack(scroll, 10)
+	recruits.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for recruit_id in _adventure.roster:
+		_build_recruit(recruits, recruit_id)
+	var marching_panel := _panel(columns, 393)
+	var scroll_slots: bool = _adventure.party_size > 3
+	marching_panel.size_flags_vertical = Control.SIZE_FILL if scroll_slots else Control.SIZE_SHRINK_BEGIN
+	var marching := _stack(marching_panel, 12)
+	_label(marching, "Deployment order", 26, PAPER, true)
+	_wrapped_label(marching, "The top hero acts first. This order places your party and sets who acts first in each mission.", 14, MUTED)
+	var count := _label(marching, "%d / %d selected" % [_picked_recruits.size(), _adventure.party_size], 15, GOLD)
+	count.name = "PartyCount"
+	_rule(marching)
+	var slots := marching
+	var deployment_scroll: ScrollContainer
+	if scroll_slots:
+		deployment_scroll = _scroll(marching)
+		deployment_scroll.name = "DeploymentScroll"
+		slots = _stack(deployment_scroll, 12)
+		slots.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for slot in range(_adventure.party_size):
+		_build_party_slot(slots, slot)
+	var departure := "Read field reports" if not _commission.is_empty() else "Depart for " + _mission_title_for(_adventure.missions[0])
+	var start := _primary_button(marching, "StartAdventure", departure)
+	start.disabled = _picked_recruits.size() != _adventure.party_size
+	start.pressed.connect(_start_adventure)
+	var focus: Button
+	if not focus_name.is_empty():
+		focus = find_child(focus_name, true, false) as Button
+		if focus != null and focus.disabled and focus_name.begins_with("Party"):
+			var opposite := focus_name.replace("Earlier_", "Later_") if "Earlier_" in focus_name else focus_name.replace("Later_", "Earlier_")
+			focus = find_child(opposite, true, false) as Button
+		if focus != null and not focus.disabled:
+			focus.grab_focus()
+	scroll.set_deferred("scroll_vertical", scroll_position)
+	if deployment_scroll != null:
+		_restore_deployment_scroll.call_deferred(deployment_scroll, slot_position, focus)
+
+
+func _restore_deployment_scroll(scroll: ScrollContainer, position: int, focus: Button) -> void:
+	if not is_instance_valid(scroll) or not scroll.is_inside_tree():
+		return
+	scroll.scroll_vertical = position
+	if is_instance_valid(focus) and focus.has_focus() and scroll.is_ancestor_of(focus):
+		scroll.ensure_control_visible(focus)
+
+
+func _build_practice_itinerary(page: VBoxContainer) -> void:
+	if _practice_from_guild:
+		_guild_masthead(page, "Practice outings", "The Company of Unlikely Heroes",
+			"BackToCommissions", "Back to guild", _open_commission_hub)
+	else:
+		_label(page, "The Company of Unlikely Heroes", 42, PAPER, true)
 	var itinerary := _row(page, 24)
 	var selection := _stack(itinerary, 4)
 	selection.custom_minimum_size.x = 294
@@ -241,39 +496,6 @@ func _show_guild(focus_name := "") -> void:
 	_label(route, "%d missions" % _adventure.missions.size() if _adventure.missions.size() != 1 else "1 mission", 13, MUTED)
 	_wrapped_label(route, _route_titles(), 15, PAPER)
 	_rule(page)
-	var columns := _row(page, 24)
-	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var roster := _stack(columns, 10)
-	roster.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_label(roster, "Choose your company", 30, PAPER, true)
-	_wrapped_label(roster, "Take %d distinct recruits. Each round, you can command one hero; the others follow standing orders." % _adventure.party_size, 15, MUTED)
-	var scroll := _scroll(roster)
-	scroll.name = "RecruitScroll"
-	var recruits := _stack(scroll, 10)
-	recruits.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for recruit_id in _adventure.roster:
-		_build_recruit(recruits, recruit_id)
-	var marching_panel := _panel(columns, 393)
-	marching_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	var marching := _stack(marching_panel, 12)
-	_label(marching, "Deployment order", 26, PAPER, true)
-	_wrapped_label(marching, "The top hero acts first. This order places your party and sets who acts first in each mission.", 14, MUTED)
-	var count := _label(marching, "%d / %d selected" % [_picked_recruits.size(), _adventure.party_size], 15, GOLD)
-	count.name = "PartyCount"
-	_rule(marching)
-	for slot in range(_adventure.party_size):
-		_build_party_slot(marching, slot)
-	var start := _primary_button(marching, "StartAdventure", "Depart for " + _mission_title_for(_adventure.missions[0]))
-	start.disabled = _picked_recruits.size() != _adventure.party_size
-	start.pressed.connect(_start_adventure)
-	if not focus_name.is_empty():
-		var focus := find_child(focus_name, true, false) as Button
-		if focus != null and focus.disabled and focus_name.begins_with("Party"):
-			var opposite := focus_name.replace("Earlier_", "Later_") if "Earlier_" in focus_name else focus_name.replace("Later_", "Earlier_")
-			focus = find_child(opposite, true, false) as Button
-		if focus != null and not focus.disabled:
-			focus.grab_focus()
-	scroll.set_deferred("scroll_vertical", scroll_position)
 
 
 func _select_adventure(index: int, selector: OptionButton) -> void:
@@ -362,8 +584,56 @@ func _mission_title_for(mission_id: String) -> String:
 
 
 func _start_adventure() -> void:
+	if not _commission.is_empty():
+		_run = Adventure.start_commission(_definitions, _commission, _picked_recruits)
+		if _run.get("phase") == "route":
+			_show_routes()
+		return
 	_run = Adventure.start_adventure(_definitions, _adventure_id, _picked_recruits)
 	if not _run.is_empty():
+		_begin_mission()
+
+
+func _show_routes() -> void:
+	var page := _page("routes", 48)
+	var title := _mission_title_for(_run.destination_id)
+	var next := int(_run.mission_index) + 1
+	var total := Adventure.mission_count(_run)
+	var penultimate := next == total - 1
+	_guild_masthead(page, "Field reports", "%s  ·  Mission %d of %d" % [title, next, total])
+	_wrapped_label(page, "Choose where to go next. Both roads lead to your destination." if penultimate
+		else "Choose your next mission. Each report includes a clue about what may follow.", 17, MUTED)
+	var cards := _row(page, 20)
+	var first: Button
+	for index in range(_run.reports.size()):
+		var report: Dictionary = _run.reports[index]
+		var card := _guild_card(cards, 416)
+		var copy := _guild_card_text(card, "RouteText_%d" % index)
+		var route_name := "Route A" if index == 0 else "Route B"
+		_label(copy, route_name, 29, PAPER, true)
+		_rule(copy)
+		_label(copy, "Immediate mission", 15, GOLD)
+		_wrapped_label(copy, report.description, 18, PAPER)
+		_rule(copy)
+		_label(copy, "Known destination" if penultimate else "Farther ahead", 15, GOLD)
+		_wrapped_label(copy, report.hint_text, 17, PAPER)
+		var choice := "Take %s to %s" % [route_name, title] if penultimate else "Take " + route_name
+		var choose := _primary_button(card, "Route_%d" % index, choice)
+		choose.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		choose.accessibility_description = "Next: %s. Farther ahead: %s" % [report.description, report.hint_text]
+		choose.pressed.connect(_choose_route.bind(str(report.mission_id)))
+		if index == 0:
+			first = choose
+	if first != null:
+		first.grab_focus()
+
+
+func _choose_route(mission_id: String) -> void:
+	if _screen != "routes":
+		return
+	var selected := Adventure.choose_route(_run, mission_id)
+	if selected.get("phase") == "ready":
+		_run = selected
 		_begin_mission()
 
 
@@ -378,8 +648,12 @@ func _begin_mission() -> void:
 
 func _show_debrief() -> void:
 	var result: Dictionary = _run.last_result
-	var next_title := _mission_title_for(_run.mission_ids[_run.mission_index])
 	var pending: bool = _run.phase == "reward"
+	var next_title := ""
+	if _commission.is_empty():
+		next_title = _mission_title_for(_run.mission_ids[_run.mission_index])
+	elif _run.phase == "ready":
+		next_title = _mission_title_for(_run.destination_id)
 	var chosen: Dictionary = _run.get("chosen_reward", {})
 	if pending or not chosen.is_empty():
 		_show_reward_debrief(next_title, pending, chosen)
@@ -396,7 +670,8 @@ func _show_debrief() -> void:
 func _show_reward_debrief(next_title: String, pending: bool, chosen: Dictionary) -> void:
 	var page := _page("debrief", 38)
 	_wrapped_label(page, "%s cleared" % _mission_title_for(_run.last_result.mission_id), 44, PAPER, true)
-	_wrapped_label(page, "Next mission: " + next_title, 16, MUTED)
+	if not next_title.is_empty():
+		_wrapped_label(page, "Next mission: " + next_title, 16, MUTED)
 	_rule(page)
 	var columns := _row(page, 24)
 	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -418,10 +693,17 @@ func _show_reward_debrief(next_title: String, pending: bool, chosen: Dictionary)
 	carry.custom_minimum_size.x = 376
 	var company := _panel(carry, 0)
 	company.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_build_carry_report(_stack(company, 12))
+	var company_report := _stack(company, 12)
+	_build_carry_report(company_report)
+	var scout_note: String = _run.get("scout_note", "")
+	if pending and not scout_note.is_empty():
+		_rule(company_report)
+		_label(company_report, "Your scout’s note", 22, PAPER, true)
+		_wrapped_label(company_report, scout_note, 16, PAPER)
 	_rule(page)
 	var footer := _row(page, 16)
 	var reminder := _wrapped_label(footer, "Choose a reward before continuing." if pending \
+		else "Your company can now read the next field reports." if next_title.is_empty() \
 		else "Your company can now depart.", 15, MUTED)
 	reminder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	reminder.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -473,21 +755,33 @@ func _claim_reward(hero_id: String, upgrade_id: String) -> void:
 	if _screen != "debrief" or _run.phase != "reward":
 		return
 	var chosen := Adventure.choose_reward(_run, hero_id, upgrade_id)
-	if chosen.phase == "ready":
+	if chosen.phase in ["ready", "route"]:
 		_run = chosen
 		_show_debrief()
 
 
 func _add_continue(parent: Control, next_title: String) -> Button:
-	var advance := _primary_button(parent, "ContinueAdventure", "Continue to " + next_title)
+	var caption := "Continue"
+	if not next_title.is_empty():
+		caption = "Continue to " + next_title
+	elif _run.phase == "route":
+		caption = "Read field reports"
+	var advance := _primary_button(parent, "ContinueAdventure", caption)
 	advance.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	advance.disabled = _run.phase != "ready"
+	advance.disabled = _run.phase not in ["ready", "route"]
 	if advance.disabled:
 		advance.accessibility_description = "Choose one reward first."
 		advance.add_theme_stylebox_override("disabled", _box(Color("#202d2a"), LINE))
 		advance.add_theme_color_override("font_disabled_color", MUTED)
-	advance.pressed.connect(_begin_mission)
+	advance.pressed.connect(_continue_after_debrief)
 	return advance
+
+
+func _continue_after_debrief() -> void:
+	if _run.phase == "route":
+		_show_routes()
+	else:
+		_begin_mission()
 
 
 func _build_carry_report(panel: VBoxContainer) -> void:
@@ -518,14 +812,18 @@ func _show_result() -> void:
 	var result: Dictionary = _run.last_result
 	var page := _page("result", 44)
 	var success: bool = result.outcome == "victory"
-	var outcome := _label(page, "Adventure complete" if success else "Adventure failed", 44, MINT if success else RUST, true)
+	var outing := "Adventure" if _commission.is_empty() else "Commission"
+	var outcome := _label(page, "%s %s" % [outing, "complete" if success else "failed"], 44, MINT if success else RUST, true)
 	outcome.name = "RunOutcome"
 	outcome.set_meta("outcome", result.outcome)
 	_label(page, _mission_title_for(result.mission_id), 22, PAPER, true)
 	if not result.text.is_empty():
 		_wrapped_label(page, result.text, 16, PAPER)
 	_rule(page)
-	_wrapped_label(page, "Return to the guild to recruit a fresh party.", 16, MUTED)
+	if _commission.is_empty():
+		_wrapped_label(page, "Return to the guild to recruit a fresh party.", 16, MUTED)
+	else:
+		_wrapped_label(page, "Return to %s for a fresh commission board." % _guild_profile.name, 16, MUTED)
 	var return_button := _primary_button(page, "ReturnToGuild", "Return to guild")
 	return_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	return_button.pressed.connect(_return_to_guild)
@@ -533,6 +831,20 @@ func _show_result() -> void:
 
 
 func _return_to_guild() -> void:
+	if not _commission.is_empty():
+		if _run.get("phase") != "finished":
+			return
+		var next_seed := randi()
+		if next_seed == int(_guild_profile.board_seed):
+			next_seed ^= 1
+		print_verbose("Refreshing the commission board after %s." % _run.outcome)
+		var renewed := GuildProfile.renew(_profile_path, _guild_profile, next_seed)
+		if renewed.has("error"):
+			print_verbose("Could not refresh the commission board: %s" % renewed.error)
+		else:
+			print_verbose("Commission board refreshed.")
+		_open_commission_hub(renewed.has("error"))
+		return
 	var guild := Adventure.return_to_guild(_run)
 	if guild.phase != "guild":
 		return
@@ -950,12 +1262,22 @@ func _commit() -> void:
 	_unpreviewed_edit = false
 	if not _ongoing() and _fixed_mission.is_empty():
 		_run = Adventure.settle_mission(_run, _state)
-		if _run.phase in ["reward", "ready"]:
-			_show_debrief()
-			return
-		if _run.phase == "finished":
-			_show_result()
-			return
+		match _run.phase:
+			"reward":
+				_show_debrief()
+				return
+			"route":
+				_show_routes()
+				return
+			"ready":
+				if _commission.is_empty():
+					_show_debrief()
+				else:
+					_begin_mission()
+				return
+			"finished":
+				_show_result()
+				return
 	_sync_actors()
 	_sync_command()
 	_refresh(true)
@@ -968,7 +1290,8 @@ func _refresh(auto_pick_target := false) -> void:
 		_note_unpreviewed_edit()
 	var active := _ongoing()
 	var manual := active and not _actor_id.is_empty()
-	_status.text = "Fixed mission  ·  One direct command per round" if not _fixed_mission.is_empty() else "Mission %d of %d  ·  One direct command per round" % [_run.mission_index + 1, _run.mission_ids.size()]
+	_status.text = "Fixed mission  ·  One direct command per round" if not _fixed_mission.is_empty() \
+		else "Mission %d of %d  ·  One direct command per round" % [_run.mission_index + 1, Adventure.mission_count(_run)]
 	_refresh_objective()
 	_refresh_initiative()
 	var commanded := _commanded_hero()
@@ -1615,6 +1938,19 @@ func _make_theme() -> void:
 	skin.set_stylebox("pressed", "CommitButton", _box(Color("#be9559"), Color("#f8d99d")))
 	for face in ["font_color", "font_hover_color", "font_focus_color", "font_pressed_color"]:
 		skin.set_color(face, "CommitButton", DARK_TEXT)
+	skin.set_stylebox("normal", "LineEdit", _box(Color("#162725"), LINE, 1, 2, 13, 7))
+	skin.set_stylebox("focus", "LineEdit", _focus_box())
+	skin.set_font_size("font_size", "LineEdit", 17)
+	skin.set_color("font_color", "LineEdit", PAPER)
+	skin.set_color("font_placeholder_color", "LineEdit", MUTED)
+	skin.set_color("font_selected_color", "LineEdit", DARK_TEXT)
+	skin.set_color("selection_color", "LineEdit", GOLD)
+	skin.set_color("caret_color", "LineEdit", PAPER)
+	skin.set_stylebox("focus", "LinkButton", _focus_box())
+	skin.set_font_size("font_size", "LinkButton", 16)
+	for face in ["font_color", "font_focus_color", "font_pressed_color"]:
+		skin.set_color(face, "LinkButton", GOLD)
+	skin.set_color("font_hover_color", "LinkButton", PAPER)
 	skin.set_stylebox("panel", "PopupMenu", _box(Color("#253733"), Color("#8e9573"), 1, 2, 6, 4))
 	skin.set_stylebox("hover", "PopupMenu", _box(Color("#3b5145"), LINE))
 	skin.set_color("font_color", "PopupMenu", PAPER)

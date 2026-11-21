@@ -62,9 +62,9 @@ func _exercise_outing(adventure_id: String, missions: Array, routes: Dictionary)
 	if party.size() != 3 or party[0] == party[1] or party[0] == party[2] or party[1] == party[2]:
 		_check(false, adventure_id + ": first mission route needs three distinct party members in deployment order")
 		return
-	await _launch(PackedStringArray())
+	await _launch(PackedStringArray(["--fixed-outings"]))
 	if scene.current_screen() != "guild":
-		_check(false, adventure_id + ": normal launch must open guild")
+		_check(false, adventure_id + ": fixed outings launch must open guild")
 		return
 	if not await _select_id(_node("AdventureSelect") as OptionButton, adventure_id):
 		return

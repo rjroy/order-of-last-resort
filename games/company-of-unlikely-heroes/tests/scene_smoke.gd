@@ -54,13 +54,14 @@ func _run() -> void:
 		failures.append("Missing behavior: project main scene could not be instantiated")
 		_finish()
 		return
+	scene.call("configure_launch", PackedStringArray(["--fixed-outings"]))
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
 	await process_frame
 
 	_check(scene.has_method("current_screen") and scene.call("current_screen") == "guild",
-		"Default entry must show the guild screen")
+		"Fixed outings entry must show the legacy guild screen (normal entry uses guild creation or commissions)")
 	_check(scene.find_child("ModeDirect", true, false) == null
 		and scene.find_child("ModeStanding", true, false) == null,
 		"Guild entry must not offer retired mode selectors")
@@ -269,7 +270,7 @@ func _start_patrol(packed: PackedScene, party: Array) -> void:
 	await process_frame
 	controls.clear()
 	scene = packed.instantiate()
-	scene.configure_launch(PackedStringArray())
+	scene.configure_launch(PackedStringArray(["--fixed-outings"]))
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame

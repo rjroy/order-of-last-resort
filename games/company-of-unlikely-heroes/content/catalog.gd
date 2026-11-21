@@ -6,6 +6,7 @@ const Rewards = preload("res://rewards.gd")
 const Objectives = preload("res://content/objectives.gd")
 const TABLES := ["missions", "encounters", "boards", "tiles", "classes", "characters",
 	"capabilities", "objects", "abilities", "orders", "behaviors", "statuses", "events", "presentation"]
+const COMMISSION_TABLES := ["commission_settings", "mission_kinds", "mission_reports"]
 const REQUIRED_EVENTS := ["move", "damage", "knockdown_suffix", "reflect_absorb", "reflect_redirect",
 	"push", "collision_suffix", "aura", "taunt", "heal", "heal_full", "blast_suffix", "pull",
 	"recoil_source", "cannot_advance", "recover", "hold", "invalid", "watches", "gain_status"]
@@ -95,6 +96,7 @@ static func read_source(path: String) -> Dictionary:
 					return {"error": "Invalid content part \"%s\": table '%s' must be a dictionary." % [part_path, table]}
 				if not defs.has(table):
 					defs[table] = {}
+				# Merge keys regardless of value shape: settings map keys to scalars.
 				for id in records:
 					if defs[table].has(id):
 						return {"error": "Duplicate %s ID '%s' in content part \"%s\"." % [table, id, part_path]}
@@ -267,6 +269,8 @@ class Validator:
 			for id in adventures:
 				_text(str(id), "adventures ID")
 				_check_adventure(_dictionary(adventures[id], "adventures." + str(id)), "adventures." + str(id))
+		if COMMISSION_TABLES.any(func(table: String) -> bool: return _defs.has(table)):
+			_check_commissions()
 		if _defs.has("reward_weights"):
 			_check_reward_weights(_dictionary(_defs.reward_weights, "reward_weights"))
 		if _defs.has("upgrades"):
@@ -993,20 +997,103 @@ class Validator:
 			var id: Variant = missions[index]
 			if not id is String or not _defs.missions.has(id):
 				continue
-			var mission: Dictionary = _defs.missions[id]
-			var failures: Variant = mission.get("failures")
-			if failures is Array and not failures.any(func(failure: Variant) -> bool:
-					return failure is Dictionary and is_same(failure.get("handler"), "party_wiped")):
-				_error("%s.missions[%d]" % [path, index], "mission '%s' requires a party_wiped failure" % id)
-			var encounter: Dictionary = _defs.encounters.get(mission.get("encounter"), {})
-			var slots: Variant = encounter.get("party_slots", [])
-			if not slots is Array or slots.size() != int(party_size):
-				_error(path + ".missions", "mission '%s' must have exactly %d party slots" % [id, int(party_size)])
-			var placements: Variant = encounter.get("placements", [])
-			if placements is Array:
-				for placement in placements:
-					if placement is Dictionary and placement.get("id") in roster:
-						_error(path + ".missions", "mission '%s' placement collides with roster ID" % id)
+			_check_deployment(id, int(party_size), roster, "%s.missions[%d]" % [path, index])
+
+	func _check_deployment(id: String, party_size: int, roster: Array, path: String) -> void:
+		var mission: Dictionary = _defs.missions[id]
+		var failures: Variant = mission.get("failures")
+		if failures is Array and not failures.any(func(failure: Variant) -> bool:
+				return failure is Dictionary and is_same(failure.get("handler"), "party_wiped")):
+			_error(path, "missions.%s.failures requires a party_wiped failure" % id)
+		var encounter_id: Variant = mission.get("encounter")
+		var encounter: Dictionary = _defs.encounters.get(encounter_id, {})
+		if encounter.is_empty():
+			return
+		var slots: Variant = encounter.get("party_slots", [])
+		if not slots is Array or slots.size() != party_size:
+			_error(path, "encounters.%s.party_slots must have exactly %d party slots for mission '%s'" % [
+				encounter_id, party_size, id])
+		var placements: Variant = encounter.get("placements")
+		if placements is Array:
+			for index in placements.size():
+				var placement: Variant = placements[index]
+				if placement is Dictionary and placement.get("id") in roster:
+					_error(path, "encounters.%s.placements[%d].id '%s' collides with roster ID" % [
+						encounter_id, index, placement.id])
+
+	func _check_commissions() -> void:
+		var start_errors := _errors.size()
+		var settings := _dictionary(_defs.get("commission_settings"), "commission_settings")
+		var kinds := _dictionary(_defs.get("mission_kinds"), "mission_kinds")
+		var reports := _dictionary(_defs.get("mission_reports"), "mission_reports")
+		if _errors.size() != start_errors:
+			return
+
+		var adventure := _check_commission_settings(settings)
+		for id in kinds:
+			var path := "mission_kinds." + str(id)
+			_text(id, path)
+			if kinds[id] is not Dictionary:
+				_error(path, "expected a dictionary")
+				continue
+			var kind: Dictionary = kinds[id]
+			_check_commission_fields(kind, ["label", "descriptors"], path)
+			_text(kind.get("label"), path + ".label")
+			_check_descriptors(kind.get("descriptors"), path + ".descriptors")
+
+		var transit_kinds: Dictionary = {}
+		var destination_count := 0
+		for id in reports:
+			var path := "mission_reports." + str(id)
+			var known_mission := _ref(id, "missions", path)
+			if reports[id] is not Dictionary:
+				_error(path, "expected a dictionary")
+				continue
+			var report: Dictionary = reports[id]
+			_check_commission_fields(report, ["kind", "descriptors", "destination_descriptors"], path)
+			var kind: Variant = report.get("kind")
+			if _text(kind, path + ".kind") and not kinds.has(kind):
+				_error(path + ".kind", "unknown mission_kinds ID '%s'" % kind)
+			_check_descriptors(report.get("descriptors"), path + ".descriptors")
+			if report.has("destination_descriptors"):
+				_check_descriptors(report.destination_descriptors, path + ".destination_descriptors")
+				destination_count += 1
+			elif kind is String:
+				transit_kinds[kind] = true
+			if known_mission and _is_integer(adventure.get("party_size"), 1) and adventure.get("roster") is Array:
+				_check_deployment(id, int(adventure.party_size), adventure.roster, path)
+
+		if _errors.size() != start_errors:
+			return
+		if destination_count < 3:
+			_error("mission_reports", "requires at least three distinct destinations for the commission board")
+		# Repeat visits are allowed whenever the unplayed pool cannot supply a fork.
+		if transit_kinds.size() < 2:
+			_error("mission_reports", "requires transit missions from at least two different kinds")
+
+	func _check_commission_settings(settings: Dictionary) -> Dictionary:
+		_check_commission_fields(settings, ["roster_adventure"], "commission_settings")
+		var path := "commission_settings.roster_adventure"
+		var id: Variant = settings.get("roster_adventure")
+		if not _text(id, path):
+			return {}
+		var adventures := _record(_defs, "adventures")
+		if not adventures.has(id):
+			_error(path, "unknown adventures ID '%s'" % id)
+			return {}
+		return _record(adventures, id)
+
+	func _check_commission_fields(record: Dictionary, fields: Array, path: String) -> void:
+		for field in record:
+			if field not in fields:
+				_error(path + "." + str(field), "unknown commission field")
+
+	func _check_descriptors(value: Variant, path: String) -> void:
+		if value is not Array or value.is_empty():
+			_error(path, "expected a nonempty array of descriptors")
+			return
+		for index in value.size():
+			_text(value[index], "%s[%d]" % [path, index])
 
 	func _check_reward_weights(weights: Dictionary) -> void:
 		var total := 0

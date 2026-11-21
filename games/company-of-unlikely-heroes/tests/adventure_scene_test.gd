@@ -13,6 +13,7 @@ func _initialize() -> void:
 
 func _run() -> void:
 	scene = load("res://main.tscn").instantiate()
+	scene.configure_launch(PackedStringArray(["--fixed-outings"]))
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
@@ -22,7 +23,7 @@ func _run() -> void:
 		_check(false, "Scene must expose the adventure screen and snapshot contract")
 		_finish()
 		return
-	_check(scene.current_screen() == "guild", "Default launch opens the guild")
+	_check(scene.current_screen() == "guild", "Fixed outings launch opens the guild")
 	_check(_node("GuildScreen") != null, "Guild screen is present")
 	_check(_node("ModeDirect") == null and _node("ModeStanding") == null,
 		"Guild has no retired mode selectors")
@@ -117,6 +118,7 @@ func _exercise_bard_guild() -> void:
 	scene.queue_free()
 	await process_frame
 	scene = load("res://main.tscn").instantiate()
+	scene.configure_launch(PackedStringArray(["--fixed-outings"]))
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
@@ -163,7 +165,7 @@ func _exercise_transition_fixture() -> void:
 	scene.queue_free()
 	await process_frame
 	scene = load("res://main.tscn").instantiate()
-	scene.configure_launch(PackedStringArray(["--content=" + ProjectSettings.globalize_path(path)]))
+	scene.configure_launch(PackedStringArray(["--fixed-outings", "--content=" + ProjectSettings.globalize_path(path)]))
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame

@@ -2,6 +2,7 @@ extends RefCounted
 ## The expedition owns deployment and what persists between missions. Rules owns rounds and outcomes.
 
 const Catalog = preload("res://content/catalog.gd")
+const Commissions = preload("res://commissions.gd")
 const Rewards = preload("res://rewards.gd")
 const Rules = preload("res://rules.gd")
 
@@ -11,16 +12,70 @@ static func start_adventure(definitions: Dictionary, adventure_id: String, picks
 	if (reward_seed != null and not reward_seed is int) or not Catalog.validate(definitions).is_empty():
 		return {}
 	var entry: Dictionary = definitions.get("adventures", {}).get(adventure_id, {})
-	if entry.is_empty() or picks.size() != int(entry.party_size):
+	if not _valid_picks(entry, picks):
 		return {}
+	var run := _new_run(definitions, adventure_id, picks, reward_seed)
+	run.mission_ids = entry.missions.duplicate()
+	return run
+
+
+static func start_commission(definitions: Dictionary, offer: Dictionary, picks: Array,
+		reward_seed: Variant = null) -> Dictionary:
+	if (reward_seed != null and not reward_seed is int) or not Catalog.validate(definitions).is_empty() \
+			or not Commissions.valid_offer(definitions, offer):
+		return {}
+	var roster_adventure: String = definitions.commission_settings.roster_adventure
+	var entry: Dictionary = definitions.adventures[roster_adventure]
+	if not _valid_picks(entry, picks):
+		return {}
+	var run := _new_run(definitions, roster_adventure, picks, reward_seed)
+	run["destination_id"] = offer.destination_id
+	run["mission_count"] = offer.length
+	run["route_rng_state"] = Commissions.starting_rng_state(offer.seed)
+	run["reports"] = []
+	run["scout_note"] = ""
+	_prepare_next_mission(run)
+	return run
+
+
+static func choose_route(run: Dictionary, mission_id: String) -> Dictionary:
+	if run.get("phase") != "route":
+		return run
+	for report in run.reports:
+		if report.mission_id != mission_id:
+			continue
+		var result := run.duplicate(true)
+		result.carry_by_id = run.carry_by_id
+		result.last_result = run.last_result
+		result.mission_ids.append(mission_id)
+		result["promised_kind"] = report.hint_kind
+		result.scout_note = report.hint_text
+		result.reports = []
+		result.phase = "ready"
+		return result
+	return run
+
+
+static func mission_count(run: Dictionary) -> int:
+	return int(run.get("mission_count", run.get("mission_ids", []).size()))
+
+
+static func _valid_picks(entry: Dictionary, picks: Array) -> bool:
+	if entry.is_empty() or picks.size() != int(entry.party_size):
+		return false
 	var seen: Dictionary = {}
 	for id in picks:
-		if not id is String or id not in entry.roster or seen.has(id):
-			return {}
+		if not id is String or not id in entry.roster or seen.has(id):
+			return false
 		seen[id] = true
+	return true
+
+
+static func _new_run(definitions: Dictionary, adventure_id: String, picks: Array,
+		reward_seed: Variant) -> Dictionary:
 	var catalog := Catalog.FrozenCatalog.new(definitions)
 	return {"catalog": catalog, "adventure_id": adventure_id, "phase": "ready",
-		"mission_ids": entry.missions.duplicate(), "mission_index": 0, "party": picks.duplicate(),
+		"mission_ids": [], "mission_index": 0, "party": picks.duplicate(),
 		"mission": {}, "outcome": "ongoing", "carry_by_id": _empty_observation(),
 		"last_result": _empty_observation(), "upgrades_by_id": {}, "reward_offers": [], "chosen_reward": {},
 		"reward_rng_state": Rewards.starting_rng_state(reward_seed)}
@@ -66,6 +121,8 @@ static func begin_mission(run: Dictionary) -> Dictionary:
 	result.phase = "mission"
 	result.last_result = _empty_observation()
 	result.chosen_reward = {}
+	if result.has("destination_id") and mission.mission_id == result.destination_id:
+		result.scout_note = ""
 	# Deep duplication of a Godot Dictionary does not preserve its read-only flag.
 	result.carry_by_id = run.carry_by_id
 	return result
@@ -77,14 +134,17 @@ static func settle_mission(run: Dictionary, committed: Dictionary) -> Dictionary
 	var result := run.duplicate(true)
 	result.carry_by_id = run.carry_by_id
 	result.last_result = _summarize_mission(run.party, committed)
-	if committed.outcome == "victory" and run.mission_index + 1 < run.mission_ids.size():
+	if committed.outcome == "victory" and run.mission_index + 1 < mission_count(run):
 		result.carry_by_id = _carry_company(run, committed)
 		result.mission_index += 1
 		result.mission = {}
 		var draw := Rewards.draw(run.catalog.defs, run.party, run.upgrades_by_id, run.reward_rng_state)
 		result.reward_offers = draw.offers
 		result.reward_rng_state = draw.rng_state
-		result.phase = "ready" if draw.offers.is_empty() else "reward"
+		if draw.offers.is_empty():
+			_prepare_next_mission(result)
+		else:
+			result.phase = "reward"
 	else:
 		result.mission = committed.duplicate(true)
 		result.outcome = committed.outcome
@@ -112,15 +172,34 @@ static func choose_reward(run: Dictionary, hero_id: String, upgrade_id: String) 
 	result.upgrades_by_id[hero_id][upgrade_id] = acquired + 1
 	result.reward_offers = []
 	result.chosen_reward = {"hero_id": hero_id, "upgrade_id": upgrade_id}
-	result.phase = "ready"
+	_prepare_next_mission(result)
 	return result
+
+
+static func _prepare_next_mission(run: Dictionary) -> void:
+	if not run.has("destination_id"):
+		run.phase = "ready"
+		return
+	var remaining := mission_count(run) - int(run.mission_index)
+	if remaining == 1:
+		run.mission_ids.append(run.destination_id)
+		run.erase("promised_kind")
+		run.phase = "ready"
+		return
+	var draw := Commissions.draw_reports(run.catalog.defs, run.destination_id, remaining == 2,
+		run.mission_ids, run.get("promised_kind", ""), run.route_rng_state)
+	run.reports = draw.reports
+	run.route_rng_state = draw.rng_state
+	run.erase("promised_kind")
+	run.phase = "route"
 
 
 static func return_to_guild(run: Dictionary) -> Dictionary:
 	if run.get("phase") != "finished":
 		return run
 	return {"catalog": run.catalog, "adventure_id": run.adventure_id, "phase": "guild",
-		"mission_ids": run.mission_ids.duplicate(), "mission_index": 0, "party": [],
+		"mission_ids": [] if run.has("destination_id") else run.mission_ids.duplicate(),
+		"mission_index": 0, "party": [],
 		"mission": {}, "outcome": "ongoing", "carry_by_id": _empty_observation(),
 		"last_result": _empty_observation(), "upgrades_by_id": {}, "reward_offers": [], "chosen_reward": {}}
 

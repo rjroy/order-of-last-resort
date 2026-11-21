@@ -1,6 +1,6 @@
 # The Company of Unlikely Heroes
 
-**Choose a company, not just a loadout.** Choose an outing and recruit a company at the guild. Your heroes carry their wounds, orders, and earned upgrades between its missions. This is a playtest build; its artwork and interface are provisional.
+**Choose a company, not just a loadout.** Found a guild, take a commission, and lead your recruits to its destination. Your heroes carry wounds, orders, and earned upgrades between missions. This is a playtest build; its artwork and interface are provisional.
 
 From the repository root, with Godot 4.7:
 
@@ -8,17 +8,27 @@ From the repository root, with Godot 4.7:
 godot --path games/company-of-unlikely-heroes
 ```
 
-### Choose an outing
+### Take a commission
 
-At the guild, use **Adventure** to choose one of seven outings. Pick three distinct recruits and arrange their deployment order, then depart. After each victory with another mission ahead, review the debrief and choose one reward if offers are available. The final victory or a defeat ends the outing. Returning to the guild starts a fresh company.
+Name your guild on first launch. The board offers three commissions: two of **5 missions** and one of **10 missions**, each counting its named finale. Use **Choose commission**, then recruit three distinct heroes and set their deployment order before you see any field reports.
 
-The guild has **20 playable missions**: two in **The company's first outing**, three in **Village Troubles**, and three in each of the five outings below. The fixed test fixtures (`ferryman`, `necromancer_wave`, and `extra_knight`) are not part of that count and do not appear in guild itineraries.
+At each fork, choose between two field reports. Each describes the immediate mission and hints at the type of mission beyond it, not its exact identity. At the next fork, exactly one report matches the type hinted at by your previous choice. The commission's destination is visible from the start and both choices at the last fork lead there. After each nonfinal victory, choose one temporary hero reward if offered before seeing the next reports or heading straight to the finale.
+
+There is no commission payout or permanent power gain. Returning to the board after a win or defeat clears the company and its upgrades and refreshes the offers. The guild name and board seed are stored locally in Godot's `user://company_of_unlikely_heroes/guild_profile_v1.json`. Relaunching restores the saved board, not the company or its progress. There is no mid-run save.
+
+### Practice outings
+
+The seven original fixed routes are available under **Practice outings**, or you can open them directly from the repository root:
+
+```sh
+godot --path games/company-of-unlikely-heroes -- --fixed-outings
+```
+
+Pick an outing, recruit and order your company, and play its missions in sequence. Practice has **20 playable missions**: two in **The company's first outing**, three in **Village Troubles**, and three in each of the five outings below. The fixed test fixtures (`ferryman`, `necromancer_wave`, and `extra_knight`) are separate.
 
 **The company's first outing** (`first_outing`) starts with Trouble on the road (`bridge_patrol`) and ends with The last ferryman (`company_rescue`). **Village Troubles** (`village_troubles`) takes the same company through The Goblin Mob (`goblin_mob`), The Harpoon Squad (`harpoon_squad`), and The Unwelcome Guest (`unwelcome_guest`).
 
 In **Unwelcome Guest**, get the troll outside the marked village square alive. If it dies or your party falls, you lose. There is no deadline. The troll follows the nearest living party hero one tile each time it acts, stopping when adjacent. Your heroes' damaging standing orders remain active, so check and change them as needed. In particular, a carried Bard **Healing Sonnet** can damage or kill the troll even after it crosses the square's edge if the song happens later that round. Read the forecast before committing to see the troll's intended step and any pulls or follow-up actions.
-
-#### New guild outings
 
 Missions are listed in play order within each outing.
 
@@ -42,7 +52,7 @@ Missions are listed in play order within each outing.
 
 #### Launch a standalone mission
 
-Launch without options for normal guild play. A direct launch instead opens one isolated battle with its authored starting party and a restart button. It does not offer guild rewards or carry wounds, orders, or upgrades into another mission. The two missions in the company's first outing require guild recruitment; the separate `ferryman` fixture is the fixed-party version of the rescue.
+A `--mission` launch opens one isolated battle with its authored starting party and a restart button. It does not offer guild rewards or carry wounds, orders, or upgrades into another mission. The two missions in the company's first outing require recruitment; the separate `ferryman` fixture is the fixed-party version of the rescue.
 
 From the repository root:
 
@@ -86,13 +96,13 @@ To explore the Village Troubles standalone openings, leave standing orders at th
 
 These examples use the standalone missions' authored parties and fresh opening positions. A guild party and its carried wounds or orders can change the forecast.
 
-### Your first outing
+### Company and combat
 
-At the guild, pick **exactly three** of the seven recruits and arrange them in the order you want them to act. The order is fixed for the outing. The patrol fight has no round limit: defeat the opposition before it defeats your company. The second mission has a different objective: get the ferryman to the marked landing before the bridge fails. Clearing the bridge of enemies does not by itself win the rescue.
+Your deployment order stays fixed for the run. In **The company's first outing**, the patrol has no round limit. In the second mission, get the ferryman to the marked landing before the bridge fails. Clearing the bridge of enemies does not by itself win the rescue.
 
 Give each hero a standing order. Each round you may queue **one** manual command instead: select a hero, action and target if needed, preview it, and read the ordered forecast. You can revise it, switch the hero you command, or clear it before committing the round. Everyone else follows their standing order. There is no full-manual or standing-only mode selector.
 
-After winning the fight, inspect the debrief before continuing. Survivors carry their current HP and standing orders forward. Fallen heroes rejoin at **1 HP**; mission statuses clear. Failure ends the outing, as does a successful rescue.
+After a victory with another mission ahead, inspect the debrief before continuing. Survivors carry their current HP and standing orders forward. Fallen heroes rejoin at **1 HP**; mission statuses clear. A defeat or final victory ends the run.
 
 | Hero | Offensive action | Utility |
 |---|---|---|
@@ -112,7 +122,7 @@ Both summons pursue opponents and, close enough, independently pick a legal gree
 
 The Bard can Move or perform either song as a direct command. It interrupts that Bard's standing order for one round; directly commanding anyone else lets the song continue. Songs choose their own listener from living opponents anywhere on the board, never a crate, ally or corpse. The ordered forecast names the listener and shows whether they lose their turn; refreshing the same forecast never rerolls it. A listener who laughs is immune to more laughter through the entire following round, but the Sonnet still hurts them. With two opponents and no other interference, a standing Melody alternates between them. With one, the Bard sings without an eligible listener every other round.
 
-To try it in the existing patrol, recruit Bard, Healer and Knight in that order. Leave the other two on their default orders and commit three rounds of **Inspiring Melody**, comparing the listeners. Switch to **Healing Sonnet** for round four to see damage against the raider who just laughed. Before committing, preview a Move for another hero to leave the song in place, then replace the command with a Bard Move to see the song drop out of the forecast. The Bard uses the existing Wizard drawing with a distinct gold name label.
+To try it in the practice patrol, choose **The company's first outing** and recruit Bard, Healer and Knight in that order. Leave the other two on their default orders and commit three rounds of **Inspiring Melody**, comparing the listeners. Switch to **Healing Sonnet** for round four to see damage against the raider who just laughed. Before committing, preview a Move for another hero to leave the song in place, then replace the command with a Bard Move to see the song drop out of the forecast. The Bard uses the existing Wizard drawing with a distinct gold name label.
 
 The game collects no playtest telemetry. The question to take away: **Did you enjoy trusting two of these people while you took charge of the third?**
 
@@ -164,12 +174,22 @@ These are **fixed regression scenarios**, not guild outings. The `extra_knight` 
 
 ### Recheck the build
 
-From this directory, run the suites with `godot --headless --script res://tests/<name>.gd`:
+From the repository root, check the default commission flow through the game controls with an isolated test profile:
+
+```sh
+godot --headless --path games/company-of-unlikely-heroes --script res://tests/commission_scene_test.gd
+```
+
+From the game directory, run the suites with `godot --headless --script res://tests/<name>.gd`:
 
 | Suite | What it checks |
 |---|---|
 | `catalog_test` | Invalid definitions, independent worlds, and interaction capabilities |
 | `catalog_bundle_test` | Authored parts load into one catalog; duplicate IDs and invalid deployment slots are rejected |
+| `commission_catalog_test` | Validation of commission settings, reports, and mission pools |
+| `commission_routes_test` | Seeded boards, both commission lengths, clue matching, rewards, and destination transitions |
+| `commission_scene_test` | Guild creation and reload, recruitment before reports, reward gating, carryover, and board renewal |
+| `guild_profile_test` | Local profile creation, reload, seed renewal, and invalid data |
 | `content_test` | Extra crate, alternate knight kit and habit, relocated escort destination |
 | `content_scene_test` | Loading a custom catalog and the permanent extra-knight mission through the game controls |
 | `rules_test` | Ability interactions and command rules |
@@ -180,6 +200,7 @@ From this directory, run the suites with `godot --headless --script res://tests/
 | `hero_upgrade_effects_test` | Upgrade effects, learned actions and orders, and consistency between preview and commit |
 | `three_mission_test` | Village Troubles mission rules and adventure boundaries |
 | `village_outing_scene_test` | Direct launches and the Village Troubles guild-to-result flow through both reward debriefs |
+| `fixed_outing_victory_test` | Checked-in winning routes for the 15 missions in the five later practice outings |
 | `hook_overlay_scene_test` | Hook landing and earlier movement appear as separate forecast paths |
 | `rogue_test` | Rogue dodge, redirect, retreat, and hybrid forecast consistency |
 | `necromancer_test` | Summons, corpse selection, greetings, round order and forecast consistency, and expedition boundaries |

@@ -18,6 +18,11 @@ const SHORE_WASH := Color("#7eac5b", 0.36)
 const AMBER := Color("#ffdc86")
 const MINT := Color("#d7edbc")
 const CORAL := Color("#ffc1a2")
+const SUMMON_SPRITES := {
+	"skeleton": {"path": "res://assets/summons/skeleton.png", "pivot": Vector2(68, 233)},
+	"zombie": {"path": "res://assets/summons/zombie.png", "pivot": Vector2(52, 204)},
+}
+const SUMMON_TEXTURE_SCALE := 1.0 / 3.0
 const TILE_FACE := [
 	Vector2(2, 2), Vector2(42, 1), Vector2(68, 2), Vector2(91, 1), Vector2(95, 6),
 	Vector2(94, 37), Vector2(95, 62), Vector2(91, 78), Vector2(64, 79), Vector2(40, 77),
@@ -33,6 +38,7 @@ var _map_origin := Vector2.ZERO
 var _map_scale := 1.0
 var _map_size := Vector2.ZERO
 var _rng := RandomNumberGenerator.new()
+var _summon_textures: Dictionary[String, Texture2D] = {}
 
 
 func _ready() -> void:
@@ -40,7 +46,24 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	resized.connect(_layout)
 	mouse_exited.connect(_clear_hover)
+	for role: String in SUMMON_SPRITES:
+		_summon_textures[role] = _load_summon_texture(SUMMON_SPRITES[role].path)
 	_layout()
+
+
+static func _load_summon_texture(path: String) -> Texture2D:
+	# The source game can run directly from a checkout, without an editor import.
+	if FileAccess.file_exists(path):
+		var image := Image.new()
+		if image.load_png_from_buffer(FileAccess.get_file_as_bytes(path)) == OK:
+			return ImageTexture.create_from_image(image)
+	elif ResourceLoader.exists(path, "Texture2D"):
+		# Packaged builds may ship only the imported resource.
+		var texture := load(path) as Texture2D
+		if texture != null:
+			return texture
+	push_error("Could not load summon texture: " + path)
+	return null
 
 
 ## cells: Vector2i -> "stone", "bridge", "broken", "safe", "exit", "obstacle", or "water".
@@ -468,10 +491,20 @@ func _draw_unit(unit: Dictionary) -> void:
 			_wizard()
 		"ferryman":
 			_ferryman()
+		"skeleton", "zombie":
+			_draw_summon(role)
 		_:
 			_enemy(str(unit.get("variant", "")))
 	_at(origin)
 	_draw_health(unit, prone)
+
+
+func _draw_summon(role: String) -> void:
+	var texture: Texture2D = _summon_textures.get(role)
+	if texture != null:
+		var pivot: Vector2 = SUMMON_SPRITES[role].pivot
+		var rect := Rect2(-pivot * SUMMON_TEXTURE_SCALE, texture.get_size() * SUMMON_TEXTURE_SCALE)
+		draw_texture_rect(texture, rect, false)
 
 
 func _draw_unit_marker(unit: Dictionary) -> void:

@@ -10,7 +10,7 @@ godot --path games/company-of-unlikely-heroes
 
 ### Your first outing
 
-At the guild, pick **exactly three** recruits and arrange them in the order you want them to act. The order is fixed for the outing. The patrol fight has no round limit: defeat the opposition before it defeats your company. The second mission has a different objective: get the ferryman to the marked landing before the bridge fails. Clearing the bridge of enemies does not by itself win the rescue.
+At the guild, pick **exactly three** of the six recruits and arrange them in the order you want them to act. The order is fixed for the outing. The patrol fight has no round limit: defeat the opposition before it defeats your company. The second mission has a different objective: get the ferryman to the marked landing before the bridge fails. Clearing the bridge of enemies does not by itself win the rescue.
 
 Give each hero a standing order. Each round you may queue **one** manual command instead: select a hero, action and target if needed, preview it, and read the ordered forecast. You can revise it, switch the hero you command, or clear it before committing the round. Everyone else follows their standing order. There is no full-manual or standing-only mode selector.
 
@@ -23,8 +23,13 @@ After winning the fight, inspect the debrief before continuing. Survivors carry 
 | Wizard | The blast seeks the nearest thing, not the most convenient enemy. | Choose someone to pull. They land where the wizard stood; the wizard takes the recoil, including injury and knockdown. |
 | Alchemist | A volatile splash hits the nearest thing, friend or foe, and can knock it down. | A ward redirects attacks. The alchemist can protect a wounded company, but cannot heal it or pull someone out of danger. |
 | Rogue | Wasn't Me marks an enemy beside another living character; its next attack is redirected to an adjacent character, including an ally. | Retreat steps away from the nearest enemy. Confusing Dodge swaps with the furthest other living character, friend or foe. |
+| Necromancer | Summon Skeleton puts a 1 HP skeleton on an open neighboring tile. | Raise Dead consumes an unoccupied enemy corpse and puts a zombie there with half the enemy's maximum HP, rounded up. The Necromancer holds unless directly commanded. |
 
 Rogue distance ties and redirect victim ties use the lowest character instance ID. When the marked enemy attacks, Wasn't Me looks for an adjacent living character other than the attacker and its original target. If nobody else is there, the original target takes the attack. Either way, the mark is spent. Movement before the attack can change who takes the blame, and a reflecting aura can still redirect the resulting attack.
+
+The Necromancer can have one living skeleton and one living zombie at a time. They appear immediately but first act **next round**, right after their summoner (skeleton before zombie). Neither takes a company slot, prevents a wipe, or joins the next mission. They cannot be commanded, and their remains cannot be raised.
+
+Both summons pursue opponents and, close enough, independently pick a legal greeting. Read the forecast before committing: an earlier hero can move out of the way. **Wave** hits every adjacent character except the skeleton for 1 damage. **Don't Go** blocks the nearest other character's next Move, not their other actions. **Say Hello** makes the nearest other character back up a tile if it is open. These three greetings can affect friends. **Offer Flower** deals 1 damage to an opponent up to two tiles away.
 
 The game collects no playtest telemetry. The question to take away: **Did you enjoy trusting two of these people while you took charge of the third?**
 
@@ -32,7 +37,19 @@ The game collects no playtest telemetry. The question to take away: **Did you en
 
 The built-in catalog starts at `content/catalog.json`. Shared definitions, adventure content and fixed regressions are authored separately and loaded as one catalog. An adventure references an ordered mission list and an eligible roster. Its missions provide deployment slots rather than prescribing the player's heroes. Placement IDs identify individual NPCs and objects; multiple placements can use the same definition. Character fields override class defaults as whole fields. New mechanics need code; new combinations of existing handlers need only data.
 
-### Play the checked-in regression
+### Play the checked-in regressions
+
+Launch **First Greetings** to see both summons and give the Healer a chance to escape a Wave:
+
+```sh
+godot --path games/company-of-unlikely-heroes -- --mission=necromancer_wave
+```
+
+1. **Round 1:** Select Necromancer → **Raise Dead** → corpse at **E4**. Preview and commit to raise a 3 HP zombie.
+2. **Round 2:** Select Necromancer → **Summon Skeleton** → **C2**. Preview and commit. Both summons are now on the board.
+3. **Round 3:** Scroll through the standing forecast: the skeleton's **Wave** will hit the Healer at B2, the Necromancer, and the practice raider. Select Healer → **Move one tile** → **A2**, then preview. The Healer's Move now precedes Wave; the forecast still shows the other hits. Commit to leave the Healer at A2 with full HP.
+
+Leave standing orders unchanged. The fixture has no time limit and restarts from the same seed; the practice raider holds position.
 
 From the repository root, launch the permanent four-hero, two-crate variation:
 
@@ -46,7 +63,7 @@ The Blast knight starts at A1, with crates at B1 and C3 and the exit at C1. The 
 godot --headless --path games/company-of-unlikely-heroes --script res://tests/content_scene_test.gd
 ```
 
-`extra_knight` and `ferryman` are **fixed regression scenarios**, not adventures in which the player is handed a predetermined company. Launch the original fixed rescue with `-- --mission=ferryman`. The `extra_knight` exit is `near_landing`; the original rescue uses `safe_bank`. Both fixtures use the same hybrid resolver as the adventure. See the [catalog guide](content/README.md) for the authoring rules.
+These are **fixed regression scenarios**, not adventures in which the player is handed a predetermined company. Launch the original fixed rescue with `-- --mission=ferryman`. The `extra_knight` exit is `near_landing`; the original rescue uses `safe_bank`. The fixtures use the same hybrid resolver as the adventure. See the [catalog guide](content/README.md) for the authoring rules.
 
 ### Recheck the build
 
@@ -63,6 +80,7 @@ From this directory, run the suites with `godot --headless --script res://tests/
 | `adventure_test` | Party selection and formation, deployment, combat and mission transitions |
 | `adventure_scene_test` | Party selection and formation through the controls, debrief, wound carryover, and guild return |
 | `rogue_test` | Rogue dodge, redirect, retreat, and hybrid forecast consistency |
+| `necromancer_test` | Summons, corpse selection, greetings, round order and forecast consistency, and expedition boundaries |
 | `scene_smoke` | Guild entry, battle controls, one-command forecasts, commit, and fixed-scenario restart |
 
 In a graphical session, `godot --script res://tests/scene_smoke.gd -- --capture=/absolute/path.png` also saves the game viewport after the smoke run.

@@ -12,6 +12,8 @@ Ronald proposed these kits on 2026-11-20. The pitch column records his ideas; th
 
 The zombie's utility, **Say Hello**, makes the closest character back away one space in fear. Its offense, **Offer Flower**, deals 1 damage at range 2: the flower is attached to a rock. The skeleton's offense, **Wave**, accidentally hits everyone nearby for 1. Its utility, **Don't Go**, prevents the closest character from moving.
 
+**Approved summon model reference:** [First Greetings: skeleton and zombie](../art/concepts/necromancer/first-greetings.png). Ronald approved the revised sheet on 2026-11-20: preserve the skeleton’s wide wave and the human gardener’s cloudy eye, bloodless cheek wound, and flower tied to a rock. Generated with `openai/gpt-image-2` (job `image_1fb99054100151jBVpRCzwvqHt`); original PNG SHA-256 `fed436ee36ed767e9eecd232e55d74b8cf1f75ea6e994d3243b977164463f96f`.
+
 Ronald's follow-up: both undead share a behavior profile, **“they just want to get to know you.”** They pursue opponents; their choice of ability can be random. A possible later Necromancer ability, **“Say hello to that one,”** would let the Necromancer direct the horde toward a particular opponent. This is a progression idea, not a starting command. Rounding half health for odd-health opponents is still open.
 
 ## Design audit: what changes when I bring this hero?

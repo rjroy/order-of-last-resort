@@ -170,8 +170,8 @@ func _test_adventure_content() -> void:
 	_check(not adventure.is_empty(), "First outing is authored")
 	if adventure.is_empty():
 		return
-	_check(adventure.get("roster", []) == ["knight", "healer", "wizard", "alchemist", "rogue"],
-		"First outing offers the five named heroes")
+	_check(adventure.get("roster", []) == ["knight", "healer", "wizard", "alchemist", "rogue", "necromancer"],
+		"First outing offers the six named heroes")
 	_check(adventure.get("party_size") == 3, "First outing requires exactly three heroes")
 	_check(adventure.get("missions", []) == ["bridge_patrol", "company_rescue"],
 		"First outing has the two ordered missions")

@@ -98,6 +98,31 @@ func can_act(state: Dictionary, unit_id: String) -> bool:
 	return state.outcome == "ongoing" and Actions.can_act(state, Board.entity(state, unit_id))
 
 
+func summon_capped(state: Dictionary, unit_id: String, ability_id: String) -> bool:
+	var actor := Board.entity(state, unit_id)
+	var ability := Actions.owned_ability(state, actor, ability_id)
+	return ability.get("handler") == "summon" and Actions.summon_capped(state, actor, ability)
+
+
+func initiative(state: Dictionary) -> Array:
+	return Board.turn_order(state).filter(Board.alive)
+
+
+## Unoccupied corpse markers, one per cell; selection still lists every eligible corpse.
+func corpse_markers(state: Dictionary) -> Dictionary:
+	var corpses: Dictionary = {}
+	for caster in state.units:
+		if not Board.alive(caster) or not Board.capable(state, caster, "commandable"):
+			continue
+		for id in Board.profile(state, caster).abilities:
+			var ability := ability_definition(state, id)
+			if ability.handler == "summon" and ability.targeting.kind == "entity":
+				for corpse in Actions.raisable_corpses(state, caster, ability):
+					if corpse.id != state.objective.get("subject") and Board.is_vacant(state, corpse.position):
+						corpses[corpse.position] = corpse
+	return corpses
+
+
 func options(state: Dictionary, unit_id: String) -> Array:
 	var result: Array = []
 	var profile := entity_profile(state, unit_id)
@@ -223,7 +248,7 @@ func _matches_board_outcome(state: Dictionary) -> bool:
 
 
 func _resolve_turns(state: Dictionary, events: Array, stop_before := "") -> void:
-	for actor in state.units:
+	for actor in Board.turn_order(state):
 		if Board.alive(actor):
 			Statuses.expire(state, actor, "actor_turn_start")
 		if actor.id == stop_before:

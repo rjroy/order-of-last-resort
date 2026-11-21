@@ -31,9 +31,7 @@ static func accepts(state: Dictionary, target: Dictionary, id: String, source: D
 			return Board.capable(state, target, "recoverable")
 		"retarget":
 			return Board.capable(state, target, "tauntable") and _accepts_source(state, source, spec.params)
-		"reflect":
-			return true
-		"misdirect":
+		"reflect", "misdirect", "stop_move":
 			return true
 	return false
 

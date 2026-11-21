@@ -42,6 +42,37 @@ static func alive(subject: Dictionary) -> bool:
 	return subject.get("hp", 0) > 0
 
 
+static func corpses(state: Dictionary, filters: Dictionary) -> Array:
+	var result: Array = []
+	for unit in state.units:
+		if not alive(unit) and not unit.has("summoner_id") and not unit.get("corpse_consumed", false) \
+				and not capable(state, unit, "minion") and _qualifies(state, unit, filters):
+			result.append(unit)
+	return result
+
+
+## The order is captured before resolving a round, so new summons wait until the next one.
+static func turn_order(state: Dictionary) -> Array:
+	var order: Array = []
+	var minions_by_summoner: Dictionary = {}
+	for unit in state.units:
+		if unit.has("summoner_id"):
+			if alive(unit):
+				var caster: String = unit.summoner_id
+				if not minions_by_summoner.has(caster):
+					minions_by_summoner[caster] = []
+				minions_by_summoner[caster].append(unit)
+	for unit in state.units:
+		if unit.has("summoner_id"):
+			continue
+		order.append(unit)
+		var minions: Array = minions_by_summoner.get(unit.id, [])
+		minions.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+			return a.summon_priority < b.summon_priority if a.summon_priority != b.summon_priority else a.id < b.id)
+		order.append_array(minions)
+	return order
+
+
 static func distance(a: Vector2i, b: Vector2i) -> int:
 	return absi(a.x - b.x) + absi(a.y - b.y)
 
@@ -55,10 +86,13 @@ static func tile(state: Dictionary, position: Vector2i) -> Dictionary:
 	return state.catalog.defs.tiles[kind]
 
 
+static func _passable(state: Dictionary, position: Vector2i) -> bool:
+	return position.x >= 0 and position.y >= 0 and position.x < state.width and position.y < state.height \
+		and tile(state, position).passable
+
+
 static func can_enter(state: Dictionary, position: Vector2i, ignore := "") -> bool:
-	if position.x < 0 or position.y < 0 or position.x >= state.width or position.y >= state.height:
-		return false
-	if not tile(state, position).passable:
+	if not _passable(state, position):
 		return false
 	for candidate in state.units + state.obstacles:
 		if candidate.id != ignore and candidate.position == position and alive(candidate) \
@@ -67,21 +101,32 @@ static func can_enter(state: Dictionary, position: Vector2i, ignore := "") -> bo
 	return true
 
 
+static func is_vacant(state: Dictionary, position: Vector2i) -> bool:
+	if not _passable(state, position):
+		return false
+	for candidate in state.units + state.obstacles:
+		if alive(candidate) and candidate.position == position:
+			return false
+	return true
+
+
 static func occupants(state: Dictionary, filters: Dictionary) -> Array:
 	var result: Array = []
 	for unit in state.units:
-		if alive(unit) and (not filters.has("teams") or team(state, unit) in filters.teams) \
-				and _qualifies(state, unit, filters):
+		if alive(unit) and _qualifies(state, unit, filters):
 			result.append(unit)
 	if filters.get("objects", false):
 		for obstacle in state.obstacles:
-			if alive(obstacle) and _qualifies(state, obstacle, filters):
+			if alive(obstacle) and _qualifies(state, obstacle, filters, true):
 				result.append(obstacle)
 	return result
 
 
-static func _qualifies(state: Dictionary, subject: Dictionary, filters: Dictionary) -> bool:
-	var capabilities: Array = profile(state, subject).get("capabilities", [])
+static func _qualifies(state: Dictionary, subject: Dictionary, filters: Dictionary, ignore_team := false) -> bool:
+	var spec := profile(state, subject)
+	if not ignore_team and filters.has("teams") and spec.get("team", "") not in filters.teams:
+		return false
+	var capabilities: Array = spec.get("capabilities", [])
 	for id in filters.get("capabilities", []):
 		if id not in capabilities:
 			return false
@@ -121,14 +166,17 @@ static func coordinate(position: Vector2i) -> String:
 
 # Breadth-first search with fixed neighbor order, bounded by the authored board.
 static func step_toward(state: Dictionary, unit: Dictionary, goal: Vector2i, reach: int) -> Vector2i:
-	var start: Vector2i = unit.position
+	return step_to(state, unit.position, func(cell: Vector2i) -> bool: return distance(cell, goal) <= reach)
+
+
+static func step_to(state: Dictionary, start: Vector2i, is_goal: Callable) -> Vector2i:
 	var queue: Array[Vector2i] = [start]
 	var previous := {start: start}
 	var index := 0
 	while index < queue.size():
 		var current := queue[index]
 		index += 1
-		if distance(current, goal) <= reach:
+		if is_goal.call(current):
 			while previous[current] != start:
 				current = previous[current]
 			return current

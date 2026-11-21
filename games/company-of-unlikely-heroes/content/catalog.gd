@@ -12,8 +12,12 @@ const ABILITY_TARGETING := {
 	"push": ["entity", "automatic"], "bonk": ["entity", "automatic"], "heal": ["entity", "automatic"],
 	"blast": ["entity", "automatic"], "pull": ["entity", "automatic"], "attack": ["entity", "automatic"],
 	"swap_furthest": ["automatic"], "misdirect": ["entity"],
+	"summon": ["cell", "entity"], "sweep": ["none"], "repel": ["automatic"], "stop_target": ["automatic"],
 }
-const STATUS_EXPIRY := {"reflect": "actor_turn_start", "skip_action": "consume_action", "retarget": "actor_turn_end", "misdirect": "consume_attack"}
+const ABILITY_EVENTS := {"swap_furthest": ["swap"], "misdirect": ["misdirect_mark"],
+	"sweep": ["sweep"], "stop_target": ["stop_target"], "repel": ["repel"]}
+const STATUS_EXPIRY := {"reflect": "actor_turn_start", "skip_action": "consume_action",
+	"retarget": "actor_turn_end", "misdirect": "consume_attack", "stop_move": "actor_turn_end"}
 
 
 class FrozenCatalog extends RefCounted:
@@ -160,13 +164,13 @@ static func build(defs: Dictionary, mission_id: String, chosen_ids: Array = []) 
 		if placement.has("character"):
 			var unit_profile := profile(defs, placement.character)
 			instance.merge({"character_id": placement.character,
-				"hp": int(unit_profile.max_hp), "max_hp": int(unit_profile.max_hp)})
+				"hp": int(placement.get("hp", unit_profile.max_hp)), "max_hp": int(unit_profile.max_hp)})
 			units.append(instance)
 			if unit_profile.has("default_order"):
 				orders[placement.id] = unit_profile.default_order
 		else:
 			var hp := int(defs.objects[placement.object].max_hp)
-			instance.merge({"object_id": placement.object, "hp": hp, "max_hp": hp})
+			instance.merge({"object_id": placement.object, "hp": int(placement.get("hp", hp)), "max_hp": hp})
 			obstacles.append(instance)
 	var terrain: Array = []
 	for tile in board.tiles:
@@ -176,7 +180,8 @@ static func build(defs: Dictionary, mission_id: String, chosen_ids: Array = []) 
 		"objective": objective,
 		"width": int(board.width), "height": int(board.height), "default_tile": board.default_tile,
 		"units": units, "obstacles": obstacles, "terrain": terrain,
-		"round": 1, "orders": orders, "overrides": {}, "outcome": "ongoing"}
+		"round": 1, "orders": orders, "overrides": {}, "outcome": "ongoing",
+		"rng_state": int(encounter.get("seed", 1))}
 
 
 static func _report_errors(source: String, errors: PackedStringArray) -> bool:
@@ -288,11 +293,8 @@ class Validator:
 		for id in REQUIRED_EVENTS:
 			_ref(id, "events", "events." + id)
 		for ability in _defs.abilities.values():
-			match ability.get("handler", ""):
-				"swap_furthest":
-					_ref("swap", "events", "events.swap")
-				"misdirect":
-					_ref("misdirect_mark", "events", "events.misdirect_mark")
+			for id in ABILITY_EVENTS.get(ability.get("handler", ""), []):
+				_ref(id, "events", "events." + id)
 		for status in _defs.statuses.values():
 			if is_same(status.get("handler", ""), "misdirect"):
 				for id in ["misdirect_redirect", "misdirect_missing"]:
@@ -307,14 +309,14 @@ class Validator:
 		var targeting := _dictionary(ability.get("targeting"), path + ".targeting")
 		_choice(targeting.get("kind"), ABILITY_TARGETING[handler], path + ".targeting.kind")
 		if targeting.has("range"):
-			if handler == "move":
+			if handler == "move" or (handler == "summon" and targeting.get("kind") == "cell"):
 				if not _is_integer(targeting.range, 1) or int(targeting.range) != 1:
-					_error(path + ".targeting.range", "move supports only a one-cell step")
+					_error(path + ".targeting.range", "supports only an adjacent cell")
 			elif handler == "apply_status":
 				_error(path + ".targeting.range", "apply_status has no target range")
 			else:
 				_integer(targeting.range, path + ".targeting.range", 1)
-		if handler in ["move", "apply_status"]:
+		if targeting.get("kind") == "cell" or handler in ["apply_status", "sweep"]:
 			for filter in ["teams", "objects", "capabilities"]:
 				if targeting.has(filter):
 					_error(path + ".targeting." + filter, "requires entity or automatic targeting")
@@ -349,6 +351,23 @@ class Validator:
 				_integer(params.get("damage"), param_path + "damage")
 				if params.has("status"):
 					_ref(params.status, "statuses", param_path + "status")
+			"summon":
+				var id: Variant = params.get("character")
+				if _ref(id, "characters", param_path + "character"):
+					var spec := _effective_profile(_defs.characters[id])
+					var capabilities: Variant = spec.get("capabilities")
+					if not capabilities is Array or not "minion" in capabilities or "commandable" in capabilities:
+						_error(param_path + "character", "summoned character must be a non-commandable minion")
+				_integer(params.get("priority"), param_path + "priority")
+				var event := "raise" if targeting.get("kind") == "entity" else "summon"
+				_ref(event, "events", "events." + event)
+			"sweep":
+				_integer(params.get("damage"), param_path + "damage", 1)
+				_integer(targeting.get("range"), path + ".targeting.range", 1)
+			"stop_target":
+				var status: Variant = params.get("status")
+				if _ref(status, "statuses", param_path + "status") and not is_same(_defs.statuses[status].get("handler"), "stop_move"):
+					_error(param_path + "status", "status must use the stop_move handler")
 		if handler in ["bonk", "blast", "attack"] and params.has("source_suffix"):
 			_text(params.source_suffix, param_path + "source_suffix", true)
 
@@ -363,20 +382,27 @@ class Validator:
 	func _check_behavior(behavior: Dictionary, path: String) -> void:
 		var handler: Variant = behavior.get("handler")
 		var params := _dictionary(behavior.get("params"), path + ".params")
-		if not _choice(handler, ["use_ability", "pursue", "hold", "rescue", "threat", "escort", "retreat"], path + ".handler"):
+		if not _choice(handler, ["use_ability", "pursue", "hold", "rescue", "threat", "escort", "retreat", "greet"], path + ".handler"):
 			return
 		path += ".params."
 		if handler in ["use_ability", "pursue", "rescue", "threat"]:
 			_check_behavior_ability(handler, params, path + "ability")
-		if handler in ["pursue", "threat", "escort", "retreat"]:
+		if handler in ["pursue", "threat", "escort", "retreat", "greet"]:
 			var move: Variant = params.get("move_ability")
 			if _ref(move, "abilities", path + "move_ability") and not is_same(_defs.abilities[move].get("handler"), "move"):
 				_error(path + "move_ability", "ability must use the move handler")
-		if handler == "pursue":
+		if handler in ["pursue", "retreat", "greet"]:
 			_text(params.get("team"), path + "team")
-		elif handler == "retreat":
-			_text(params.get("team"), path + "team")
-		elif handler == "threat":
+		if handler == "greet":
+			_integer(params.get("greeting_range"), path + "greeting_range", 1)
+			var greetings := _id_list(params.get("greetings"), path + "greetings", "abilities")
+			if greetings.is_empty():
+				_error(path + "greetings", "requires at least one greeting")
+			for id in greetings:
+				var targeting: Variant = _defs.abilities.get(id, {}).get("targeting")
+				if targeting is Dictionary and targeting.get("kind") not in ["entity", "automatic", "none"]:
+					_error(path + "greetings", "greeting '%s' cannot require a cell target" % str(id))
+		if handler == "threat":
 			_integer(params.get("pursue_range"), path + "pursue_range", 1)
 			_id_list(params.get("fallback_teams"), path + "fallback_teams")
 			var status: Variant = params.get("taunt_status")
@@ -420,15 +446,19 @@ class Validator:
 			"retarget":
 				if params.has("teams"):
 					_id_list(params.teams, path + ".params.teams")
-			"skip_action", "misdirect":
+			"skip_action", "misdirect", "stop_move":
 				pass
 
 	func _check_profile(data: Dictionary, path: String) -> void:
 		_text(data.get("team"), path + ".team")
 		_text(data.get("art_key"), path + ".art_key")
 		_integer(data.get("max_hp"), path + ".max_hp", 1)
-		_id_list(data.get("capabilities"), path + ".capabilities", "capabilities")
+		var capabilities := _id_list(data.get("capabilities"), path + ".capabilities", "capabilities")
 		var abilities := _id_list(data.get("abilities"), path + ".abilities", "abilities")
+		if "minion" in capabilities:
+			for id in abilities:
+				if is_same(_defs.abilities.get(id, {}).get("handler"), "summon"):
+					_error(path + ".abilities", "minions cannot use summon ability '%s'" % id)
 		var habits := _dictionary(data.get("habits"), path + ".habits")
 		for order in habits:
 			var habit_path := "%s.habits.%s" % [path, order]
@@ -443,6 +473,8 @@ class Validator:
 			_color(data.color, path + ".color")
 		if data.has("art_variant"):
 			_text(data.art_variant, path + ".art_variant")
+		if data.has("description"):
+			_text(data.description, path + ".description", true)
 
 	func _behavior_for_kit(behavior: Variant, abilities: Array, path: String) -> void:
 		if not _ref(behavior, "behaviors", path):
@@ -454,11 +486,19 @@ class Validator:
 			var ability: Variant = params.get(field)
 			if ability is String and ability not in abilities:
 				_error(path, "behavior '%s' requires '%s' in the effective ability kit" % [behavior, ability])
+		var greetings: Variant = params.get("greetings")
+		if greetings is Array:
+			for ability in greetings:
+				if ability is String and ability not in abilities:
+					_error(path, "behavior '%s' requires '%s' in the effective ability kit" % [behavior, ability])
 
 	func _check_character(character: Dictionary, path: String) -> void:
 		_text(character.get("label"), path + ".label")
 		if _ref(character.get("class"), "classes", path + ".class"):
-			_check_profile(_defs.classes[character["class"]].merged(character, true), path)
+			_check_profile(_effective_profile(character), path)
+
+	func _effective_profile(character: Dictionary) -> Dictionary:
+		return _defs.classes.get(character.get("class"), {}).merged(character, true)
 
 	func _check_object(object: Dictionary, path: String) -> void:
 		_text(object.get("label"), path + ".label")
@@ -504,6 +544,10 @@ class Validator:
 			board = _defs.boards[encounter.board]
 		if encounter.has("deadline"):
 			_integer(encounter.deadline, path + ".deadline")
+		if encounter.has("seed"):
+			var seed_value: Variant = encounter.seed
+			if not _is_integer(seed_value, 1) or int(seed_value) > 2147483646:
+				_error(path + ".seed", "expected a whole number from 1 to 2147483646")
 		var placements := _array(encounter.get("placements"), path + ".placements")
 		var terrain := _terrain_index(board)
 		var occupied: Dictionary = {}
@@ -516,12 +560,19 @@ class Validator:
 				if ids.has(id):
 					_error(place_path + ".id", "duplicate placement ID '%s'" % id)
 				ids[id] = true
+			var maximum: Variant = null
 			if placement.has("character") == placement.has("object"):
 				_error(place_path, "expected exactly one of character or object")
 			elif placement.has("character"):
-				_ref(placement.character, "characters", place_path + ".character")
+				if _ref(placement.character, "characters", place_path + ".character"):
+					maximum = _effective_profile(_defs.characters[placement.character]).get("max_hp")
 			else:
-				_ref(placement.object, "objects", place_path + ".object")
+				if _ref(placement.object, "objects", place_path + ".object"):
+					maximum = _defs.objects[placement.object].get("max_hp")
+			if placement.has("hp"):
+				_integer(placement.hp, place_path + ".hp")
+				if _is_integer(placement.hp) and _is_integer(maximum, 1) and placement.hp > maximum:
+					_error(place_path + ".hp", "cannot exceed maximum health")
 			var at: Variant = _board_position(placement.get("at"), board, place_path + ".at")
 			if at != null:
 				if occupied.has(at):
@@ -602,15 +653,20 @@ class Validator:
 			_error(path + ".roster", "roster is smaller than party size")
 		for id in roster:
 			if id is String and _defs.characters.has(id):
-				var character: Dictionary = _defs.characters[id]
-				var hero: Dictionary = _defs.classes.get(character.get("class"), {}).merged(character, true)
+				var hero := _effective_profile(_defs.characters[id])
 				var capabilities: Variant = hero.get("capabilities")
 				if hero.get("team") != "heroes" or not capabilities is Array or not "commandable" in capabilities:
 					_error(path + ".roster", "character '%s' is not a commandable hero" % id)
-		for id in missions:
+		for index in missions.size():
+			var id: Variant = missions[index]
 			if not id is String or not _defs.missions.has(id):
 				continue
-			var encounter: Dictionary = _defs.encounters.get(_defs.missions[id].get("encounter"), {})
+			var mission: Dictionary = _defs.missions[id]
+			var failures: Variant = mission.get("failures")
+			if failures is Array and not failures.any(func(failure: Variant) -> bool:
+					return failure is Dictionary and is_same(failure.get("handler"), "party_wiped")):
+				_error("%s.missions[%d]" % [path, index], "mission '%s' requires a party_wiped failure" % id)
+			var encounter: Dictionary = _defs.encounters.get(mission.get("encounter"), {})
 			var slots: Variant = encounter.get("party_slots", [])
 			if not slots is Array or slots.size() != int(party_size):
 				_error(path + ".missions", "mission '%s' must have exactly %d party slots" % [id, int(party_size)])

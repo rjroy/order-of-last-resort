@@ -1,5 +1,6 @@
 extends RefCounted
 
+const Catalog = preload("res://content/catalog.gd")
 const Board = preload("res://rules/board.gd")
 const Statuses = preload("res://rules/statuses.gd")
 
@@ -12,6 +13,10 @@ static func owned_ability(state: Dictionary, actor: Dictionary, id: String) -> D
 
 static func can_act(state: Dictionary, actor: Dictionary) -> bool:
 	return Board.alive(actor) and Statuses.ids_with_handler(state, actor, "skip_action").is_empty()
+
+
+static func _can_move(state: Dictionary, actor: Dictionary) -> bool:
+	return Board.capable(state, actor, "mobile") and Statuses.ids_with_handler(state, actor, "stop_move").is_empty()
 
 
 static func _pull_step(actor: Dictionary, target: Dictionary) -> Vector2i:
@@ -51,7 +56,51 @@ static func _entity_allowed(state: Dictionary, actor: Dictionary, candidate: Dic
 			return Board.team(state, candidate) != Board.team(state, actor) \
 				and not Statuses.adjacent_victim(state, candidate).is_empty() \
 				and Statuses.accepts(state, candidate, ability.params.status, actor)
+		"repel":
+			return candidate.has("character_id")
+		"stop_target":
+			return Statuses.accepts(state, candidate, ability.params.status, actor)
 	return false
+
+
+static func summon_capped(state: Dictionary, actor: Dictionary, ability: Dictionary) -> bool:
+	for unit in state.units:
+		if unit.get("summoner_id") == actor.id and unit.character_id == ability.params.character \
+				and Board.alive(unit):
+			return true
+	return false
+
+
+static func _summon_choices(state: Dictionary, actor: Dictionary, ability: Dictionary) -> Array:
+	var result: Array = []
+	if actor.has("summoner_id") or Board.capable(state, actor, "minion") or summon_capped(state, actor, ability):
+		return result
+	if ability.targeting.kind == "cell":
+		for direction in Board.DIRECTIONS:
+			var position: Vector2i = actor.position + direction
+			if Board.is_vacant(state, position):
+				result.append({"id": Board.cell_id(position), "label": Board.coordinate(position), "position": position})
+	else:
+		var minion_name: String = Catalog.profile(state.catalog.defs, ability.params.character).label
+		for corpse in raisable_corpses(state, actor, ability):
+			if not Board.is_vacant(state, corpse.position):
+				continue
+			var hp := _raised_hp(corpse)
+			result.append({"id": corpse.id,
+				"label": "%s corpse (%d HP %s)" % [Board.display_name(state, corpse), hp, minion_name.to_lower()],
+				"position": corpse.position})
+	return result
+
+
+static func raisable_corpses(state: Dictionary, actor: Dictionary, ability: Dictionary) -> Array:
+	return Board.corpses(state, ability.targeting).filter(func(corpse: Dictionary) -> bool:
+		return Board.team(state, corpse) not in ["", "civilian", Board.team(state, actor)] \
+			and _in_reach(actor, corpse.position, ability.targeting))
+
+
+@warning_ignore("integer_division")
+static func _raised_hp(corpse: Dictionary) -> int:
+	return (int(corpse.max_hp) + 1) / 2
 
 
 # The picker, behaviors and action execution all use these exact choices.
@@ -59,10 +108,12 @@ static func _legal_choices(state: Dictionary, actor: Dictionary, ability: Dictio
 	var result: Array = []
 	if ability.is_empty() or not can_act(state, actor):
 		return result
+	if ability.handler == "summon":
+		return _summon_choices(state, actor, ability)
 	var targeting: Dictionary = ability.targeting
 	match targeting.kind:
 		"cell":
-			if ability.handler != "move" or not Board.capable(state, actor, "mobile"):
+			if not _can_move(state, actor):
 				return result
 			for direction in Board.DIRECTIONS:
 				var position: Vector2i = actor.position + direction
@@ -77,6 +128,11 @@ static func _legal_choices(state: Dictionary, actor: Dictionary, ability: Dictio
 		"none":
 			if ability.handler == "apply_status" and Statuses.accepts(state, actor, ability.params.status, actor):
 				result.append({"id": "", "position": actor.position})
+			elif ability.handler == "sweep":
+				for candidate in Board.occupants(state, {}):
+					if _in_reach(actor, candidate.position, targeting) \
+							and candidate.id != actor.id and Board.capable(state, candidate, "damageable"):
+						result.append(candidate)
 	return result
 
 
@@ -91,6 +147,8 @@ static func selection(state: Dictionary, actor: Dictionary, ability: Dictionary,
 	var choices := _legal_choices(state, actor, ability)
 	if choices.is_empty():
 		return {}
+	if ability.handler == "sweep":
+		return {"id": "", "recipients": choices} if target_id.is_empty() else {}
 	if ability.targeting.kind == "automatic":
 		if not target_id.is_empty():
 			return {}
@@ -103,11 +161,49 @@ static func selection(state: Dictionary, actor: Dictionary, ability: Dictionary,
 				var db := Board.distance(actor.position, b.position)
 				return a.id < b.id if da == db else da > db)
 			return choices[0]
-		return Board.nearest(actor, choices)
+		var nearest := Board.nearest(actor, choices)
+		if ability.handler == "repel" and not nearest.is_empty():
+			var destination := _step_away(state, actor, nearest)
+			if destination == nearest.position:
+				return {}
+			nearest["destination"] = destination
+		return nearest
 	for choice in choices:
 		if choice.id == target_id:
 			return choice
 	return {}
+
+
+static func _step_away(state: Dictionary, actor: Dictionary, target: Dictionary) -> Vector2i:
+	var position: Vector2i = target.position
+	var destination := position - _pull_step(actor, target)
+	return destination if Board.can_enter(state, destination) else position
+
+
+static func _summon(state: Dictionary, actor: Dictionary, ability: Dictionary,
+		choice: Dictionary, corpse: Dictionary, events: Array) -> void:
+	var character: String = ability.params.character
+	var profile := Catalog.profile(state.catalog.defs, character)
+	var raising: bool = ability.targeting.kind == "entity"
+	var hp := _raised_hp(corpse) if raising else int(profile.max_hp)
+	var base_id := "%s_%s" % [actor.id, character]
+	var id := base_id
+	var index := 2
+	while not Board.entity(state, id).is_empty():
+		id = "%s_%d" % [base_id, index]
+		index += 1
+	var minion := {"id": id, "character_id": character, "position": choice.position,
+		"hp": hp, "max_hp": hp, "statuses": {}, "summoner_id": actor.id,
+		"summon_priority": int(ability.params.priority)}
+	var data := {"unit_id": actor.id, "summon_id": id, "position": choice.position, "hp": hp}
+	var copy := {"actor": Board.display_name(state, actor), "minion": profile.label,
+		"position": choice.position, "hp": hp}
+	if raising:
+		corpse["corpse_consumed"] = true
+		data["target_id"] = corpse.id
+		copy["corpse"] = Board.display_name(state, corpse)
+	state.units.append(minion)
+	Board.authored_event(state, events, "summon", "raise" if raising else "summon", copy, data)
 
 
 static func execute(state: Dictionary, actor: Dictionary, action: Dictionary, events: Array) -> bool:
@@ -125,6 +221,22 @@ static func execute(state: Dictionary, actor: Dictionary, action: Dictionary, ev
 			actor.position = choice.position
 			Board.authored_event(state, events, "move", "move", {"actor": name, "position": actor.position},
 				{"unit_id": actor.id, "position": actor.position})
+		"summon":
+			_summon(state, actor, ability, choice, target, events)
+		"sweep":
+			Board.authored_event(state, events, "wave", "sweep", {"actor": name}, {"unit_id": actor.id})
+			for recipient in choice.recipients:
+				_damage(state, actor, recipient, int(params.damage), name, "", events)
+		"stop_target":
+			if not Statuses.apply(state, target, params.status, actor):
+				return false
+			Board.authored_event(state, events, "status", "stop_target", {"actor": name, "target": target_name},
+				{"unit_id": actor.id, "target_id": target.id, "status_id": params.status})
+		"repel":
+			target.position = choice.destination
+			Board.authored_event(state, events, "repel", "repel",
+				{"actor": name, "target": target_name, "position": target.position},
+				{"unit_id": actor.id, "target_id": target.id, "position": target.position})
 		"push":
 			var destination: Vector2i = target.position - _pull_step(actor, target)
 			if Board.can_enter(state, destination):

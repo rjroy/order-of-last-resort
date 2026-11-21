@@ -31,6 +31,7 @@ var _planned_state: Dictionary
 var _plan: Dictionary
 var _editor_actor: Dictionary
 var _editor_can_act := false
+var _editor_move_blocked := false
 var _last_events: Array = []
 var _last_round := 0
 var _unpreviewed_edit := false
@@ -43,6 +44,7 @@ var _order_notes: Dictionary = {}
 var _painted_cells: Dictionary = {}
 var _tile_labels: Dictionary = {}
 var _safe_cells: Dictionary = {}
+var _corpse_markers: Dictionary = {}
 var _hover_cell: Variant = null
 
 var _display_font: SystemFont
@@ -257,6 +259,9 @@ func _build_recruit(parent: VBoxContainer, id: String) -> void:
 	_wrapped_label(entry, "Actions: " + ", ".join(abilities), 14, PAPER)
 	var order: Dictionary = _definitions.orders.get(profile.get("default_order", ""), {})
 	_wrapped_label(entry, "Default order: " + str(order.get("label", "None")), 13, MUTED)
+	var description: String = profile.get("description", "")
+	if not description.is_empty():
+		toggle.tooltip_text += "\n" + description
 
 
 func _build_party_slot(parent: VBoxContainer, slot: int) -> void:
@@ -597,14 +602,16 @@ func _sync_targets(auto_pick: bool) -> void:
 	var context := _rules.state_before_action(editor_plan, _actor_id)
 	_editor_actor = _find(_actor_id, context)
 	_editor_can_act = _rules.can_act(context, _actor_id)
+	_editor_move_blocked = _rules.has_status_handler(context, _actor_id, "stop_move")
 	_target_select.clear()
 	var target_kind := _target_kind()
 	var selectable := _is_selectable(target_kind)
+	var summon := _is_summon()
 	_targets = _rules.targets(context, _actor_id, _ability_id) if selectable and _editor_can_act else []
 	var selected_exists := false
 	for choice in _targets:
 		var location := BridgeArt.coordinate(choice.position)
-		var label := location if target_kind == "cell" else "%s  ·  %s" % [_name_for(choice.id), location]
+		var label := location if target_kind == "cell" else "%s  ·  %s" % [choice.label, location]
 		_add_choice(_target_select, label, choice.id)
 		selected_exists = selected_exists or choice.id == _target_id
 	if _targets.is_empty():
@@ -617,8 +624,15 @@ func _sync_targets(auto_pick: bool) -> void:
 			prompt = "No action available"
 		elif not _editor_can_act:
 			prompt = "Knocked down" if _editor_actor.get("hp", 0) > 0 else "Falls before acting"
+		elif summon and _rules.summon_capped(context, _actor_id, _ability_id):
+			prompt = "Summon already alive"
+		elif summon and target_kind == "entity":
+			prompt = "No unoccupied enemy corpse"
 		elif target_kind == "cell":
-			prompt = "No open adjacent tile" if _rules.has_capability(context, _actor_id, "mobile") else "Cannot move"
+			if not summon and _editor_move_blocked:
+				prompt = "Held in place"
+			else:
+				prompt = "No open adjacent tile" if summon or _rules.has_capability(context, _actor_id, "mobile") else "Cannot move"
 		elif selectable:
 			prompt = "No legal targets"
 		elif target_kind == "automatic":
@@ -699,6 +713,10 @@ func _target_kind(ability := "") -> String:
 	return _rules.ability_definition(_state, ability).get("targeting", {}).get("kind", "")
 
 
+func _is_summon() -> bool:
+	return _rules.ability_definition(_state, _ability_id).get("handler") == "summon"
+
+
 func _is_selectable(target_kind: String) -> bool:
 	return target_kind == "cell" or target_kind == "entity"
 
@@ -769,7 +787,14 @@ func _command_help(active: bool, manual: bool) -> String:
 			return "This hero is down and spends this turn getting up. Choose another hero."
 		return "This hero will be knocked down before acting. Change an earlier order or choose another hero."
 	var target_kind := _target_kind()
+	var help: String = _rules.ability_definition(_state, _ability_id).get("help", "")
+	if _is_summon():
+		if _target_select.disabled:
+			return _target_select.text + ". " + help
+		return help
 	if target_kind == "cell":
+		if _editor_move_blocked:
+			return "Don't Go prevents Move this turn. Other actions remain available."
 		if not _rules.has_capability(_state, _actor_id, "mobile"):
 			return "This hero cannot move. Choose another action or hero."
 		if _targets.is_empty():
@@ -779,7 +804,7 @@ func _command_help(active: bool, manual: bool) -> String:
 		return "Choose a highlighted tile up, down, left, or right."
 	if target_kind == "entity" and _targets.is_empty():
 		return "No legal target when this hero acts. Choose another action or hero."
-	return _rules.ability_definition(_state, _ability_id).get("help", "")
+	return help
 
 
 func _can_commit() -> bool:
@@ -822,10 +847,9 @@ func _refresh_objective() -> void:
 func _refresh_initiative() -> void:
 	var labels: PackedStringArray = []
 	var ids: PackedStringArray = []
-	for unit in _state.units:
-		if unit.hp > 0:
-			labels.append("%s. %s" % [labels.size() + 1, _name_for(unit.id)])
-			ids.append(unit.id)
+	for unit in _rules.initiative(_state):
+		labels.append("%s. %s" % [labels.size() + 1, _name_for(unit.id)])
+		ids.append(unit.id)
 	_initiative.text = "Initiative: " + "   ".join(labels) if not labels.is_empty() else "Initiative: none"
 	_initiative.set_meta("actor_ids", ids)
 
@@ -848,6 +872,8 @@ func _refresh_orders(active: bool) -> void:
 			detail += " · Fallen"
 		elif _rules.has_status_handler(_state, hero, "skip_action"):
 			detail += " · Down"
+		elif _rules.has_status_handler(_state, hero, "stop_move"):
+			detail += " · Held"
 		if is_commanded:
 			detail += " · Direct"
 		note.text = detail
@@ -911,21 +937,28 @@ func _target_description(hero: String, ability: String, target: String) -> Strin
 	for choice in _rules.targets(context, hero, ability):
 		if choice.id == target:
 			var location := BridgeArt.coordinate(choice.position)
-			return " to " + location if _target_kind(ability) == "cell" else " → %s at %s" % [_name_for(target), location]
+			if _target_kind(ability) == "cell":
+				return (" at " if _rules.ability_definition(_state, ability).handler == "summon" else " to ") + location
+			return " → %s at %s" % [choice.label, location]
 	return " (target no longer legal)"
 
 
 func _refresh_board() -> void:
 	_painted_cells = _terrain()
 	var units: Array = []
+	_corpse_markers = _rules.corpse_markers(_state)
+	for corpse in _corpse_markers.values():
+		var profile: Dictionary = _rules.entity_profile(_state, corpse.id)
+		units.append({"id": corpse.id, "art_key": profile.art_key, "variant": profile.get("art_variant", ""),
+			"label": "Corpse", "cell": corpse.position, "hp": 0, "max_hp": 0, "prone": true})
 	for unit in _state.units:
 		var is_objective: bool = unit.id == _state.objective.get("subject")
 		if unit.hp <= 0 and not is_objective:
 			continue
 		var profile: Dictionary = _rules.entity_profile(_state, unit.id)
-		var commandable: bool = _rules.has_capability(_state, unit.id, "commandable")
+		var show_label: bool = "commandable" in profile.capabilities or "minion" in profile.capabilities
 		units.append({"id": unit.id, "art_key": profile.art_key, "variant": profile.get("art_variant", ""),
-			"label": _name_for(unit.id) if commandable else "", "color": profile.get("color", ""),
+			"label": _name_for(unit.id) if show_label else "", "color": profile.get("color", ""),
 			"cell": unit.position, "hp": unit.hp, "max_hp": unit.max_hp, "objective": is_objective,
 			"prone": unit.hp <= 0 or _rules.has_status_handler(_state, unit.id, "skip_action"),
 			"guarded": _rules.has_status_handler(_state, unit.id, "reflect")})
@@ -1013,13 +1046,14 @@ func _highlight_safe_bank(eligible: Dictionary, destination: Vector2i) -> void:
 func _select_board(cell: Vector2i) -> void:
 	if not _ongoing():
 		return
-	for target in _targets:
-		if target.position == cell:
-			_pick(_target_select, target.id)
-			_target_id = target.id
-			_note_unpreviewed_edit()
-			_refresh()
-			return
+	var matching := _targets_at(cell)
+	if matching.size() > 1:
+		_target_select.show_popup()
+		return
+	if matching.size() == 1:
+		_pick(_target_select, matching[0].id)
+		_select_target(_target_select.selected)
+		return
 	for unit in _roster():
 		if unit.position == cell and unit.hp > 0:
 			_pick(_actor_select, unit.id)
@@ -1032,15 +1066,19 @@ func _inspect_board(cell: Vector2i) -> void:
 	var place := BridgeArt.coordinate(cell)
 	if _ongoing():
 		var target_kind := _target_kind()
-		for target in _targets:
-			if target.position == cell:
-				var target_name := "Move destination" if target_kind == "cell" else _name_for(target.id) + " target"
-				_hover_text.text = "%s  ·  %s when %s acts" % [place, target_name, _name_for(_actor_id)]
-				_board.tooltip_text = _hover_text.text
-				return
+		var matching := _targets_at(cell)
+		if not matching.is_empty():
+			var target_name := "Summon destination" if _is_summon() else "Move destination"
+			if target_kind != "cell":
+				target_name = "%s target" % matching[0].label if matching.size() == 1 else "%d targets; choose in Target" % matching.size()
+			_hover_text.text = "%s  ·  %s when %s acts" % [place, target_name, _name_for(_actor_id)]
+			_board.tooltip_text = _hover_text.text
+			return
 	for unit in _state.units:
 		if unit.position == cell and unit.hp > 0:
 			_hover_text.text = "%s  ·  %s  %d/%d HP" % [place, _name_for(unit.id), unit.hp, unit.max_hp]
+			if _rules.has_status_handler(_state, unit.id, "stop_move"):
+				_hover_text.text += "  ·  Held in place"
 			_board.tooltip_text = _hover_text.text
 			return
 	for obstacle in _state.obstacles:
@@ -1054,8 +1092,14 @@ func _inspect_board(cell: Vector2i) -> void:
 		label = destination if _safe_cells.has(cell) else "%s  ·  %s" % [label, destination]
 	elif _safe_cells.has(cell):
 		label = _presentation("safe", label)
+	if _corpse_markers.has(cell):
+		label = "%s  ·  %s corpse" % [label, _name_for(_corpse_markers[cell].id)]
 	_hover_text.text = "%s  ·  %s" % [place, label]
 	_board.tooltip_text = _hover_text.text
+
+
+func _targets_at(cell: Vector2i) -> Array:
+	return _targets.filter(func(target: Dictionary) -> bool: return target.position == cell)
 
 
 func _clear_inspection() -> void:

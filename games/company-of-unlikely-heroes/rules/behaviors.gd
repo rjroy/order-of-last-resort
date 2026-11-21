@@ -17,6 +17,8 @@ static func decide(state: Dictionary, actor: Dictionary, behavior_id: String) ->
 				if _legal_target(state, actor, params.ability, enemy.id):
 					return _action(params.ability, enemy.id)
 				return _move(state, actor, params.move_ability, enemy.position, 1)
+		"greet":
+			return _greet(state, actor, params)
 		"rescue":
 			if state.objective.handler != "escort":
 				return {}
@@ -54,6 +56,52 @@ static func decide(state: Dictionary, actor: Dictionary, behavior_id: String) ->
 					return _action(params.move_ability, Board.cell_id(best))
 			return {"wait": "hold"}
 	return {}
+
+
+static func _greet(state: Dictionary, actor: Dictionary, params: Dictionary) -> Dictionary:
+	var enemy := Board.nearest(actor, Board.occupants(state, {"teams": [params.team]}))
+	if enemy.is_empty():
+		return {"wait": "hold"}
+	var reach: int = params.greeting_range
+	if Board.distance(actor.position, enemy.position) <= reach:
+		var options := _greeting_options(state, actor, params.greetings)
+		if not options.is_empty():
+			# Park–Miller PRNG: the round works on its own snapshot, never a global RNG.
+			state.rng_state = (int(state.rng_state) * 48271) % 2147483647
+			return options[state.rng_state % options.size()]
+	if Actions.targets(state, actor, params.move_ability).is_empty():
+		return {"wait": "cannot_advance"}
+	var start: Vector2i = actor.position
+	var step := _step_to_greet(state, actor, enemy.position, reach, params.greetings)
+	return _action(params.move_ability, Board.cell_id(step)) if step != start else {"wait": "cannot_advance"}
+
+
+static func _greeting_options(state: Dictionary, actor: Dictionary, greetings: Array) -> Array:
+	var options: Array = []
+	for id in greetings:
+		var ability := Actions.owned_ability(state, actor, id)
+		if ability.targeting.kind == "entity":
+			var target := Board.nearest(actor, Actions.targets(state, actor, id))
+			if not target.is_empty():
+				options.append(_action(id, target.id))
+		elif not Actions.selection(state, actor, ability, "").is_empty():
+			options.append(_action(id))
+	return options
+
+
+static func _step_to_greet(state: Dictionary, actor: Dictionary, opponent: Vector2i, reach: int,
+		greetings: Array) -> Vector2i:
+	# Project only this actor onto potential destinations. Reuse actual targeting policy
+	# without advancing the RNG or modifying the running forecast.
+	var projected := state.duplicate()
+	var walker := actor.duplicate()
+	projected.units = state.units.duplicate()
+	projected.units[state.units.find(actor)] = walker
+	return Board.step_to(state, actor.position, func(cell: Vector2i) -> bool:
+		if cell == actor.position or Board.distance(cell, opponent) > reach:
+			return false
+		walker.position = cell
+		return not _greeting_options(projected, walker, greetings).is_empty())
 
 
 static func _threat(state: Dictionary, actor: Dictionary, params: Dictionary) -> Dictionary:

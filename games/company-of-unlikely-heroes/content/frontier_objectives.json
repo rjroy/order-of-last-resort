@@ -1,611 +1,264 @@
 {
   "missions": {
+    "wrong_side_of_the_door": {
+      "title": "The Wrong Side of the Door",
+      "encounter": "frontier_gate",
+      "default_party": ["knight", "healer", "wizard"],
+      "objective": {
+        "handler": "pressure_gate", "plate": "plate", "gate": "gate", "exit": "exit",
+        "text": "Get any living hero to the exit at F3. The gate at D3 opens only while a living character, friend or foe, occupies the plate at C2. It closes as soon as the plate is empty. A hero can hold the plate while another crosses; a push or swap can put an enemy there instead.",
+        "victory_text": "Someone made it through the door.",
+        "defeat_text": "Nobody made it through the door.",
+        "victory_event": "A hero reaches the far side of the gate."
+      },
+      "failures": [{"handler": "party_wiped", "event": "The company has fallen."}],
+      "tier": 2
+    },
+    "hold_the_line": {
+      "title": "Hold the Line",
+      "encounter": "frontier_line",
+      "default_party": ["knight", "healer", "wizard"],
+      "objective": {
+        "handler": "survive", "turns": 6,
+        "reserve_round": 4, "reserve_placements": ["reserve_archer", "reserve_drummer"],
+        "text": "Keep at least one hero standing through round 6. Starting in round 4, an Archer enters at B1 and a War Drummer at F5 when their tiles are clear. The drum deals 2 damage to a random foe within 5 tiles and cannot be reflected. You do not need to defeat the attackers. Friendly reinforcements arrive after round 6.",
+        "victory_text": "The company held until reinforcements arrived.",
+        "defeat_text": "The line broke before help arrived.",
+        "victory_event": "Friendly reinforcements arrive. The line held for six rounds."
+      },
+      "failures": [{"handler": "party_wiped", "event": "The company has fallen before reinforcements arrived."}],
+      "tier": 2
+    },
     "great_sheep_escape": {
       "title": "The Great Sheep Escape",
       "encounter": "frontier_sheep_field",
-      "default_party": [
-        "knight",
-        "healer",
-        "wizard"
-      ],
+      "default_party": ["knight", "healer", "wizard"],
       "objective": {
-        "handler": "herd_sheep",
-        "subjects": [
-          "sheep_one",
-          "sheep_two",
-          "sheep_three"
-        ],
-        "pen": "pen",
+        "handler": "herd_sheep", "subjects": ["sheep_one", "sheep_two", "sheep_three"], "pen": "pen",
         "text": "Get all three living sheep into the east pen together. At round's end, each unpenned sheep flees the nearest non-sheep character within 2 tiles, taking one free step as far away as possible. If no step takes it farther away, it takes a free step closer to the pen, if it can. Equal-distance characters follow initiative order; movement ties favor right, down, left, then up. Penned sheep settle. The shepherd scatters them too.",
         "victory_text": "The entire flock is safely in the pen.",
         "defeat_text": "The flock could not be brought home.",
         "victory_event": "All three sheep are safely in the pen."
       },
-      "failures": [
-        {
-          "handler": "party_wiped",
-          "event": "The company has fallen."
-        }
-      ],
+      "failures": [{"handler": "party_wiped", "event": "The company has fallen."}],
       "tier": 2
     },
     "bridge_is_out": {
       "title": "The Bridge Is Out",
       "encounter": "frontier_bridge",
-      "default_party": [
-        "knight",
-        "healer",
-        "wizard"
-      ],
+      "default_party": ["knight", "healer", "wizard"],
       "objective": {
-        "handler": "collapsing_bridge",
-        "exit": "far_bank",
-        "collapses": [
-          {
-            "round": 4,
-            "cells": "first_span"
-          },
-          {
-            "round": 6,
-            "cells": "second_span"
-          }
-        ],
-        "text": "Get any living hero to the far bank at G3 by the end of round 8. C2\u2013C4 collapse at the end of round 4; E2\u2013E4 collapse at the end of round 6. Occupants of collapsing tiles are defeated, and fallen sections cannot be crossed. If no hero reaches G3 by round 8, the remaining bridge collapses and the mission is lost. The raider need not be defeated.",
+        "handler": "collapsing_bridge", "exit": "far_bank",
+        "collapses": [{"round": 4, "cells": "first_span"}, {"round": 6, "cells": "second_span"}],
+        "text": "Get any living hero to the far bank at G3 by the end of round 8. C2–C4 collapse at the end of round 4; E2–E4 collapse at the end of round 6. Occupants of collapsing tiles are defeated, and fallen sections cannot be crossed. If no hero reaches G3 by round 8, the remaining bridge collapses and the mission is lost. The raider need not be defeated.",
         "victory_text": "A hero reaches the far bank as the bridge comes apart.",
         "defeat_text": "The company did not make the crossing.",
         "victory_event": "A hero reaches the far bank."
       },
       "failures": [
-        {
-          "handler": "party_wiped",
-          "event": "The company has fallen."
-        },
-        {
-          "handler": "deadline",
-          "event": "The remaining bridge collapses before a hero reaches the far bank."
-        }
+        {"handler": "party_wiped", "event": "The company has fallen."},
+        {"handler": "deadline", "event": "The remaining bridge collapses before a hero reaches the far bank."}
       ],
+      "tier": 2
+    },
+    "dont_wake_the_giant": {
+      "title": "Don't Wake the Giant",
+      "encounter": "frontier_treasure",
+      "default_party": ["knight", "healer", "wizard"],
+      "objective": {
+        "handler": "treasure_noise", "treasure": "treasure", "threshold": 12,
+        "text": "Get any living hero to the treasure at E3 without waking the giant. Noise starts at zero: each executed hero move adds 1, another hero ability adds 2, and a performance adds 3. Holding is silent. Finish the whole round at 12 noise or less, even if a hero reaches the treasure earlier in the round.",
+        "victory_text": "The treasure is yours. The giant sleeps on.",
+        "defeat_text": "The giant woke before the treasure was safely taken.",
+        "victory_event": "A hero quietly retrieves the treasure."
+      },
+      "failures": [{"handler": "party_wiped", "event": "The company has fallen."}],
+      "tier": 2
+    },
+    "unfortunate_ritual": {
+      "title": "The Unfortunate Ritual",
+      "encounter": "frontier_ritual",
+      "default_party": ["knight", "healer", "wizard"],
+      "objective": {
+        "handler": "ritual", "circles": "circles", "required_turns": 2,
+        "text": "Occupy all three circles at C2, D3, and C4 at the end of two consecutive rounds. Any living character counts, including an enemy or summon. If any circle is empty at a round's end, progress resets.",
+        "victory_text": "The circles hold, and the unfortunate ritual ends.",
+        "defeat_text": "The company could not hold the circles.",
+        "victory_event": "All three circles have remained occupied for two consecutive rounds."
+      },
+      "failures": [{"handler": "party_wiped", "event": "The company has fallen."}],
       "tier": 2
     },
     "last_wagon": {
       "title": "The Last Wagon",
       "encounter": "frontier_wagon_road",
-      "default_party": [
-        "knight",
-        "healer",
-        "wizard"
-      ],
+      "default_party": ["knight", "healer", "wizard"],
       "objective": {
-        "handler": "wagon",
-        "subject": "wagon",
-        "destination": "village",
+        "handler": "wagon", "subject": "wagon", "destination": "village",
         "text": "Protect the supply wagon until it reaches the village at G3. It advances one tile each round when no living enemy is adjacent; an adjacent enemy stalls it. Raiders target the wagon. If it is destroyed or the company falls, the mission is lost.",
         "victory_text": "The wagon and its supplies reach the village.",
         "defeat_text": "The village's last wagon was lost.",
         "victory_event": "The supply wagon reaches the village."
       },
-      "failures": [
-        {
-          "handler": "party_wiped",
-          "event": "The company has fallen."
-        }
-      ],
+      "failures": [{"handler": "party_wiped", "event": "The company has fallen."}],
       "tier": 2
     }
   },
   "encounters": {
-    "frontier_sheep_field": {
-      "board": "frontier_sheep_board",
-      "party_slots": [
-        [
-          0,
-          1
-        ],
-        [
-          0,
-          2
-        ],
-        [
-          0,
-          3
-        ]
-      ],
+    "frontier_gate": {
+      "board": "frontier_gate_board", "party_slots": [[0,1], [0,2], [0,3]],
+      "placements": [{"id": "gate_guard", "character": "goblin", "at": [4,2]}]
+    },
+    "frontier_line": {
+      "board": "frontier_line_board", "party_slots": [[3,1], [3,2], [3,3]],
       "placements": [
-        {
-          "id": "sheep_one",
-          "character": "frontier_sheep",
-          "at": [
-            3,
-            1
-          ]
-        },
-        {
-          "id": "sheep_two",
-          "character": "frontier_sheep",
-          "at": [
-            3,
-            2
-          ]
-        },
-        {
-          "id": "sheep_three",
-          "character": "frontier_sheep",
-          "at": [
-            3,
-            3
-          ]
-        },
-        {
-          "id": "shepherd",
-          "character": "frontier_shepherd",
-          "at": [
-            5,
-            2
-          ]
-        }
+        {"id": "west_one", "character": "goblin", "at": [0,1]},
+        {"id": "west_two", "character": "goblin", "at": [0,3]},
+        {"id": "east_one", "character": "goblin", "at": [6,1]},
+        {"id": "east_two", "character": "goblin", "at": [6,3]},
+        {"id": "east_bruiser", "character": "bruiser", "at": [6,2]},
+        {"id": "reserve_archer", "character": "archer", "at": [1,0]},
+        {"id": "reserve_drummer", "character": "frontier_war_drummer", "at": [5,4]}
+      ]
+    },
+    "frontier_sheep_field": {
+      "board": "frontier_sheep_board", "party_slots": [[0,1], [0,2], [0,3]],
+      "placements": [
+        {"id": "sheep_one", "character": "frontier_sheep", "at": [3,1]},
+        {"id": "sheep_two", "character": "frontier_sheep", "at": [3,2]},
+        {"id": "sheep_three", "character": "frontier_sheep", "at": [3,3]},
+        {"id": "shepherd", "character": "frontier_shepherd", "at": [5,2]}
       ]
     },
     "frontier_bridge": {
-      "board": "frontier_bridge_board",
-      "deadline": 8,
-      "party_slots": [
-        [
-          0,
-          1
-        ],
-        [
-          0,
-          2
-        ],
-        [
-          0,
-          3
-        ]
-      ],
+      "board": "frontier_bridge_board", "deadline": 8, "party_slots": [[0,1], [0,2], [0,3]],
+      "placements": [{"id": "bridge_raider", "character": "goblin", "at": [4,2]}]
+    },
+    "frontier_treasure": {
+      "board": "frontier_treasure_board", "party_slots": [[1,2], [0,1], [0,3]],
+      "placements": [{"id": "treasure_guard", "character": "goblin", "at": [5,3]}]
+    },
+    "frontier_ritual": {
+      "board": "frontier_ritual_board", "party_slots": [[0,1], [0,2], [0,3]],
       "placements": [
-        {
-          "id": "bridge_raider",
-          "character": "goblin",
-          "at": [
-            4,
-            2
-          ]
-        }
+        {"id": "ritual_hookhand", "character": "hookhand", "at": [5,1]},
+        {"id": "ritual_raider", "character": "goblin", "at": [5,3]}
       ]
     },
     "frontier_wagon_road": {
-      "board": "frontier_wagon_board",
-      "party_slots": [
-        [
-          1,
-          1
-        ],
-        [
-          0,
-          2
-        ],
-        [
-          1,
-          3
-        ]
-      ],
+      "board": "frontier_wagon_board", "party_slots": [[1,1], [0,2], [1,3]],
       "placements": [
-        {
-          "id": "wagon",
-          "character": "frontier_wagon",
-          "at": [
-            1,
-            2
-          ]
-        },
-        {
-          "id": "wagon_raider_north",
-          "character": "frontier_wagon_raider",
-          "at": [
-            4,
-            0
-          ]
-        },
-        {
-          "id": "wagon_raider_south",
-          "character": "frontier_wagon_raider",
-          "at": [
-            4,
-            4
-          ]
-        }
+        {"id": "wagon", "character": "frontier_wagon", "at": [1,2]},
+        {"id": "wagon_raider_north", "character": "frontier_wagon_raider", "at": [4,0]},
+        {"id": "wagon_raider_south", "character": "frontier_wagon_raider", "at": [4,4]}
       ]
     }
   },
   "boards": {
+    "frontier_gate_board": {
+      "width": 7, "height": 5, "default_tile": "stone",
+      "tiles": [
+        {"at": [3,0], "type": "gap"}, {"at": [3,1], "type": "gap"},
+        {"at": [3,3], "type": "gap"}, {"at": [3,4], "type": "gap"}
+      ],
+      "locations": {"plate": [2,1], "gate": [3,2], "exit": [5,2]}
+    },
+    "frontier_line_board": {
+      "width": 7, "height": 5, "default_tile": "stone", "tiles": [], "locations": {}
+    },
     "frontier_sheep_board": {
-      "width": 7,
-      "height": 5,
-      "default_tile": "stone",
-      "tiles": [],
-      "locations": {},
-      "zones": {
-        "pen": [
-          [
-            5,
-            1
-          ],
-          [
-            6,
-            1
-          ],
-          [
-            5,
-            2
-          ],
-          [
-            6,
-            2
-          ],
-          [
-            5,
-            3
-          ],
-          [
-            6,
-            3
-          ],
-          [
-            6,
-            0
-          ],
-          [
-            6,
-            4
-          ]
-        ]
-      }
+      "width": 7, "height": 5, "default_tile": "stone", "tiles": [], "locations": {},
+      "zones": {"pen": [[5,1], [6,1], [5,2], [6,2], [5,3], [6,3], [6,0], [6,4]]}
     },
     "frontier_bridge_board": {
-      "width": 7,
-      "height": 5,
-      "default_tile": "gap",
+      "width": 7, "height": 5, "default_tile": "gap",
       "tiles": [
-        {
-          "at": [
-            0,
-            0
-          ],
-          "type": "stone"
-        },
-        {
-          "at": [
-            0,
-            1
-          ],
-          "type": "stone"
-        },
-        {
-          "at": [
-            0,
-            2
-          ],
-          "type": "stone"
-        },
-        {
-          "at": [
-            0,
-            3
-          ],
-          "type": "stone"
-        },
-        {
-          "at": [
-            0,
-            4
-          ],
-          "type": "stone"
-        },
-        {
-          "at": [
-            1,
-            1
-          ],
-          "type": "bridge"
-        },
-        {
-          "at": [
-            1,
-            2
-          ],
-          "type": "bridge"
-        },
-        {
-          "at": [
-            1,
-            3
-          ],
-          "type": "bridge"
-        },
-        {
-          "at": [
-            2,
-            1
-          ],
-          "type": "bridge"
-        },
-        {
-          "at": [
-            2,
-            2
-          ],
-          "type": "bridge"
-        },
-        {
-          "at": [
-            2,
-            3
-          ],
-          "type": "bridge"
-        },
-        {
-          "at": [
-            3,
-            1
-          ],
-          "type": "bridge"
-        },
-        {
-          "at": [
-            3,
-            2
-          ],
-          "type": "bridge"
-        },
-        {
-          "at": [
-            3,
-            3
-          ],
-          "type": "bridge"
-        },
-        {
-          "at": [
-            4,
-            1
-          ],
-          "type": "bridge"
-        },
-        {
-          "at": [
-            4,
-            2
-          ],
-          "type": "bridge"
-        },
-        {
-          "at": [
-            4,
-            3
-          ],
-          "type": "bridge"
-        },
-        {
-          "at": [
-            5,
-            1
-          ],
-          "type": "bridge"
-        },
-        {
-          "at": [
-            5,
-            2
-          ],
-          "type": "bridge"
-        },
-        {
-          "at": [
-            5,
-            3
-          ],
-          "type": "bridge"
-        },
-        {
-          "at": [
-            6,
-            0
-          ],
-          "type": "stone"
-        },
-        {
-          "at": [
-            6,
-            1
-          ],
-          "type": "stone"
-        },
-        {
-          "at": [
-            6,
-            2
-          ],
-          "type": "stone"
-        },
-        {
-          "at": [
-            6,
-            3
-          ],
-          "type": "stone"
-        },
-        {
-          "at": [
-            6,
-            4
-          ],
-          "type": "stone"
-        }
+        {"at": [0,0], "type": "stone"}, {"at": [0,1], "type": "stone"},
+        {"at": [0,2], "type": "stone"}, {"at": [0,3], "type": "stone"}, {"at": [0,4], "type": "stone"},
+        {"at": [1,1], "type": "bridge"}, {"at": [1,2], "type": "bridge"}, {"at": [1,3], "type": "bridge"},
+        {"at": [2,1], "type": "bridge"}, {"at": [2,2], "type": "bridge"}, {"at": [2,3], "type": "bridge"},
+        {"at": [3,1], "type": "bridge"}, {"at": [3,2], "type": "bridge"}, {"at": [3,3], "type": "bridge"},
+        {"at": [4,1], "type": "bridge"}, {"at": [4,2], "type": "bridge"}, {"at": [4,3], "type": "bridge"},
+        {"at": [5,1], "type": "bridge"}, {"at": [5,2], "type": "bridge"}, {"at": [5,3], "type": "bridge"},
+        {"at": [6,0], "type": "stone"}, {"at": [6,1], "type": "stone"},
+        {"at": [6,2], "type": "stone"}, {"at": [6,3], "type": "stone"}, {"at": [6,4], "type": "stone"}
       ],
-      "locations": {
-        "far_bank": [
-          6,
-          2
-        ]
-      },
-      "zones": {
-        "first_span": [
-          [
-            2,
-            1
-          ],
-          [
-            2,
-            2
-          ],
-          [
-            2,
-            3
-          ]
-        ],
-        "second_span": [
-          [
-            4,
-            1
-          ],
-          [
-            4,
-            2
-          ],
-          [
-            4,
-            3
-          ]
-        ]
-      }
+      "locations": {"far_bank": [6,2]},
+      "zones": {"first_span": [[2,1], [2,2], [2,3]], "second_span": [[4,1], [4,2], [4,3]]}
+    },
+    "frontier_treasure_board": {
+      "width": 7, "height": 5, "default_tile": "stone", "tiles": [], "locations": {"treasure": [4,2]}
+    },
+    "frontier_ritual_board": {
+      "width": 7, "height": 5, "default_tile": "stone", "tiles": [], "locations": {},
+      "zones": {"circles": [[2,1], [3,2], [2,3]]}
     },
     "frontier_wagon_board": {
-      "width": 7,
-      "height": 5,
-      "default_tile": "stone",
-      "tiles": [],
-      "locations": {
-        "village": [
-          6,
-          2
-        ]
-      }
-    }
-  },
-  "characters": {
-    "frontier_sheep": {
-      "class": "civilian",
-      "label": "Sheep",
-      "art_key": "ferryman",
-      "behavior": "hold"
-    },
-    "frontier_shepherd": {
-      "class": "enemy",
-      "label": "Opposing Shepherd",
-      "art_key": "enemy",
-      "max_hp": 3,
-      "abilities": [
-        "move",
-        "frontier_shepherd_wave"
-      ],
-      "behavior": "frontier_shepherd_pursuit"
-    },
-    "frontier_wagon": {
-      "class": "civilian",
-      "label": "Supply Wagon",
-      "art_key": "obstacle",
-      "max_hp": 6,
-      "behavior": "hold"
-    },
-    "frontier_wagon_raider": {
-      "class": "enemy",
-      "label": "Wagon Raider",
-      "art_key": "enemy",
-      "max_hp": 3,
-      "abilities": [
-        "move",
-        "frontier_wagon_strike"
-      ],
-      "behavior": "frontier_wagon_hunt"
-    }
-  },
-  "abilities": {
-    "frontier_shepherd_wave": {
-      "label": "Shepherd's Wave",
-      "help": "The shepherd waves at an adjacent sheep without harming it.",
-      "handler": "attack",
-      "params": {
-        "damage": 0
-      },
-      "targeting": {
-        "kind": "entity",
-        "range": 1,
-        "teams": [
-          "civilian"
-        ]
-      }
-    },
-    "frontier_wagon_strike": {
-      "label": "Wagon Strike",
-      "help": "Deals 1 damage to the adjacent supply wagon.",
-      "handler": "attack",
-      "params": {
-        "damage": 1
-      },
-      "targeting": {
-        "kind": "entity",
-        "range": 1,
-        "teams": [
-          "civilian"
-        ]
-      }
-    }
-  },
-  "behaviors": {
-    "frontier_shepherd_pursuit": {
-      "handler": "threat",
-      "params": {
-        "fallback_teams": [
-          "civilian"
-        ],
-        "pursue_range": 7,
-        "taunt_status": "taunt",
-        "move_ability": "move",
-        "ability": "frontier_shepherd_wave"
-      }
-    },
-    "frontier_wagon_hunt": {
-      "handler": "threat",
-      "params": {
-        "fallback_teams": [
-          "civilian"
-        ],
-        "pursue_range": 7,
-        "taunt_status": "taunt",
-        "move_ability": "move",
-        "ability": "frontier_wagon_strike"
-      }
-    }
-  },
-  "presentation": {
-    "frontier_sheep": {
-      "label": "Sheep"
-    },
-    "frontier_shepherd": {
-      "label": "Opposing Shepherd"
-    },
-    "frontier_wagon": {
-      "label": "Supply Wagon"
-    },
-    "frontier_wagon_raider": {
-      "label": "Wagon Raider"
+      "width": 7, "height": 5, "default_tile": "stone", "tiles": [], "locations": {"village": [6,2]}
     }
   },
   "tiles": {
-    "void": {
-      "label": "Void",
-      "art_key": "broken",
-      "passable": false
+    "void": {"label": "Void", "art_key": "broken", "passable": false}
+  },
+  "characters": {
+    "frontier_war_drummer": {
+      "class": "enemy", "label": "War Drummer", "art_key": "enemy", "max_hp": 3,
+      "abilities": ["frontier_war_drum"], "behavior": "frontier_drum_beat"
+    },
+    "frontier_sheep": {
+      "class": "civilian", "label": "Sheep", "art_key": "ferryman", "behavior": "hold"
+    },
+    "frontier_shepherd": {
+      "class": "enemy", "label": "Opposing Shepherd", "art_key": "enemy",
+      "max_hp": 3, "abilities": ["move", "frontier_shepherd_wave"], "behavior": "frontier_shepherd_pursuit"
+    },
+    "frontier_wagon": {
+      "class": "civilian", "label": "Supply Wagon",
+      "art_key": "obstacle", "max_hp": 6, "behavior": "hold"
+    },
+    "frontier_wagon_raider": {
+      "class": "enemy", "label": "Wagon Raider", "art_key": "enemy",
+      "max_hp": 3, "abilities": ["move", "frontier_wagon_strike"], "behavior": "frontier_wagon_hunt"
     }
+  },
+  "abilities": {
+    "frontier_war_drum": {
+      "label": "War Drum", "help": "Deals 2 damage to a random foe within 5 tiles. Guard cannot reflect the beat.",
+      "handler": "perform", "params": {"damage": 2, "listener_event": "frontier_war_drum_listener"},
+      "targeting": {"kind": "automatic", "range": 5, "teams": ["heroes"]}
+    },
+    "frontier_shepherd_wave": {
+      "label": "Shepherd's Wave", "help": "The shepherd waves at an adjacent sheep without harming it.",
+      "handler": "attack", "params": {"damage": 0},
+      "targeting": {"kind": "entity", "range": 1, "teams": ["civilian"]}
+    },
+    "frontier_wagon_strike": {
+      "label": "Wagon Strike", "help": "Deals 1 damage to the adjacent supply wagon.",
+      "handler": "attack", "params": {"damage": 1},
+      "targeting": {"kind": "entity", "range": 1, "teams": ["civilian"]}
+    }
+  },
+  "behaviors": {
+    "frontier_drum_beat": {
+      "handler": "use_ability", "params": {"ability": "frontier_war_drum"}
+    },
+    "frontier_shepherd_pursuit": {
+      "handler": "threat",
+      "params": {"fallback_teams": ["civilian"], "pursue_range": 7, "taunt_status": "taunt", "move_ability": "move", "ability": "frontier_shepherd_wave"}
+    },
+    "frontier_wagon_hunt": {
+      "handler": "threat",
+      "params": {"fallback_teams": ["civilian"], "pursue_range": 7, "taunt_status": "taunt", "move_ability": "move", "ability": "frontier_wagon_strike"}
+    }
+  },
+  "events": {
+    "frontier_war_drum_listener": {"text": "{actor}'s drumbeat deals {amount} damage to {target}."}
+  },
+  "presentation": {
+    "frontier_war_drummer": {"label": "War Drummer"},
+    "frontier_sheep": {"label": "Sheep"},
+    "frontier_shepherd": {"label": "Opposing Shepherd"},
+    "frontier_wagon": {"label": "Supply Wagon"},
+    "frontier_wagon_raider": {"label": "Wagon Raider"}
   }
 }

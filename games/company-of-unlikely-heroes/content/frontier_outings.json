@@ -1,39 +1,33 @@
 {
   "adventures": {
+    "border_watch": {
+      "label": "Border Watch",
+      "roster": ["knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard"],
+      "missions": ["shield_wall", "wrong_side_of_the_door", "cowardly_captain"],
+      "party_size": 3
+    },
     "powder_run": {
       "label": "Powder Run",
-      "roster": [
-        "knight",
-        "healer",
-        "wizard",
-        "alchemist",
-        "rogue",
-        "necromancer",
-        "bard"
-      ],
-      "missions": [
-        "explosive_situation",
-        "bridge_is_out",
-        "last_wagon"
-      ],
+      "roster": ["knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard"],
+      "missions": ["explosive_situation", "bridge_is_out", "last_wagon"],
       "party_size": 3
     },
     "fairground_fracas": {
       "label": "Fairground Fracas",
-      "roster": [
-        "knight",
-        "healer",
-        "wizard",
-        "alchemist",
-        "rogue",
-        "necromancer",
-        "bard"
-      ],
-      "missions": [
-        "duelists",
-        "great_sheep_escape",
-        "odd_couple"
-      ],
+      "roster": ["knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard"],
+      "missions": ["duelists", "great_sheep_escape", "odd_couple"],
+      "party_size": 3
+    },
+    "night_duty": {
+      "label": "Night Duty",
+      "roster": ["knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard"],
+      "missions": ["unfortunate_healer", "dont_wake_the_giant", "hold_the_line"],
+      "party_size": 3
+    },
+    "rival_claims": {
+      "label": "Rival Claims",
+      "roster": ["knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard"],
+      "missions": ["last_one_standing", "unfortunate_ritual", "mirror_company"],
       "party_size": 3
     }
   }

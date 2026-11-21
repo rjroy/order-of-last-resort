@@ -48,6 +48,7 @@ static func _sonnet(state: Dictionary, actor: Dictionary, ability: Dictionary, i
 	var heckler := id in ["healing_sonnet", "bard_take_the_stage"] and Upgrades.amount(state, actor, "heckler") > 0
 	var damage := int(ability.params.damage)
 	var name := Board.display_name(state, actor)
+	var retaliation := Combat.RetaliationBatch.new() if recipients.size() > 1 else null
 	for recipient in recipients:
 		var label := Board.display_name(state, recipient)
 		var presentation := {"template": ability.params.listener_event, "copy": {"actor": name, "ability": ability.label},
@@ -55,8 +56,9 @@ static func _sonnet(state: Dictionary, actor: Dictionary, ability: Dictionary, i
 		if recipient.id != listener.id:
 			presentation["text"] = "{target} also hears {ability} and takes {amount} damage."
 		# A song affects its listeners directly; it isn't a redirectable attack.
-		Combat.hurt(state, actor, recipient, damage, name, "", events, presentation)
+		Combat.hurt(state, actor, recipient, damage, name, "", events, presentation, retaliation)
 		if heckler and Board.alive(recipient):
 			recipient.statuses["heckler"] = {"source_id": actor.id}
 			Board.event(events, "status", "Heckler: %s will aim their next attack at %s if they can." % [label, name],
 				{"unit_id": recipient.id, "target_id": actor.id, "status_id": "heckler"})
+	Combat.flush_retaliation(state, actor, events, retaliation)

@@ -1,4 +1,92 @@
 {
+  "shield_wall": {
+    "party": [
+      "healer",
+      "knight",
+      "bard"
+    ],
+    "reward": "healer",
+    "rounds": [
+      {
+        "command": {
+          "ability": "move",
+          "actor": "healer",
+          "target": "1,0"
+        },
+        "orders": {
+          "bard": "order_healing_sonnet",
+          "healer": "order_aggressive"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "1,1"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "healer",
+          "target": "2,1"
+        }
+      },
+      {
+        "command": {
+          "ability": "healer_heal",
+          "actor": "healer"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "2,1"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "3,1"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "4,1"
+        }
+      },
+      {}
+    ]
+  },
+  "cowardly_captain": {
+    "rounds": [
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "2,2"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "3,2"
+        }
+      },
+      {
+        "command": {
+          "ability": "healer_heal",
+          "actor": "healer"
+        }
+      },
+      {}
+    ]
+  },
   "explosive_situation": {
     "party": [
       "knight",
@@ -31,6 +119,48 @@
           "ability": "knight_push",
           "actor": "knight",
           "target": "healer"
+        }
+      }
+    ]
+  },
+  "unfortunate_healer": {
+    "party": [
+      "healer",
+      "wizard",
+      "bard"
+    ],
+    "reward": "healer",
+    "rounds": [
+      {
+        "command": {
+          "ability": "healing_sonnet",
+          "actor": "bard"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "wizard",
+          "target": "2,2"
+        }
+      },
+      {
+        "command": {
+          "ability": "healer_bonk",
+          "actor": "healer",
+          "target": "bruiser_1"
+        }
+      },
+      {
+        "command": {
+          "ability": "wizard_blast",
+          "actor": "wizard"
+        }
+      },
+      {
+        "command": {
+          "ability": "wizard_blast",
+          "actor": "wizard"
         }
       }
     ]
@@ -96,6 +226,152 @@
           "target": "ogre_1"
         }
       }
+    ]
+  },
+  "mirror_company": {
+    "rounds": [
+      {
+        "command": {
+          "ability": "inspiring_melody",
+          "actor": "bard"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "healer",
+          "target": "2,2"
+        }
+      },
+      {
+        "command": {
+          "ability": "healer_bonk",
+          "actor": "healer",
+          "target": "rival_healer_3"
+        }
+      },
+      {}
+    ]
+  },
+  "last_one_standing": {
+    "party": [
+      "healer",
+      "knight",
+      "bard"
+    ],
+    "reward": "healer",
+    "rounds": [
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "2,2"
+        },
+        "orders": {
+          "bard": "order_healing_sonnet",
+          "healer": "order_aggressive"
+        }
+      },
+      {},
+      {
+        "command": {
+          "ability": "healer_heal",
+          "actor": "healer"
+        }
+      },
+      {}
+    ]
+  },
+  "wrong_side_of_the_door": {
+    "reward": "bard",
+    "rounds": [
+      {
+        "command": {
+          "ability": "move",
+          "actor": "healer",
+          "target": "1,1"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "healer",
+          "target": "2,1"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "1,2"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "2,2"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "3,2"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "4,2"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "5,2"
+        }
+      }
+    ]
+  },
+  "hold_the_line": {
+    "rounds": [
+      {
+        "command": {
+          "ability": "move",
+          "actor": "bard",
+          "target": "3,4"
+        }
+      },
+      {
+        "command": {
+          "ability": "healing_sonnet",
+          "actor": "bard"
+        }
+      },
+      {
+        "command": {
+          "ability": "healer_bonk",
+          "actor": "healer",
+          "target": "east_one"
+        }
+      },
+      {
+        "command": {
+          "ability": "inspiring_melody",
+          "actor": "bard"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "wizard",
+          "target": "2,2"
+        }
+      },
+      {}
     ]
   },
   "great_sheep_escape": {
@@ -166,6 +442,79 @@
           "target": "6,2"
         }
       }
+    ]
+  },
+  "dont_wake_the_giant": {
+    "reward": "bard",
+    "rounds": [
+      {
+        "command": {
+          "ability": "move",
+          "actor": "healer",
+          "target": "2,2"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "healer",
+          "target": "3,2"
+        }
+      },
+      {
+        "command": {
+          "ability": "healer_bonk",
+          "actor": "healer",
+          "target": "treasure_guard"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "healer",
+          "target": "4,2"
+        }
+      }
+    ]
+  },
+  "unfortunate_ritual": {
+    "reward": "bard",
+    "rounds": [
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "1,2"
+        }
+      },
+      {
+        "command": {
+          "ability": "healer_heal",
+          "actor": "healer"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "2,2"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "bard",
+          "target": "1,3"
+        }
+      },
+      {
+        "command": {
+          "ability": "move",
+          "actor": "bard",
+          "target": "2,3"
+        }
+      },
+      {}
     ]
   },
   "last_wagon": {

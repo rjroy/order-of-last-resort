@@ -527,7 +527,9 @@ class Validator:
 			_error(path, "rescue requires an ability with the pull handler")
 		if handler == "hook_and_seek" and not is_same(ability.get("handler"), "hook"):
 			_error(path, "hook_and_seek requires an ability with the hook handler")
-		if handler in ["threat", "retreat_attack", "finite_healer", "swap_ally"] \
+		if handler == "threat" and ability.get("handler") not in ["attack", "bonk", "blast", "push"]:
+			_error(path, "threat requires an attack, bonk, blast, or push ability")
+		if handler in ["retreat_attack", "finite_healer", "swap_ally"] \
 				and ability.get("handler") not in ["attack", "bonk", "blast"]:
 			_error(path, "%s requires a damaging attack ability (attack, bonk, or blast)" % handler)
 		if handler in ["pursue", "hook_and_seek", "retreat_attack", "swap_ally"]:

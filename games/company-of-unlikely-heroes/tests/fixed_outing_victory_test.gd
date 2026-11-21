@@ -4,8 +4,11 @@ extends "res://tests/village_outing_scene_test.gd"
 # See fixed_outing_victory_test.md for the route format and deterministic reward seed.
 const ROUTES_PATH := "res://tests/fixed_outing_routes.json"
 const REQUIRED_MISSIONS := [
-	"explosive_situation", "bridge_is_out", "last_wagon",
-	"duelists", "great_sheep_escape", "odd_couple"
+	"shield_wall", "cowardly_captain", "explosive_situation",
+	"unfortunate_healer", "duelists", "odd_couple", "mirror_company",
+	"last_one_standing", "wrong_side_of_the_door", "hold_the_line",
+	"great_sheep_escape", "bridge_is_out", "dont_wake_the_giant",
+	"unfortunate_ritual", "last_wagon"
 ]
 
 
@@ -31,7 +34,7 @@ func _run() -> void:
 			_check(matches == 3 and missions.size() == 3,
 				str(adventure_id) + " contains exactly three new missions")
 			outings[adventure_id] = missions
-	_check(outings.size() == 2, "Catalog declares two new outings")
+	_check(outings.size() == 5, "Catalog declares five new outings")
 	for id in REQUIRED_MISSIONS:
 		_check(seen.count(id) == 1, id + " occurs in exactly one new outing")
 		_check(routes.has(id), "Route file contains " + id)

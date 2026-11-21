@@ -9,8 +9,6 @@ const FLEE_STEPS := [Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT, Vector2i.UP]
 ## Objective effects run once after the initiative pass and before outcomes.
 static func finish_round(state: Dictionary, events: Array) -> void:
 	match state.objective.handler:
-		"survive":
-			_admit_reserves(state, events)
 		"herd_sheep":
 			_flee_sheep(state, events)
 		"collapsing_bridge":
@@ -19,6 +17,12 @@ static func finish_round(state: Dictionary, events: Array) -> void:
 			_hold_circles(state, events)
 		"wagon":
 			_advance_wagon(state, events)
+
+
+## Only an ongoing battle prepares the upcoming round.
+static func prepare_next_round(state: Dictionary, events: Array) -> void:
+	if state.objective.handler == "survive":
+		_admit_reserves(state, events)
 
 
 ## Outcome queries are read-only so a commit can recheck the forecast result.
@@ -102,8 +106,7 @@ static func progress(state: Dictionary) -> Dictionary:
 				var entries := PackedStringArray()
 				for reserve in reserves:
 					entries.append(Board.coordinate(reserve.position))
-				var expected_round: int = maxi(state.round, objective.reserve_round)
-				text += " · Enemy reserves: round %d at %s if clear" % [expected_round, ", ".join(entries)] \
+				text += " · Enemy reserves: round %d at %s if clear" % [objective.reserve_round, ", ".join(entries)] \
 					if state.round < objective.reserve_round \
 					else " · Enemy reserves waiting for %s to clear" % ", ".join(entries)
 			return {"text": text}
@@ -179,8 +182,7 @@ static func _hero_at(state: Dictionary, cell: Vector2i) -> bool:
 static func _admit_reserves(state: Dictionary, events: Array) -> void:
 	var objective: Dictionary = state.objective
 	var reserves: Array = objective.get("reserves", [])
-	var next_round: int = state.round + 1
-	if reserves.is_empty() or next_round < objective.reserve_round or next_round > objective.turns:
+	if reserves.is_empty() or state.round < objective.reserve_round:
 		return
 	# Join the next round's initiative only; an occupied entry does not displace its occupant.
 	var waiting: Array = []
@@ -197,8 +199,8 @@ static func _admit_reserves(state: Dictionary, events: Array) -> void:
 	objective.reserves = waiting
 	for reserve in arriving:
 		Board.event(events, "reserve_arrival", "%s enters at %s for round %d." % [
-			Board.display_name(state, reserve), Board.coordinate(reserve.position), next_round],
-			{"unit_id": reserve.id, "position": reserve.position, "round": next_round})
+			Board.display_name(state, reserve), Board.coordinate(reserve.position), state.round],
+			{"unit_id": reserve.id, "position": reserve.position, "round": state.round})
 
 
 static func _penned_count(state: Dictionary) -> int:
@@ -229,13 +231,16 @@ static func _flee_sheep(state: Dictionary, events: Array) -> void:
 			if reach > distance and Board.is_vacant(state, cell):
 				best = cell
 				distance = reach
-		if best == sheep.position:
+		var sidestepping: bool = best == sheep.position
+		if sidestepping:
 			best = _sheep_sidestep(state, sheep.position, objective.pen)
 		if best != sheep.position:
 			sheep.position = best
-			Board.event(events, "move", "%s flees from %s to %s." % [
-				Board.display_name(state, sheep), Board.display_name(state, threat), Board.coordinate(best)],
-				{"unit_id": id, "target_id": threat.id, "position": best})
+			var sheep_name := Board.display_name(state, sheep)
+			var cell_name := Board.coordinate(best)
+			var text := "%s sidesteps toward the pen at %s." % [sheep_name, cell_name] if sidestepping \
+				else "%s flees from %s to %s." % [sheep_name, Board.display_name(state, threat), cell_name]
+			Board.event(events, "move", text, {"unit_id": id, "target_id": threat.id, "position": best})
 
 
 static func _sheep_sidestep(state: Dictionary, position: Vector2i, pen: Array) -> Vector2i:

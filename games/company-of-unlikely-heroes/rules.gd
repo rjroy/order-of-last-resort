@@ -238,6 +238,7 @@ func preview_round(state: Dictionary) -> Dictionary:
 		result.round += 1
 		Statuses.expire_rounds(result)
 		_reset_override(result)
+		FrontierObjectives.prepare_next_round(result, events)
 	else:
 		if ending.get("collapse", false):
 			_collapse(result)

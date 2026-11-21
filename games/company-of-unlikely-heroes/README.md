@@ -10,9 +10,9 @@ godot --path games/company-of-unlikely-heroes
 
 ### Choose an outing
 
-At the guild, use **Adventure** to choose one of four outings. Pick three distinct recruits and arrange their deployment order, then depart. After each victory with another mission ahead, review the debrief and choose one reward if offers are available. The final victory or a defeat ends the outing. Returning to the guild starts a fresh company.
+At the guild, use **Adventure** to choose one of seven outings. Pick three distinct recruits and arrange their deployment order, then depart. After each victory with another mission ahead, review the debrief and choose one reward if offers are available. The final victory or a defeat ends the outing. Returning to the guild starts a fresh company.
 
-The guild has **11 playable missions**: two in **The company's first outing**, three in **Village Troubles**, and three in each of the two outings below. The fixed test fixtures (`ferryman`, `necromancer_wave`, and `extra_knight`) are not part of that count and do not appear in guild itineraries.
+The guild has **20 playable missions**: two in **The company's first outing**, three in **Village Troubles**, and three in each of the five outings below. The fixed test fixtures (`ferryman`, `necromancer_wave`, and `extra_knight`) are not part of that count and do not appear in guild itineraries.
 
 **The company's first outing** (`first_outing`) starts with Trouble on the road (`bridge_patrol`) and ends with The last ferryman (`company_rescue`). **Village Troubles** (`village_troubles`) takes the same company through The Goblin Mob (`goblin_mob`), The Harpoon Squad (`harpoon_squad`), and The Unwelcome Guest (`unwelcome_guest`).
 
@@ -24,12 +24,21 @@ Missions are listed in play order within each outing.
 
 | Outing | Mission | What to watch for |
 |---|---|---|
+| **Border Watch** (`border_watch`) | The Shield Wall (`shield_wall`) | Separate the Archer from the Shieldbearers or take out the guards first. |
+| | The Wrong Side of the Door (`wrong_side_of_the_door`) | Get one hero to the exit while another living character, even an enemy, holds the gate open on the plate. |
+| | The Cowardly Captain (`cowardly_captain`) | Grunts hit harder next to the Captain. Split them up or cut off the Captain's retreat. |
 | **Powder Run** (`powder_run`) | The Explosive Situation (`explosive_situation`) | A dying Bomber hurts anyone adjacent. Set off a chain reaction without catching your own company in it. |
 | | The Bridge Is Out (`bridge_is_out`) | Get one hero to the far bank. The spans collapse at the ends of rounds 4 and 6, defeating anyone still on them. |
 | | The Last Wagon (`last_wagon`) | Raiders target the wagon. Clear adjacent enemies to keep it moving, or intercept the next attacker. |
 | **Fairground Fracas** (`fairground_fracas`) | The Duelists (`duelists`) | A surviving Duelist retaliates if the attacker is still adjacent after the hit. Use range or end the attack out of reach. |
 | | The Great Sheep Escape (`great_sheep_escape`) | Get all three living sheep into the east pen at once. Unpenned sheep flee nearby characters, including the opposing shepherd. |
 | | The Odd Couple (`odd_couple`) | The Trickster can swap with the hard-hitting Ogre once. Watch where that leaves exposed heroes. |
+| **Night Duty** (`night_duty`) | The Unfortunate Healer (`unfortunate_healer`) | The enemy Healer has two heals. Separate the Bruisers from their support or finish one before it can be healed. |
+| | Don't Wake the Giant (`dont_wake_the_giant`) | Reach the treasure without exceeding 12 noise. Holding is silent; moves, other abilities, and songs cost 1, 2, and 3 respectively. |
+| | Hold the Line (`hold_the_line`) | Keep one hero standing through round 6. Enemies close in from both sides, but you do not have to defeat them. |
+| **Rival Claims** (`rival_claims`) | The Last One Standing (`last_one_standing`) | Kill order matters: surviving Bandits gain damage, movement, or damage reduction, depending on which Bandit remains. |
+| | The Unfortunate Ritual (`unfortunate_ritual`) | Occupy all three circles at the end of two consecutive rounds. Foes and summons count; any gap at round's end resets progress. |
+| | The Mirror Company (`mirror_company`) | Watch the rival Knight's pushes and the Wizard's nearest-target blast. Decide when to go after their Healer. |
 
 #### Launch a standalone mission
 
@@ -43,6 +52,11 @@ godot --path games/company-of-unlikely-heroes -- --mission=goblin_mob
 godot --path games/company-of-unlikely-heroes -- --mission=harpoon_squad
 godot --path games/company-of-unlikely-heroes -- --mission=unwelcome_guest
 
+# Border Watch
+godot --path games/company-of-unlikely-heroes -- --mission=shield_wall
+godot --path games/company-of-unlikely-heroes -- --mission=wrong_side_of_the_door
+godot --path games/company-of-unlikely-heroes -- --mission=cowardly_captain
+
 # Powder Run
 godot --path games/company-of-unlikely-heroes -- --mission=explosive_situation
 godot --path games/company-of-unlikely-heroes -- --mission=bridge_is_out
@@ -52,6 +66,11 @@ godot --path games/company-of-unlikely-heroes -- --mission=last_wagon
 godot --path games/company-of-unlikely-heroes -- --mission=duelists
 godot --path games/company-of-unlikely-heroes -- --mission=great_sheep_escape
 godot --path games/company-of-unlikely-heroes -- --mission=odd_couple
+
+# Night Duty
+godot --path games/company-of-unlikely-heroes -- --mission=unfortunate_healer
+godot --path games/company-of-unlikely-heroes -- --mission=dont_wake_the_giant
+godot --path games/company-of-unlikely-heroes -- --mission=hold_the_line
 
 # Rival Claims
 godot --path games/company-of-unlikely-heroes -- --mission=last_one_standing

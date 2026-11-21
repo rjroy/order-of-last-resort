@@ -4,11 +4,18 @@ extends "res://tests/village_outing_scene_test.gd"
 # Use the existing bounded, forecast-driven battle player, but enter through the
 # normal commission flow and never use a player's profile.
 const GUILD_NAME := "The Test Company"
+const GAME_TITLE := "Barnaby's Order of Last Resort"
 const BOARD_SEED := 147258
 var profile_path := "user://commission_scene_%d_%d.json" % [OS.get_process_id(), Time.get_ticks_usec()]
 
 
 func _run() -> void:
+	_check(root.title == GAME_TITLE, "Window displays the game title")
+	if OS.get_name() in ["Linux", "FreeBSD", "NetBSD", "OpenBSD", "BSD", "Windows", "macOS"]:
+		var godot_dir := "Godot" if OS.get_name() in ["Windows", "macOS"] else "godot"
+		var legacy_suffix := "%s/app_userdata/The Company of Unlikely Heroes" % godot_dir
+		_check(OS.get_user_data_dir().replace("\\", "/").ends_with(legacy_suffix),
+			"User data remains at the original project path")
 	var container := SubViewportContainer.new()
 	container.size = VIEWPORT_SIZE
 	container.scale = Vector2(0.5, 0.5)
@@ -21,6 +28,7 @@ func _run() -> void:
 		_check(false, "Fresh normal launch opens guild creation")
 		_cleanup()
 		return
+	_check(GAME_TITLE in _visible_text(), "Guild creation displays the game title")
 	var input := _node("GuildName") as LineEdit
 	_check(input != null and input.is_visible_in_tree(), "Guild name is editable")
 	if input == null:
@@ -31,6 +39,9 @@ func _run() -> void:
 	await process_frame
 	await _press("CreateGuild")
 	_check(scene.current_screen() == "commissions", "Creating a guild opens commissions")
+	await _press("PracticeOutings")
+	_check(GAME_TITLE in _visible_text(), "Practice outings displays the game title")
+	await _press("BackToCommissions")
 	var store = load("res://guild_profile.gd")
 	var saved: Dictionary = store.load_profile(profile_path)
 	_check(saved.get("name") == GUILD_NAME, "Creation persists the entered name")

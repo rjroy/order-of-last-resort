@@ -1,0 +1,259 @@
+{
+  "version": 1,
+  "display_scale": 0.375,
+  "registration_size": [
+    256,
+    256
+  ],
+  "facing": "front three-quarter, one facing",
+  "camera": {
+    "orthographic_width_m": 2.44,
+    "euler_xyz_radians": [
+      1.150829196,
+      0,
+      -0.435386419
+    ]
+  },
+  "sprites": {
+    "knight_guard": {
+      "texture": "assets/knight_guard.png",
+      "anchor": [
+        128,
+        216
+      ],
+      "loop": false,
+      "frames": [
+        {
+          "rect": [
+            0,
+            0,
+            256,
+            256
+          ],
+          "duration_ms": 250,
+          "source_frame": 8
+        },
+        {
+          "rect": [
+            256,
+            0,
+            256,
+            256
+          ],
+          "duration_ms": 250,
+          "source_frame": 14
+        },
+        {
+          "rect": [
+            512,
+            0,
+            256,
+            256
+          ],
+          "duration_ms": 208,
+          "source_frame": 20
+        },
+        {
+          "rect": [
+            768,
+            0,
+            256,
+            256
+          ],
+          "duration_ms": 250,
+          "source_frame": 25
+        },
+        {
+          "rect": [
+            1024,
+            0,
+            256,
+            256
+          ],
+          "duration_ms": 167,
+          "source_frame": 31
+        },
+        {
+          "rect": [
+            1280,
+            0,
+            256,
+            256
+          ],
+          "duration_ms": 167,
+          "source_frame": 35
+        },
+        {
+          "rect": [
+            1536,
+            0,
+            256,
+            256
+          ],
+          "duration_ms": 208,
+          "source_frame": 39
+        },
+        {
+          "rect": [
+            1792,
+            0,
+            256,
+            256
+          ],
+          "duration_ms": 292,
+          "source_frame": 44
+        },
+        {
+          "rect": [
+            2048,
+            0,
+            256,
+            256
+          ],
+          "duration_ms": 583,
+          "source_frame": 51
+        },
+        {
+          "rect": [
+            2304,
+            0,
+            256,
+            256
+          ],
+          "duration_ms": 542,
+          "source_frame": 65
+        }
+      ]
+    },
+    "healer_ally_heal": {
+      "texture": "assets/healer_ally_heal.png",
+      "anchor": [
+        128,
+        216
+      ],
+      "loop": false,
+      "frames": [
+        {
+          "rect": [
+            0,
+            0,
+            256,
+            256
+          ],
+          "duration_ms": 125,
+          "source_frame": 1
+        },
+        {
+          "rect": [
+            256,
+            0,
+            256,
+            256
+          ],
+          "duration_ms": 125,
+          "source_frame": 4
+        },
+        {
+          "rect": [
+            512,
+            0,
+            256,
+            256
+          ],
+          "duration_ms": 125,
+          "source_frame": 7
+        },
+        {
+          "rect": [
+            768,
+            0,
+            256,
+            256
+          ],
+          "duration_ms": 125,
+          "source_frame": 10
+        },
+        {
+          "rect": [
+            1024,
+            0,
+            256,
+            256
+          ],
+          "duration_ms": 167,
+          "source_frame": 13
+        },
+        {
+          "rect": [
+            1280,
+            0,
+            256,
+            256
+          ],
+          "duration_ms": 125,
+          "source_frame": 17
+        },
+        {
+          "rect": [
+            1536,
+            0,
+            256,
+            256
+          ],
+          "duration_ms": 125,
+          "source_frame": 20
+        },
+        {
+          "rect": [
+            1792,
+            0,
+            256,
+            256
+          ],
+          "duration_ms": 125,
+          "source_frame": 23
+        },
+        {
+          "rect": [
+            2048,
+            0,
+            256,
+            256
+          ],
+          "duration_ms": 83,
+          "source_frame": 26
+        },
+        {
+          "rect": [
+            2304,
+            0,
+            256,
+            256
+          ],
+          "duration_ms": 208,
+          "source_frame": 28
+        }
+      ]
+    },
+    "crate": {
+      "texture": "assets/crate.png",
+      "anchor": [
+        128,
+        216
+      ],
+      "loop": false,
+      "frames": [
+        {
+          "rect": [
+            0,
+            0,
+            256,
+            256
+          ],
+          "duration_ms": 1000,
+          "source_frame": 1
+        }
+      ]
+    }
+  }
+}

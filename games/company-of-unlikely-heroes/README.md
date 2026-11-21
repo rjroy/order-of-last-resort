@@ -1,4 +1,4 @@
-# The Company of Unlikely Heroes
+# Barnaby's Order of Last Resort
 
 **Choose a company, not just a loadout.** Found a guild, take a commission, and lead your recruits to its destination. Your heroes carry wounds, orders, and earned upgrades between missions. This is a playtest build; its artwork and interface are provisional.
 

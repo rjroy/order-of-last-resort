@@ -285,7 +285,7 @@ func _show_profile_error(message: String) -> void:
 
 func _show_guild_creation(after_missing_profile := false) -> void:
 	var page := _page("guild_creation", 48)
-	_guild_masthead(page, "Name your guild", "The Company of Unlikely Heroes",
+	_guild_masthead(page, "Name your guild", ProjectSettings.get_setting("application/config/name"),
 		"PracticeOutings", "Practice outings", _open_practice_outings)
 	if after_missing_profile:
 		_wrapped_label(page, "The previous guild profile could not be found. Create a guild to choose another commission.", 16, RUST)
@@ -477,10 +477,10 @@ func _restore_deployment_scroll(scroll: ScrollContainer, position: int, focus: B
 
 func _build_practice_itinerary(page: VBoxContainer) -> void:
 	if _practice_from_guild:
-		_guild_masthead(page, "Practice outings", "The Company of Unlikely Heroes",
+		_guild_masthead(page, "Practice outings", ProjectSettings.get_setting("application/config/name"),
 			"BackToCommissions", "Back to guild", _open_commission_hub)
 	else:
-		_label(page, "The Company of Unlikely Heroes", 42, PAPER, true)
+		_label(page, ProjectSettings.get_setting("application/config/name"), 42, PAPER, true)
 	var itinerary := _row(page, 24)
 	var selection := _stack(itinerary, 4)
 	selection.custom_minimum_size.x = 294
@@ -875,7 +875,7 @@ func _build_masthead(parent: Control) -> void:
 	var head := _row(parent, 16)
 	var titles := _stack(head, 4)
 	titles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_label(titles, "The Company of Unlikely Heroes", 30, PAPER, true)
+	_label(titles, ProjectSettings.get_setting("application/config/name"), 30, PAPER, true)
 	_status = _label(titles, "", 14, MUTED)
 	_status.name = "StatusText"
 	if not _fixed_mission.is_empty():

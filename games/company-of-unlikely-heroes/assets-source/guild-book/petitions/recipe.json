@@ -1,0 +1,20 @@
+{
+  "concept_directory": ".lore/work/games/company-of-unlikely-heroes/art/concepts/guild-unlock-board",
+  "image_size": [1567, 1004],
+  "plates": [
+    {
+      "source": "guild-petitions.png",
+      "sha256": "69f8a99debe8365e9a66691810c5ca33f68c9a0fd2f1d41049160d29d89fdae5",
+      "crop": [917, 282, 593, 304],
+      "edge_feather": 11,
+      "output": "bard.png"
+    },
+    {
+      "source": "healer-selected.png",
+      "sha256": "7c4d6682222e9d6f93a24219b87e7178940d1bc1cf779f7990e5dbfeea6c1dd2",
+      "crop": [916, 287, 596, 318],
+      "edge_feather": 11,
+      "output": "healer_blast.png"
+    }
+  ]
+}

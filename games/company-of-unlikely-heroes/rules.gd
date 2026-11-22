@@ -290,15 +290,15 @@ func forfeit(state: Dictionary) -> Dictionary:
 
 func is_committed_terminal(state: Dictionary) -> bool:
 	return state.get("_terminal_commit", false) == true \
-		and ((_is_voluntary_defeat(state)) or _matches_board_outcome(state))
+		and (is_forfeit(state) or _matches_board_outcome(state))
 
 
-func _is_voluntary_defeat(state: Dictionary) -> bool:
+func is_forfeit(state: Dictionary) -> bool:
 	return state.get("_voluntary_defeat", false) == true and state.get("outcome") == "defeat"
 
 
 func mission_result_text(state: Dictionary) -> String:
-	if _is_voluntary_defeat(state):
+	if is_forfeit(state):
 		return "The company forfeited the mission."
 	var ending := _end_condition(state)
 	if ending.get("outcome") != state.get("outcome"):

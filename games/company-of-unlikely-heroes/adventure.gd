@@ -4,8 +4,10 @@ extends RefCounted
 const Catalog = preload("res://content/catalog.gd")
 const Commissions = preload("res://commissions.gd")
 const EncounterRandom = preload("res://rules/encounter_random.gd")
+const Progression = preload("res://guild_progression.gd")
 const Rewards = preload("res://rewards.gd")
 const Rules = preload("res://rules.gd")
+const DESTINATION_POINTS := 5
 
 
 static func start_adventure(definitions: Dictionary, adventure_id: String, picks: Array,
@@ -30,6 +32,47 @@ static func start_commission(definitions: Dictionary, offer: Dictionary, picks: 
 	var entry: Dictionary = definitions.adventures[roster_adventure]
 	if not _valid_picks(entry, picks):
 		return {}
+	return _new_commission(definitions, offer, picks, reward_seed)
+
+
+## Only the normal stock guild opts in. Test catalogs can exercise the same
+## contract explicitly without attaching their external launch to a guild.
+static func start_guild_commission(definitions: Dictionary, offer: Dictionary, picks: Array,
+		profile: Dictionary, loadouts: Dictionary, reward_seed: Variant = null) -> Dictionary:
+	var guild_id: Variant = profile.get("guild_id")
+	var board_seed: Variant = profile.get("board_seed")
+	var board_generation: Variant = profile.get("board_generation")
+	if not guild_id is String or guild_id.is_empty() or not board_seed is int \
+			or not board_generation is int or board_generation < 0 \
+			or (reward_seed != null and not reward_seed is int) \
+			or offer not in Commissions.board(definitions, board_seed) \
+			or not Catalog.validate_guild_progression(definitions).is_empty():
+		return {}
+	var roster_adventure: String = definitions.commission_settings.roster_adventure
+	if not _valid_picks(definitions.adventures[roster_adventure], picks):
+		return {}
+	var kits: Dictionary = {}
+	for hero_id in loadouts:
+		if hero_id not in picks:
+			return {}
+	for hero_id in picks:
+		var loadout: Variant = loadouts[hero_id] if loadouts.has(hero_id) \
+			else Progression.default_loadout(definitions, profile, hero_id)
+		if not loadout is Dictionary:
+			return {}
+		var kit := Progression.effective_kit(definitions, profile, hero_id, loadout)
+		if kit.is_empty():
+			return {}
+		kits[hero_id] = kit
+	var run := _new_commission(definitions, offer, picks, reward_seed)
+	run["_guild"] = Catalog.FrozenCatalog.new({"guild_id": guild_id, "board_seed": board_seed,
+		"board_generation": board_generation, "kits": kits})
+	return run
+
+
+static func _new_commission(definitions: Dictionary, offer: Dictionary, picks: Array,
+		reward_seed: Variant) -> Dictionary:
+	var roster_adventure: String = definitions.commission_settings.roster_adventure
 	var outing_seed: int = offer.seed if reward_seed == null else reward_seed
 	var run := _new_run(definitions, roster_adventure, picks, outing_seed, reward_seed)
 	run["destination_id"] = offer.destination_id
@@ -39,6 +82,43 @@ static func start_commission(definitions: Dictionary, offer: Dictionary, picks: 
 	run["scout_note"] = ""
 	_prepare_next_mission(run)
 	return run
+
+
+## Road wins are the number of advanced expedition positions. An expedition
+## advances only on committed road victories, even when a mission ID repeats.
+static func receipt(run: Dictionary) -> Dictionary:
+	var guild := _guild_data(run)
+	if guild.is_empty():
+		return {}
+	var destination := "not_reached"
+	if run.get("phase") == "finished" and run.mission.get("mission_id") == run.destination_id:
+		destination = "forfeit" if Rules.new().is_forfeit(run.mission) else run.outcome
+	return accounting(guild.board_seed, guild.board_generation, run.mission_index, destination)
+
+
+static func accounting(board_seed: int, board_generation: int, road_wins: int, destination: String) -> Dictionary:
+	var destination_points := DESTINATION_POINTS if destination == "victory" else 0
+	return {"board_seed": board_seed, "board_generation": board_generation, "road_wins": road_wins,
+		"road_points": road_wins, "destination_outcome": destination, "destination_points": destination_points,
+		"points": road_wins + destination_points}
+
+
+static func settlement_receipt(run: Dictionary, profile: Dictionary) -> Dictionary:
+	var guild := _guild_data(run)
+	var mission: Variant = run.get("mission")
+	if guild.is_empty() or run.get("phase") != "finished" \
+			or not is_same(guild.guild_id, profile.get("guild_id")) \
+			or not is_same(guild.board_seed, profile.get("board_seed")) \
+			or not is_same(guild.board_generation, profile.get("board_generation")) \
+			or not mission is Dictionary or mission.get("_guild") != run.get("_guild") \
+			or not Rules.new().is_committed_terminal(mission):
+		return {}
+	return receipt(run)
+
+
+static func _guild_data(run: Dictionary) -> Dictionary:
+	var guild: Variant = run.get("_guild")
+	return guild.defs if guild is Catalog.FrozenCatalog else {}
 
 
 static func choose_route(run: Dictionary, mission_id: String) -> Dictionary:
@@ -109,6 +189,11 @@ static func begin_mission(run: Dictionary) -> Dictionary:
 	var mission := Rules.open_mission(run.catalog.defs, mission_id, run.party, dose_seed)
 	if mission.is_empty():
 		return run
+	var guild := _guild_data(run)
+	if not guild.is_empty():
+		# The same immutable opening kit applies to previews, commits and every
+		# subsequent deployment. Temporary upgrades still live on the units.
+		mission["_guild"] = run._guild
 	for member in mission.units:
 		if member.id not in run.party:
 			continue
@@ -117,8 +202,11 @@ static func begin_mission(run: Dictionary) -> Dictionary:
 		member.max_hp = next_mission_max_hp(run, member.id)
 		member.hp = next_mission_hp(run, member.id)
 		var carry: Dictionary = run.carry_by_id.get(member.id, {})
-		if not carry.get("order", "").is_empty():
-			mission.orders[member.id] = carry.order
+		var order: String = carry.get("order", "")
+		if order.is_empty() and not guild.is_empty():
+			order = guild.kits[member.id].default_order
+		if not order.is_empty():
+			mission.orders[member.id] = order
 	# All positions, statuses and per-round commands come from the fresh opening.
 	var result := run.duplicate(true)
 	# During active play run.mission is the deployed opening; live rounds are Rules snapshots.
@@ -143,7 +231,8 @@ static func settle_mission(run: Dictionary, committed: Dictionary) -> Dictionary
 		result.carry_by_id = _carry_company(run, committed)
 		result.mission_index += 1
 		result.mission = {}
-		var draw := Rewards.draw(run.catalog.defs, run.party, run.upgrades_by_id, run.reward_rng_state)
+		var draw := Rewards.draw(run.catalog.defs, run.party, run.upgrades_by_id, run.reward_rng_state,
+			_guild_data(run).get("kits", {}))
 		result.reward_offers = draw.offers
 		result.reward_rng_state = draw.rng_state
 		if draw.offers.is_empty():
@@ -162,19 +251,16 @@ static func choose_reward(run: Dictionary, hero_id: String, upgrade_id: String) 
 		return run
 	if not run.reward_offers.has({"hero_id": hero_id, "upgrade_id": upgrade_id}):
 		return run
-	var upgrade: Dictionary = run.catalog.defs.get("upgrades", {}).get(upgrade_id, {})
-	if upgrade.get("hero_id") != hero_id:
-		return run
 	var owned: Dictionary = run.upgrades_by_id.get(hero_id, {})
-	var acquired := int(owned.get(upgrade_id, 0))
-	if acquired >= int(upgrade.cap):
+	var kit: Dictionary = _guild_data(run).get("kits", {}).get(hero_id, {})
+	if not Rewards.eligible(run.catalog.defs, hero_id, upgrade_id, owned, kit):
 		return run
 	var result := run.duplicate(true)
 	result.carry_by_id = run.carry_by_id
 	result.last_result = run.last_result
 	if not result.upgrades_by_id.has(hero_id):
 		result.upgrades_by_id[hero_id] = {}
-	result.upgrades_by_id[hero_id][upgrade_id] = acquired + 1
+	result.upgrades_by_id[hero_id][upgrade_id] = int(owned.get(upgrade_id, 0)) + 1
 	result.reward_offers = []
 	result.chosen_reward = {"hero_id": hero_id, "upgrade_id": upgrade_id}
 	_prepare_next_mission(result)

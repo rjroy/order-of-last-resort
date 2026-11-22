@@ -20,12 +20,25 @@ func _run() -> void:
 		return
 	await _launch_normal()
 	await _press("Commission_0")
-	for id in PARTY:
+	for id in FOUNDER_PARTY:
 		await _press("Recruit_" + id)
 	await _press("StartAdventure")
 	var run: Dictionary = scene.get("_run")
-	var mission: String = run.reports[0].mission_id
+	var reports: Array = run.get("reports", [])
+	if scene.current_screen() != "routes" or reports.is_empty():
+		_check(false, "Founding company opens route reports before the stock battle")
+		_cleanup()
+		return
+	var mission: String = reports[0].get("mission_id", "")
+	if mission.is_empty():
+		_check(false, "First stock route identifies its mission")
+		_cleanup()
+		return
 	await _press("Route_0")
+	if scene.current_screen() != "battle":
+		_check(false, "First stock route opens its battle")
+		_cleanup()
+		return
 	await _play_battle(mission)
 	if scene.current_screen() != "debrief":
 		_check(false, "Stock battle reaches a reward debrief")

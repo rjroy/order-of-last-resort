@@ -15,7 +15,7 @@ func _run() -> void:
 		return
 	await _launch_normal()
 	await _press("Commission_0")
-	for id in PARTY:
+	for id in FOUNDER_PARTY:
 		await _press("Recruit_" + id)
 	await _press("StartAdventure")
 	await _press("Route_0")
@@ -59,7 +59,7 @@ func _run() -> void:
 		return
 	_check(scene.get("_run").get("phase") == "reward", "Victory settles to reward phase")
 	var reward: BaseButton
-	for id in PARTY:
+	for id in FOUNDER_PARTY:
 		var candidate := _node("Reward_" + id) as BaseButton
 		if candidate != null and candidate.is_visible_in_tree() and not candidate.disabled:
 			reward = candidate
@@ -111,9 +111,9 @@ func _run() -> void:
 func _stage_best_command() -> void:
 	var rules = load("res://rules.gd").new()
 	var state: Dictionary = scene.battle_snapshot()
-	var best_score := _score(scene.get("_plan").get("result", {}), PARTY)
+	var best_score := _score(scene.get("_plan").get("result", {}), FOUNDER_PARTY)
 	var best := {}
-	for actor in PARTY:
+	for actor in FOUNDER_PARTY:
 		var context: Dictionary = rules.state_before_action(state, actor)
 		if not rules.can_act(context, actor):
 			continue
@@ -128,7 +128,7 @@ func _stage_best_command() -> void:
 			for target in targets:
 				var draft: Dictionary = rules.choose_manual(state, actor, option.id, target.id)
 				var forecast: Dictionary = rules.preview_round(draft)
-				var score := _score(forecast.get("result", {}), PARTY)
+				var score := _score(forecast.get("result", {}), FOUNDER_PARTY)
 				if score > best_score:
 					best_score = score
 					best = {"actor": actor, "ability": option.id, "target": target.id}

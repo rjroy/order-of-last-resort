@@ -43,3 +43,11 @@ an undisclosed future mission or the other branch.
 `upgrades/` uses upgrade definition IDs from `content/rewards.json`. Repeated
 copies of an illustrated reward use the same file. Guild perks are not adventure
 upgrades.
+
+## Guild petitions
+
+`petitions/bard.png` and `petitions/healer_blast.png` are art-only action plates,
+not portraits or screenshots. Their [source and crop recipe](../assets-source/guild-book/petitions/README.md)
+record the exact approved concept files. The preview lays out the plate, copy,
+and purchase control separately; the summon, battle, and reward art catalogs are
+unaffected.

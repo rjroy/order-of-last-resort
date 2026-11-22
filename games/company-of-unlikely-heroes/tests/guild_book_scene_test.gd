@@ -12,12 +12,14 @@ func _run() -> void:
 	viewport.size = VIEWPORT_SIZE
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	root.add_child(viewport)
-	var store = load("res://guild_profile.gd")
-	var created: Dictionary = store.create(profile_path, GUILD_NAME, BOARD_SEED)
-	if created.has("error"):
-		_check(false, "Create disposable profile: " + str(created))
+	# A valid v1 guild retains the original seven recruits after migration.
+	var file := FileAccess.open(profile_path, FileAccess.WRITE)
+	if file == null:
+		_check(false, "Create disposable legacy profile")
 		_cleanup()
 		return
+	file.store_string('{"version":1,"name":"The Test Company","board_seed":"147258"}')
+	file.close()
 	await _launch_normal()
 	for i in 3:
 		var button := _node("Commission_%d" % i) as Control
@@ -29,14 +31,23 @@ func _run() -> void:
 	var roster: Array = scene.get("_adventure").roster
 	_check(roster.size() == 7 and "blacksmith" not in roster,
 		"Artwork does not add Hobby Smith to the seven-person roster")
+	_check(_node("Recruit_blacksmith") == null, "Hobby Smith is absent from the legacy recruit controls")
 	for id in roster:
 		var button := _node("Recruit_" + str(id)) as Control
+		_check(button != null and button.is_visible_in_tree(),
+			"Legacy recruit %s has a visible control" % id)
 		var entry := _item_card(button, "RecruitCard_" + id)
 		_check(entry != null and not _textures_in(entry).is_empty(),
 			"Recruit %s shows a portrait" % id)
 		if entry != null:
 			_check(DISPLAY_NAMES[id] in _text_in(entry),
 				"Recruit %s shows its requested class name" % id)
+	# Practice content is deliberately unrestricted, so custom identities can be
+	# tested without adding invented recruits to a persisted normal guild.
+	await _press("BackToCommissions")
+	await _press("PracticeOutings")
+	defs = scene.get("_definitions")
+	roster = scene.get("_adventure").roster
 	# A custom person's proper name is not a class identity, even if it matches
 	# an existing class label or inherits the wizard rules mix-in.
 	defs.characters["test_edda"] = defs.characters.rogue.duplicate(true)
@@ -73,8 +84,9 @@ func _run() -> void:
 	roster.erase("test_edda")
 	roster.erase("test_namesake")
 	roster.erase("test_opted_in")
-	scene.call("_show_guild")
-	await process_frame
+	# Return to the legacy normal guild for the party cap and route artwork.
+	await _launch_normal()
+	await _press("Commission_0")
 	for id in PARTY:
 		await _press("Recruit_" + id)
 	var extra := _node("Recruit_wizard") as BaseButton
@@ -123,6 +135,7 @@ func _run() -> void:
 		for i in before.size():
 			var button := _node("Route_%d" % i) as Control
 			var card := _item_card(button, "RouteCard_%d" % i)
+			_check(card != null, "Report %d retains its card before hidden future changes" % i)
 			if card != null:
 				before[i] = _textures_in(card)
 				_check(expected[i] != null and expected[i] in before[i],
@@ -133,6 +146,7 @@ func _run() -> void:
 		for i in before.size():
 			var button := _node("Route_%d" % i) as Control
 			var card := _item_card(button, "RouteCard_%d" % i)
+			_check(card != null, "Report %d retains its card after hidden future changes" % i)
 			if card != null:
 				var after := _textures_in(card)
 				_check(expected[i] != null and expected[i] in after and after == before[i],

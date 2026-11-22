@@ -1,0 +1,33 @@
+{
+  "guild_progression": {
+    "kits": {
+      "knight": {"offense": "knight_push", "utility": "knight_aura"},
+      "healer": {"offense": "healer_bonk", "utility": "healer_heal"},
+      "wizard": {"offense": "wizard_blast", "utility": "wizard_pull"},
+      "alchemist": {"offense": "alchemist_acid", "utility": "alchemist_potion"},
+      "rogue": {"offense": "rogue_wasnt_me", "utility": "rogue_confusing_dodge"},
+      "necromancer": {"offense": "summon_skeleton", "utility": "raise_dead"},
+      "bard": {"offense": "healing_sonnet", "utility": "inspiring_melody"}
+    },
+    "petitions": {
+      "recruit_bard": {
+        "label": "Recruit the Bad Bard",
+        "description": "Add the Bad Bard as a fourth recruit choice for your three-person company. He brings both songs and their standing orders.",
+        "cost": 4,
+        "grant": {"kind": "recruit", "hero_id": "bard"}
+      },
+      "teach_healer_blast": {
+        "label": "Teach the Healer: Blast nearest",
+        "description": "Let the Healer equip Blast in place of Bonk. It hits the nearest damageable target, including a friend or obstacle. The Caster keeps his own Blast.",
+        "cost": 4,
+        "grant": {"kind": "ability", "hero_id": "healer", "slot_id": "offense", "ability_id": "wizard_blast"}
+      },
+      "song_weaving": {
+        "label": "Song Weaving",
+        "description": "A future Bard technique. Not available in this guild yet.",
+        "prerequisites": ["recruit_bard"],
+        "teaser": true
+      }
+    }
+  }
+}

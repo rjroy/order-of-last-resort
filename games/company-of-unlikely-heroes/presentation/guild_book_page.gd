@@ -17,6 +17,7 @@ var _gutter := -1.0
 var _face: SystemFont
 var _italic: SystemFont
 var _fibers: PackedVector2Array
+var _preparation_paper := false
 
 
 func build(gutter_at: float) -> VBoxContainer:
@@ -43,6 +44,9 @@ func build(gutter_at: float) -> VBoxContainer:
 
 func _draw() -> void:
 	var bounds := Rect2(Vector2.ZERO, size)
+	if _preparation_paper:
+		_draw_preparation_binding(bounds)
+		return
 	draw_rect(bounds, Color("#20211d"))
 	_draw_box(bounds.grow(-10), Color("#3e3327"), Color("#806441"), 3, 15)
 	_draw_box(bounds.grow(-17), Color("#aa8c5d"), Color("#4f3e2a"), 2, 12)
@@ -62,6 +66,50 @@ func _draw() -> void:
 			var opacity := 0.004 + (1.0 - absf(float(i)) / 12.0) * (0.095 if i <= 0 else 0.035)
 			var shade := Color(0.23, 0.13, 0.05, opacity) if i <= 0 else Color(1.0, 0.98, 0.86, opacity)
 			draw_rect(Rect2(x + i, 25, 1, size.y - 56), shade)
+
+
+## Keep the warmer hand-bound cover local to the two approved preparation leaves.
+func use_preparation_paper(gutter_at: float) -> void:
+	_preparation_paper = true
+	_gutter = gutter_at
+	for side in ["left", "right"]:
+		add_theme_constant_override("margin_" + side, 42)
+	for side in ["top", "bottom"]:
+		add_theme_constant_override("margin_" + side, 27)
+	if get_child_count() != 0:
+		var content := get_child(0) as VBoxContainer
+		if content != null:
+			content.add_theme_constant_override("separation", 10)
+	queue_redraw()
+
+
+func _draw_preparation_binding(bounds: Rect2) -> void:
+	draw_rect(bounds, Color("#1d1715"))
+	_draw_box(bounds.grow(-4), Color("#483027"), Color("#7b5240"), 1, 16)
+	_draw_box(bounds.grow(-8), Color("#6b4832"), Color("#a5805a"), 1, 14)
+	for layer in 4:
+		_draw_box(bounds.grow(-11.0 - layer * 2.4), Color("#e3c99a").lightened(layer * 0.045),
+			Color("#9e7951").lightened(layer * 0.11), 1, 12 - layer)
+	var leaf := bounds.grow(-20.0)
+	_draw_box(leaf, Color("#f6e5c5"), Color("#d6b886"), 1, 8)
+	for layer in 8:
+		draw_style_box(_preparation_edge(layer), leaf.grow(-0.5 - layer * 2.1))
+	# Fixed seed: translucent fibers and flecks move with the leaf, not the viewport.
+	for i in _fibers.size():
+		var point := leaf.position + leaf.size * _fibers[i]
+		var tone := Color(0.34, 0.20, 0.07, 0.035 + (i % 5) * 0.008)
+		draw_line(point, point + Vector2(0.45 + (i % 7) * 0.51, (i % 3) * 0.28), tone)
+	if _gutter > 0.0:
+		var x := lerpf(42.0, size.x - 42.0, _gutter)
+		for offset in range(-14, 11):
+			var fade := 1.0 - absf(float(offset)) / 15.0
+			draw_rect(Rect2(x + offset, 22, 1, size.y - 44), Color(0.36, 0.21, 0.09, fade * 0.052))
+
+
+static func _preparation_edge(layer: int) -> StyleBoxFlat:
+	var edge := _box(Color.TRANSPARENT, Color(0.53, 0.33, 0.13, 0.095 - layer * 0.011), 2, 7)
+	edge.draw_center = false
+	return edge
 
 
 func _draw_box(rect: Rect2, fill: Color, edge: Color, width: int, radius: int) -> void:

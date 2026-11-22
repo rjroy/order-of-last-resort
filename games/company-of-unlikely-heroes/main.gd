@@ -12,6 +12,7 @@ const Commissions = preload("res://commissions.gd")
 const GuildProfile = preload("res://guild_profile.gd")
 const GuildBookPage = preload("res://presentation/guild_book_page.gd")
 const GuildBookArt = preload("res://presentation/guild_book_art.gd")
+const GuildPetitionViewModel = preload("res://presentation/guild_petition_view_model.gd")
 const DEFAULT_ADVENTURE := "first_outing"
 const TERMINAL_REPLAY_LIMIT_MS := 3200
 
@@ -36,8 +37,19 @@ var _book: GuildBookPage
 var _launch_args: Variant
 var _uses_builtin_catalog := false
 var _profile_path := GuildProfile.DEFAULT_PATH
+var _profile_path_configured := false
 var _guild_profile: Dictionary
 var _commission: Dictionary
+var _petition_page
+var _recruitment_page
+var _petition_selected := ""
+var _guild_feedback := ""
+var _return_error := ""
+var _return_conflict := false
+var _return_seed: Variant = null
+var _loadouts: Dictionary = {}
+var _selected_hero_id := ""
+var _recruitment_folio := "recruits"
 var _practice_from_guild := false
 var _fixed_mission := ""
 var _storybook_page: Control
@@ -89,6 +101,8 @@ func _ready() -> void:
 		return
 	_definitions = content.definitions
 	_uses_builtin_catalog = launch.content.is_empty()
+	if not _uses_builtin_catalog and not _profile_path_configured:
+		_profile_path = "user://company_of_unlikely_heroes/custom_guild_profile_v1.json"
 	_fixed_mission = launch.mission
 	var adventures: Dictionary = _definitions.get("adventures", {})
 	if not adventures.is_empty() and not adventures.has(_adventure_id):
@@ -177,6 +191,7 @@ func configure_launch(args: PackedStringArray) -> void:
 func configure_profile_path(path: String) -> void:
 	assert(not is_inside_tree(), "Set the profile path before adding the scene.")
 	_profile_path = path
+	_profile_path_configured = true
 
 
 func current_screen() -> String:
@@ -390,6 +405,17 @@ func _show_commissions(board_refresh_failed := false) -> void:
 		"PracticeOutings", "Practice outings", _open_practice_outings)
 	if board_refresh_failed:
 		_book.text(page, "The board wasn’t refreshed. These commissions are from the current saved guild.", 16, GuildBookPage.RUST)
+	if _uses_builtin_catalog:
+		var ledger := _book.row(page, 16)
+		var account := _book.stack(ledger, 2)
+		account.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_book.text(account, "Guild points: %d" % GuildProfile.balance(_guild_profile), 17, GuildBookPage.FOREST)
+		var summary := _receipt_summary(_guild_profile.get("last_receipt", {}))
+		if not summary.is_empty():
+			_book.text(account, summary, 15, GuildBookPage.SUBTLE)
+		var petitions := _book.button(ledger, "Petitions", "Guild petitions", "QuietButton")
+		petitions.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		petitions.pressed.connect(_show_petitions)
 	var cards := _book.row(page, 19)
 	cards.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var offers := Commissions.board(_definitions, int(_guild_profile.board_seed))
@@ -435,11 +461,297 @@ func _show_commissions(board_refresh_failed := false) -> void:
 func _select_commission(offer: Dictionary) -> void:
 	_commission = offer
 	_adventure = _definitions.adventures[_definitions.commission_settings.roster_adventure]
+	if _uses_builtin_catalog:
+		_picked_recruits.clear()
+		_loadouts.clear()
+		_selected_hero_id = ""
+		_recruitment_folio = "recruits"
+		_guild_feedback = ""
+		_show_recruitment()
+		return
 	_show_guild()
+
+
+func _receipt_summary(receipt: Dictionary) -> String:
+	if receipt.is_empty():
+		return ""
+	var outcome := "not reached"
+	match str(receipt.get("destination_outcome", "not_reached")):
+		"victory":
+			outcome = "won"
+		"defeat":
+			outcome = "lost"
+		"forfeit":
+			outcome = "forfeited"
+	return "Road: %d points (%d wins)  ·  Destination: %d points (%s)  ·  Total: %d points" % [
+		int(receipt.get("road_points", 0)), int(receipt.get("road_wins", 0)),
+		int(receipt.get("destination_points", 0)), outcome,
+		int(receipt.get("points", 0))]
+
+
+func _show_petitions(focus_name := "") -> void:
+	var page := _book_page("petitions")
+	var rows := GuildPetitionViewModel.rows(_definitions, GuildProfile.petitions(_definitions, _guild_profile))
+	if _petition_selected.is_empty() and not rows.is_empty():
+		_petition_selected = str(rows[0].id)
+	var script = load("res://presentation/guild_petitions_page.gd")
+	if script == null:
+		_show_launch_error("Guild petitions page is missing.")
+		return
+	_petition_page = script.new()
+	_petition_page.back_requested.connect(_show_commissions)
+	_petition_page.petition_selected.connect(_select_petition)
+	_petition_page.purchase_requested.connect(_purchase_petition)
+	_petition_page.build(_book, page, {
+		"balance": GuildProfile.balance(_guild_profile),
+		"return_summary": _receipt_summary(_guild_profile.get("last_receipt", {})),
+		"selected_id": _petition_selected, "feedback": _guild_feedback, "petitions": rows,
+	})
+	_focus_presenter(_petition_page, focus_name if not focus_name.is_empty() else "Petition_" + _petition_selected)
+
+
+func _select_petition(id: String) -> void:
+	_petition_selected = id
+	_guild_feedback = ""
+	_show_petitions("Petition_" + id)
+
+
+func _purchase_petition(id: String) -> void:
+	print_verbose("Purchasing guild petition %s." % id)
+	var updated := GuildProfile.purchase(_profile_path, _guild_profile, _definitions, id)
+	if updated.has("error"):
+		_guild_feedback = "Purchase not saved: " + str(updated.error)
+		print_verbose(_guild_feedback)
+	else:
+		_guild_profile = updated
+		_guild_feedback = "Petition purchased."
+		print_verbose("Guild petition purchased.")
+	_petition_selected = id
+	_show_petitions("PurchasePetition_" + id if updated.has("error") else "Petition_" + id)
+
+
+func _hero_row(id: String) -> Dictionary:
+	var hero := Catalog.profile(_definitions, id)
+	var portrait := GuildBookArt.class_portrait(_portrait_identity(id))
+	return {"id": id, "name": str(hero.get("label", id)), "portrait": portrait,
+		"summary": str(hero.get("description", "")), "selected": id in _picked_recruits}
+
+
+func _loadout_for(id: String) -> Dictionary:
+	if not _loadouts.has(id):
+		_loadouts[id] = GuildProfile.default_loadout(_definitions, _guild_profile, id).duplicate(true)
+	return _loadouts[id]
+
+
+func _loadout_compatible(id: String) -> bool:
+	var loadout := _loadout_for(id)
+	for option in GuildProfile.order_options(_definitions, _guild_profile, id, loadout):
+		if str(option.id) == str(loadout.get("order_id", "")):
+			return bool(option.compatible)
+	return false
+
+
+func _option_row(id: String, selected: bool, enabled := true, reason := "", order := false) -> Dictionary:
+	var definition: Dictionary = _definitions.get("orders" if order else "abilities", {}).get(id, {})
+	return {"id": id, "label": str(definition.get("label", id)),
+		"help": str(definition.get("help", definition.get("description", ""))), "selected": selected,
+		"enabled": enabled, "reason": reason}
+
+
+func _show_recruitment(focus_name := "") -> void:
+	var page := _book_page("guild")
+	var available: Array = GuildProfile.roster(_definitions, _guild_profile)
+	var heroes: Array = []
+	var party: Array = []
+	for id in available:
+		heroes.append(_hero_row(str(id)))
+	for id in _picked_recruits:
+		party.append(_hero_row(str(id)))
+	var offense: Array = []
+	var utility: Array = []
+	var orders: Array = []
+	if _selected_hero_id in available:
+		var loadout := _loadout_for(_selected_hero_id)
+		var slots: Dictionary = loadout.get("slots", {})
+		var options: Dictionary = GuildProfile.slot_options(_definitions, _guild_profile, _selected_hero_id)
+		for id in options.get("offense", []):
+			offense.append(_option_row(str(id), str(slots.get("offense", "")) == str(id)))
+		for id in options.get("utility", []):
+			utility.append(_option_row(str(id), str(slots.get("utility", "")) == str(id), false))
+		for option in GuildProfile.order_options(_definitions, _guild_profile, _selected_hero_id, loadout):
+			var missing: Array = option.get("missing_abilities", [])
+			var names := PackedStringArray()
+			for ability_id in missing:
+				names.append("Bonk" if ability_id == "healer_bonk" else
+					str(_definitions.abilities.get(ability_id, {}).get("label", ability_id)))
+			var reason := "" if missing.is_empty() else "Requires: " + ", ".join(names)
+			orders.append(_option_row(str(option.id), str(loadout.get("order_id", "")) == str(option.id),
+				bool(option.compatible), reason, true))
+	var blocked := ""
+	if _picked_recruits.size() != int(_adventure.party_size):
+		blocked = "Choose %d recruits." % int(_adventure.party_size)
+	else:
+		for id in _picked_recruits:
+			if not _loadout_compatible(str(id)):
+				blocked = "Choose a compatible standing order for %s." % _hero_row(str(id)).name
+				break
+	var script = load("res://presentation/guild_recruitment_page.gd")
+	if script == null:
+		_show_launch_error("Guild recruitment page is missing.")
+		return
+	_recruitment_page = script.new()
+	_recruitment_page.back_requested.connect(_back_from_recruitment)
+	_recruitment_page.recruit_toggled.connect(_guild_toggle_recruit)
+	_recruitment_page.hero_edit_requested.connect(_edit_hero)
+	_recruitment_page.recruit_list_requested.connect(_recruit_list)
+	_recruitment_page.reorder_requested.connect(_guild_move_recruit)
+	_recruitment_page.offense_requested.connect(_change_offense)
+	_recruitment_page.order_requested.connect(_change_guild_order)
+	_recruitment_page.depart_requested.connect(_start_guild_commission)
+	_recruitment_page.build(_book, page, {
+		"commission": _commission, "commission_title": _mission_title_for(_commission.destination_id),
+		"guild_name": str(_guild_profile.name), "mission_count": int(_commission.length),
+		"party_size": int(_adventure.party_size), "party": party, "heroes": heroes,
+		"selected_hero_id": _selected_hero_id, "folio": _recruitment_folio,
+		"offense": offense, "utility": utility, "orders": orders,
+		"can_depart": blocked.is_empty(), "depart_blocked_reason": blocked, "feedback": _guild_feedback,
+	})
+	_focus_presenter(_recruitment_page, focus_name if not focus_name.is_empty() else
+		("Recruit_" + str(available[0]) if not available.is_empty() else "BackToCommissions"))
+
+
+func _focus_presenter(presenter, control_name: String) -> void:
+	var control: Control = presenter.focus_control(control_name)
+	if control is BaseButton and control.disabled:
+		if control_name.begins_with("PartyEarlier_"):
+			control = presenter.focus_control(control_name.replace("Earlier_", "Later_"))
+		elif control_name.begins_with("PartyLater_"):
+			control = presenter.focus_control(control_name.replace("Later_", "Earlier_"))
+		else:
+			control = presenter.focus_control("RecruitList")
+	if control is BaseButton and control.disabled:
+		control = null
+	if control != null:
+		control.grab_focus()
+
+
+func _guild_toggle_recruit(id: String) -> void:
+	if id in _picked_recruits:
+		_picked_recruits.erase(id)
+	elif id in GuildProfile.roster(_definitions, _guild_profile) and _picked_recruits.size() < int(_adventure.party_size):
+		_picked_recruits.append(id)
+	_show_recruitment("Recruit_" + id)
+
+
+func _back_from_recruitment() -> void:
+	_commission = {}
+	_picked_recruits.clear()
+	_loadouts.clear()
+	_run = {}
+	_selected_hero_id = ""
+	_recruitment_folio = "recruits"
+	_guild_feedback = ""
+	_show_commissions()
+
+
+func _guild_move_recruit(id: String, delta: int) -> void:
+	var index := _picked_recruits.find(id)
+	var target := index + delta
+	if index >= 0 and absi(delta) == 1 and target >= 0 and target < _picked_recruits.size():
+		_picked_recruits.remove_at(index)
+		_picked_recruits.insert(target, id)
+	var direction := "Earlier" if delta < 0 else "Later"
+	_show_recruitment("Party%s_%s" % [direction, id])
+
+
+func _edit_hero(id: String) -> void:
+	if id not in _picked_recruits:
+		return
+	_selected_hero_id = id
+	_recruitment_folio = "loadout"
+	_show_recruitment("RecruitList")
+
+
+func _recruit_list() -> void:
+	_recruitment_folio = "recruits"
+	_show_recruitment("EditHero_" + _selected_hero_id)
+
+
+func _save_loadout_preferences() -> bool:
+	var party_loadouts: Dictionary = {}
+	for id in _picked_recruits:
+		party_loadouts[id] = _loadout_for(str(id))
+		if not _loadout_compatible(str(id)):
+			_guild_feedback = "Choose a compatible standing order for %s before saving." % _hero_row(str(id)).name
+			return false
+	print_verbose("Saving guild loadout preferences.")
+	var updated := GuildProfile.save_loadouts(_profile_path, _guild_profile, _definitions, party_loadouts)
+	if updated.has("error"):
+		_guild_feedback = "Preferences not saved: " + str(updated.error)
+		print_verbose(_guild_feedback)
+		return false
+	_guild_profile = updated
+	_guild_feedback = ""
+	print_verbose("Guild loadout preferences saved.")
+	return true
+
+
+func _change_offense(id: String, ability_id: String) -> void:
+	if id != _selected_hero_id or ability_id not in GuildProfile.slot_options(_definitions, _guild_profile, id).get("offense", []):
+		return
+	_loadout_for(id).slots["offense"] = ability_id
+	if _loadout_compatible(id):
+		_save_loadout_preferences()
+	else:
+		_guild_feedback = "Choose a compatible standing order before saving."
+	_show_recruitment("Order_" + str(_loadout_for(id).get("order_id", "")))
+
+
+func _change_guild_order(id: String, order_id: String) -> void:
+	if id != _selected_hero_id:
+		return
+	for option in GuildProfile.order_options(_definitions, _guild_profile, id, _loadout_for(id)):
+		if str(option.id) == order_id and option.compatible:
+			_loadout_for(id)["order_id"] = order_id
+			_save_loadout_preferences()
+			_show_recruitment("RecruitList")
+			return
+
+
+func _start_guild_commission() -> void:
+	if _picked_recruits.size() != int(_adventure.party_size):
+		return
+	for id in _picked_recruits:
+		if not _loadout_compatible(str(id)):
+			_show_recruitment()
+			return
+	if not _save_loadout_preferences():
+		_show_recruitment()
+		return
+	var party_loadouts: Dictionary = {}
+	for id in _picked_recruits:
+		party_loadouts[id] = _loadout_for(str(id))
+	var started := Adventure.start_guild_commission(_definitions, _commission, _picked_recruits, _guild_profile, party_loadouts)
+	if started.get("phase") != "route":
+		_guild_feedback = "The commission could not be started. Check your company and try again."
+		_show_recruitment()
+		return
+	_run = started
+	_return_seed = null
+	_return_error = ""
+	_return_conflict = false
+	_show_routes()
 
 
 func _open_practice_outings() -> void:
 	_practice_from_guild = true
+	if _uses_builtin_catalog:
+		_commission = {}
+		_run = {}
+		_loadouts.clear()
+		_selected_hero_id = ""
+		_recruitment_folio = "recruits"
+		_guild_feedback = ""
 	_picked_recruits.clear()
 	_adventure = _definitions.adventures[_adventure_id]
 	_show_guild()
@@ -793,6 +1105,8 @@ func _show_debrief() -> void:
 	_book.text(left, _mission_title_for(result.mission_id), 28, GuildBookPage.RUST, "italic")
 	_book.rule(left)
 	_book.text(left, str(result.get("text", "")), 17)
+	if _uses_builtin_catalog and not _commission.is_empty():
+		_book.text(left, _receipt_summary(Adventure.receipt(_run)), 15, GuildBookPage.FOREST)
 	if not next_title.is_empty():
 		_book.space(left, 12)
 		_book.text(left, "Next: " + next_title, 24, GuildBookPage.INK, "display")
@@ -811,6 +1125,8 @@ func _show_reward_debrief(next_title: String, pending: bool, chosen: Dictionary)
 	var page := _book_page("debrief")
 	_book_heading(page, "Choose one reward",
 		"%s cleared. The chosen hero keeps the upgrade until the outing ends." % _mission_title_for(_run.last_result.mission_id))
+	if _uses_builtin_catalog and not _commission.is_empty():
+		_book.text(page, _receipt_summary(Adventure.receipt(_run)), 15, GuildBookPage.FOREST)
 	var displays := _book.scroll(page, "RewardScroll")
 	var cards := GridContainer.new()
 	cards.columns = 3
@@ -851,6 +1167,8 @@ func _show_reward_debrief(next_title: String, pending: bool, chosen: Dictionary)
 func _show_claimed_debrief(next_title: String, chosen: Dictionary) -> void:
 	var page := _book_page("debrief", 0.47)
 	_book_heading(page, "Reward claimed", _mission_title_for(_run.last_result.mission_id) + " cleared")
+	if _uses_builtin_catalog and not _commission.is_empty():
+		_book.text(page, _receipt_summary(Adventure.receipt(_run)), 15, GuildBookPage.FOREST)
 	var leaves := _book.spread(page, 0.47, 44)
 	_build_reward_entry(leaves[0], chosen, false)
 	_build_carry_report(leaves[1])
@@ -1007,17 +1325,53 @@ func _show_result() -> void:
 		_book.text(account, "Return to the guild to recruit a fresh party.", 17, GuildBookPage.SUBTLE)
 	else:
 		_book.text(account, "Return to %s for a fresh commission board." % _guild_profile.name, 17, GuildBookPage.SUBTLE)
+		if _uses_builtin_catalog:
+			_book.text(account, _receipt_summary(Adventure.receipt(_run)), 17, GuildBookPage.FOREST)
+			if not _return_error.is_empty():
+				var message := "Return not saved: " + _return_error + " Try returning again."
+				if _return_conflict:
+					message = "The guild or its current board changed. This return was not saved. Discard this outing to load the current ledger; its pending payout will not be credited."
+				_book.text(account, message, 16, GuildBookPage.RUST)
 	_book.space(account, 10)
 	var return_button := _book.button(account, "ReturnToGuild", "Return to guild", "ClothButton")
 	return_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_book.set_disabled(return_button, _return_conflict)
 	return_button.pressed.connect(_return_to_guild)
-	return_button.grab_focus()
+	if _return_conflict:
+		var reload := _book.button(account, "ReloadGuild", "Discard outing and load current guild", "QuietButton")
+		reload.pressed.connect(_discard_conflicted_return)
+		reload.grab_focus()
+	else:
+		return_button.grab_focus()
 	_book.space(account, 12, true)
 
 
 func _return_to_guild() -> void:
 	if not _commission.is_empty():
-		if _run.get("phase") != "finished":
+		if _run.get("phase") != "finished" or _return_conflict:
+			return
+		if _uses_builtin_catalog:
+			if _return_seed == null:
+				_return_seed = randi()
+				if _return_seed == int(_guild_profile.board_seed):
+					_return_seed = int(_return_seed) ^ 1
+			print_verbose("Settling guild return after %s." % _run.outcome)
+			var settled := GuildProfile.settle_return(_profile_path, _guild_profile, _run, int(_return_seed))
+			if settled.has("error"):
+				_return_error = str(settled.error)
+				var current := GuildProfile.load_profile(_profile_path)
+				_return_conflict = not current.is_empty() and not current.has("error") \
+					and (current.get("guild_id") != _guild_profile.get("guild_id") \
+					or current.get("board_generation") != _guild_profile.get("board_generation"))
+				print_verbose("Could not settle guild return: %s" % _return_error)
+				_show_result()
+				return
+			print_verbose("Guild return settled.")
+			_guild_profile = settled
+			_return_error = ""
+			_return_conflict = false
+			_return_seed = null
+			_open_commission_hub()
 			return
 		var next_seed := randi()
 		if next_seed == int(_guild_profile.board_seed):
@@ -1036,6 +1390,16 @@ func _return_to_guild() -> void:
 	_run = guild
 	_picked_recruits.clear()
 	_show_guild()
+
+
+func _discard_conflicted_return() -> void:
+	if not _return_conflict or _run.get("phase") != "finished":
+		return
+	print_verbose("Discarding an unpaid outing after a guild ledger conflict.")
+	_return_error = ""
+	_return_conflict = false
+	_return_seed = null
+	_open_commission_hub()
 
 
 func _show_battle(opening: Dictionary) -> void:

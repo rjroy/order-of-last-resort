@@ -34,7 +34,7 @@ const REWARD_EFFECTS := ["max_hp", "shield_damage", "dig_in", "shield_throw", "w
 	"say_hello_to_that_one", "wake_reception", "stronger_dose", "concentrate", "long_ladle",
 	"spare_vial", "brittle_glass", "keep_the_culture"]
 const REWARD_FIELDS := ["hero_id", "rarity", "cap", "label", "description", "effect", "amount",
-	"ability", "order", "behavior"]
+	"ability", "order", "behavior", "requires_abilities", "requires_any_ability"]
 const REWARD_GRANTS := {
 	"shield_throw": {"ability": "knight_shield_throw", "handler": "attack", "kind": "entity"},
 	"house_lights": {"ability": "bard_take_the_stage", "handler": "perform", "kind": "automatic"},
@@ -106,6 +106,8 @@ static func read_source(path: String) -> Dictionary:
 						return {"error": "Duplicate %s ID '%s' in content part \"%s\"." % [table, id, part_path]}
 					defs[table][id] = records[id]
 	var errors := validate(defs)
+	if errors.is_empty() and path == DEFAULT_PATH:
+		errors = validate_guild_progression(defs)
 	if not errors.is_empty():
 		return {"error": "Invalid content in \"%s\":\n%s" % [path, "\n".join(errors)]}
 	return {"definitions": defs}
@@ -132,6 +134,16 @@ static func _read_json(path: String) -> Dictionary:
 
 static func validate(defs: Dictionary) -> PackedStringArray:
 	return Validator.new(defs).check()
+
+
+## Guild appointments are opted in separately from ordinary catalog play.
+## External practice fixtures may retain this section without using its kits.
+static func validate_guild_progression(defs: Dictionary) -> PackedStringArray:
+	return Validator.new(defs).check_guild_progression()
+
+
+static func behavior_ability_ids(behavior: Dictionary) -> Array[String]:
+	return Validator.behavior_ability_ids(behavior)
 
 
 static func profile(defs: Dictionary, character_id: String) -> Dictionary:
@@ -287,6 +299,111 @@ class Validator:
 				else:
 					_error(path, "expected a dictionary")
 		return _errors
+
+	func check_guild_progression() -> PackedStringArray:
+		var path := "guild_progression"
+		var guild := _dictionary(_defs.get(path), path)
+		if not _errors.is_empty():
+			return _errors
+		_guild_fields(guild, ["kits", "petitions"], path)
+		var kits := _dictionary(guild.get("kits"), path + ".kits")
+		var petitions := _dictionary(guild.get("petitions"), path + ".petitions")
+		var roster_id: Variant = _record(_defs, "commission_settings").get("roster_adventure")
+		var roster: Variant = _record(_record(_defs, "adventures"), roster_id if roster_id is String else "").get("roster")
+		if not roster is Array:
+			_error(path, "requires a commission roster")
+			return _errors
+		for hero_id in kits:
+			var kit_path := path + ".kits." + str(hero_id)
+			if hero_id not in roster:
+				_error(kit_path, "hero is not in the commission roster")
+				continue
+			var hero := _character_profile(hero_id)
+			var abilities: Variant = hero.get("abilities")
+			var slots := _dictionary(kits[hero_id], kit_path)
+			if slots.is_empty():
+				_error(kit_path, "requires at least one ability slot")
+			var defaults := []
+			for slot_id in slots:
+				var slot_path := kit_path + "." + str(slot_id)
+				_text(slot_id, slot_path)
+				var id: Variant = slots[slot_id]
+				if not id is String or not abilities is Array or id not in abilities or id in defaults \
+						or _record(_record(_defs, "abilities"), id).get("handler") == "move":
+					_error(slot_path, "expected a distinct non-Move ability from the hero's base kit")
+				defaults.append(id)
+		for hero_id in roster:
+			if not kits.has(hero_id):
+				_error(path + ".kits", "missing ability slots for '%s'" % hero_id)
+		for id in petitions:
+			_check_petition(kits, petitions, id)
+		if _errors.is_empty():
+			var visited := {}
+			for id in petitions:
+				_check_petition_cycle(petitions, id, [], visited)
+		return _errors
+
+	func _check_petition(kits: Dictionary, petitions: Dictionary, id: String) -> void:
+		var path := "guild_progression.petitions." + id
+		var spec := _dictionary(petitions[id], path)
+		_text(id, path)
+		_guild_fields(spec, ["label", "description", "cost", "prerequisites", "grant", "teaser"], path)
+		_text(spec.get("label"), path + ".label")
+		_text(spec.get("description"), path + ".description")
+		if spec.has("teaser"):
+			_boolean(spec.teaser, path + ".teaser")
+		var deps := _id_list(spec.get("prerequisites", []), path + ".prerequisites")
+		for dep in deps:
+			if dep is String and (not petitions.has(dep) or _record(petitions, dep).get("teaser", false)):
+				_error(path + ".prerequisites", "unknown or unavailable dependency '%s'" % dep)
+		if spec.get("teaser", false) == true:
+			if spec.has("grant") or spec.has("cost"):
+				_error(path, "a teaser cannot grant anything or have a cost")
+			return
+		_integer(spec.get("cost"), path + ".cost", 1)
+		var grant := _dictionary(spec.get("grant"), path + ".grant")
+		var hero_id: Variant = grant.get("hero_id")
+		if not hero_id is String or not kits.has(hero_id):
+			_error(path + ".grant.hero_id", "expected a hero with a guild kit")
+			return
+		match grant.get("kind"):
+			"recruit":
+				_guild_fields(grant, ["kind", "hero_id"], path + ".grant")
+			"ability":
+				_guild_fields(grant, ["kind", "hero_id", "slot_id", "ability_id"], path + ".grant")
+				var slot: Variant = grant.get("slot_id")
+				if not slot is String or not _record(kits, hero_id).has(slot):
+					_error(path + ".grant.slot_id", "unknown slot for '%s'" % hero_id)
+				var ability: Variant = grant.get("ability_id")
+				var action := _record(_record(_defs, "abilities"), ability if ability is String else "")
+				if action.is_empty() or action.get("handler") == "move" \
+						or ability in _character_profile(hero_id).get("abilities", []):
+					_error(path + ".grant.ability_id", "expected a new non-Move ability for this hero")
+			"order":
+				_guild_fields(grant, ["kind", "hero_id", "order_id", "behavior_id"], path + ".grant")
+				_ref(grant.get("order_id"), "orders", path + ".grant.order_id")
+				_ref(grant.get("behavior_id"), "behaviors", path + ".grant.behavior_id")
+				if grant.get("order_id") in _character_profile(hero_id).get("habits", {}):
+					_error(path + ".grant.order_id", "already in this hero's base orders")
+			_:
+				_error(path + ".grant.kind", "expected recruit, ability or order")
+
+	func _check_petition_cycle(petitions: Dictionary, id: String, active: Array, visited: Dictionary) -> void:
+		if id in active:
+			_error("guild_progression.petitions." + id + ".prerequisites", "cyclic petition dependency")
+			return
+		if visited.has(id):
+			return
+		active.append(id)
+		for dependency in petitions[id].get("prerequisites", []):
+			_check_petition_cycle(petitions, dependency, active, visited)
+		active.pop_back()
+		visited[id] = true
+
+	func _guild_fields(record: Dictionary, fields: Array, path: String) -> void:
+		for field in record:
+			if field not in fields:
+				_error(path + "." + str(field), "unknown guild progression field")
 
 	func _check_json_shape(value: Variant, path: String, ancestors: Array) -> void:
 		# Injected data must also be JSON-shaped; object instances cannot be detached by duplicate().
@@ -656,24 +773,31 @@ class Validator:
 	func _behavior_for_kit(behavior: Variant, abilities: Array, path: String) -> void:
 		if not _ref(behavior, "behaviors", path):
 			return
-		var spec: Dictionary = _defs.behaviors[behavior]
-		var params: Variant = spec.get("params")
-		if not params is Dictionary:
-			return
-		var owned_fields := ["ability", "move_ability"]
-		if is_same(spec.get("handler"), "finite_healer"):
-			owned_fields.append("heal_ability")
-		if is_same(spec.get("handler"), "swap_ally"):
-			owned_fields.append("swap_ability")
-		for field in owned_fields:
-			var ability: Variant = params.get(field)
-			if ability is String and ability not in abilities:
+		for ability in behavior_ability_ids(_defs.behaviors[behavior]):
+			if ability not in abilities:
 				_error(path, "behavior '%s' requires '%s' in the effective ability kit" % [behavior, ability])
+
+	static func behavior_ability_ids(behavior: Dictionary) -> Array[String]:
+		var result: Array[String] = []
+		var params: Variant = behavior.get("params")
+		if not params is Dictionary:
+			return result
+		var fields := ["ability", "move_ability"]
+		match behavior.get("handler"):
+			"finite_healer":
+				fields.append("heal_ability")
+			"swap_ally":
+				fields.append("swap_ability")
+		for field in fields:
+			var id: Variant = params.get(field)
+			if id is String and id not in result:
+				result.append(id)
 		var greetings: Variant = params.get("greetings")
 		if greetings is Array:
-			for ability in greetings:
-				if ability is String and ability not in abilities:
-					_error(path, "behavior '%s' requires '%s' in the effective ability kit" % [behavior, ability])
+			for id in greetings:
+				if id is String and id not in result:
+					result.append(id)
+		return result
 
 	func _check_character(character: Dictionary, path: String) -> void:
 		_text(character.get("label"), path + ".label")
@@ -1142,6 +1266,9 @@ class Validator:
 		_integer(upgrade.get("amount"), path + ".amount", 1)
 		_text(upgrade.get("label"), path + ".label")
 		_text(upgrade.get("description"), path + ".description")
+		for field in ["requires_abilities", "requires_any_ability"]:
+			if upgrade.has(field) and _id_list(upgrade[field], path + "." + field, "abilities").is_empty():
+				_error(path + "." + field, "requires a nonempty ability list")
 		var effect: Variant = upgrade.get("effect")
 		if _choice(effect, REWARD_EFFECTS, path + ".effect"):
 			_check_reward_grants(upgrade, profile, path, effect)
@@ -1309,7 +1436,11 @@ class Validator:
 		return value if value is Dictionary else {}
 
 	func _reward_profile(id: String) -> Dictionary:
-		return _effective_profile(_defs.characters[id]) if _defs.characters.has(id) else {}
+		return _character_profile(id)
+
+	func _character_profile(id: String) -> Dictionary:
+		var character := _record(_record(_defs, "characters"), id)
+		return _effective_profile(character) if not character.is_empty() else {}
 
 	func _has_capability(profile: Dictionary, id: String) -> bool:
 		var kit: Variant = profile.get("capabilities")

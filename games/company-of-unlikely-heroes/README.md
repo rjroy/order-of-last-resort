@@ -33,7 +33,14 @@ The normal launch opens the illustrated guild book as the game, not a separate m
 
 At each fork, choose between two field reports using **Take Route A** or **Take Route B**. Each describes the immediate mission and hints at the type of mission beyond it, not its exact identity. At the next fork, exactly one report matches the type hinted at by your previous choice. The commission's destination is visible from the start and both choices at the last fork lead there. After each nonfinal victory, choose one temporary hero reward if offered, then continue to the next reports or the finale.
 
-There is no commission payout or permanent power gain. Returning to the board after a win or defeat clears the company and its upgrades and refreshes the offers. The guild name and board seed are stored locally in Godot's `user://company_of_unlikely_heroes/guild_profile_v1.json`. Relaunching restores the saved board, not the company or its progress. There is no mid-run save.
+**Guild pay:** Each road victory earns 1 point; winning the destination earns 5 instead. Collect the total on returning to the guild. A defeat or forfeit earns nothing for that mission but keeps earlier wins. Four roads followed by a lost destination pay 4; the same commission completed pays 9. Practice outings and standalone missions do not pay guild points.
+
+**Guild unlocks:** A new guild starts with the Knight, Healer and Caster. Open the petition ledger from the commission board. Select a petition to preview it; only the purchase button spends points. Both first purchases cost 4:
+
+- **Recruit the Bad Bard** adds a fourth recruit to choose from, not a fourth party slot. His songs work immediately, including as standing orders. Song Weaving is a preview of a future unlock.
+- **Teach the Healer: Blast** adds an offense option. It does not replace Bonk until you equip Blast during recruitment. Heal and Support remain available. Pursue and Bonk requires Bonk, and Blast can hit an ally or an obstacle. The Caster keeps his spell.
+
+Returning clears outing upgrades and refreshes the commission board. Guild points, permanent purchases and preferred loadouts survive. Existing guild profiles retain access to their previous recruits. The profile still lives at `user://company_of_unlikely_heroes/guild_profile_v1.json`; there is no mid-run save.
 
 ### Practice outings
 
@@ -165,7 +172,7 @@ Rewards start in the next mission. Extra maximum HP comes with the same amount o
 
 The Mixologist’s seven rewards include **Plain Tonic**, a heal without a random reaction, and **Keep the Culture**, which lets you repeat the last recipe and its exact reaction on a different recipient. The bottle is spent on use and is empty at the start of a new mission.
 
-There is no reward after a final victory or a defeat, or in standalone missions. Returning to the guild clears all outing upgrades; there are no permanent guild perks.
+There is no **hero upgrade offer** after a final victory or defeat, or in standalone missions. Returning to the guild clears all outing upgrades. Commission pay and permanent guild petitions are separate from these temporary rewards.
 
 ### Author a variation
 

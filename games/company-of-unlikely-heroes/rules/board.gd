@@ -16,7 +16,12 @@ static func entity(state: Dictionary, id: String) -> Dictionary:
 
 
 static func profile(state: Dictionary, subject: Dictionary) -> Dictionary:
-	return Upgrades.with_grants(state, subject, _base_profile(state, subject))
+	var base := _base_profile(state, subject)
+	if state.has("_guild"):
+		var kit: Dictionary = state._guild.defs.kits.get(subject.get("id", ""), {})
+		if not kit.is_empty():
+			base.merge(kit, true)
+	return Upgrades.with_grants(state, subject, base)
 
 
 static func _base_profile(state: Dictionary, subject: Dictionary) -> Dictionary:

@@ -34,6 +34,11 @@ static func upgrade(upgrade_id: String) -> Texture2D:
 	return _open("upgrades", upgrade_id)
 
 
+## A petition's illustrated action plate is independent of its canonical hero portrait.
+static func petition(art_id: String) -> Texture2D:
+	return _open("petitions", art_id)
+
+
 ## For explicitly authored class identities only; does not rename characters.
 static func class_label(identity: String) -> String:
 	return CLASS_LABELS.get(identity, "")

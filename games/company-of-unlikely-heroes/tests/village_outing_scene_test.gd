@@ -171,12 +171,13 @@ func _play_battle(id: String) -> void:
 		if scene.current_screen() != "battle":
 			return
 		var before: Dictionary = scene.battle_snapshot()
+		var battle_party: Array = before.get("party", [])
 		# Preview each legal direct command, and compare it with standing orders.
 		# This is bounded and deterministic for the authored encounter seed.
-		var best_score := _score(scene.get("_plan").get("result", {}), PARTY)
+		var best_score := _score(scene.get("_plan").get("result", {}), battle_party)
 		var best := {}
 		var rules = driver.rules
-		for actor in PARTY:
+		for actor in battle_party:
 			var context: Dictionary = rules.state_before_action(scene.get("_state"), actor)
 			if not rules.can_act(context, actor):
 				continue
@@ -192,7 +193,7 @@ func _play_battle(id: String) -> void:
 						continue
 					var plan: Dictionary = scene.get("_plan")
 					if plan.get("valid", false):
-						var score := _score(plan.get("result", {}), PARTY)
+						var score := _score(plan.get("result", {}), battle_party)
 						if score > best_score:
 							best_score = score
 							best = {"actor": actor, "ability": ability, "target": str(target.id)}

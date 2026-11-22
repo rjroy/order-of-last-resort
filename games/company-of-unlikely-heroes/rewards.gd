@@ -13,7 +13,8 @@ static func starting_rng_state(seed_value: Variant) -> int:
 	return rng.state
 
 
-static func draw(defs: Dictionary, party: Array, upgrades_by_id: Dictionary, rng_state: int) -> Dictionary:
+static func draw(defs: Dictionary, party: Array, upgrades_by_id: Dictionary, rng_state: int,
+		kits: Dictionary = {}) -> Dictionary:
 	var offers: Array = []
 	var upgrades: Dictionary = defs.get("upgrades", {})
 	if upgrades.is_empty():
@@ -26,10 +27,11 @@ static func draw(defs: Dictionary, party: Array, upgrades_by_id: Dictionary, rng
 	ids.sort()
 	for hero_id in party:
 		var owned: Dictionary = upgrades_by_id.get(hero_id, {})
+		var abilities: Variant = _equipped_with_grants(upgrades, hero_id, owned, kits.get(hero_id, {}))
 		var eligible: Dictionary = {}
 		for id in ids:
 			var upgrade: Dictionary = upgrades[id]
-			if upgrade.hero_id != hero_id or int(owned.get(id, 0)) >= int(upgrade.cap):
+			if not _eligible(upgrade, hero_id, int(owned.get(id, 0)), abilities):
 				continue
 			if not eligible.has(upgrade.rarity):
 				eligible[upgrade.rarity] = []
@@ -41,6 +43,37 @@ static func draw(defs: Dictionary, party: Array, upgrades_by_id: Dictionary, rng
 		var id: String = pool[rng.randi_range(0, pool.size() - 1)]
 		offers.append({"hero_id": hero_id, "upgrade_id": id})
 	return {"offers": offers, "rng_state": rng.state}
+
+
+static func eligible(defs: Dictionary, hero_id: String, upgrade_id: String, owned: Dictionary,
+		kit: Dictionary = {}) -> bool:
+	var upgrades: Dictionary = defs.get("upgrades", {})
+	return _eligible(upgrades.get(upgrade_id, {}), hero_id, int(owned.get(upgrade_id, 0)),
+		_equipped_with_grants(upgrades, hero_id, owned, kit))
+
+
+static func _eligible(upgrade: Dictionary, hero_id: String, count: int, abilities: Variant) -> bool:
+	if upgrade.get("hero_id") != hero_id or count >= int(upgrade.get("cap", 0)):
+		return false
+	if abilities == null:
+		return true
+	for id in upgrade.get("requires_abilities", []):
+		if id not in abilities:
+			return false
+	var alternatives: Array = upgrade.get("requires_any_ability", [])
+	return alternatives.is_empty() or alternatives.any(func(id: String) -> bool: return id in abilities)
+
+
+static func _equipped_with_grants(upgrades: Dictionary, hero_id: String, owned: Dictionary,
+		kit: Dictionary) -> Variant:
+	if kit.is_empty():
+		return null # Unscoped outings keep their original reward eligibility.
+	var abilities: Array = kit.abilities.duplicate()
+	for id in owned:
+		var grant: Dictionary = upgrades.get(id, {})
+		if int(owned[id]) > 0 and grant.get("hero_id") == hero_id and grant.has("ability"):
+			abilities.append(grant.ability)
+	return abilities
 
 
 static func _draw_tier(rng: RandomNumberGenerator, eligible: Dictionary, weights: Dictionary) -> String:

@@ -30,9 +30,9 @@ func _run() -> void:
 	await _launch_commission_window()
 	await _press("Commission_0")
 	_check(scene.current_screen() == "guild", "Commission opens recruitment")
-	for id in PARTY:
+	for id in FOUNDER_PARTY:
 		await _press("Recruit_" + id)
-	_check(scene.selected_recruits() == PARTY, "Selected party order is retained")
+	_check(scene.selected_recruits() == FOUNDER_PARTY, "Selected party order is retained")
 	await _press("StartAdventure")
 	if scene.current_screen() != "routes":
 		_check(false, "Recruitment opens the route choice")
@@ -51,7 +51,7 @@ func _run() -> void:
 		_cleanup()
 		return
 	var opening: Dictionary = scene.battle_snapshot().duplicate(true)
-	_check(opening.get("mission_id") == mission and opening.get("party") == PARTY,
+	_check(opening.get("mission_id") == mission and opening.get("party") == FOUNDER_PARTY,
 		"Battle uses the chosen route and recruited party")
 	var ink := _node("StorybookInk") as Control
 	_check(ink != null and ink.is_visible_in_tree(), "Normal launch displays the storybook battle page")

@@ -16,7 +16,7 @@ func _run() -> void:
 		return
 	await _launch_normal()
 	await _press("Commission_0")
-	for id in PARTY:
+	for id in FOUNDER_PARTY:
 		await _press("Recruit_" + id)
 	await _press("StartAdventure")
 	await _press("Route_0")
@@ -113,7 +113,7 @@ func _earn_upgrade_and_deploy() -> bool:
 		_check(false, "First outing battle reaches a victory reward debrief")
 		return false
 	var reward: BaseButton
-	for id in PARTY:
+	for id in FOUNDER_PARTY:
 		var candidate := _node("Reward_" + id) as BaseButton
 		if candidate != null and candidate.is_visible_in_tree() and not candidate.disabled:
 			reward = candidate

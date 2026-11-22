@@ -12,6 +12,12 @@
 - **Upgrades** optionally define between-mission rewards. Each entry specifies a commandable, non-minion `hero_id` (character, not class), `rarity`, positive integer acquisition `cap`, `label`, `description`, supported `effect`, and positive integer `amount`. The hero's effective kit and any referenced definitions must support the effect. The three unlock effects also name their granted `ability`; House Lights names the granted `order` and its `behavior`. Leave those grants out of the hero's base kit. Omitting `upgrades` preserves reward-free play.
 - **Reward weights** optionally set positive whole-number `reward_weights` for all four tiers (`common`, `uncommon`, `rare`, `legendary`). With no weights the defaults are `60/28/10/2` respectively. For each deployed hero, the outing draws a tier among those with an eligible entry, then draws uniformly among that hero's remaining entries in that tier. Caps govern eligibility, not draw weight. Only the chosen reward uses an acquisition.
 
+## Guild petitions and equipped kits
+
+[`guild_progression.json`](guild_progression.json) defines the permanent petitions for the built-in guild. `kits` names each recruit’s base `offense` and `utility` ability IDs; Move is separate. A petition grants either `recruit` (one hero ID) or `ability` (one recipient, slot and ability ID). Its `cost` is paid once by the guild, not once per deployment. `prerequisites` lists other petition IDs. A `teaser` without a grant can communicate a future dependency but cannot be purchased, even after its prerequisite is met.
+
+Ownership is separate from what is equipped. Borrowed abilities retain their existing rules and do not bring the donor’s habits or rewards. A character’s standing order must be compatible with the equipped kit. `requires_abilities` on an outing upgrade filters out offers for abilities the deployed hero is not using. Practice and standalone runs do not pay or consume guild points.
+
 ## Authoring commission reports
 
 [`commissions.json`](commissions.json) adds report text and route eligibility to existing missions without changing their encounters or objectives. Commission catalogs supply all three of these optional top-level dictionaries together:

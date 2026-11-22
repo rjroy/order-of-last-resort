@@ -6,6 +6,7 @@ extends "res://tests/village_outing_scene_test.gd"
 const GUILD_NAME := "The Test Company"
 const GAME_TITLE := "Barnaby's Order of Last Resort"
 const BOARD_SEED := 147258
+const FOUNDER_PARTY := ["healer", "knight", "wizard"]
 var profile_path := "user://commission_scene_%d_%d.json" % [OS.get_process_id(), Time.get_ticks_usec()]
 
 
@@ -39,6 +40,12 @@ func _run() -> void:
 	await process_frame
 	await _press("CreateGuild")
 	_check(scene.current_screen() == "commissions", "Creating a guild opens commissions")
+	if scene.current_screen() != "commissions":
+		_cleanup()
+		return
+	if not await _test_practice_after_commission_back():
+		_cleanup()
+		return
 	await _press("PracticeOutings")
 	_check(GAME_TITLE in _visible_text(), "Practice outings displays the game title")
 	await _press("BackToCommissions")
@@ -79,10 +86,24 @@ func _run() -> void:
 	_check(run.get("reports", []).is_empty(), "Reports remain hidden until the company is recruited")
 	_check(_node("Route_0") == null and _node("Route_1") == null,
 		"Recruitment does not reveal route reports")
-	for id in ["knight", "healer", "bard"]:
+	for id in ["knight", "healer", "wizard"]:
+		var recruit := _node("Recruit_" + id) as BaseButton
+		_check(recruit != null and recruit.is_visible_in_tree() and not recruit.disabled,
+			"Fresh guild can recruit founder " + id)
+	for id in ["bard", "rogue", "alchemist", "necromancer"]:
+		_check(_node("Recruit_" + id) == null, "Locked recruit is absent from fresh guild: " + id)
+	for id in ["knight", "healer", "wizard"]:
 		await _press("Recruit_" + id)
+	await _press("EditHero_healer")
+	var recruit_list := _node("RecruitList") as BaseButton
+	_check(recruit_list != null and recruit_list.is_visible_in_tree() and not recruit_list.disabled
+		and _node("LoadoutHero") != null and _node("Recruit_healer") == null,
+		"Selected hero opens a loadout folio with a return to available recruits")
+	await _press("RecruitList")
+	_check(_node("Recruit_healer") != null and _node("LoadoutHero") == null,
+		"Returning to recruits restores the recruit list")
 	await _press("PartyEarlier_healer")
-	_check(scene.selected_recruits() == PARTY, "Recruitment preserves the chosen order")
+	_check(scene.selected_recruits() == FOUNDER_PARTY, "Recruitment preserves the chosen order")
 	await _press("StartAdventure")
 	if scene.current_screen() != "routes":
 		_check(false, "A recruited company receives route reports before battle")
@@ -116,7 +137,7 @@ func _run() -> void:
 		_cleanup()
 		return
 	_check(scene.battle_snapshot().get("mission_id") == chosen_mission, "Battle matches the selected report")
-	_check(scene.battle_snapshot().get("party") == PARTY, "Battle carries the selected party order")
+	_check(scene.battle_snapshot().get("party") == FOUNDER_PARTY, "Battle carries the selected party order")
 	await _play_battle(chosen_mission)
 	if scene.current_screen() != "debrief":
 		_check(false, "Winning the first battle opens a reward debrief, got " + scene.current_screen())
@@ -130,7 +151,7 @@ func _run() -> void:
 	var continuation := _node("ContinueAdventure") as BaseButton
 	_check(continuation != null and continuation.disabled, "A reward is required before the next fork")
 	var reward: BaseButton
-	for id in PARTY:
+	for id in FOUNDER_PARTY:
 		reward = _node("Reward_" + id) as BaseButton
 		if reward != null and not reward.disabled and reward.is_visible_in_tree():
 			break
@@ -154,19 +175,19 @@ func _run() -> void:
 		"Hero carry and chosen reward survive the fork")
 	var adventure = load("res://adventure.gd")
 	var expected_hp: Dictionary = {}
-	for id in PARTY:
+	for id in FOUNDER_PARTY:
 		expected_hp[id] = adventure.next_mission_hp(run, id)
 	await _press("Route_1")
 	_check(scene.current_screen() == "battle", "The next report starts the next battle")
 	if scene.current_screen() == "battle":
-		_check(scene.battle_snapshot().get("party") == PARTY, "The next battle retains party order")
+		_check(scene.battle_snapshot().get("party") == FOUNDER_PARTY, "The next battle retains party order")
 		run = scene.get("_run")
 		_check(run.get("carry_by_id", {}) == carry and run.get("upgrades_by_id", {}) == upgrades,
 			"Next battle retains carried state and reward")
 		var battle: Dictionary = scene.battle_snapshot()
 		for unit in battle.get("units", []):
 			var id := str(unit.get("id", ""))
-			if id in PARTY:
+			if id in FOUNDER_PARTY:
 				_check(unit.get("hp") == expected_hp[id], id + " deploys with carried HP")
 				_check(unit.get("upgrades", {}) == upgrades.get(id, {}), id + " deploys with chosen upgrades")
 				_check(battle.get("orders", {}).get(id) == carry.get(id, {}).get("order"),
@@ -185,6 +206,110 @@ func _run() -> void:
 	else:
 		_check(false, "Outing reaches an actual terminal result before returning")
 	_cleanup()
+
+
+func _test_practice_after_commission_back() -> bool:
+	var store = load("res://guild_profile.gd")
+	var before: Dictionary = store.load_profile(profile_path)
+	if before.is_empty() or before.has("error"):
+		_check(false, "Fresh guild profile is available before practice: " + str(before))
+		return false
+	var original_bytes := FileAccess.get_file_as_bytes(profile_path)
+	await _press("Commission_0")
+	if scene.current_screen() != "guild":
+		_check(false, "Commission recruitment opens before returning to the board")
+		return false
+	await _press("BackToCommissions")
+	if scene.current_screen() != "commissions":
+		_check(false, "Recruitment returns to the commission board")
+		return false
+	await _press("PracticeOutings")
+	var selector := _node("AdventureSelect") as OptionButton
+	var start := _node("StartAdventure") as Button
+	if scene.current_screen() != "guild" or selector == null or not selector.is_visible_in_tree() \
+			or selector.disabled or start == null or not start.is_visible_in_tree():
+		_check(false, "Practice after commission back exposes its normal selector and departure")
+		return false
+	_check(start.disabled and start.text == "Depart on practice outing",
+		"Practice departure is initially disabled and identifies the practice outing")
+	if not await _select_id(selector, "first_outing"):
+		return false
+	for id in ["knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard"]:
+		var recruit := _node("Recruit_" + id) as BaseButton
+		_check(recruit != null and recruit.is_visible_in_tree() and not recruit.disabled,
+			"Practice offers unrestricted recruit " + id)
+	for id in ["knight", "healer", "bard"]:
+		await _press("Recruit_" + id)
+	start = _node("StartAdventure") as Button
+	if start == null or start.disabled:
+		_check(false, "Practice party enables departure")
+		return false
+	await _press("StartAdventure")
+	if scene.current_screen() != "battle":
+		_check(false, "Practice departure starts a battle, not commission reports")
+		return false
+	_check(scene.battle_snapshot().get("party") == ["knight", "healer", "bard"],
+		"Practice deploys the selected unrestricted company")
+	# The battle page was just built; let its containers finish layout before
+	# the GUI driver derives a click position from the forfeit button.
+	await process_frame
+	var controls = load("res://tests/forfeit_controls.gd")
+	var forfeit: BaseButton = controls.button(viewport, ["forfeit"])
+	if forfeit == null:
+		_check(false, "Practice battle offers forfeit")
+		return false
+	var forfeit_rect := forfeit.get_global_rect()
+	if forfeit_rect.size.x <= 0 or forfeit_rect.size.y <= 0 \
+			or not Rect2(Vector2.ZERO, Vector2(VIEWPORT_SIZE)).encloses(forfeit_rect):
+		_check(false, "Practice forfeit button has a reachable laid-out rectangle: " + str(forfeit_rect))
+		return false
+	await _practice_window_click(forfeit)
+	var cancel: BaseButton = controls.button(viewport, ["cancel"])
+	var confirm: BaseButton = controls.button(viewport, ["forfeit mission"], forfeit)
+	if cancel == null or confirm == null:
+		_check(false, "Practice forfeit requires confirmation and offers cancel (button rect: %s)" % str(forfeit_rect))
+		return false
+	await _practice_window_click(confirm)
+	var outcome := _node("RunOutcome")
+	if scene.current_screen() != "result" or outcome == null:
+		_check(false, "Practice forfeit opens the ordinary defeat result")
+		return false
+	_check(outcome.get_meta("outcome", "") == "defeat", "Practice forfeit settles as defeat")
+	await _press("ReturnToGuild")
+	_check(scene.current_screen() == "guild" and _node("AdventureSelect") != null,
+		"Returning after practice defeat opens practice recruitment")
+	var after: Dictionary = store.load_profile(profile_path)
+	_check(after == before and FileAccess.get_file_as_bytes(profile_path) == original_bytes,
+		"Practice defeat does not settle or change the guild profile, seed, or points")
+	if scene.current_screen() != "guild" or _node("AdventureSelect") == null:
+		return false
+	await _press("BackToCommissions")
+	if scene.current_screen() != "commissions":
+		_check(false, "Practice returns to the commission board")
+		return false
+	return true
+
+
+func _practice_window_click(control: Control) -> void:
+	var container := viewport.get_parent() as SubViewportContainer
+	if container == null:
+		_check(false, "Practice click requires the scaled viewport container")
+		return
+	var point := container.get_global_transform_with_canvas() * control.get_global_rect().get_center()
+	var motion := InputEventMouseMotion.new()
+	motion.position = point
+	motion.global_position = point
+	root.push_input(motion, true)
+	await process_frame
+	for pressed in [true, false]:
+		var event := InputEventMouseButton.new()
+		event.button_index = MOUSE_BUTTON_LEFT
+		event.pressed = pressed
+		event.position = point
+		event.global_position = point
+		event.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0
+		root.push_input(event, true)
+		await process_frame
 
 
 func _commission_snapshot(index: int) -> Dictionary:
@@ -218,7 +343,7 @@ func _finish_outing() -> void:
 				await _press("Commit")
 			"debrief":
 				var picked := false
-				for id in PARTY:
+				for id in FOUNDER_PARTY:
 					var reward := _node("Reward_" + id) as BaseButton
 					if reward != null and reward.is_visible_in_tree() and not reward.disabled:
 						await _press(str(reward.name))

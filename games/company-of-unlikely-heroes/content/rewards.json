@@ -11,6 +11,7 @@
     },
     "knight_shield_damage_1": {
       "hero_id": "knight", "rarity": "uncommon", "cap": 3, "effect": "shield_damage", "amount": 1,
+      "requires_any_ability": ["knight_aura", "knight_shield_throw"],
       "label": "+1 shield damage", "description": "Reflected damage and Shield Throw each deal 1 more damage."
     },
     "knight_hp_5": {
@@ -19,19 +20,23 @@
     },
     "knight_dig_in": {
       "hero_id": "knight", "rarity": "rare", "cap": 1, "effect": "dig_in", "amount": 1,
+      "requires_abilities": ["knight_aura"],
       "label": "Dig In", "description": "While guarding, reverse an enemy pull against the Anxious Knight and pull the enemy instead."
     },
     "knight_shield_throw": {
       "hero_id": "knight", "rarity": "rare", "cap": 1, "effect": "shield_throw", "amount": 1,
+      "requires_abilities": ["move"],
       "label": "Shield Throw", "description": "Gain a range-3 attack for 3 damage. Retrieve the shield before guarding or throwing again. Advance heads toward the shield while it is away.",
       "ability": "knight_shield_throw"
     },
     "knight_shield_damage_3": {
       "hero_id": "knight", "rarity": "rare", "cap": 1, "effect": "shield_damage", "amount": 3,
+      "requires_any_ability": ["knight_aura", "knight_shield_throw"],
       "label": "+3 shield damage", "description": "Reflected damage and Shield Throw each deal 3 more damage."
     },
     "knight_wide_guard": {
       "hero_id": "knight", "rarity": "legendary", "cap": 1, "effect": "wide_guard", "amount": 1,
+      "requires_abilities": ["knight_aura"],
       "label": "Wide Guard", "description": "Guard covers one additional tile of range."
     },
     "healer_hp_1": {
@@ -40,6 +45,7 @@
     },
     "healer_bonk_damage_1": {
       "hero_id": "healer", "rarity": "common", "cap": 2, "effect": "bonk_damage", "amount": 1,
+      "requires_abilities": ["healer_bonk"],
       "label": "+1 Bonk damage", "description": "Bonk deals 1 more damage."
     },
     "healer_hp_2": {
@@ -48,26 +54,32 @@
     },
     "healer_heal_1": {
       "hero_id": "healer", "rarity": "uncommon", "cap": 2, "effect": "heal_amount", "amount": 1,
+      "requires_abilities": ["healer_heal"],
       "label": "+1 heal", "description": "Heal restores 1 more HP."
     },
     "healer_bonk_damage_2": {
       "hero_id": "healer", "rarity": "uncommon", "cap": 1, "effect": "bonk_damage", "amount": 2,
+      "requires_abilities": ["healer_bonk"],
       "label": "+2 Bonk damage", "description": "Bonk deals 2 more damage."
     },
     "healer_heal_2": {
       "hero_id": "healer", "rarity": "rare", "cap": 1, "effect": "heal_amount", "amount": 2,
+      "requires_abilities": ["healer_heal"],
       "label": "+2 heal", "description": "Heal restores 2 more HP."
     },
     "healer_long_staff": {
       "hero_id": "healer", "rarity": "rare", "cap": 1, "effect": "long_staff", "amount": 1,
+      "requires_abilities": ["healer_bonk"],
       "label": "Long Staff", "description": "Bonk can reach one tile farther."
     },
     "healer_strong_swing": {
       "hero_id": "healer", "rarity": "rare", "cap": 1, "effect": "strong_swing", "amount": 1,
+      "requires_abilities": ["healer_bonk"],
       "label": "Strong Swing", "description": "Bonk also strikes every other opponent within range."
     },
     "healer_me_or_you": {
       "hero_id": "healer", "rarity": "legendary", "cap": 1, "effect": "me_or_you", "amount": 1,
+      "requires_abilities": ["healer_heal"],
       "label": "Me or You", "description": "If hurt, the Unimpressed Healer receives the full heal. Otherwise split it evenly among the other living deployed heroes, including those at full HP. Extra points go in party order; unused healing is lost."
     },
     "wizard_spare_robes": {
@@ -76,30 +88,37 @@
     },
     "wizard_more_powder": {
       "hero_id": "wizard", "rarity": "common", "cap": 2, "effect": "blast_damage", "amount": 1,
+      "requires_abilities": ["wizard_blast"],
       "label": "More Powder", "description": "Blast deals 1 more damage, whoever or whatever it hits."
     },
     "wizard_padded_landing": {
       "hero_id": "wizard", "rarity": "uncommon", "cap": 2, "effect": "padded_landing", "amount": 1,
+      "requires_abilities": ["wizard_pull"],
       "label": "Padded Landing", "description": "Pull recoil deals 1 less damage, to a minimum of zero. The Enthusiastic Caster still falls over."
     },
     "wizard_demolition_practice": {
       "hero_id": "wizard", "rarity": "uncommon", "cap": 2, "effect": "demolition_practice", "amount": 2,
+      "requires_abilities": ["wizard_blast"],
       "label": "Demolition Practice", "description": "Blast deals 2 more damage against obstacles."
     },
     "wizard_duck": {
       "hero_id": "wizard", "rarity": "rare", "cap": 1, "effect": "duck", "amount": 1,
+      "requires_abilities": ["wizard_blast"],
       "label": "Duck!", "description": "An ally hit by Blast takes the damage but stays on their feet."
     },
     "wizard_braced_casting": {
       "hero_id": "wizard", "rarity": "rare", "cap": 1, "effect": "braced_casting", "amount": 1,
+      "requires_abilities": ["wizard_pull"],
       "label": "Braced Casting", "description": "The Enthusiastic Caster stays standing if Pull recoil ends against the board edge or impassable terrain directly behind them."
     },
     "wizard_parting_gift": {
       "hero_id": "wizard", "rarity": "rare", "cap": 1, "effect": "parting_gift", "amount": 1,
+      "requires_abilities": ["wizard_blast"],
       "label": "Parting Gift", "description": "Blast pushes its surviving primary target one tile away if that tile is open."
     },
     "wizard_conductive_personality": {
       "hero_id": "wizard", "rarity": "legendary", "cap": 1, "effect": "conductive_personality", "amount": 1,
+      "requires_abilities": ["wizard_blast"],
       "label": "Conductive Personality", "description": "Blast jumps to the nearest other damageable target, even the Enthusiastic Caster, for half damage rounded up. The bolt has no other effects."
     },
     "rogue_thick_coat": {
@@ -108,30 +127,37 @@
     },
     "rogue_cheap_shot": {
       "hero_id": "rogue", "rarity": "common", "cap": 2, "effect": "cheap_shot", "amount": 1,
+      "requires_abilities": ["rogue_wasnt_me"],
       "label": "Cheap Shot", "description": "A successful Wasn't Me redirect adds 1 damage to the victim. An attack that isn't redirected gains nothing."
     },
     "rogue_exit_strategy": {
       "hero_id": "rogue", "rarity": "uncommon", "cap": 1, "effect": "exit_strategy", "amount": 1,
+      "requires_abilities": ["move"],
       "label": "Exit Strategy", "description": "Retreat can take a second step if it increases distance from the nearest opponent. Direct Move stays one tile."
     },
     "rogue_borrowed_courage": {
       "hero_id": "rogue", "rarity": "uncommon", "cap": 2, "effect": "borrowed_courage", "amount": 1,
+      "requires_abilities": ["rogue_confusing_dodge"],
       "label": "Borrowed Courage", "description": "After swapping with an ally, reduce the next hit on that ally before the Daft Dodger's next turn by 1."
     },
     "rogue_pass_the_buck": {
       "hero_id": "rogue", "rarity": "rare", "cap": 1, "effect": "pass_the_buck", "amount": 1,
+      "requires_abilities": ["rogue_confusing_dodge"],
       "label": "Pass the Buck", "description": "Confusing Dodge passes a swap partner's unused Wasn't Me mark to another enemy adjacent to their landing tile, if one exists."
     },
     "rogue_pocket_sand": {
       "hero_id": "rogue", "rarity": "rare", "cap": 1, "effect": "pocket_sand", "amount": 1,
+      "requires_abilities": ["rogue_confusing_dodge"],
       "label": "Pocket Sand", "description": "An enemy swapped by Confusing Dodge cannot move on its next turn, but can still attack."
     },
     "rogue_long_finger": {
       "hero_id": "rogue", "rarity": "rare", "cap": 1, "effect": "long_finger", "amount": 1,
+      "requires_abilities": ["rogue_wasnt_me"],
       "label": "Long Finger", "description": "A marked attacker without an adjacent alternate victim can blame someone two tiles away. The Daft Dodger still cannot choose the victim."
     },
     "rogue_body_double": {
       "hero_id": "rogue", "rarity": "legendary", "cap": 1, "effect": "body_double", "amount": 1,
+      "requires_abilities": ["rogue_confusing_dodge"],
       "label": "Body Double", "description": "After Dodge, the first attack aimed at the Daft Dodger before their next turn hits their living swap partner instead, friend or foe."
     },
     "bard_road_legs": {
@@ -140,22 +166,27 @@
     },
     "bard_sharper_notes": {
       "hero_id": "bard", "rarity": "common", "cap": 2, "effect": "sonnet_damage", "amount": 1,
+      "requires_any_ability": ["healing_sonnet", "bard_take_the_stage"],
       "label": "Sharper Notes", "description": "Healing Sonnet deals 1 more damage."
     },
     "bard_buskers_hat": {
       "hero_id": "bard", "rarity": "uncommon", "cap": 2, "effect": "buskers_hat", "amount": 1,
+      "requires_abilities": ["inspiring_melody"],
       "label": "Busker's Hat", "description": "If Melody has no eligible listener, heal the Bad Bard for 1. This still uses the action."
     },
     "bard_front_row_seats": {
       "hero_id": "bard", "rarity": "uncommon", "cap": 1, "effect": "front_row_seats", "amount": 1,
+      "requires_abilities": ["healing_sonnet"],
       "label": "Front Row Seats", "description": "Sonnet draws from the two opponents with the fewest HP, including ties at the cutoff. If only one remains, it hits that one."
     },
     "bard_laughing_fit": {
       "hero_id": "bard", "rarity": "rare", "cap": 1, "effect": "laughing_fit", "amount": 2,
+      "requires_abilities": ["inspiring_melody"],
       "label": "Laughing Fit", "description": "After an opponent loses a turn to laughter, the next hit before their next activation deals 2 more damage."
     },
     "bard_heckler": {
       "hero_id": "bard", "rarity": "rare", "cap": 1, "effect": "heckler", "amount": 1,
+      "requires_abilities": ["healing_sonnet"],
       "label": "Heckler", "description": "An opponent who survives Sonnet directs their next attack at the Bad Bard if the Bad Bard is a legal target."
     },
     "bard_house_lights": {
@@ -165,35 +196,43 @@
     },
     "necromancer_spare_ribs": {
       "hero_id": "necromancer", "rarity": "common", "cap": 3, "effect": "spare_ribs", "amount": 1,
+      "requires_abilities": ["summon_skeleton"],
       "label": "Spare Ribs", "description": "Skeletons start with 1 more maximum and current HP."
     },
     "necromancer_good_soil": {
       "hero_id": "necromancer", "rarity": "common", "cap": 2, "effect": "good_soil", "amount": 1,
+      "requires_abilities": ["raise_dead"],
       "label": "Good Soil", "description": "Zombies start with 1 more HP after halving the corpse's maximum HP and rounding up."
     },
     "necromancer_heavy_bouquet": {
       "hero_id": "necromancer", "rarity": "uncommon", "cap": 2, "effect": "heavy_bouquet", "amount": 1,
+      "requires_abilities": ["raise_dead"],
       "label": "Heavy Bouquet", "description": "Zombies' Offer Flower deals 1 more damage."
     },
     "necromancer_broad_wave": {
       "hero_id": "necromancer", "rarity": "uncommon", "cap": 1, "effect": "broad_wave", "amount": 1,
+      "requires_abilities": ["summon_skeleton"],
       "label": "Broad Wave", "description": "Skeletons' Wave also hits diagonal neighbors, friend or foe."
     },
     "necromancer_long_stemmed": {
       "hero_id": "necromancer", "rarity": "rare", "cap": 1, "effect": "long_stemmed", "amount": 1,
+      "requires_abilities": ["raise_dead"],
       "label": "Long-Stemmed", "description": "Offer Flower has 1 more tile of range, including the distance zombies try to reach."
     },
     "necromancer_warm_welcome": {
       "hero_id": "necromancer", "rarity": "rare", "cap": 1, "effect": "warm_welcome", "amount": 2,
+      "requires_abilities": ["raise_dead"],
       "label": "Warm Welcome", "description": "Say Hello makes the recipient back away up to two tiles, stopping at the first obstruction."
     },
     "necromancer_say_hello_to_that_one": {
       "hero_id": "necromancer", "rarity": "rare", "cap": 1, "effect": "say_hello_to_that_one", "amount": 1,
+      "requires_any_ability": ["summon_skeleton", "raise_dead"],
       "label": "Say Hello to That One", "description": "Gain a direct action to nominate an opponent for both undead to pursue until it falls or is replaced. They still choose their own greetings.",
       "ability": "necromancer_say_hello_to_that_one"
     },
     "necromancer_wake_reception": {
       "hero_id": "necromancer", "rarity": "legendary", "cap": 1, "effect": "wake_reception", "amount": 1,
+      "requires_abilities": ["raise_dead", "summon_skeleton"],
       "label": "Wake Reception", "description": "Once per mission, a fallen raised zombie becomes a skeleton if the skeleton slot is empty. It uses the current skeleton starting HP and first acts next round."
     },
     "alchemist_padded_apron": {
@@ -202,27 +241,33 @@
     },
     "alchemist_stronger_dose": {
       "hero_id": "alchemist", "rarity": "common", "cap": 2, "effect": "stronger_dose", "amount": 1,
+      "requires_abilities": ["alchemist_potion"],
       "label": "Stronger Dose", "description": "Healing Potion restores 1 more HP."
     },
     "alchemist_concentrate": {
       "hero_id": "alchemist", "rarity": "uncommon", "cap": 2, "effect": "concentrate", "amount": 1,
+      "requires_abilities": ["alchemist_acid"],
       "label": "Concentrate", "description": "Acid deals 1 more damage to its target."
     },
     "alchemist_long_ladle": {
       "hero_id": "alchemist", "rarity": "uncommon", "cap": 1, "effect": "long_ladle", "amount": 1,
+      "requires_abilities": ["alchemist_potion"],
       "label": "Long Ladle", "description": "Healing Potion reaches one tile farther. Follow still stops beside the nearest ally."
     },
     "alchemist_spare_vial": {
       "hero_id": "alchemist", "rarity": "rare", "cap": 1, "effect": "spare_vial", "amount": 1,
+      "requires_abilities": ["alchemist_potion"],
       "label": "Spare Vial", "description": "Gain Plain Tonic: a range-1 heal for 1 with no reaction. Potion upgrades do not affect it.",
       "ability": "alchemist_plain_tonic"
     },
     "alchemist_brittle_glass": {
       "hero_id": "alchemist", "rarity": "rare", "cap": 1, "effect": "brittle_glass", "amount": 1,
+      "requires_abilities": ["alchemist_acid"],
       "label": "Brittle Glass", "description": "Acid splashes 1 damage onto adjacent characters, friends included. Only its chosen target gets a reaction."
     },
     "alchemist_keep_the_culture": {
       "hero_id": "alchemist", "rarity": "legendary", "cap": 1, "effect": "keep_the_culture", "amount": 1,
+      "requires_any_ability": ["alchemist_potion", "alchemist_acid"],
       "label": "Keep the Culture", "description": "Bottle the last potion or Acid reaction. Repeat Batch uses that recipe and reaction on another legal recipient, then empties the bottle. Bottles do not carry between missions.",
       "ability": "alchemist_repeat_batch"
     }

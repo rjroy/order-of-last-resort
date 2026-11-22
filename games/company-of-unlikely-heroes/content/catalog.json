@@ -2,6 +2,7 @@
   "parts": [
     "common.json",
     "rewards.json",
+    "guild_progression.json",
     "first_outing.json",
     "village_troubles.json",
     "frontier_combats.json",

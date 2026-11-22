@@ -83,7 +83,7 @@ func _run() -> void:
 			or not await _save_capture("04-recruitment"):
 		_finish_capture(failure)
 		return
-	for id in ["knight", "healer", "bard"]:
+	for id in ["knight", "healer", "wizard"]:
 		if not await _press_button("Recruit_" + id):
 			_finish_capture(failure)
 			return
@@ -96,7 +96,7 @@ func _run() -> void:
 		return
 	later.grab_focus()
 	await _key(KEY_ENTER)
-	if scene.selected_recruits() != ["knight", "healer", "bard"]:
+	if scene.selected_recruits() != ["knight", "healer", "wizard"]:
 		_finish_capture("Keyboard reorder did not restore the original party order.")
 		return
 	if not await _save_capture("05-deployment-reordered") \

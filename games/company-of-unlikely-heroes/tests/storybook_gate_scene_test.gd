@@ -1,7 +1,7 @@
 extends SceneTree
 
 # Run: godot --headless --path games/company-of-unlikely-heroes --script res://tests/storybook_gate_scene_test.gd
-# Board and keyboard use viewport input; menu selections use control signals.
+# Board, keyboard and Wizard actions use viewport input.
 var rules = preload("res://rules.gd").new()
 var failures: Array[String] = []
 var scene: Node
@@ -14,7 +14,7 @@ func _initialize() -> void:
 func _run() -> void:
 	root.size = Vector2i(1280, 820)
 	scene = load("res://main.tscn").instantiate()
-	scene.configure_launch(PackedStringArray(["--storybook", "--mission=wrong_side_of_the_door"]))
+	scene.configure_launch(PackedStringArray(["--mission=wrong_side_of_the_door"]))
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
@@ -44,11 +44,7 @@ func _run() -> void:
 		return
 	# Keep the native window's incidental pointer position from opening a
 	# tooltip that consumes Escape before the keyboard test reaches battle.
-	var motion := InputEventMouseMotion.new()
-	motion.position = Vector2(-1, -1)
-	motion.global_position = motion.position
-	root.push_input(motion, true)
-	await process_frame
+	await _hover(Vector2(-1, -1))
 	await _keyboard_move(board, knight, targets[0], before)
 	await _full_hero_actions(board, before)
 	await _unavailable_bonk(board, before)
@@ -162,47 +158,7 @@ func _full_hero_actions(board: Control, before: Dictionary) -> void:
 	_check((scene.get("_planned_state") as Dictionary).get("overrides", {}).is_empty(),
 		"Escape clears the staged Blast")
 
-	# Pull is deliberately aimed. Use only targets actually legal in this opening.
-	var context: Dictionary = rules.state_before_action(scene.get("_planned_state"), "wizard")
-	var targets: Array = rules.targets(context, "wizard", "wizard_pull")
-	if targets.is_empty():
-		print("SKIP: opening fixture has no legal Wizard Pull target")
-	else:
-		if not await _choose_action("wizard_pull"):
-			return
-		_check((scene.get("_planned_state") as Dictionary).get("overrides", {}).is_empty(),
-			"Choosing aimed Pull waits for a target")
-		var target: Dictionary = {}
-		var other: Dictionary = {}
-		for choice in targets:
-			if choice.id == "knight":
-				target = choice
-			elif choice.id == "healer":
-				other = choice
-		_check(not target.is_empty() and not other.is_empty(),
-			"Opening Pull fixture has legal Knight and Healer targets")
-		if target.is_empty() or other.is_empty():
-			return
-		await _click_cell(board, target.position)
-		planned = scene.get("_planned_state")
-		command = planned.get("overrides", {}).get("wizard", {})
-		_check(command.get("ability_id") == "wizard_pull" and command.get("target_id") == target.id,
-			"Clicking a legal target stages the aimed Pull")
-		var overlay: Dictionary = board.get("_overlay")
-		if other.position not in overlay.get("targets", []):
-			# A completed action may leave targeting mode, provided its marks disappear.
-			if not await _choose_action("wizard_pull"):
-				return
-		await _click_cell(board, other.position)
-		planned = scene.get("_planned_state")
-		command = planned.get("overrides", {}).get("wizard", {})
-		_check(command.get("ability_id") == "wizard_pull" and command.get("target_id") == other.id
-			and scene.get("_actor_id") == "wizard",
-			"Clicking the highlighted Healer retargets Pull rather than selecting Healer")
-		_check(scene.battle_snapshot() == before, "Aimed Pull remains a forecast until commit")
-		await _key(KEY_ESCAPE)
-		_check((scene.get("_planned_state") as Dictionary).get("overrides", {}).is_empty(),
-			"Escape clears the aimed command")
+	await _aimed_pull(board, before)
 
 	if not await _click_button("StandingOrders") or not await _choose_order("wizard", "order_blast"):
 		return
@@ -217,6 +173,94 @@ func _full_hero_actions(board: Control, before: Dictionary) -> void:
 	await _choose_order("wizard", before.get("orders", {}).get("wizard", ""))
 	await _click_button("StandingOrders")
 	_check(scene.battle_snapshot() == before, "Restoring the order returns to the opening state")
+
+
+func _aimed_pull(board: Control, before: Dictionary) -> void:
+	var healer := Vector2i(0, 2) # A3
+	var knight := Vector2i(0, 1) # A2
+	var step := Vector2i(1, 3) # B4
+	var context: Dictionary = rules.state_before_action(before, "wizard")
+	if _unit(before, "healer").get("position") != healer or _unit(before, "knight").get("position") != knight \
+			or not rules.targets(context, "wizard", "move").any(
+				func(choice: Dictionary) -> bool: return choice.position == step):
+		_check(false, "Gate fixture has Healer at A3, Knight at A2, and a legal Wizard Move to B4")
+		return
+	if not await _choose_action("wizard_pull"):
+		return
+	var highlights := _highlighted_cells(board).duplicate()
+	_check(healer in highlights and knight in highlights and step not in highlights,
+		"Pull highlights Healer and Knight, not the otherwise legal B4 Move")
+	_check((scene.get("_planned_state") as Dictionary).get("overrides", {}).is_empty(),
+		"Choosing aimed Pull waits for a target")
+	await _click_cell(board, step)
+	_check(scene.get("_actor_id") == "wizard" and scene.get("_planned_state") == before \
+		and _highlighted_cells(board) == highlights, "Before queueing Pull, off-target B4 is inert")
+
+	await _escape_pull_hover(board, healer)
+	await _click_cell(board, healer)
+	_check(scene.get("_actor_id") == "healer", "After Escape, clicking A3 selects Healer rather than queuing Pull")
+	await _click_cell(board, _unit(before, "wizard").position)
+	await _click_cell(board, step)
+	_check_wizard_command("move", "1,3", "After Escape leaves Pull aim, B4 stages ordinary Move")
+	await _key(KEY_ESCAPE)
+	if not await _choose_action("wizard_pull"):
+		return
+	await _click_cell(board, healer)
+	_check_wizard_command("wizard_pull", "healer", "Clicking highlighted A3 stages Pull on Healer")
+	_check(_highlighted_cells(board) == highlights, "Queued Pull keeps its targets highlighted for retargeting")
+	var queued: Dictionary = scene.get("_planned_state").duplicate(true)
+	await _click_cell(board, step)
+	_check(scene.get("_actor_id") == "wizard" and scene.get("_planned_state") == queued \
+		and _highlighted_cells(board) == highlights, "After queueing Pull, off-target B4 is inert")
+	if scene.get("_planned_state") != queued:
+		# Rearm on RED so the valid retarget and explicit Move checks are independent of the off-target failure.
+		if not await _choose_action("wizard_pull"):
+			return
+		await _click_cell(board, healer)
+	await _click_cell(board, knight)
+	_check_wizard_command("wizard_pull", "knight", "Clicking highlighted A2 retargets Pull rather than selecting Knight")
+	if not await _choose_action("wizard_pull"):
+		return
+	_check(_highlighted_cells(board).is_empty(), "Reselecting queued Pull deliberately exits aim")
+	_check_wizard_command("wizard_pull", "knight", "Leaving aim keeps the queued Pull")
+	await _click_cell(board, step)
+	_check_wizard_command("move", "1,3", "After leaving queued Pull aim, B4 stages ordinary Move")
+	if not await _choose_action("wizard_pull"):
+		return
+	await _click_cell(board, knight)
+	if await _choose_action("move"):
+		_check_wizard_command("wizard_pull", "knight", "Selecting Move keeps the queued Pull until a destination is chosen")
+		_check(step in _highlighted_cells(board), "Explicit Move replaces Pull highlights with legal destinations")
+		await _click_cell(board, step)
+		_check_wizard_command("move", "1,3", "Explicit Move lets B4 replace the queued Pull")
+	_check(scene.battle_snapshot() == before, "Aiming and changing commands do not commit battle state")
+	await _key(KEY_ESCAPE)
+
+
+func _escape_pull_hover(board: Control, cell: Vector2i) -> void:
+	await _hover(board.get_global_transform_with_canvas() * board.cell_center(cell))
+	var inspection: Label = scene.get("_storybook_page").get("_inspection")
+	var aim_note := "Legal target"
+	_check(inspection.is_visible_in_tree() and aim_note in inspection.text and aim_note in board.tooltip_text,
+		"Hovering highlighted A3 advertises a legal Pull target in inspection and tooltip")
+	# No mouse motion: the current hover must change when aim ends.
+	await _key(KEY_ESCAPE)
+	_check(_highlighted_cells(board).is_empty()
+		and (scene.get("_planned_state") as Dictionary).get("overrides", {}).is_empty(),
+		"Escape leaves unqueued Pull aim and removes its highlights")
+	_check(aim_note not in inspection.text and aim_note not in board.tooltip_text,
+		"Escape removes stale Pull target text from both inspection and tooltip without mouse motion")
+
+
+func _highlighted_cells(board: Control) -> Array:
+	return (board.get("_overlay") as Dictionary).get("targets", [])
+
+
+func _check_wizard_command(ability: String, target: String, message: String) -> void:
+	var overrides: Dictionary = (scene.get("_planned_state") as Dictionary).get("overrides", {})
+	var command: Dictionary = overrides.get("wizard", {})
+	_check(scene.get("_actor_id") == "wizard" and overrides.size() == 1
+		and command.get("ability_id") == ability and command.get("target_id") == target, message)
 
 
 func _unavailable_bonk(board: Control, before: Dictionary) -> void:
@@ -262,9 +306,20 @@ func _choose_action(id: String) -> bool:
 		var popup := menu.get_popup()
 		for index in popup.item_count:
 			if popup.get_item_text(index).begins_with(label) and not popup.is_item_disabled(index):
-				popup.id_pressed.emit(popup.get_item_id(index))
-				await process_frame
-				return true
+				menu.grab_focus()
+				await _key(KEY_SPACE)
+				if not popup.visible:
+					break
+				for _attempt in popup.item_count:
+					if popup.get_focused_item() == index:
+						break
+					await _key(KEY_DOWN)
+				if popup.get_focused_item() == index:
+					await _key(KEY_ENTER)
+					if not popup.visible:
+						return true
+				await _key(KEY_ESCAPE)
+				break
 	_check(false, "Actions menu offers " + id)
 	return false
 
@@ -320,6 +375,14 @@ func _unit(state: Dictionary, id: String) -> Dictionary:
 func _click_cell(board: Control, cell: Vector2i) -> void:
 	var point: Vector2 = board.get_global_transform_with_canvas() * board.cell_center(cell)
 	await _click(point)
+
+
+func _hover(point: Vector2) -> void:
+	var motion := InputEventMouseMotion.new()
+	motion.position = point
+	motion.global_position = point
+	root.push_input(motion, true)
+	await process_frame
 
 
 func _click_button(name: String) -> bool:

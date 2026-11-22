@@ -14,7 +14,7 @@ func _initialize() -> void:
 func _run() -> void:
 	root.size = Vector2i(1280, 820)
 	scene = load("res://main.tscn").instantiate()
-	scene.configure_launch(PackedStringArray(["--storybook", "--mission=wrong_side_of_the_door"]))
+	scene.configure_launch(PackedStringArray(["--mission=wrong_side_of_the_door"]))
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
@@ -25,11 +25,11 @@ func _run() -> void:
 		_finish()
 		return
 	var opening: Dictionary = scene.battle_snapshot().duplicate(true)
-	await _explicit_move_into_vacated_cell(opening)
+	await _move_into_vacated_cell()
 	if not await _button("Restart"):
 		_finish()
 		return
-	_check(scene.battle_snapshot() == opening, "Restart resets the explicit-move fixture")
+	_check(scene.battle_snapshot() == opening, "Restart resets the forecast-vacated Move fixture")
 	# Knight holds the plate, then Healer passes the gate after Guard defeats the goblin.
 	for step in [
 		["knight", Vector2i(1, 1)], ["knight", Vector2i(2, 1)],
@@ -66,7 +66,7 @@ func _run() -> void:
 	_finish()
 
 
-func _explicit_move_into_vacated_cell(opening: Dictionary) -> void:
+func _move_into_vacated_cell() -> void:
 	if not await _round(["knight", Vector2i(1, 1)], true) \
 			or not await _round(["knight", Vector2i(2, 1)]):
 		return
@@ -92,9 +92,23 @@ func _explicit_move_into_vacated_cell(opening: Dictionary) -> void:
 	if not await _button("StandingOrders"):
 		return
 	var before: Dictionary = scene.battle_snapshot().duplicate(true)
-	_check(_unit(before, "healer").get("position") == Vector2i(0, 2),
+	var vacated := Vector2i(0, 2) # A3, still occupied on the actual board.
+	_check(_unit(before, "healer").get("position") == vacated,
 		"Healer still occupies A3 before the forecast")
-	await _cell(_unit(before, "wizard").position)
+	var context: Dictionary = rules.state_before_action(before, "wizard")
+	_check(_unit(context, "healer").get("position") == Vector2i(1, 2),
+		"Pursue forecasts Healer moving from A3 to B3 before Wizard acts")
+	_check(rules.targets(context, "wizard", "move").any(
+		func(choice: Dictionary) -> bool: return choice.position == vacated),
+		"A3 is a legal Wizard Move in the acting snapshot")
+	var wizard_cell: Vector2i = _unit(before, "wizard").position
+	await _cell(wizard_cell)
+	await _explicit_move_into_vacated_cell(before, vacated)
+	await _key(KEY_ESCAPE)
+	await _implicit_move_into_vacated_cell(before, wizard_cell, vacated)
+
+
+func _explicit_move_into_vacated_cell(before: Dictionary, vacated: Vector2i) -> void:
 	var menu := scene.find_child("Actions", true, false) as MenuButton
 	var move_label: String = rules.ability_definition(before, "move", "wizard").get("label", "")
 	var move_index := -1
@@ -110,23 +124,52 @@ func _explicit_move_into_vacated_cell(opening: Dictionary) -> void:
 	if move_index < 0:
 		_check(false, "Wizard can explicitly select Move")
 		return
-	var target := Vector2i(0, 2)
-	var context: Dictionary = rules.state_before_action(scene.get("_planned_state"), "wizard")
-	_check(_unit(context, "healer").get("position") == Vector2i(1, 2),
-		"Pursue forecasts Healer moving from A3 to B3 before Wizard acts")
-	var legal := false
-	for choice in rules.targets(context, "wizard", "move"):
-		if choice.position == target:
-			legal = true
-	_check(legal and target in (board.get("_overlay") as Dictionary).get("targets", []),
-		"Explicit Wizard Move highlights legal A3 in the acting snapshot")
-	await _cell(target)
-	var planned: Dictionary = scene.get("_planned_state")
-	var command: Dictionary = planned.get("overrides", {}).get("wizard", {})
-	_check(scene.get("_actor_id") == "wizard" and command.get("ability_id") == "move"
-		and command.get("target_id") == "0,2",
+	_check(vacated in _highlighted_cells(), "Explicit Wizard Move highlights legal A3")
+	await _cell(vacated)
+	_check(_wizard_move_is("0,2"),
 		"Clicking the highlighted vacated A3 stages Wizard Move rather than selecting Healer")
 	_check(scene.battle_snapshot() == before, "Explicit Wizard Move remains an uncommitted forecast")
+
+
+func _implicit_move_into_vacated_cell(before: Dictionary, wizard_cell: Vector2i, vacated: Vector2i) -> void:
+	var step := Vector2i(1, 3) # B4
+	await _cell(step)
+	_check(_wizard_move_is("1,3"), "Clicking B4 without opening Actions queues an implicit Wizard Move")
+	_check(vacated in _highlighted_cells(), "Implicit Wizard Move highlights forecast-vacated A3")
+
+	var knight_cell: Vector2i = _unit(before, "knight").position
+	_check(knight_cell not in _highlighted_cells(), "Knight is not highlighted for implicit Wizard Move")
+	await _cell(knight_cell)
+	_check(scene.get("_actor_id") == "knight", "Clicking unhighlighted Knight still selects Knight")
+	await _cell(wizard_cell)
+	_check(_wizard_move_is("1,3") and vacated in _highlighted_cells(),
+		"Reselecting Wizard restores the queued Move and its A3 highlight")
+
+	var motion := InputEventMouseMotion.new()
+	motion.position = board.get_global_transform_with_canvas() * board.cell_center(vacated)
+	motion.global_position = motion.position
+	root.push_input(motion, true)
+	await process_frame
+	var inspection: Label = scene.get("_storybook_page").get("_inspection")
+	var healer_name: String = rules.display_name(before, "healer")
+	_check(inspection.is_visible_in_tree() and "A3" in inspection.text
+		and healer_name in inspection.text and "Move destination" in inspection.text,
+		"Implicit Move inspection describes both the current Healer and the forecast destination at A3")
+	await _cell(vacated)
+	_check(_wizard_move_is("0,2"),
+		"Clicking A3 highlighted by implicit Move replaces B4 with A3 rather than selecting Healer")
+	_check(scene.battle_snapshot() == before, "Implicit Move replacement does not commit battle state")
+
+
+func _highlighted_cells() -> Array:
+	return (board.get("_overlay") as Dictionary).get("targets", [])
+
+
+func _wizard_move_is(target: String) -> bool:
+	var overrides: Dictionary = (scene.get("_planned_state") as Dictionary).get("overrides", {})
+	var command: Dictionary = overrides.get("wizard", {})
+	return scene.get("_actor_id") == "wizard" and overrides.size() == 1 \
+		and command.get("ability_id") == "move" and command.get("target_id") == target
 
 
 func _round(step: Array, inspect_opening_knight := false) -> bool:

@@ -42,6 +42,7 @@ var _practice_from_guild := false
 var _fixed_mission := ""
 var _storybook_page: Control
 var _storybook_inspection := ""
+var _storybook_inspected_cell: Variant = null
 var _storybook_focus_cell: Variant = null
 var _storybook_aiming := false
 var _opening_state: Dictionary
@@ -1128,8 +1129,7 @@ func _storybook_action(ability: String) -> void:
 		func(choice: Dictionary) -> bool: return choice.kind == "action" and choice.id == ability)
 	if not available:
 		return
-	var context := _rules.state_before_action(
-		_planned_state if _planned_state.overrides.has(_actor_id) else _state, _actor_id)
+	var context := _editor_context()
 	var kind := _target_kind(ability)
 	if not _rules.can_act(context, _actor_id) \
 			or (_is_selectable(kind) and _rules.targets(context, _actor_id, ability).is_empty()):
@@ -1174,40 +1174,33 @@ func _storybook_order(hero: String, order: String) -> void:
 
 
 func _storybook_select_board(cell: Vector2i) -> void:
-	if _storybook_aiming and _is_selectable(_target_kind()):
-		var aimed := _targets_at(cell)
-		if aimed.size() == 1:
-			_storybook_target(aimed[0].id)
-			return
-		if aimed.size() > 1:
-			_storybook_ambiguous = aimed
-			_render_storybook()
-			return
+	# A marked cell activates its offered target before actual occupants are considered.
+	var offered := _board_targets_at(cell)
+	if offered.size() == 1:
+		_storybook_target(offered[0].id)
+		return
+	if offered.size() > 1:
+		_storybook_ambiguous = offered
+		_render_storybook()
+		return
+	if _storybook_aiming:
+		return
 	for unit in _roster():
 		if unit.position == cell and unit.hp > 0:
 			if _actor_id != unit.id:
 				_actor_id = unit.id
 				_unpreviewed_edit = false
-				_storybook_aiming = false
 				_storybook_ambiguous.clear()
 				_sync_command()
 				_refresh()
 			return
-	if _unpreviewed_edit and _ability_id != "move":
+	# With no Move marks already offered, an empty destination can start a Move.
+	if _ability_id == "move" or _unpreviewed_edit or not _editor_can_act:
 		return
-	if not _rules.options(_state, _actor_id).any(
-			func(choice: Dictionary) -> bool: return choice.kind == "action" and choice.id == "move"):
-		return
-	var context := _rules.state_before_action(
-		_planned_state if _planned_state.overrides.has(_actor_id) else _state, _actor_id)
-	if not _rules.can_act(context, _actor_id):
-		return
-	for choice in _rules.targets(context, _actor_id, "move"):
+	for choice in _rules.targets(_editor_context(), _actor_id, "move"):
 		if choice.position == cell:
 			_ability_id = "move"
 			_target_id = choice.id
-			_storybook_aiming = false
-			_editor_can_act = true
 			_stage_command()
 			return
 
@@ -1220,8 +1213,7 @@ func _render_storybook() -> void:
 	var objective: Dictionary = mission.objective
 	var progress: Dictionary = _rules.objective_progress(_state)
 	var actions: Array = []
-	var context := _rules.state_before_action(
-		_planned_state if _planned_state.overrides.has(_actor_id) else _state, _actor_id)
+	var context := _editor_context()
 	for choice in _rules.options(_state, _actor_id):
 		if choice.kind == "action":
 			var definition := _action_definition(choice.id)
@@ -1324,7 +1316,6 @@ func _render_storybook() -> void:
 
 func _restart_fixed() -> void:
 	_state = _opening_state.duplicate(true)
-	_storybook_inspection = ""
 	_begin_attempt()
 
 
@@ -1337,6 +1328,7 @@ func _begin_attempt() -> void:
 	_actor_id = ""
 	_storybook_ambiguous.clear()
 	_storybook_aiming = false
+	_storybook_inspected_cell = null
 	_sync_actors()
 	_sync_command()
 	_refresh()
@@ -1358,10 +1350,14 @@ func _sync_command() -> void:
 	_target_id = draft.get("target_id", "")
 
 
-func _sync_targets() -> void:
+func _editor_context() -> Dictionary:
 	# A preview for the editor's hero replaces any queued override.
 	var editor_plan := _planned_state if _planned_state.overrides.has(_actor_id) else _state
-	var context := _rules.state_before_action(editor_plan, _actor_id)
+	return _rules.state_before_action(editor_plan, _actor_id)
+
+
+func _sync_targets() -> void:
+	var context := _editor_context()
 	_editor_actor = _find(_actor_id, context)
 	_editor_can_act = _rules.can_act(context, _actor_id)
 	_editor_knocked_down = _rules.knocked_down(context, _actor_id)
@@ -1443,8 +1439,8 @@ func _commit() -> void:
 	_unpreviewed_edit = false
 	_storybook_aiming = false
 	_storybook_ambiguous.clear()
-	_storybook_inspection = ""
-	_board.tooltip_text = ""
+	_storybook_inspected_cell = null
+	_set_inspection("")
 	if not _ongoing() and _fixed_mission.is_empty():
 		_run = Adventure.settle_mission(_run, _state)
 		if _run.phase in ["reward", "route", "ready", "finished"]:
@@ -1455,9 +1451,9 @@ func _commit() -> void:
 			return
 	_sync_actors()
 	_sync_command()
+	if _board.has_focus():
+		_storybook_inspected_cell = _storybook_focus_cell
 	_refresh()
-	if _board.has_focus() and _storybook_focus_cell is Vector2i:
-		_inspect_board(_storybook_focus_cell)
 	_board.play_committed_actions(cues)
 	_storybook_page.play_committed_reactions(reactions)
 
@@ -1594,6 +1590,7 @@ func _refresh() -> void:
 	_plan = _rules.preview_round(_planned_state)
 	_sync_targets()
 	_refresh_board()
+	_sync_inspection()
 	_render_storybook()
 
 
@@ -1763,9 +1760,10 @@ func _refresh_board() -> void:
 		if not _actor_id.is_empty():
 			var selected := _find(_actor_id)
 			overlay["selected"] = selected.position
-			if _editor_can_act and (_ability_id == "move" or _storybook_aiming):
+			var offered := _board_targets()
+			if not offered.is_empty():
 				var positions: Array = []
-				for target in _targets:
+				for target in offered:
 					positions.append(target.position)
 					if _target_id == target.id:
 						overlay["chosen_target"] = target.position
@@ -1922,20 +1920,28 @@ func _select_board(cell: Vector2i) -> void:
 
 
 func _inspect_board(cell: Vector2i) -> void:
+	_storybook_inspected_cell = cell
+	_sync_inspection()
+	_render_storybook()
+
+
+func _sync_inspection() -> void:
+	if not _painted_cells.has(_storybook_inspected_cell):
+		_set_inspection("")
+		return
+	var cell: Vector2i = _storybook_inspected_cell
 	var marker: Dictionary = _objective_markers.get(cell, {})
 	var place := BridgeArt.coordinate(cell) if marker.is_empty() else \
 		"%s  ·  %s" % [BridgeArt.coordinate(cell), marker.label]
 	var shield_note := _shield_tile_note(cell)
 	var target_note := ""
-	if _ongoing() and (_ability_id == "move" or _storybook_aiming):
-		var target_kind := _target_kind()
-		var matching := _targets_at(cell)
-		if not matching.is_empty():
-			if target_kind == "cell":
-				target_note = "Summon destination" if _is_summon() else "Move destination"
-			else:
-				target_note = "Legal target" if matching.size() == 1 else "%d targets; choose in Target" % matching.size()
-			target_note = "  ·  %s when %s acts" % [target_note, _name_for(_actor_id)]
+	var matching := _board_targets_at(cell)
+	if not matching.is_empty():
+		if _target_kind() == "cell":
+			target_note = "Summon destination" if _is_summon() else "Move destination"
+		else:
+			target_note = "Legal target" if matching.size() == 1 else "%d targets; choose in Target" % matching.size()
+		target_note = "  ·  %s when %s acts" % [target_note, _name_for(_actor_id)]
 	for unit in _state.units:
 		if unit.position == cell and unit.hp > 0:
 			var text := "%s%s  ·  %s  %d/%d HP" % [place, shield_note, _name_for(unit.id), unit.hp, unit.max_hp]
@@ -1962,10 +1968,7 @@ func _inspect_board(cell: Vector2i) -> void:
 
 func _set_inspection(text: String, details := PackedStringArray()) -> void:
 	_storybook_inspection = text if details.is_empty() else text + "  ·  " + details[0]
-	_board.tooltip_text = text if details.is_empty() else text + "
-" + "
-".join(details)
-	_render_storybook()
+	_board.tooltip_text = text if details.is_empty() else text + "\n" + "\n".join(details)
 
 
 func _enemy_inspection_notes(id: String) -> PackedStringArray:
@@ -2000,13 +2003,17 @@ func _shield_tile_note(cell: Vector2i) -> String:
 	return "" if notes.is_empty() else "  ·  " + "  ·  ".join(notes)
 
 
-func _targets_at(cell: Vector2i) -> Array:
-	return _targets.filter(func(target: Dictionary) -> bool: return target.position == cell)
+func _board_targets() -> Array:
+	return _targets if _ongoing() and (_storybook_aiming or _ability_id == "move") else []
+
+
+func _board_targets_at(cell: Vector2i) -> Array:
+	return _board_targets().filter(func(target: Dictionary) -> bool: return target.position == cell)
 
 
 func _clear_inspection() -> void:
-	_storybook_inspection = ""
-	_board.tooltip_text = ""
+	_storybook_inspected_cell = null
+	_set_inspection("")
 	_render_storybook()
 
 

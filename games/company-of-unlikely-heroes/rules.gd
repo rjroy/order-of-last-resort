@@ -306,9 +306,8 @@ func _resolve_turns(state: Dictionary, events: Array, stop_before := "") -> void
 
 func _resolve_turn(state: Dictionary, actor: Dictionary, events: Array) -> void:
 	if Statuses.has_skip(state, actor):
-		# Wagon and sheep move during the objective pass, not their initiative slot.
-		# Keep this reaction pending until then, without deferring other statuses.
-		Statuses.consume_skips(state, actor, events, FrontierObjectives.controls_movement(state, actor.id))
+		if not FrontierObjectives.controls_movement(state, actor.id) or _has_objective_turn_action(state, actor):
+			Statuses.consume_skips(state, actor, events)
 		return
 
 	var name := Board.display_name(state, actor)
@@ -320,6 +319,21 @@ func _resolve_turn(state: Dictionary, actor: Dictionary, events: Array) -> void:
 	elif not _execute_action(state, actor, action, events):
 		Board.authored_event(state, events, "wait", "invalid", {"actor": name},
 			{"unit_id": actor.id, "ability_id": action.ability_id})
+
+
+func _has_objective_turn_action(state: Dictionary, actor: Dictionary) -> bool:
+	# Probe without the skips on a private board: deciding an intent can consume RNG.
+	var probe := state.duplicate(true)
+	var candidate := Board.entity(probe, actor.id)
+	for id in Statuses.ids_with_handler(probe, candidate, "skip_action"):
+		candidate.statuses.erase(id)
+	Statuses.clear_alchemy(candidate, Statuses.JELLY_KNEES)
+	var intent := _intent(probe, candidate)
+	if intent.has("ability_id"):
+		return true
+	# A player's explicit Hold is an activation, unlike an autonomous placeholder.
+	return Board.capable(state, actor, "commandable") \
+		and (state.overrides.has(actor.id) or state.orders.has(actor.id))
 
 
 func _execute_action(state: Dictionary, actor: Dictionary, action: Dictionary, events: Array) -> bool:

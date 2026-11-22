@@ -21,6 +21,10 @@ func _initialize() -> void:
 	_test_noise()
 	_test_ritual()
 	_test_wagon()
+	_test_objective_knockdown()
+	_test_mixed_objective_skips()
+	_test_guard_objective_knockdown()
+	_test_ordinary_selected_hold_recovery()
 	if failures.is_empty():
 		print("PASS: special objectives")
 	else:
@@ -39,7 +43,7 @@ func _unit(id: String, character: String, position: Vector2i) -> Dictionary:
 		"hp": 10, "max_hp": 10, "statuses": {}}
 
 
-func _fixture(objective: Dictionary, units: Array, behavior_fixture := "") -> Dictionary:
+func _fixture(objective: Dictionary, units: Array, behavior_fixture := "", knockdown_fixture := false) -> Dictionary:
 	var defs: Dictionary = Fixture.definitions()
 	# No autonomous actions obscure the controlled end-of-round boards.
 	for profile in defs.classes.values():
@@ -53,6 +57,35 @@ func _fixture(objective: Dictionary, units: Array, behavior_fixture := "") -> Di
 		defs.behaviors.threat.params.ability = "enemy_attack"
 		defs.behaviors.threat.params.fallback_teams = ["civilian"]
 		defs.abilities.enemy_attack.targeting.teams = ["civilian"]
+	elif behavior_fixture in ["mixed_skips", "mixed_hold", "objective_guard"]:
+		if behavior_fixture != "mixed_hold":
+			defs.classes.civilian.abilities.append("knight_aura")
+			defs.behaviors["fixture_guard"] = {"handler": "use_ability", "params": {"ability": "knight_aura"}}
+			defs.classes.civilian.behavior = "fixture_guard"
+			# Keep the Guard effect observable without reflecting the test hit.
+			defs.classes.civilian.capabilities.erase("protectable")
+	elif behavior_fixture == "ordinary_hold":
+		defs.orders["order_hold"] = {"label": "Hold"}
+		defs.behaviors["hold"] = {"handler": "hold", "params": {}}
+		defs.classes.knight.habits = {"order_hold": "hold"}
+	if behavior_fixture in ["mixed_skips", "mixed_hold"]:
+		defs.characters.bard = {"class": "wizard", "label": "Bard"}
+		defs.upgrades = {"fixture_laughing_fit": {
+			"hero_id": "bard", "effect": "laughing_fit", "amount": 2, "rarity": "common",
+			"cap": 1, "label": "Fit", "description": "Fixture fit"}}
+		defs.statuses.laughter = {"label": "Laughter", "handler": "skip_action",
+			"expiry": "consume_action", "params": {"skip_event": "laugh_skip",
+				"immunity_rounds": 1, "immune_label": "Immune"}}
+		defs.abilities["fixture_laugh"] = defs.abilities.knight_aura.duplicate(true)
+		defs.abilities.fixture_laugh.params.status = "laughter"
+		defs.classes.wizard.abilities.append("fixture_laugh")
+		defs.events.laugh_skip = {"text": "laugh_skip"}
+		defs.abilities.healer_bonk.targeting.teams = ["civilian"]
+		defs.abilities.healer_bonk.targeting.range = 2
+	if knockdown_fixture:
+		defs.abilities.wizard_blast.params.damage = 0
+		defs.abilities.wizard_blast.targeting = {
+			"kind": "entity", "range": 1, "capabilities": ["damageable"]}
 	defs.tiles["void"] = {"label": "Void", "art_key": "void", "passable": false}
 	defs.missions.fixture.failures = [{"handler": "party_wiped", "event": "Party lost"}]
 	var state: Dictionary = rules.new_game(defs, "fixture")
@@ -464,3 +497,182 @@ func _test_wagon_targeting(obj: Dictionary) -> void:
 			hit_wagon = true
 	_check(hit_wagon, "Civilian-targeting raider attacks wagon with a hero also adjacent")
 	_round(state, "Wagon priority")
+
+
+func _test_objective_knockdown() -> void:
+	for kind in ["wagon", "sheep"]:
+		for before_slot in [true, false]:
+			_objective_knockdown_case(kind, before_slot, false)
+			_objective_knockdown_case(kind, before_slot, true)
+
+
+func _objective_knockdown_case(kind: String, before_slot: bool, jelly: bool) -> void:
+	var start := Vector2i(4, 4)
+	var obj := _objective("wagon", {"subject": "subject", "destination": Vector2i(9, 4)}) \
+		if kind == "wagon" else _objective("herd_sheep", {
+			"subjects": ["subject"], "pen": [Vector2i(9, 9)]})
+	var wizard := _unit("wizard", "wizard", Vector2i(3, 4))
+	var subject := _unit("subject", "ferryman", start)
+	var units := [_unit("knight", "knight", Vector2i(0, 0)),
+		_unit("healer", "healer", Vector2i(0, 1))]
+	units.append_array([wizard, subject] if before_slot else [subject, wizard])
+	var state := _fixture(obj, units, "sheep" if kind == "sheep" else "", true)
+	if state.is_empty():
+		return
+	# A targeted, harmless authored knockdown makes initiative order the only variable.
+	if jelly:
+		_entity(state, "subject")["alchemy_statuses"] = {"jelly_knees": {"source_id": "wizard"}}
+	var label := "%s knockdown %s nominal slot%s" % [
+		kind, "before" if before_slot else "after", " with Jelly Knees" if jelly else ""]
+	var action: Dictionary = rules.preview(state, "wizard", "wizard_blast", "subject")
+	_check(action.get("valid", false) and _entity(action.get("result", state), "subject").statuses.has("knockdown"),
+		label + ": fixture applies authored knockdown")
+	state = rules.choose_manual(state, "wizard", "wizard_blast", "subject")
+	var skipped := _round(state, label)
+	if skipped.is_empty():
+		return
+	var recovered := _entity(skipped, "subject")
+	_check(recovered.position == start, label + ": skips objective movement")
+	_check(not recovered.statuses.has("knockdown")
+		and not recovered.get("alchemy_statuses", {}).has("jelly_knees"),
+		label + ": consumes concurrent knockdowns on that activation")
+	skipped.overrides = {}
+	var resumed := _round(skipped, label + " following round")
+	if not resumed.is_empty():
+		_check(_entity(resumed, "subject").position != start,
+			label + ": resumes movement the following round")
+
+
+func _test_mixed_objective_skips() -> void:
+	for mode in ["guard", "hold", "guard_hit"]:
+		var hit_before_objective: bool = mode == "guard_hit"
+		var guard: bool = mode != "hold"
+		var subject := _unit("subject", "ferryman", Vector2i(4, 4))
+		subject.hp = 20
+		subject.max_hp = 20
+		subject.statuses = {"laughter": {"source_id": "bard"}, "knockdown": {"source_id": "wizard"}}
+		var bard := _unit("bard", "bard", Vector2i(0, 3))
+		bard["upgrades"] = {"fixture_laughing_fit": 1}
+		var units := [bard, subject, _unit("healer", "healer", Vector2i(3, 4)),
+			_unit("knight", "knight", Vector2i(0, 0)), _unit("wizard", "wizard", Vector2i(0, 2))]
+		var state := _fixture(_objective("wagon", {
+			"subject": "subject", "destination": Vector2i(9, 4)}), units,
+			"mixed_skips" if guard else "mixed_hold")
+		if state.is_empty():
+			return
+		if hit_before_objective:
+			state = rules.choose_manual(state, "healer", "healer_bonk", "subject")
+		var label: String = "Mixed skips " + mode
+		var before := state.duplicate(true)
+		var plan: Dictionary = rules.preview_round(state)
+		_check(plan.get("valid", false) and state == before and plan == rules.preview_round(state),
+			label + ": forecast is valid, pure and repeatable")
+		if not plan.get("valid", false):
+			continue
+		var result: Dictionary = rules.commit_round(state, plan)
+		_check(result == plan.get("result"), label + ": commit matches forecast")
+		var recoveries := []
+		var fit_grants := []
+		var fit_consumptions := []
+		var healer_event := -1
+		for index in range(plan.events.size()):
+			var event: Dictionary = plan.events[index]
+			if event.get("type") == "recover" and event.get("unit_id") == "subject":
+				recoveries.append({"index": index, "ids": event.get("status_ids", [])})
+			if event.get("type") == "status" and event.get("status_id") == "laughing_fit" \
+					and event.get("unit_id") == "subject":
+				if str(event.get("text", "")).contains("drops their guard"):
+					fit_grants.append(index)
+				elif str(event.get("text", "")).contains("increases the hit"):
+					fit_consumptions.append(index)
+				else:
+					_check(false, label + ": unexpected Laughing Fit status event")
+			if (event.get("unit_id") == "healer" and event.get("type") == "wait") \
+					or (event.get("source_id") == "healer" and event.get("type") == "damage"):
+				healer_event = index
+		_check(recoveries.size() == 1 and healer_event >= 0, label + ": one actual activation is skipped")
+		if recoveries.size() == 1 and healer_event >= 0:
+			_check("laughter" in recoveries[0].ids and "knockdown" in recoveries[0].ids
+				and ((recoveries[0].index < healer_event) == guard),
+				label + ": both effects are credited at the next real activation")
+		_check(fit_grants.size() == 1 and recoveries.size() == 1
+			and fit_grants[0] == recoveries[0].index + 1,
+			label + ": Laughing Fit is granted and reported once at that activation")
+		_check(fit_consumptions.size() == (1 if hit_before_objective else 0)
+			and (not hit_before_objective or fit_consumptions[0] < healer_event),
+			label + ": intervening hit reports one consumption and no duplicate")
+		var after := _entity(result, "subject")
+		_check(after.position == (Vector2i(5, 4) if guard else Vector2i(4, 4))
+			and not after.statuses.has("aura") and not after.statuses.has("knockdown")
+			and after.statuses.get("laughter", {}).has("immune_through_round"),
+			label + ": only the real activation is skipped and laughter immunity retained")
+		_check(after.hp == (16 if hit_before_objective else 20), label + ": intervening hit gets one bonus")
+		var hit: Dictionary = rules.preview(result, "healer", "healer_bonk", "subject")
+		_check(hit.get("valid", false), label + ": follow-up hit is legal")
+		if hit.get("valid", false):
+			var hit_fits := _fit_event_count(hit.events, "increases the hit")
+			_check(hit_fits == (0 if hit_before_objective else 1),
+				label + ": follow-up reports exactly the unspent consumption")
+			_check(_fit_event_count(hit.events, "drops their guard") == 0,
+				label + ": follow-up does not report another grant")
+			var once: Dictionary = rules.apply_plan(result, hit)
+			_check(_entity(once, "subject").hp == (14 if hit_before_objective else 16),
+				label + ": next hit receives only any unspent bonus")
+			var second: Dictionary = rules.preview(once, "healer", "healer_bonk", "subject")
+			_check(second.get("valid", false), label + ": second follow-up hit is legal")
+			if second.get("valid", false):
+				_check(_fit_event_count(second.events, "increases the hit") == 0
+					and _fit_event_count(second.events, "drops their guard") == 0,
+					label + ": second follow-up reports no repeated consumption")
+				_check(_entity(rules.apply_plan(once, second), "subject").hp
+					== (12 if hit_before_objective else 14), label + ": no extra damage on the second hit")
+
+
+func _fit_event_count(events: Array, phrase: String) -> int:
+	var count := 0
+	for event in events:
+		if event.get("type") == "status" and event.get("status_id") == "laughing_fit" \
+				and event.get("unit_id") == "subject" and str(event.get("text", "")).contains(phrase):
+			count += 1
+	return count
+
+
+func _test_guard_objective_knockdown() -> void:
+	for before_slot in [true, false]:
+		var wizard := _unit("wizard", "wizard", Vector2i(3, 4))
+		var subject := _unit("subject", "ferryman", Vector2i(4, 4))
+		var units := [_unit("knight", "knight", Vector2i(0, 0)),
+			_unit("healer", "healer", Vector2i(0, 1))]
+		units.append_array([wizard, subject] if before_slot else [subject, wizard])
+		var state := _fixture(_objective("wagon", {
+			"subject": "subject", "destination": Vector2i(9, 4)}), units, "objective_guard", true)
+		if state.is_empty():
+			continue
+		state = rules.choose_manual(state, "wizard", "wizard_blast", "subject")
+		var label := "Guard wagon knockdown " + ("before" if before_slot else "after") + " initiative"
+		var result := _round(state, label)
+		if result.is_empty():
+			continue
+		var wagon := _entity(result, "subject")
+		_check(wagon.position == (Vector2i(5, 4) if before_slot else Vector2i(4, 4))
+			and wagon.statuses.has("aura") != before_slot and not wagon.statuses.has("knockdown"),
+			label + ": skips exactly the next real activation, not both")
+
+
+func _test_ordinary_selected_hold_recovery() -> void:
+	var state := _fixture(_objective("survive", {"turns": 5}), _heroes(), "ordinary_hold")
+	if state.is_empty():
+		return
+	state = rules.set_order(state, "knight", "order_hold")
+	_check(state.orders.get("knight") == "order_hold", "Ordinary hero selects Hold")
+	_entity(state, "knight").statuses = {"knockdown": {"source_id": "wizard"}}
+	var plan: Dictionary = rules.preview_round(state)
+	_check(plan.get("valid", false), "Ordinary selected Hold recovery forecasts")
+	if not plan.get("valid", false):
+		return
+	var recoveries: Array = plan.events.filter(func(event: Dictionary) -> bool:
+		return event.get("type") == "recover" and event.get("unit_id") == "knight" \
+			and "knockdown" in event.get("status_ids", []))
+	var result: Dictionary = rules.commit_round(state, plan)
+	_check(recoveries.size() == 1 and not _entity(result, "knight").statuses.has("knockdown"),
+		"Ordinary hero recovers at initiative even when explicitly ordered to Hold")

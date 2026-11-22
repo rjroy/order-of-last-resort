@@ -359,4 +359,4 @@ static func _advance_wagon(state: Dictionary, events: Array) -> void:
 
 
 static func _skip_objective_movement(state: Dictionary, unit: Dictionary, events: Array) -> bool:
-	return Statuses.consume_objective_skip(state, unit, events) or Statuses.knocked_down(state, unit)
+	return Statuses.consume_objective_skip(state, unit, events)

@@ -98,12 +98,18 @@ static func expire_rounds(state: Dictionary) -> void:
 				clear_alchemy(unit, id)
 
 
-static func consume_skips(state: Dictionary, unit: Dictionary, events: Array, defer_jelly := false) -> void:
+static func consume_skips(state: Dictionary, unit: Dictionary, events: Array) -> void:
 	var ids := ids_with_handler(state, unit, "skip_action")
-	var jelly := not defer_jelly and clear_alchemy(unit, JELLY_KNEES)
+	var jelly := clear_alchemy(unit, JELLY_KNEES)
+	_consume_skips(state, unit, events, ids, jelly)
+
+
+static func _consume_skips(state: Dictionary, unit: Dictionary, events: Array,
+		ids: Array[String], jelly: bool) -> void:
 	if ids.is_empty() and not jelly:
 		return
 	var event := RECOVER_EVENT
+	var granted_laughing_fit := false
 	for id in ids:
 		var spec := definition(state, id)
 		var params: Dictionary = spec.params
@@ -112,6 +118,7 @@ static func consume_skips(state: Dictionary, unit: Dictionary, events: Array, de
 			var bonus := Upgrades.amount(state, bard, "laughing_fit")
 			if bonus > 0:
 				unit.statuses["laughing_fit"] = {"source_id": bard.id, "amount": bonus}
+				granted_laughing_fit = true
 		var rounds: int = int(params.get("immunity_rounds", 0))
 		if rounds > 0:
 			# Immunity starts on the lost action and lasts through the next N entire rounds.
@@ -121,16 +128,16 @@ static func consume_skips(state: Dictionary, unit: Dictionary, events: Array, de
 		if event == RECOVER_EVENT:
 			event = params.get("skip_event", RECOVER_EVENT)
 	_recover(state, unit, events, event, ids, jelly)
-	if unit.statuses.has("laughing_fit"):
+	if granted_laughing_fit:
 		Board.event(events, "status", "Laughing Fit: %s drops their guard; the next hit deals +%d damage." % [
 			Board.display_name(state, unit), unit.statuses.laughing_fit.amount],
 			{"unit_id": unit.id, "status_id": "laughing_fit", "amount": unit.statuses.laughing_fit.amount})
 
 
 static func consume_objective_skip(state: Dictionary, unit: Dictionary, events: Array) -> bool:
-	if not clear_alchemy(unit, JELLY_KNEES):
+	if not has_skip(state, unit):
 		return false
-	_recover(state, unit, events, RECOVER_EVENT, [], true)
+	consume_skips(state, unit, events)
 	return true
 
 

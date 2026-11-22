@@ -41,7 +41,7 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 		var role := str(value.get("cast_key", ""))
 		var key := str(value.get("clip", ""))
 		var clip := art.clip_for(role, key)
-		if clip == null or key in ["ready", "gift"]:
+		if clip == null or key in ["ready", "gift", "acid_flask"]:
 			continue
 		var cue: Dictionary = value.duplicate(true)
 		cue["target_id"] = str(cue.get("target_id", ""))

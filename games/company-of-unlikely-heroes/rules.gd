@@ -326,6 +326,9 @@ func _execute_action(state: Dictionary, actor: Dictionary, action: Dictionary, e
 	var gate_was_open := Board.pressure_gate_open(state)
 	var first := events.size()
 	var origin: Variant = actor.get("position")
+	var ability := Actions.owned_ability(state, actor, action.ability_id)
+	var recipe: String = actor.get("bottled_reaction", {}).get("recipe", "") \
+		if ability.get("handler") == "repeat_batch" else ""
 	if not Actions.execute(state, actor, action, events):
 		return false
 	if first < events.size():
@@ -333,13 +336,15 @@ func _execute_action(state: Dictionary, actor: Dictionary, action: Dictionary, e
 		# Preserve the actual actor and effect scope without adding a log event.
 		events[first]["resolved_action"] = {"unit_id": actor.id, "ability_id": action.ability_id,
 			"source_cell": origin, "actor_cell": actor.position, "event_count": events.size() - first}
+		if not recipe.is_empty():
+			events[first].resolved_action["recipe_id"] = recipe
 	match state.objective.handler:
 		"pressure_gate":
 			FrontierObjectives.report_gate_change(state, actor, gate_was_open, events)
 		"treasure_noise":
 			if Board.deployed_hero(state, actor):
-				var ability := Actions.owned_ability(state, actor, action.ability_id)
-				FrontierObjectives.add_noise(state, actor, ability.handler, events)
+				var noise_ability := Actions.owned_ability(state, actor, action.ability_id)
+				FrontierObjectives.add_noise(state, actor, noise_ability.handler, events)
 	return true
 
 

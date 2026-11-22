@@ -15,6 +15,9 @@ const CLIPS := {
 	"necromancer": {"summon_skeleton": ["summon", "summon_skeleton"], "raise_dead": ["summon", "raise_dead"]},
 	"skeleton": {"wave": ["sweep", "wave"], "dont_go": ["stop_target", "dont_go"]},
 	"zombie": {"say_hello": ["repel", "say_hello"], "offer_flower": ["attack", "offer_flower"]},
+	"alchemist": {"alchemist_potion": ["healing_potion", "potion"],
+		"alchemist_acid": ["acid", "acid"], "alchemist_plain_tonic": ["plain_tonic", "potion"],
+		"alchemist_repeat_batch": ["repeat_batch", "potion"]},
 }
 const STRIKES := ["bonk", "blast", "shield_away", "offer_flower", "healing_sonnet", "wave"]
 
@@ -78,6 +81,12 @@ static func _start_cue(state: Dictionary, actor: Dictionary, action: Dictionary)
 	var clip: String = binding[1]
 	if ability.get("handler", "") != binding[0] or not _supports_shape(definitions, ability, clip):
 		return {}
+	if ability.get("handler") == "repeat_batch":
+		var recipe: Dictionary = definitions.abilities.get(action.get("recipe_id", ""), {})
+		if recipe.get("handler") == "acid":
+			clip = "acid"
+		elif recipe.get("handler") != "healing_potion":
+			return {}
 	var cue := {"unit_id": actor.id, "cast_key": key, "clip": clip, "target_id": "",
 		"source_cell": action.source_cell, "actor_cell": action.actor_cell, "recipients": []}
 	if clip == "retreat":
@@ -113,6 +122,10 @@ static func _observe(cue: Dictionary, event: Dictionary, positions: Dictionary) 
 		"heal":
 			if own_action and clip == "ally_heal":
 				_observe_heal(cue, event, cell)
+			elif own_action and clip == "potion":
+				_aim(cue, id, cell)
+				if event.amount > 0:
+					_recipient(cue, id, cell, "heal")
 			elif own_action and clip == "inspiring_melody" and event.amount > 0:
 				_recipient(cue, id, cell, "heal")
 		"performance":
@@ -132,6 +145,13 @@ static func _observe(cue: Dictionary, event: Dictionary, positions: Dictionary) 
 				if clip != "wave" and not _has_recipient(cue, "hit"):
 					_aim(cue, id, cell)
 				_recipient(cue, id, cell, "hit")
+			elif clip == "acid" and event.get("source_id") == actor:
+				if not cue.has("target_cell"):
+					_aim(cue, id, cell)
+				_recipient(cue, id, cell, "hit")
+		"alchemy_reaction":
+			if own_action and clip in ["potion", "acid"]:
+				_aim(cue, id, event.get("position", cell))
 		"shield_drop":
 			if own_action and clip == "shield_away":
 				cue["target_cell"] = event.position

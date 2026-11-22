@@ -7,11 +7,12 @@ const Board = preload("res://bridge_art.gd")
 const MANIFEST := "res://assets/cast/manifest.json"
 const CELL := Vector2i.ZERO
 const CELLS := {CELL: "bridge"}
-const ROLES := ["knight", "healer", "wizard", "rogue", "necromancer", "bard", "skeleton", "zombie"]
+const ROLES := ["knight", "healer", "wizard", "rogue", "necromancer", "bard", "skeleton", "zombie", "alchemist"]
 const ART_KEYS := {
 	"knight": "knight", "healer": "healer", "wizard": "wizard",
 	"rogue": "wizard", "necromancer": "wizard", "bard": "wizard",
-	"skeleton": "skeleton", "zombie": "zombie",
+	# Stock Mixologist keeps the legacy art key; cast_key selects her own sprite.
+	"skeleton": "skeleton", "zombie": "zombie", "alchemist": "healer",
 }
 const EXTRA_CLIPS := {
 	"knight": ["guard", "shield_away"],
@@ -22,6 +23,7 @@ const EXTRA_CLIPS := {
 	"necromancer": ["summon_skeleton", "raise_dead"],
 	"skeleton": ["wave", "dont_go"],
 	"zombie": ["say_hello", "offer_flower", "gift"],
+	"alchemist": ["potion", "acid", "acid_flask"],
 }
 
 var board := Board.new()
@@ -55,10 +57,6 @@ func _run() -> void:
 	var fallback_again := await _render("", {"art_key": "another_unmodeled_art"})
 	_check(_difference(fallback, fallback_again) == 0,
 		"Unknown art keys should continue to use the same fallback")
-	var alchemist := await _render("", {"art_key": "healer", "label": "Alchemist"})
-	var legacy_healer := await _render("", {"art_key": "healer", "label": "Alchemist", "cast_key": ""})
-	_check(_difference(alchemist, legacy_healer) == 0,
-		"Alchemist without a cast key should retain the legacy healer art")
 	var figures: Dictionary = {}
 	for role in ROLES:
 		var ready := await _render(role)
@@ -87,9 +85,6 @@ func _run() -> void:
 		var injured := await _render(role, {"hp": 1, "max_hp": 3})
 		_check(_difference(healthy, injured) > 10, "%s should show its health" % role)
 
-	var modeled_healer := await _render("healer", {"label": "Alchemist"})
-	_check(_difference(alchemist, modeled_healer) > 100,
-		"Alchemist's legacy healer drawing must not be replaced by the modeled healer")
 	var shield_away := await _render("knight", {"shield_away": true})
 	_check(_difference(figures["knight"], shield_away) > 10,
 		"Knight must show when the shield is away")

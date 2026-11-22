@@ -9,6 +9,314 @@
     -0.435386419
   ],
   "actors": {
+    "alchemist": {
+      "source": "art/models/mixologist/mixologist-blockout.blend",
+      "sha256": "8458bf889a27b57fc99698964c5dcceb981c9b60bf54ac3db3aff29cea48033f",
+      "clips": {
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 1000,
+              "rect": [
+                732,
+                717,
+                101,
+                229
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            57,
+            211
+          ],
+          "action": "Mixologist | Ready",
+          "path": "res://assets/cast/alchemist.png"
+        },
+        "potion": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                155,
+                478,
+                122,
+                233
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 125,
+              "rect": [
+                277,
+                478,
+                122,
+                233
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 125,
+              "rect": [
+                399,
+                478,
+                122,
+                233
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 125,
+              "rect": [
+                521,
+                478,
+                122,
+                233
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                643,
+                478,
+                122,
+                233
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                717,
+                122,
+                233
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 125,
+              "rect": [
+                122,
+                717,
+                122,
+                233
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 41,
+              "rect": [
+                122,
+                717,
+                122,
+                233
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 167,
+              "rect": [
+                244,
+                717,
+                122,
+                233
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 167,
+              "rect": [
+                366,
+                717,
+                122,
+                233
+              ]
+            },
+            {
+              "source_frame": 32,
+              "duration_ms": 166,
+              "rect": [
+                488,
+                717,
+                122,
+                233
+              ]
+            },
+            {
+              "source_frame": 36,
+              "duration_ms": 125,
+              "rect": [
+                610,
+                717,
+                122,
+                233
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            60,
+            211
+          ],
+          "action": "Mixologist | Healing Potion",
+          "path": "res://assets/cast/alchemist.png"
+        },
+        "acid": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                0,
+                155,
+                239
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 83,
+              "rect": [
+                155,
+                0,
+                155,
+                239
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 125,
+              "rect": [
+                310,
+                0,
+                155,
+                239
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                465,
+                0,
+                155,
+                239
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 125,
+              "rect": [
+                620,
+                0,
+                155,
+                239
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                239,
+                155,
+                239
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 125,
+              "rect": [
+                155,
+                239,
+                155,
+                239
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                310,
+                239,
+                155,
+                239
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 167,
+              "rect": [
+                465,
+                239,
+                155,
+                239
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 125,
+              "rect": [
+                620,
+                239,
+                155,
+                239
+              ]
+            },
+            {
+              "source_frame": 32,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                478,
+                155,
+                239
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            62,
+            218
+          ],
+          "action": "Mixologist | Acid Toss",
+          "release": {
+            "time_ms": 708,
+            "offset": [
+              104.975,
+              -165.482
+            ],
+            "clip": "acid_flask"
+          },
+          "path": "res://assets/cast/alchemist.png"
+        },
+        "acid_flask": {
+          "frames": [
+            {
+              "source_frame": 18,
+              "duration_ms": 42,
+              "rect": [
+                833,
+                717,
+                24,
+                32
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            12.975,
+            23.518
+          ],
+          "action": "Mixologist | Acid Toss",
+          "path": "res://assets/cast/alchemist.png"
+        }
+      }
+    },
     "bard": {
       "source": "art/models/bard/bard-blockout.blend",
       "sha256": "5685e66c4f43a73a8267afcb6d16c369e64d3d6460cc80631642f3e796874966",

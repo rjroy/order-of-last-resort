@@ -25,6 +25,7 @@ func _initialize() -> void:
 		_test_committed_round()
 		_test_non_actions_and_aliases()
 		_test_custom_ability_handlers()
+		_test_mixologist_recipes()
 	if failures.is_empty():
 		print("PASS: resolved cast cues")
 	else:
@@ -296,3 +297,32 @@ func _test_custom_ability_handlers() -> void:
 		_check(_build(state, plan.result, plan.events).is_empty(),
 			"A custom attack must not play the stock repel-only greeting")
 	defs = original
+
+
+func _test_mixologist_recipes() -> void:
+	for recipe in [["alchemist_potion", "ally", "other_ally", "potion"],
+			["alchemist_acid", "foe", "other_foe", "acid"]]:
+		var state := _state([_unit("mix", "alchemist", Vector2i(3, 3)),
+			_unit("ally", "knight", Vector2i(3, 4), 4),
+			_unit("other_ally", "healer", Vector2i(3, 2), 4),
+			_unit("foe", "harpooner", Vector2i(4, 3)),
+			_unit("other_foe", "harpooner", Vector2i(2, 3))])
+		state.units[0]["upgrades"] = {"alchemist_spare_vial": 1, "alchemist_keep_the_culture": 1}
+		var tonic: Dictionary = rules.preview(state, "mix", "alchemist_plain_tonic", "ally")
+		_check(tonic.get("valid", false), "Plain Tonic fixture resolves")
+		if tonic.get("valid", false):
+			_cue(_build(state, tonic.result, tonic.events), "mix", "alchemist", "potion", "ally")
+		var plan: Dictionary = rules.preview(state, "mix", recipe[0], recipe[1])
+		_check(plan.get("valid", false), "Origin recipe fixture resolves: " + recipe[0])
+		if not plan.get("valid", false):
+			continue
+		var after: Dictionary = rules.apply_plan(state, plan)
+		_cue(_build(state, after, plan.events), "mix", "alchemist", recipe[3], recipe[1])
+		var repeat: Dictionary = rules.preview(after, "mix", "alchemist_repeat_batch", recipe[2])
+		_check(repeat.get("valid", false), "Repeat Batch fixture resolves after " + recipe[0])
+		if repeat.get("valid", false):
+			var repeated: Dictionary = rules.apply_plan(after, repeat)
+			var cues := _build(after, repeated, repeat.events)
+			_cue(cues, "mix", "alchemist", recipe[3], recipe[2])
+			_check(cues.all(func(cue): return cue.get("unit_id") == "mix"),
+				"Repeat Batch does not animate another hero")

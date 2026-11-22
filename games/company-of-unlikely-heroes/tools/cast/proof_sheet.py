@@ -8,6 +8,8 @@ from pathlib import Path
 
 # Include held/empty hand transition and distinguish the actors' strongest gestures.
 BEATS = {
+    "potion": [13, 17, 23, 24, 36],
+    "acid": [13, 16, 18, 21, 32],
     "guard": [39],
     "ally_heal": [17],
     "self_heal": [17],

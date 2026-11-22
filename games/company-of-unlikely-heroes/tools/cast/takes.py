@@ -4,6 +4,17 @@ Times are absolute 24-fps source offsets; held poses need only one drawing.
 
 GUARD = "Wary, plant, cover, settle"
 TAKES = {
+    "alchemist": {
+        "ready": ("Ready", [1], 25, True),
+        "potion": (
+            "Healing Potion",
+            [1, 4, 7, 10, 13, 17, 20, 23, 24, 28, 32, 36],
+            39,
+            False,
+        ),
+        "acid": ("Acid Toss", [1, 4, 6, 9, 13, 16, 18, 21, 25, 29, 32], 35, False),
+        "acid_flask": ("Acid Toss", [18], 19, False),
+    },
     "knight": {
         "ready": (GUARD, [8], 32, True),
         "guard": (GUARD, [8, 14, 20, 25, 31, 35, 39, 44, 51, 65], 78, False),
@@ -78,6 +89,13 @@ TAKES = {
         "gift": ("Offer Flower", [22], 46, False),
     },
 }
+
+# Actor clip, detached clip, prop root, release source frame, optional Blender marker.
+RELEASES = {
+    "alchemist": ("acid", "acid_flask", "Acid_Flask_Detachable", 18, None),
+    "zombie": ("offer_flower", "gift", "Daisy & fieldstone", 22, "Gift Release"),
+}
+
 PILOT = {
     "knight": "2f1bd3cb93992886383e8c8fe39c4854cd2dfdc9700a94d09ec7f348c958b590",
     "healer": "658f8fe81ad995b004a962c47a600f1d23feae72a53ca67283edae2bf671bf88",

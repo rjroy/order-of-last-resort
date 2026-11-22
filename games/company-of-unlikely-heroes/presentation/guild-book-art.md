@@ -10,8 +10,8 @@ approved; the presence of a file is not evidence of approval.
 
 `classes/`: `bard`, `wizard`, `healer`, `rogue`, `knight`, `necromancer`,
 `alchemist`, `blacksmith`. A portrait identity is a presentation opt-in, not
-the character's mechanical kit or battle art. The Mixologist has a distinct
-kit and uses the existing Healer board drawing pending dedicated battle art.
+the character's mechanical kit or battle art. The Mixologist uses her guild
+portrait here and a separate Blender-rendered sprite sheet in battle.
 Do not infer portraits from shared defaults or assign them to custom characters
 merely because they share those defaults. Blacksmith artwork does not add a recruit
 or change the roster.

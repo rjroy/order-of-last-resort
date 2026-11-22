@@ -3,6 +3,10 @@ extends SceneTree
 ## godot --path games/company-of-unlikely-heroes --script res://tests/cast_state_art_test.gd
 
 const Board = preload("res://bridge_art.gd")
+const Rules = preload("res://rules.gd")
+const Catalog = preload("res://content/catalog.gd")
+const Cues = preload("res://presentation/cast_cues.gd")
+const Statuses = preload("res://rules/statuses.gd")
 const CELL := Vector2i.ZERO
 const CELLS := {CELL: "bridge"}
 
@@ -34,6 +38,8 @@ func _run() -> void:
 	await _knockdown_overrides_live_heal()
 	await _recovered_shield_overrides_live_throw()
 	await _wizard_pull_finishes_seated()
+	_test_acid_release_geometry()
+	await _mixologist_knockdown_playback()
 	if failures == 0:
 		print("Cast state art test passed: KO, shield recovery and Pull seating.")
 	quit(1 if failures else 0)
@@ -115,6 +121,187 @@ func _wizard_pull_finishes_seated() -> void:
 	var down_again := await _state(down)
 	_check(_difference(seated, down_again) > 100,
 		"A later ordinary knockdown must not reuse the earlier Pull pose")
+
+
+func _test_acid_release_geometry() -> void:
+	var rules := Rules.new()
+	var opening := Rules.open_mission(Catalog.read_default(), "harpoon_squad",
+		["alchemist", "healer", "bard"])
+	for id in ["healer", "bard"]:
+		opening = rules.set_order(opening, id, "order_hold")
+	var selected: Dictionary = rules.choose_manual(opening, "alchemist", "alchemist_acid", "bruiser")
+	var plan: Dictionary = rules.preview_round(selected)
+	if not plan.get("valid", false):
+		_check(false, "Stock Harpoon Squad acid round is valid")
+		return
+	var after: Dictionary = rules.commit_round(selected, plan)
+	var actor := _entity(after, "alchemist")
+	var cues: Array = Cues.build(selected, after, plan.events)
+	var acids := cues.filter(func(cue): return cue.get("unit_id") == "alchemist" and cue.get("clip") == "acid")
+	_check(actor.get("position") == Vector2i(2, 2) and plan.events.any(func(event):
+		return event.get("type") == "pull" and event.get("target_id") == "alchemist"),
+		"Hookhand displaces the Mixologist in the stock committed round")
+	if acids.size() != 1:
+		_check(false, "Stock committed round produces one Mixologist acid cue")
+		return
+	var cue: Dictionary = acids[0]
+	_check(cue.get("source_cell") == Vector2i(1, 2)
+		and cue.get("target_id") == "bruiser" and cue.get("target_cell") == Vector2i(2, 3),
+		"Acid cue preserves the cast-time source and Bruiser's action-time cell")
+	var cells := {}
+	for x in after.width:
+		for y in after.height:
+			cells[Vector2i(x, y)] = "stone"
+	var units := []
+	for unit in after.units:
+		if unit.hp > 0:
+			units.append({"id": unit.id, "cell": unit.position, "hp": unit.hp,
+				"art_key": rules.entity_profile(after, unit.id).art_key,
+				"cast_key": Cues.cast_key_for(after, unit)})
+	_release_case(cells, units, cue, 1.0, "Displaced stock cast")
+	# Control cases use the same real clip and drawing projection in both directions.
+	for facing in [1, -1]:
+		var source := Vector2i(3, 2)
+		var target := Vector2i(3 + facing, 2)
+		var control := cue.duplicate(true)
+		control.source_cell = source
+		control.actor_cell = source
+		control.target_cell = target
+		var control_units := [{"id": "alchemist", "cell": source, "hp": 7,
+			"art_key": "healer", "cast_key": "alchemist"}]
+		_release_case(cells, control_units, control, float(facing), "Stationary facing %d" % facing)
+
+
+func _release_case(cells: Dictionary, units: Array, cue: Dictionary, facing: float, label: String) -> void:
+	board.clear_action_playback()
+	board.set_render_state(cells, units)
+	board.play_committed_actions([cue])
+	board.set_process(false)
+	var playback = board.get("_playback")
+	var active: Array = playback.active()
+	if active.size() != 1 or active[0].gift == null:
+		_check(false, label + ": acid flask playback exists")
+		return
+	var entry = active[0]
+	playback.advance(entry.clip.release_ms)
+	board.call("_sync_playback_geometry")
+	var actor: Dictionary = board.get("_units_by_id").get("alchemist", {})
+	var foot: Vector2 = board.call("_tile_origin", actor.cell) + Board.FOOT
+	var hand: Vector2 = foot + entry.clip.release_offset * Vector2(entry.facing, 1.0) * entry.clip.scale
+	var landing: Vector2 = board.call("_tile_origin", cue.target_cell) + Board.FOOT + Vector2(0, -29)
+	_check(entry.facing == facing, label + ": facing follows the action-time target")
+	_check(entry.gift_from is Vector2 and entry.gift_from.is_equal_approx(hand),
+		label + ": flask starts at the hand projected from the rendered actor's cell")
+	_check(entry.gift_to is Vector2 and entry.gift_to.is_equal_approx(landing),
+		label + ": flask lands at the action-time target projection")
+
+
+func _entity(state: Dictionary, id: String) -> Dictionary:
+	for unit in state.units:
+		if unit.id == id:
+			return unit
+	return {}
+
+
+func _mixologist_knockdown_playback() -> void:
+	var rules := Rules.new()
+	var opening := Rules.open_mission(Catalog.read_default(), "harpoon_squad",
+		["alchemist", "healer", "bard"])
+	var jelly := _jelly_potion(rules, opening)
+	if jelly.is_empty():
+		_check(false, "Self-potion can actually resolve Jelly Knees")
+		return
+	var potion_before: Dictionary = jelly.state
+	var potion_plan: Dictionary = jelly.plan
+	var down: Dictionary = rules.apply_plan(potion_before, potion_plan)
+	_check(Statuses.knocked_down(down, _entity(down, "alchemist")),
+		"Committed self-potion actually knocks the Mixologist down")
+	var potion_cues: Array = Cues.build(potion_before, down, potion_plan.events)
+	await _knockdown_cast_image(down, potion_cues, "potion", 17,
+		"Self-potion with Jelly Knees")
+
+	# A later real reaction knocks her down after the successful acid action.
+	var acid_plan: Dictionary = rules.preview(opening, "alchemist", "alchemist_acid", "bruiser")
+	if not acid_plan.get("valid", false):
+		_check(false, "Acid fixture is a successful real action")
+		return
+	var after_acid: Dictionary = rules.apply_plan(opening, acid_plan)
+	var later_jelly := _jelly_potion(rules, after_acid)
+	if later_jelly.is_empty():
+		_check(false, "Later self-potion can resolve Jelly Knees")
+		return
+	var final_state: Dictionary = rules.apply_plan(later_jelly.state, later_jelly.plan)
+	_check(Statuses.knocked_down(final_state, _entity(final_state, "alchemist")),
+		"Later action really leaves the acid thrower knocked down")
+	var acid_cues: Array = Cues.build(opening, final_state, acid_plan.events)
+	await _knockdown_cast_image(final_state, acid_cues, "acid", 18,
+		"Acid before a later knockdown")
+
+
+func _jelly_potion(rules, input: Dictionary) -> Dictionary:
+	for seed_value in range(1, 1000):
+		var candidate := input.duplicate(true)
+		_entity(candidate, "alchemist")["dose_rng_state"] = seed_value
+		var plan: Dictionary = rules.preview(candidate, "alchemist", "alchemist_potion", "alchemist")
+		if plan.get("valid", false) and plan.events.any(func(event):
+			return (event.get("type") == "alchemy_reaction" and event.get("reaction_id") == "jelly_knees"
+				and event.get("target_id") == "alchemist")):
+			return {"state": candidate, "plan": plan}
+	return {}
+
+
+func _knockdown_cast_image(state: Dictionary, cues: Array, clip: String, source_frame: int, label: String) -> void:
+	var matching := cues.filter(func(cue): return cue.get("unit_id") == "alchemist" and cue.get("clip") == clip)
+	if matching.size() != 1:
+		_check(false, label + ": successful rules event produces its action cue")
+		return
+	var actor := _entity(state, "alchemist")
+	var cell: Vector2i = actor.position
+	var cells := {cell: "bridge"}
+	var down_unit := {"id": "alchemist", "art_key": "healer", "cast_key": "alchemist",
+		"cell": cell, "facing": 1, "hp": actor.hp, "max_hp": actor.max_hp, "prone": true}
+	board.clear_action_playback()
+	board.set_render_state(cells, [down_unit])
+	board.set_process(false)
+	var idle_down := await _capture()
+	board.play_committed_actions(matching)
+	board.set_process(false)
+	var entries: Array = board.get("_playback").active()
+	if entries.size() != 1:
+		_check(false, label + ": action enters playback")
+		return
+	var entry = entries[0]
+	if clip == "acid":
+		_check(entry.gift != null, label + ": actual flask is attached to the action")
+	var sample_ms: float = entry.clip.time_at_source_frame(source_frame) + 10.0
+	_advance(sample_ms / 1000.0)
+	var down_action := await _capture()
+	var standing_unit := down_unit.duplicate(true)
+	standing_unit.prone = false
+	board.set_render_state(cells, [standing_unit])
+	board.set_process(false)
+	var standing_action := await _capture()
+	# Compare the figure above the health marker; both renders include identical
+	# feedback and projectile, so a floating flask cannot stand in for the actor.
+	var foot: Vector2 = board.get("_map_origin") + (board.call("_tile_origin", cell) + Board.FOOT) * board.get("_map_scale")
+	var top_area := Rect2i(0, 0, viewport.size.x, clampi(int(foot.y - 25), 1, viewport.size.y))
+	var actual_figure := down_action.get_region(top_area)
+	var expected_figure := standing_action.get_region(top_area)
+	var idle_figure := idle_down.get_region(top_area)
+	_check(_difference(actual_figure, expected_figure) < 10,
+		label + ": live gesture renders despite the final prone state")
+	_check(_difference(expected_figure, idle_figure) > 30,
+		label + ": sampled gesture is visibly different from idle prone")
+	board.set_render_state(cells, [down_unit])
+	_advance((entry.duration_ms - entry.elapsed_ms) / 1000.0 + 0.1)
+	var returned := await _capture()
+	_check(_difference(returned, idle_down) == 0, label + ": completed action returns to prone")
+	var fallen := down_unit.duplicate(true)
+	fallen.hp = 0
+	board.set_render_state(cells, [fallen])
+	board.set_process(false)
+	var idle_ko := await _capture()
+	_check(_difference(idle_ko, idle_down) > 10, label + ": idle fallen remains distinct from living prone")
 
 
 func _unit(role: String, extra: Dictionary = {}) -> Dictionary:

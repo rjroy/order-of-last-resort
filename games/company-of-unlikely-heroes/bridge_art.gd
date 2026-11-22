@@ -434,9 +434,14 @@ func _draw_figures() -> void:
 		var id: String = entry.cue.unit_id
 		var unit: Dictionary = _units_by_id.get(id, {})
 		if not unit.is_empty():
-			if int(unit.get("hp", 1)) <= 0 or str(unit.get("cast_key", "")) != entry.cue.cast_key:
+			if str(unit.get("cast_key", "")) != entry.cue.cast_key:
 				continue
-			if bool(unit.get("prone", false)) and not _is_wizard_pull(entry):
+			# The final board can include a later fall, or a fall caused by the
+			# dose itself. Show this committed gesture before returning to it.
+			var dose_gesture := _is_dose_gesture(entry)
+			if int(unit.get("hp", 1)) <= 0 and not dose_gesture:
+				continue
+			if bool(unit.get("prone", false)) and not _is_wizard_pull(entry) and not dose_gesture:
 				continue
 			# A previous shield throw cannot remove a shield that has since been recovered.
 			if entry.cue.clip == "shield_away" and not bool(unit.get("shield_away", false)):
@@ -461,7 +466,9 @@ func _draw_figures() -> void:
 	for unit in occupants:
 		if _cells.has(unit.cell) and not unit.get("transient", false):
 			_at(_tile_origin(unit.cell))
-			_draw_health(unit, bool(unit.get("prone", false)) or int(unit.get("hp", 1)) <= 0)
+			var action: CastPlayback.Entry = actions.get(unit.id)
+			var down := bool(unit.get("prone", false)) or int(unit.get("hp", 1)) <= 0
+			_draw_health(unit, down and (action == null or not _is_dose_gesture(action)))
 			_draw_unit_marker(unit)
 	# Loose equipment is a tile marker, even when a unit occupies that tile.
 	for cell in _overlay.get("forecast_shields", []):
@@ -770,8 +777,12 @@ func _unit_facing(unit: Dictionary) -> float:
 	return -1.0 if float(unit.get("facing", default_facing)) < 0.0 else 1.0
 
 
+func _unit_foot(cell: Vector2i) -> Vector2:
+	return _tile_origin(cell) + FOOT
+
+
 func _draw_unit_shadow(unit: Dictionary) -> void:
-	_at(_tile_origin(unit.cell) + FOOT)
+	_at(_unit_foot(unit.cell))
 	_wash(Vector2(-29, -1), Vector2(59, 9), Color("#24312a", 0.27))
 	_wash(Vector2(-22, 0), Vector2(48, 5), Color("#222824", 0.40))
 	if bool(unit.get("guarded", false)):
@@ -781,7 +792,7 @@ func _draw_unit_shadow(unit: Dictionary) -> void:
 func _draw_unit(unit: Dictionary, action: CastPlayback.Entry) -> void:
 	var role := str(unit.art_key)
 	var prone := bool(unit.get("prone", false)) or int(unit.get("hp", 1)) <= 0
-	var foot := _tile_origin(unit.cell) + FOOT
+	var foot := _unit_foot(unit.cell)
 	var facing := _unit_facing(unit)
 	if _draw_cast(unit, foot, facing, prone, action):
 		return
@@ -853,6 +864,10 @@ func _is_wizard_pull(entry: CastPlayback.Entry) -> bool:
 	return entry.cue.cast_key == "wizard" and entry.cue.clip == "pull"
 
 
+func _is_dose_gesture(entry: CastPlayback.Entry) -> bool:
+	return entry.cue.cast_key == "alchemist" and entry.cue.clip in ["potion", "acid"]
+
+
 func _sync_playback_geometry() -> void:
 	for entry in _playback.active():
 		var unit: Dictionary = _units_by_id.get(entry.cue.unit_id, {})
@@ -871,9 +886,15 @@ func _sync_playback_geometry() -> void:
 		if entry.gift == null or entry.gift_from != null or entry.flight_progress() < 0.0 \
 				or not target is Vector2i:
 			continue
+		# Actors render at the committed board position, or at actor_cell when
+		# represented by a transient figure after removal. Keep the launch on
+		# that figure while retaining action-time geometry for facing and impact.
+		var rendered_cell: Variant = unit.get("cell", entry.cue.get("actor_cell", source))
+		if not rendered_cell is Vector2i:
+			continue
 		var nudge := entry.clip.release_offset * Vector2(entry.facing, 1.0) * entry.clip.scale
-		entry.gift_from = _tile_origin(source) + FOOT + nudge
-		entry.gift_to = _tile_origin(target) + FOOT + Vector2(0, -29)
+		entry.gift_from = _unit_foot(rendered_cell) + nudge
+		entry.gift_to = _unit_foot(target) + Vector2(0, -29)
 
 
 func _draw_committed_feedback(entry: CastPlayback.Entry) -> void:

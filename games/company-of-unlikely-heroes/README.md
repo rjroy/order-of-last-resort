@@ -151,7 +151,7 @@ The game collects no playtest telemetry. The question to take away: **Did you en
 
 ### Cast sprites in battle
 
-The battle board in commissions, practice outings, and standalone missions uses sprites rendered from Blender for six heroes (Anxious Knight, Unimpressed Healer, Enthusiastic Caster, Daft Dodger, Friendly Crypter, and Bad Bard) and both summons (Skeleton and Zombie). The Mixologist keeps the existing board drawing. The [cast manifest](assets/cast/manifest.json) lists the packaged sprite sheets and clips. The original summon sprites were rendered from static Blender models based on the approved *First Greetings* concept. Those [models and sprites](assets/summons/README.md) are still in the game directory; the rigged summons were built from those models.
+The battle board in commissions, practice outings, and standalone missions uses sprites rendered from Blender for seven heroes (Anxious Knight, Unimpressed Healer, Enthusiastic Caster, Mixologist, Daft Dodger, Friendly Crypter, and Bad Bard) and both summons (Skeleton and Zombie). The [cast manifest](assets/cast/manifest.json) lists the packaged sprite sheets and clips. The original summon sprites were rendered from static Blender models based on the approved *First Greetings* concept. Those [models and sprites](assets/summons/README.md) are still in the game directory; the rigged summons were built from those models.
 
 Preview updates the forecast without resolving the round or starting any action clips. Commit resolves the round. Action playback is cosmetic and uses supported actions from the committed round, including standing orders. Not every ability has its own clip. To try the Friendly Crypter, launch `goblin_mob` and follow the opening above.
 

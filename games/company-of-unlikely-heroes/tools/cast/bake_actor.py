@@ -11,7 +11,7 @@ from mathutils import Vector
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from takes import TAKES, PILOT
+from takes import PILOT, RELEASES, TAKES
 
 ART = HERE.parents[3] / ".lore/work/games/company-of-unlikely-heroes/art"
 # Pilot's exact pixels/metre, enlarged symmetrically to protect tall/extending poses.
@@ -19,7 +19,7 @@ SIZE = 320
 ANCHOR = [160, 248]
 
 
-def ink_light(mat):
+def ink_light(mat, bottle_glass=False):
     """Reuse the model's actual base pigment maps; break up light in object space.
     All lighting is deterministic and attached to surface geometry, not screen grain.
     """
@@ -72,19 +72,36 @@ def ink_light(mat):
     em = nodes("ShaderNodeEmission")
     link(mix.outputs[0], em.inputs[0])
     em.inputs[1].default_value = 1.25
+    surface = em.outputs[0]
+    if bottle_glass:
+        # Opaque ink would cover the dyed liquid. Use a soft tint with stronger
+        # grazing edges so the vessel and its color both read in a flat sprite.
+        facing = nodes("ShaderNodeLayerWeight")
+        opacity = nodes("ShaderNodeMath")
+        opacity.operation = "MULTIPLY_ADD"
+        link(facing.outputs["Fresnel"], opacity.inputs[0])
+        opacity.inputs[1].default_value = 0.34
+        opacity.inputs[2].default_value = 0.15
+        glass = nodes("ShaderNodeMixShader")
+        link(opacity.outputs[0], glass.inputs[0])
+        link(nodes("ShaderNodeBsdfTransparent").outputs[0], glass.inputs[1])
+        link(surface, glass.inputs[2])
+        surface = glass.outputs[0]
     link(
-        em.outputs[0],
+        surface,
         next(n for n in t.nodes if n.type == "OUTPUT_MATERIAL").inputs["Surface"],
     )
 
 
-def setup(scene):
+def setup(scene, role):
     s = scene
     for mat in bpy.data.materials:
         if mat.node_tree and any(
             n.type == "BSDF_PRINCIPLED" for n in mat.node_tree.nodes
         ):
-            ink_light(mat)
+            ink_light(
+                mat, bottle_glass=role == "alchemist" and mat.name.startswith("Bottle glass")
+            )
     cam = bpy.data.cameras.new("Pilot common orthographic")
     c = bpy.data.objects.new("Registration camera", cam)
     s.collection.objects.link(c)
@@ -146,12 +163,23 @@ def bake(role, work):
             )
         ):
             o.hide_render = True
-    setup(s)
-    rig = bpy.data.objects[role.title() + "_Rig"]
+    setup(s, role)
+    actor = master.get("source_actor", role.title())
+    rig = bpy.data.objects[f"{actor}_Rig"]
+    release = RELEASES.get(role)
+    if release:
+        actor_clip, prop_clip, prop_name, release_frame, marker = release
+        root = bpy.data.objects[prop_name]
+        prop = {root, *root.children_recursive}
+        visibility = {
+            o: o.hide_render
+            for o in s.objects
+            if o.type in {"MESH", "CURVE", "SURFACE", "FONT"}
+        }
     cache = {}
     data = {}
     for clip, (action, frames, end, loop) in TAKES[role].items():
-        take = bpy.data.actions[f"{role.title()} | {action}"]
+        take = bpy.data.actions[f"{actor} | {action}"]
         rig.animation_data.action = take
         data[clip] = {"frames": [], "loop": loop, "anchor": ANCHOR, "action": take.name}
         for i, f in enumerate(frames):
@@ -161,30 +189,32 @@ def bake(role, work):
                 variant = "without_shield"
                 for o in bpy.data.objects["Shield_L_Detachable"].children_recursive:
                     o.hide_render = True
-            if role == "zombie" and clip in ("offer_flower", "gift") and f >= 22:
-                root = bpy.data.objects["Daisy & fieldstone"]
-                prop = set(root.children_recursive)
-                if f == 22:
-                    assert take.pose_markers["Gift Release"].frame == f
+            if release:
+                prop_only = clip == prop_clip
+                empty_hand = clip == actor_clip and f >= release_frame
+                for o, hidden in visibility.items():
+                    o.hide_render = (
+                        hidden or (prop_only and o not in prop) or (empty_hand and o in prop)
+                    )
+                if prop_only:
+                    variant = "prop_only"
+                elif empty_hand:
+                    variant = "empty_hand"
+                if (prop_only or empty_hand) and f == release_frame:
+                    if marker:
+                        assert take.pose_markers[marker].frame == f
                     uv = world_to_camera_view(
                         s, s.camera, root.matrix_world.translation
                     )
                     px = [round(uv.x * SIZE, 3), round((1 - uv.y) * SIZE, 3)]
-                    if clip == "gift":
+                    if prop_only:
                         data[clip]["anchor"] = px
                     else:
                         data[clip]["release"] = {
-                            "time_ms": 875,
+                            "time_ms": round((f - frames[0]) * 1000 / 24),
                             "offset": [round(a - b, 3) for a, b in zip(px, ANCHOR)],
-                            "clip": "gift",
+                            "clip": prop_clip,
                         }
-                variant = "gift_only" if clip == "gift" else "empty_hand"
-                for o in s.objects:
-                    if o.type in {"MESH", "CURVE", "SURFACE", "FONT"}:
-                        if clip == "gift":
-                            o.hide_render = o not in prop
-                        elif o in prop:
-                            o.hide_render = True
             key = (action, f, variant)
             if key not in cache:
                 out = work / f"{role}-{len(cache):03d}.png"

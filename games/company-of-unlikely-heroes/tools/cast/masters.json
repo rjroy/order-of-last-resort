@@ -1,4 +1,9 @@
 {
+  "alchemist": {
+    "source": "models/mixologist/mixologist-blockout.blend",
+    "source_actor": "Mixologist",
+    "sha256": "8458bf889a27b57fc99698964c5dcceb981c9b60bf54ac3db3aff29cea48033f"
+  },
   "bard": {
     "source": "models/bard/bard-blockout.blend",
     "sha256": "5685e66c4f43a73a8267afcb6d16c369e64d3d6460cc80631642f3e796874966"

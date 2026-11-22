@@ -198,6 +198,8 @@
       "class": "alchemist",
       "label": "Mixologist",
       "guild_portrait": "alchemist",
+      "cast_key": "alchemist",
+      "cast_art_key": "healer",
       "description": "Follow the nearest ally, choose whom to heal with a potion, or throw Acid at a foe. Read the forecast for the exact reaction before committing."
     },
     "rogue": {

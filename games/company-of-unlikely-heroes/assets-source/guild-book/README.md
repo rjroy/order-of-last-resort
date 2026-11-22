@@ -21,6 +21,19 @@ images are disposable and must not be committed. A coverage mismatch returns
 exit status 1 but still writes the available sheets and index. Rendering errors
 return status 2 and can leave a partial output directory.
 
+For a graphical capture of the non-battle journey, use a fresh output directory:
+
+```sh
+godot --path games/company-of-unlikely-heroes --script res://tools/capture_guild_book.gd \
+  -- --output="$PWD/.lore/local/guild-book-review/<new-directory>"
+```
+
+This requires a graphical renderer. The tool uses an isolated profile and plays
+Village Troubles with a test driver; the commission defeat is controlled.
+Captures document technical behavior and layout, not player enjoyment or
+approval of the candidate artwork. For a human review, launch the game normally
+and inspect the art in context as well as the generated sheets.
+
 Run the controlled tool checks with:
 
 ```sh

@@ -48,7 +48,7 @@ bash "$model/make_review_previews.sh" "$out" --motion
 
 ## Verification
 
-Current candidate SHA-256: `b4b9bb6bca976144125f8f684fcccd774dda178ab83f920c3617ca9674a4ca0d`. The previous careful-lift candidate (`42e4f209a5170a6fb44ae26dae69708953f5bd4caddf25bb8d8ba63ca4b1538f`) is preserved in local `previous-careful-lift/` and is not a required input. Direct comparison found all 478 modeled pieces and the 32 rest bones unchanged, and matched the three protected actions at every whole frame.
+Accepted throw model SHA-256: `b4b9bb6bca976144125f8f684fcccd774dda178ab83f920c3617ca9674a4ca0d`. The superseded careful-lift draft (`42e4f209a5170a6fb44ae26dae69708953f5bd4caddf25bb8d8ba63ca4b1538f`) was used for comparison, not as a build input. Before retirement, direct comparison found all 478 modeled pieces and the 32 rest bones unchanged, and matched the three protected actions at every whole frame.
 
 The reopened checks cover the T rest, four actions, planted contact, gripped and airborne prop states, continuous release, no snap-back before the take ends, and tactical framing through F32. At F26, the measured hand and gift silhouettes have at least a 4.5 px gap on the 65 × 54 view. No overlaps were found among the significant surfaces checked at whole frames. The cloth is posed, not simulated. The side wraps and waist still intersect the trousers outside the visible loose front panel. The checks are for these authored actions, not a guarantee for arbitrary poses.
 

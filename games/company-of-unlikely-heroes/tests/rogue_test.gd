@@ -9,7 +9,7 @@ var defs: Dictionary
 
 
 func _initialize() -> void:
-	defs = catalog.read_default()
+	defs = preload("res://tests/fixtures/rules_catalog.gd").add_fixed_escort(catalog.read_default())
 	if not defs.get("characters", {}).has("rogue"):
 		_check(false, "Rogue must be authored")
 	else:
@@ -37,7 +37,7 @@ func _unit(id: String, character: String, position: Vector2i, hp := 10) -> Dicti
 
 
 func _state(units: Array) -> Dictionary:
-	var state: Dictionary = rules.new_game(defs, "ferryman")
+	var state: Dictionary = rules.new_game(defs, "test_escort")
 	state.width = 12
 	state.height = 12
 	state.default_tile = "stone"

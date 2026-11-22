@@ -1,6 +1,22 @@
 extends RefCounted
 ## Self-contained definitions for the rules unit tests, not game tuning.
 
+## Add a fixed, test-only encounter based on the current company deployment.
+## Custom catalogs still support fixed placements independently of shipped outings.
+static func add_fixed_escort(defs: Dictionary) -> Dictionary:
+	var mission: Dictionary = defs.missions.company_rescue.duplicate(true)
+	var encounter: Dictionary = defs.encounters.company_crossing.duplicate(true)
+	var slots: Array = encounter.party_slots
+	encounter.erase("party_slots")
+	for index in range(3):
+		var id: String = ["knight", "healer", "wizard"][index]
+		encounter.placements.insert(index, {"id": id, "character": id, "at": slots[index]})
+	mission.encounter = "test_escort"
+	mission.failures = mission.failures.filter(func(failure): return failure.handler != "party_wiped")
+	defs.missions.test_escort = mission
+	defs.encounters.test_escort = encounter
+	return defs
+
 
 static func definitions() -> Dictionary:
 	var capabilities := {}

@@ -64,6 +64,7 @@ var _targets_by_id: Dictionary = {}
 var _ready_clips: Array[CastSprites.Clip] = []
 var _ready_ms := 0.0
 var _wizard_pull_facing: Dictionary[String, float] = {}
+var _pressure_gate_prop_installed := false
 
 
 func _ready() -> void:
@@ -87,6 +88,12 @@ func set_painting(board_id: String) -> void:
 	queue_redraw()
 
 
+## Set only while a replacement pressure-gate prop is actually installed.
+func set_pressure_gate_prop_installed(installed: bool) -> void:
+	_pressure_gate_prop_installed = installed
+	queue_redraw()
+
+
 ## cells: Vector2i -> "stone", "bridge", "broken", "safe", "exit", "obstacle", or "water".
 ## An absent cell is scenery only. The canvas emits input for supplied cells; it never authorizes moves.
 ## units: {id, art_key, cell, hp, max_hp, prone}; optional facing (-1 left, 1 right),
@@ -95,7 +102,7 @@ func set_painting(board_id: String) -> void:
 ## paths (each an array of Vector2i), exit (Vector2i), safe (a set of Vector2i),
 ## objective_zone (array of [x, y] pairs or Vector2i), obstacles (id, art_key, position, hp, max_hp),
 ## pen_zone (array of Vector2i), pressure_gate ({cell: Vector2i, open: bool}),
-## shields/forecast_shields (arrays of Vector2i).
+## shields/forecast_shields (arrays of Vector2i), quiet_manual_move (bool).
 func set_render_state(cells: Dictionary, units: Array, overlay: Dictionary = {}) -> void:
 	_cells = cells.duplicate()
 	_units = units.duplicate(true)
@@ -292,7 +299,7 @@ func _draw() -> void:
 			_draw_pen(cell)
 		if _overlay.get("exit") == cell:
 			_draw_exit()
-		if gate.get("cell") == cell:
+		if gate.get("cell") == cell and not _pressure_gate_prop_installed:
 			_draw_pressure_gate(gate.open)
 	if painted:
 		for cell: Vector2i in cells:
@@ -693,8 +700,11 @@ func _draw_overlays(cell: Vector2i) -> void:
 		_brackets(CORAL, 9, 2.0)
 		_line([Vector2(72, 17), Vector2(81, 9), Vector2(88, 17), Vector2(81, 25), Vector2(72, 17)], CORAL, 1.8)
 	if cell in targets:
-		_brackets(MINT, 6, 2.0)
-		_piece([Vector2(45, 15), Vector2(50, 10), Vector2(55, 15), Vector2(50, 20)], MINT, INK, 1.15)
+		if _overlay.get("quiet_manual_move", false):
+			draw_circle(Vector2(50, 15), 3.0, MINT, true, -1.0, true)
+		else:
+			_brackets(MINT, 6, 2.0)
+			_piece([Vector2(45, 15), Vector2(50, 10), Vector2(55, 15), Vector2(50, 20)], MINT, INK, 1.15)
 	if _overlay.get("chosen_target", null) == cell:
 		_brackets(MINT, 2, 2.8)
 	if cell in impacts:
@@ -936,7 +946,10 @@ func _draw_unit_marker(unit: Dictionary) -> void:
 			width = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
 		_caption(label, Vector2(49.0 + width * 0.5, 78), Color.from_string(unit.get("color", ""), PARCHMENT), 13)
 	if _overlay.get("commanded") == unit.cell:
-		_caption("CMD", Vector2(90, 17), AMBER, 11)
+		if _overlay.get("quiet_manual_move", false):
+			_ink_canvas.draw_circle(Vector2(85, 13), 3.0, AMBER, true, -1.0, true)
+		else:
+			_caption("CMD", Vector2(90, 17), AMBER, 11)
 
 
 func _draw_health(unit: Dictionary, prone: bool) -> void:

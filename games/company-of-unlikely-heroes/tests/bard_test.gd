@@ -8,14 +8,14 @@ var defs: Dictionary
 
 
 func _initialize() -> void:
-	defs = catalog.read_default().duplicate(true)
+	defs = preload("res://tests/fixtures/rules_catalog.gd").add_fixed_escort(catalog.read_default())
 	if not defs.get("characters", {}).has("bard"):
 		_check(false, "Bard must be authored")
 	else:
 		# Stationary foes expose lost activations; the escort must not end the fixture early.
 		defs.characters.harpooner.behavior = "hold"
 		defs.characters.ferryman.behavior = "hold"
-		defs.encounters.crossing.deadline = 100
+		defs.encounters.test_escort.deadline = 100
 		_test_kit()
 		_test_solo_immunity()
 		_test_random_alternation()
@@ -42,7 +42,7 @@ func _unit(id: String, character: String, at: Vector2i, hp := 20) -> Dictionary:
 
 
 func _state(two_enemies := false) -> Dictionary:
-	var state: Dictionary = rules.new_game(defs, "ferryman")
+	var state: Dictionary = rules.new_game(defs, "test_escort")
 	state.width = 12
 	state.height = 12
 	state.default_tile = "stone"

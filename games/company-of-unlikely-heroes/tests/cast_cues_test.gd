@@ -16,7 +16,7 @@ func _initialize() -> void:
 		if mapper == null or not mapper.has_method("build"):
 			failures.append("Missing behavior: cast_cues.build(before, after, events)")
 	if failures.is_empty():
-		defs = preload("res://content/catalog.gd").read_default().duplicate(true)
+		defs = preload("res://tests/fixtures/rules_catalog.gd").add_fixed_escort(preload("res://content/catalog.gd").read_default())
 		_test_direct_actions()
 		_test_healing()
 		_test_summons_and_minions()
@@ -44,7 +44,7 @@ func _unit(id: String, character: String, at: Vector2i, hp := 10) -> Dictionary:
 
 
 func _state(units: Array) -> Dictionary:
-	var state: Dictionary = rules.new_game(defs, "ferryman")
+	var state: Dictionary = rules.new_game(defs, "test_escort")
 	state.width = 12
 	state.height = 12
 	state.default_tile = "stone"

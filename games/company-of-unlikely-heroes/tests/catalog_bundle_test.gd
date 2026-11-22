@@ -20,8 +20,10 @@ func _initialize() -> void:
 			"company mission rejects partial party")
 		_check(Catalog.build(defs, "bridge_patrol", ["knight", "healer", "wizard", "alchemist"]).is_empty(),
 			"company mission rejects oversized party")
-		_check(not Catalog.build(defs, "ferryman").is_empty(), "fixed mission builds without party")
-		_check(Catalog.build(defs, "ferryman", ["knight"]).is_empty(), "fixed mission rejects supplied party")
+		var fixed_defs: Dictionary = preload("res://tests/fixtures/rules_catalog.gd").add_fixed_escort(defs.duplicate(true))
+		_check(not Catalog.build(fixed_defs, "test_escort").is_empty(), "custom fixed mission builds without party")
+		_check(Catalog.build(fixed_defs, "test_escort", ["knight"]).is_empty(), "custom fixed mission rejects supplied party")
+		_test_reachable_content(defs)
 		var brewer: Dictionary = Catalog.profile(defs, "alchemist")
 		_check(brewer.abilities == ["move", "alchemist_splash", "knight_aura"]
 			and defs.abilities.alchemist_splash.params.damage == 3,
@@ -30,6 +32,8 @@ func _initialize() -> void:
 		invalid.missions.bridge_patrol.tier = 0
 		_check(not Catalog.validate(invalid).is_empty(), "tier must be positive")
 		_test_full_catalog(defs)
+		_test_full_catalog(fixed_defs)
+		_test_custom_bundle(fixed_defs)
 		_test_invalid_full_catalogs(defs)
 	_test_duplicate_parts()
 	for failure in failures:
@@ -56,6 +60,29 @@ func _test_duplicate_parts() -> void:
 			failures.append("could not remove test file " + path)
 
 
+func _test_reachable_content(defs: Dictionary) -> void:
+	var reachable := {}
+	for adventure in defs.adventures.values():
+		for mission in adventure.missions:
+			reachable[mission] = true
+	for mission in defs.get("mission_reports", {}):
+		reachable[mission] = true
+	for mission in defs.missions:
+		_check(reachable.has(mission), "shipped mission is reachable: " + mission)
+	var encounters := {}
+	for mission in defs.missions.values():
+		encounters[mission.encounter] = true
+	for encounter in defs.encounters:
+		_check(encounters.has(encounter), "shipped encounter is reachable: " + encounter)
+	for retired in ["ferryman", "extra_knight", "necromancer_wave"]:
+		_check(not defs.missions.has(retired), "retired fixture is not shipped: " + retired)
+	_check(defs.missions.has("company_rescue") and defs.characters.has("ferryman"),
+		"company rescue and its ferryman character remain available")
+	var placements: Array = defs.encounters[defs.missions.company_rescue.encounter].placements
+	_check(placements.any(func(placement): return placement.get("character") == "ferryman"),
+		"company rescue still places the ferryman")
+
+
 func _test_full_catalog(defs: Dictionary) -> void:
 	var path := "user://catalog_bundle_test_full.json"
 	_write(path, JSON.stringify(defs))
@@ -64,6 +91,22 @@ func _test_full_catalog(defs: Dictionary) -> void:
 		"full catalog input remains supported")
 	if DirAccess.remove_absolute(ProjectSettings.globalize_path(path)) != OK:
 		failures.append("could not remove test file " + path)
+
+
+func _test_custom_bundle(defs: Dictionary) -> void:
+	var manifest := "user://catalog_bundle_test_custom_manifest.json"
+	var part := "user://catalog_bundle_test_custom_part.json"
+	_write(part, JSON.stringify(defs))
+	_write(manifest, '{"parts":["catalog_bundle_test_custom_part.json"]}')
+	var result := Catalog.read_source(manifest)
+	_check(not result.has("error") and result.get("definitions", {}) == defs,
+		"custom bundle preserves fixed encounter definitions")
+	if not result.has("error"):
+		_check(not Catalog.build(result.definitions, "test_escort").is_empty(),
+			"custom bundle fixed encounter builds")
+	for path in [manifest, part]:
+		if DirAccess.remove_absolute(ProjectSettings.globalize_path(path)) != OK:
+			failures.append("could not remove test file " + path)
 
 
 func _test_invalid_full_catalogs(defs: Dictionary) -> void:

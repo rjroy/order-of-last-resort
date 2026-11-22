@@ -37,6 +37,10 @@ var _guild_profile: Dictionary
 var _commission: Dictionary
 var _practice_from_guild := false
 var _fixed_mission := ""
+var _storybook_page: Control
+var _storybook_inspection := ""
+var _storybook_focus_cell: Variant = null
+var _storybook_aiming := false
 var _opening_state: Dictionary
 var _state: Dictionary
 # The editor only becomes a command after the rules reserve it for the preview.
@@ -44,24 +48,19 @@ var _planned_state: Dictionary
 var _plan: Dictionary
 var _editor_actor: Dictionary
 var _editor_can_act := false
-var _editor_move_blocked := false
 var _editor_knocked_down := false
 var _editor_skip_label := ""
 var _last_events: Array = []
-var _last_round := 0
 var _unpreviewed_edit := false
 var _actor_id := ""
 var _ability_id := ""
 var _target_id := ""
 var _targets: Array = []
-var _orders: Dictionary = {}
-var _order_notes: Dictionary = {}
 var _painted_cells: Dictionary = {}
 var _tile_labels: Dictionary = {}
 var _safe_cells: Dictionary = {}
 var _corpse_markers: Dictionary = {}
 var _objective_markers: Dictionary = {}
-var _hover_cell: Variant = null
 
 var _display_font: SystemFont
 var _board: BridgeArt
@@ -69,27 +68,6 @@ var _board_cues: BattleCues
 var _terminal_replay: PanelContainer
 var _terminal_board: BridgeArt
 var _terminal_replay_until := 0
-var _legend: HFlowContainer
-var _actor_select: OptionButton
-var _ability_select: OptionButton
-var _target_select: OptionButton
-var _preview_button: Button
-var _clear_button: Button
-var _commit_button: Button
-var _status: Label
-var _mission_title: Label
-var _round_text: Label
-var _objective: Label
-var _objective_progress: Label
-var _initiative: Label
-var _hover_text: Label
-var _command_note: Label
-var _action_help: Label
-var _forecast: RichTextLabel
-var _objective_forecast: Label
-var _last_title: Label
-var _last_result: RichTextLabel
-var _order_grid: GridContainer
 
 
 func _ready() -> void:
@@ -114,11 +92,13 @@ func _ready() -> void:
 		ids.sort()
 		_adventure_id = ids[0]
 	_adventure = adventures.get(_adventure_id, {})
-	if _fixed_mission.is_empty() and _adventure.is_empty() and not launch.content.is_empty():
-		if not _definitions.missions.has("ferryman"):
-			_show_launch_error("This content has no first_outing adventure. " + _fixed_mission_help())
+	if _fixed_mission.is_empty() and _adventure.is_empty() and not launch.content.is_empty() \
+			and (launch.fixed_outings or _definitions.get("commission_settings", {}).is_empty()):
+		var standalone: Array = _definitions.missions.keys().filter(func(id: String) -> bool: return not _requires_party(id))
+		if standalone.size() != 1:
+			_show_launch_error("This content has no adventure. " + _fixed_mission_help())
 			return
-		_fixed_mission = "ferryman"
+		_fixed_mission = standalone[0]
 	if not _fixed_mission.is_empty():
 		if not _definitions.missions.has(_fixed_mission):
 			_show_launch_error("No mission named \"%s\". %s" % [_fixed_mission, _fixed_mission_help()])
@@ -208,10 +188,17 @@ func battle_snapshot() -> Dictionary:
 
 
 func _read_launch_options(args: PackedStringArray) -> Dictionary:
-	var launch := {"content": "", "mission": "", "fixed_outings": false}
+	var launch := {"content": "", "mission": "", "fixed_outings": false, "storybook": false}
 	var seen: Dictionary = {}
 	for arg in args:
 		var key := arg.get_slice("=", 0).trim_prefix("--")
+		if arg.begins_with("--") and key == "storybook":
+			if arg != "--storybook" or launch.storybook:
+				return {"error": "Use --storybook once, without a value."}
+			launch.storybook = true
+			continue
+		if arg.begins_with("--") and key == "test-ui":
+			return {"error": "--test-ui is no longer supported. Launch without it to use the battle book."}
 		if arg.begins_with("--") and key == "fixed-outings":
 			if arg != "--fixed-outings" or launch.fixed_outings:
 				return {"error": "Use --fixed-outings once, without a value."}
@@ -864,214 +851,282 @@ func _return_to_guild() -> void:
 
 func _show_battle(opening: Dictionary) -> void:
 	_state = opening
-	_orders.clear()
-	_order_notes.clear()
-	_hover_cell = null
-	var page := _page("battle")
-	_build_masthead(page)
-	_rule(page)
-	var columns := _row(page, 20)
-	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var map_column := _stack(columns, 9)
-	map_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_build_map(map_column)
-	_build_orders(map_column)
-	_build_desk(columns)
-	_begin_attempt()
+	_show_storybook_battle()
 
 
-func _build_masthead(parent: Control) -> void:
-	var head := _row(parent, 16)
-	var titles := _stack(head, 4)
-	titles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_label(titles, ProjectSettings.get_setting("application/config/name"), 30, PAPER, true)
-	_status = _label(titles, "", 14, MUTED)
-	_status.name = "StatusText"
-	if not _fixed_mission.is_empty():
-		var restart := _button(head, "Restart", "Restart mission")
-		restart.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		restart.pressed.connect(_restart_fixed)
-	elif _run.get("upgrades_by_id", {}).values().any(func(owned: Dictionary) -> bool: return not owned.is_empty()):
-		_build_loadout(head)
-
-
-func _build_loadout(parent: Control) -> void:
-	var button := _button(parent, "ShowLoadout", "Outing upgrades")
-	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	button.custom_minimum_size.y = 43
-	var dialog := AcceptDialog.new()
-	dialog.name = "OutingLoadout"
-	dialog.title = "Outing upgrades"
-	dialog.borderless = true
-	dialog.ok_button_text = "Close"
-	parent.add_child(dialog)
-	var panel := _stack(_panel(dialog, 0), 12)
-	_label(panel, "Outing upgrades", 28, PAPER, true)
-	_wrapped_label(panel, "These upgrades stay with your heroes until you return to the guild.", 15, MUTED)
-	var content := _stack(_scroll(panel), 12)
-	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for unit in _roster():
-		var owned: Dictionary = _run.upgrades_by_id.get(unit.id, {})
-		if owned.is_empty():
-			continue
-		var profile: Dictionary = _rules.entity_profile(_state, unit.id)
-		_rule(content)
-		_label(content, _name_for(unit.id), 23, Color.from_string(profile.get("color", ""), PAPER), true)
-		for id in owned:
-			var upgrade: Dictionary = _definitions.upgrades[id]
-			_wrapped_label(content, "%s  ·  %s  ·  %d of %d acquired" % [
-				upgrade.label, upgrade.rarity.capitalize(), owned[id], upgrade.cap], 16, PAPER)
-			_wrapped_label(content, upgrade.description, 15, MUTED)
-	button.pressed.connect(func() -> void: dialog.popup_centered(Vector2i(600, 300)))
-
-
-func _build_map(parent: VBoxContainer) -> void:
-	var header := _row(parent, 8)
-	_mission_title = _label(header, "", 29, PAPER, true)
-	_mission_title.name = "MissionTitle"
-	_mission_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_mission_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_round_text = _label(header, "", 16, GOLD)
-	_round_text.name = "RoundText"
-	_round_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_objective = _label(parent, "", 14, MUTED)
-	_objective.name = "ObjectiveText"
-	_objective.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_objective.max_lines_visible = 3
-	_objective.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_objective_progress = _wrapped_label(parent, "", 14, GOLD)
-	_objective_progress.name = "ObjectiveProgress"
-	_initiative = _label(parent, "", 13, PAPER)
-	_initiative.name = "InitiativeText"
-	_initiative.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+func _show_storybook_battle() -> void:
+	_screen = "battle"
+	if is_instance_valid(_screen_root):
+		remove_child(_screen_root)
+		_screen_root.queue_free()
+	var page_script = load("res://presentation/storybook_battle_page.gd")
+	if page_script == null:
+		_show_launch_error("Storybook page is missing. Restore presentation/storybook_battle_page.gd.")
+		return
+	_storybook_page = page_script.new()
+	_screen_root = _storybook_page
+	add_child(_storybook_page)
+	_storybook_page.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_board = BridgeArt.new()
 	_board.name = "BridgeBoard"
-	_board.custom_minimum_size.y = 315
-	_board.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	if _uses_builtin_catalog:
-		_board.set_painting(_state.board_id)
-	parent.add_child(_board)
+	_board.focus_mode = Control.FOCUS_ALL
+	var trusted_board_id: String = _state.board_id if _uses_builtin_catalog else ""
+	_board.set_painting(trusted_board_id)
+	_storybook_page.mount_board(_board, trusted_board_id, Vector2i(_state.width, _state.height))
+	_board_cues = null
+	if trusted_board_id != "frontier_gate_board" or _state.objective.handler != "pressure_gate":
+		_board_cues = BattleCues.new()
+		_board_cues.name = "ObjectiveMarkers"
+		_board.add_child(_board_cues)
+		_board_cues.attach_to(_board)
 	_board.cell_selected.connect(_select_board)
 	_board.cell_hovered.connect(_inspect_board)
 	_board.hover_cleared.connect(_clear_inspection)
-	_board_cues = BattleCues.new()
-	_board_cues.name = "ObjectiveMarkers"
-	_board.add_child(_board_cues)
-	_board_cues.attach_to(_board)
-	_legend = HFlowContainer.new()
-	_legend.name = "MapLegend"
-	_legend.add_theme_constant_override("h_separation", 14)
-	_legend.add_theme_constant_override("v_separation", 4)
-	parent.add_child(_legend)
-	_hover_text = _label(parent, "Point at a tile to inspect it.", 13, MUTED)
-	_hover_text.name = "TileInspection"
-	_hover_text.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_board.gui_input.connect(_storybook_board_input)
+	_board.focus_entered.connect(_storybook_board_focused)
+	_board.focus_exited.connect(_storybook_board_unfocused)
+	_storybook_page.action_selected.connect(_storybook_action)
+	_storybook_page.order_selected.connect(_storybook_order)
+	_storybook_page.target_selected.connect(_storybook_target)
+	_storybook_page.clear_requested.connect(_clear_command)
+	_storybook_page.commit_requested.connect(_commit)
+	_storybook_page.restart_requested.connect(_restart_fixed)
+	_begin_attempt()
 
 
-func _build_orders(parent: VBoxContainer) -> void:
-	_rule(parent)
-	var heading := _row(parent, 12)
-	_label(heading, "Standing orders", 22, PAPER, true)
-	var note := _label(heading, "Used unless the hero has a direct command.", 13, MUTED)
-	note.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	var scroll := ScrollContainer.new()
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.follow_focus = true
-	parent.add_child(scroll)
-	_order_grid = GridContainer.new()
-	_order_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_order_grid.add_theme_constant_override("h_separation", 10)
-	scroll.add_child(_order_grid)
+func _storybook_board_focused() -> void:
+	var selected := _find(_actor_id)
+	_storybook_focus_cell = selected.get("position") if not selected.is_empty() else null
+	_refresh_board()
 
 
-func _sync_order_controls() -> void:
-	var roster := _roster()
-	var ids := roster.map(func(unit: Dictionary) -> String: return unit.id)
-	if _orders.keys() == ids:
+func _storybook_board_unfocused() -> void:
+	_storybook_focus_cell = null
+	_refresh_board()
+
+
+func _storybook_board_input(event: InputEvent) -> void:
+	if not event is InputEventKey or not event.pressed:
 		return
-	for control in _order_grid.get_children():
-		_order_grid.remove_child(control)
-		control.queue_free()
-	_orders.clear()
-	_order_notes.clear()
-	_order_grid.columns = clampi(roster.size(), 1, 4)
-	for unit in roster:
-		var id: String = unit.id
-		var profile: Dictionary = _rules.entity_profile(_state, id)
-		var order := _stack(_order_grid, 4)
-		order.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var head := _row(order, 5)
-		var label := _label(head, _name_for(id), 14, Color.from_string(profile.get("color", ""), PAPER))
-		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		label.tooltip_text = label.text
-		_order_notes[id] = _label(order, "", 12, MUTED)
-		var picker := _picker(order, id.to_pascal_case() + "Order")
-		picker.set_meta("actor_id", id)
-		picker.tooltip_text = "Choose what %s does unless directly commanded." % label.text
-		picker.item_selected.connect(_select_order.bind(id))
-		_orders[id] = picker
-	var first_order := _order_grid.get_child(0) as Control if not roster.is_empty() else null
-	var row_height := first_order.get_combined_minimum_size().y if first_order != null else 0.0
-	var scroll := _order_grid.get_parent() as ScrollContainer
-	scroll.custom_minimum_size.y = row_height
+	if event.is_action_pressed("ui_accept") and not event.is_echo():
+		if _storybook_focus_cell is Vector2i:
+			_select_board(_storybook_focus_cell)
+			_board.accept_event()
+		return
+	var direction := Vector2i.ZERO
+	if event.is_action_pressed("ui_left"):
+		direction = Vector2i.LEFT
+	elif event.is_action_pressed("ui_right"):
+		direction = Vector2i.RIGHT
+	elif event.is_action_pressed("ui_up"):
+		direction = Vector2i.UP
+	elif event.is_action_pressed("ui_down"):
+		direction = Vector2i.DOWN
+	if direction == Vector2i.ZERO or not _storybook_focus_cell is Vector2i:
+		return
+	var next: Vector2i = _storybook_focus_cell + direction
+	if _painted_cells.has(next):
+		_storybook_focus_cell = next
+		_inspect_board(next)
+		_refresh_board()
+	_board.accept_event()
 
 
-func _build_desk(parent: HBoxContainer) -> void:
-	var panel := _panel(parent, 423)
-	var desk := _stack(panel, 8)
-	var header := _row(desk, 10)
-	var title := _label(header, "Direct command", 24, PAPER, true)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_command_note = _wrapped_label(desk, "", 14, GOLD)
-	_command_note.name = "CommandedHero"
-	var selection := _row(desk, 8)
-	var who := _stack(selection, 3)
-	who.custom_minimum_size.x = 148
-	_label(who, "Hero", 13, MUTED)
-	_actor_select = _picker(who, "ActorSelect")
-	_actor_select.item_selected.connect(_select_actor)
-	var what := _stack(selection, 3)
-	what.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_label(what, "Action", 13, MUTED)
-	_ability_select = _picker(what, "AbilitySelect")
-	_ability_select.allow_reselect = true
-	_ability_select.item_selected.connect(_select_ability)
-	var target := _stack(desk, 3)
-	_label(target, "Target", 13, MUTED)
-	_target_select = _picker(target, "TargetSelect")
-	_target_select.allow_reselect = true
-	_target_select.item_selected.connect(_select_target)
-	_action_help = _label(desk, "", 13, MUTED)
-	_action_help.name = "ActionHelp"
-	_action_help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_action_help.custom_minimum_size.y = 34
-	_action_help.max_lines_visible = 2
-	var draft_controls := _row(desk, 8)
-	_preview_button = _button(draft_controls, "Preview", "Preview command")
-	_preview_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_preview_button.pressed.connect(_stage_command)
-	_clear_button = _button(draft_controls, "ClearCommand", "Clear command")
-	_clear_button.pressed.connect(_clear_command)
-	_rule(desk)
-	var heading := _row(desk, 8)
-	var forecast_title := _label(heading, "Round forecast", 24, PAPER, true)
-	forecast_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var hint := _label(heading, "In execution order", 13, MUTED)
-	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_objective_forecast = _wrapped_label(desk, "", 13, GOLD)
-	_objective_forecast.name = "ObjectiveForecast"
-	_forecast = _log(desk, "PreviewText", 142, true)
-	_last_title = _label(desk, "Last round", 18, PAPER, true)
-	_last_result = _log(desk, "LastResult", 63)
-	_commit_button = _primary_button(desk, "Commit", "Commit round")
-	_commit_button.tooltip_text = "Resolve the round as shown in the forecast."
-	_commit_button.pressed.connect(_commit)
+func _storybook_action(ability: String) -> void:
+	if not _ongoing() or _actor_id.is_empty():
+		return
+	var available := _rules.options(_state, _actor_id).any(
+		func(choice: Dictionary) -> bool: return choice.kind == "action" and choice.id == ability)
+	if not available:
+		return
+	var context := _rules.state_before_action(
+		_planned_state if _planned_state.overrides.has(_actor_id) else _state, _actor_id)
+	var kind := _target_kind(ability)
+	if not _rules.can_act(context, _actor_id) \
+			or (_is_selectable(kind) and _rules.targets(context, _actor_id, ability).is_empty()):
+		return
+	var draft: Dictionary = _planned_state.overrides.get(_actor_id, {})
+	if _is_selectable(kind) and draft.get("ability_id") == ability:
+		_storybook_aiming = not _storybook_aiming
+		_unpreviewed_edit = false
+		_storybook_ambiguous.clear()
+		_sync_command()
+		_refresh()
+		return
+	_storybook_ambiguous.clear()
+	_ability_id = ability
+	_target_id = ""
+	_unpreviewed_edit = true
+	_storybook_aiming = _is_selectable(kind)
+	_sync_targets()
+	if not _is_selectable(_target_kind()) and _editor_can_act:
+		_stage_command()
+	else:
+		_refresh()
+
+
+func _storybook_target(target: String) -> void:
+	if not _targets.any(func(choice: Dictionary) -> bool: return choice.id == target):
+		return
+	_storybook_ambiguous.clear()
+	_target_id = target
+	_stage_command()
+
+
+func _storybook_order(hero: String, order: String) -> void:
+	if not _ongoing() or _find(hero).get("hp", 0) <= 0:
+		return
+	if not _rules.options(_state, hero).any(
+			func(choice: Dictionary) -> bool: return choice.kind == "order" and choice.id == order):
+		return
+	_state = _rules.set_order(_state, hero, order)
+	_planned_state = _rules.set_order(_planned_state, hero, order)
+	_refresh()
+
+
+func _storybook_select_board(cell: Vector2i) -> void:
+	if _storybook_aiming and _is_selectable(_target_kind()):
+		var aimed := _targets_at(cell)
+		if aimed.size() == 1:
+			_storybook_target(aimed[0].id)
+			return
+		if aimed.size() > 1:
+			_storybook_ambiguous = aimed
+			_render_storybook()
+			return
+	for unit in _roster():
+		if unit.position == cell and unit.hp > 0:
+			if _actor_id != unit.id:
+				_actor_id = unit.id
+				_unpreviewed_edit = false
+				_storybook_aiming = false
+				_storybook_ambiguous.clear()
+				_sync_command()
+				_refresh()
+			return
+	if _unpreviewed_edit and _ability_id != "move":
+		return
+	if not _rules.options(_state, _actor_id).any(
+			func(choice: Dictionary) -> bool: return choice.kind == "action" and choice.id == "move"):
+		return
+	var context := _rules.state_before_action(
+		_planned_state if _planned_state.overrides.has(_actor_id) else _state, _actor_id)
+	if not _rules.can_act(context, _actor_id):
+		return
+	for choice in _rules.targets(context, _actor_id, "move"):
+		if choice.position == cell:
+			_ability_id = "move"
+			_target_id = choice.id
+			_storybook_aiming = false
+			_editor_can_act = true
+			_stage_command()
+			return
+
+
+var _storybook_ambiguous: Array = []
+
+
+func _render_storybook() -> void:
+	var mission: Dictionary = _rules.mission_definition(_state)
+	var objective: Dictionary = mission.objective
+	var progress: Dictionary = _rules.objective_progress(_state)
+	var actions: Array = []
+	var context := _rules.state_before_action(
+		_planned_state if _planned_state.overrides.has(_actor_id) else _state, _actor_id)
+	for choice in _rules.options(_state, _actor_id):
+		if choice.kind == "action":
+			var definition := _action_definition(choice.id)
+			var kind: String = definition.get("targeting", {}).get("kind", "")
+			var enabled := _ongoing() and _editor_can_act
+			var label: String = definition.get("label", choice.label)
+			if enabled and _is_selectable(kind):
+				enabled = not _rules.targets(context, _actor_id, choice.id).is_empty()
+				if not enabled:
+					label += " (no legal target)"
+			actions.append({"id": choice.id, "label": label,
+				"kind": kind, "enabled": enabled, "help": definition.get("help", "")})
+	var orders: Array = []
+	for unit in _roster():
+		var choices: Array = []
+		for choice in _rules.options(_state, unit.id):
+			if choice.kind == "order":
+				choices.append({"id": choice.id, "label": choice.label})
+		orders.append({"hero_id": unit.id, "hero_label": _name_for(unit.id),
+			"order_id": _state.orders.get(unit.id, ""), "choices": choices,
+			"enabled": _ongoing() and unit.hp > 0, "overridden": _ongoing() and unit.id == _commanded_hero(),
+			"hp": "%d/%d HP" % [unit.hp, unit.max_hp]})
+	var summary := "Standing orders only"
+	var commanded := _commanded_hero()
+	if _ongoing() and not commanded.is_empty():
+		var draft: Dictionary = _planned_state.overrides[commanded]
+		var action := _action_definition(draft.ability_id, commanded)
+		var target := _target_description(commanded, draft.ability_id, draft.target_id)
+		var wording := "moves" + target if draft.ability_id == "move" else \
+			"uses %s%s" % [action.get("label", draft.ability_id), target]
+		var order_id: String = _planned_state.orders.get(commanded, "")
+		var order: Dictionary = _definitions.orders.get(order_id, {})
+		var replaced := " instead of " + str(order.get("label", order_id)) if not order_id.is_empty() else ""
+		summary = "Preview · %s %s%s this round" % [_name_for(commanded), wording, replaced]
+	var events: PackedStringArray = []
+	if _ongoing():
+		var objective_forecast := _objective_forecast_text()
+		if not objective_forecast.is_empty():
+			events.append(objective_forecast)
+	for event in (_plan.get("events", []) if _ongoing() else _last_events):
+		events.append(str(event.text))
+	var target_choices: Array = []
+	for target in _storybook_ambiguous:
+		target_choices.append({"id": target.id, "label": target.label})
+	var text_key: String = "text" if _ongoing() else _state.outcome + "_text"
+	if not _ongoing():
+		summary = "Victory" if _state.outcome == "victory" else "Defeat"
+		actions.clear()
+		target_choices.clear()
+	var values := _objective_format_values(progress)
+	var details := str(objective.text).format(values)
+	var headline := str(objective.get(text_key, objective.text)).format(values)
+	if _ongoing() and _state.objective.handler == "pressure_gate":
+		headline = "Get a hero to the exit at %s." % BridgeArt.coordinate(_state.objective.exit)
+	elif _ongoing() and _state.objective.handler != "pressure_gate":
+		var first_sentence := headline.find(". ")
+		if first_sentence >= 0:
+			headline = headline.substr(0, first_sentence + 1)
+	var inspection := _storybook_inspection
+	if _ongoing() and not _editor_can_act and not _actor_id.is_empty():
+		var reason := _unavailable_hero_reason()
+		inspection = reason if inspection.is_empty() else reason + " · " + inspection
+	if _storybook_aiming:
+		var hint := "Aim: choose target; reselect action to stop."
+		inspection = hint if inspection.is_empty() else hint + " · " + inspection
+	var upgrades: PackedStringArray = []
+	for unit in _roster():
+		var owned: Dictionary = _run.get("upgrades_by_id", {}).get(unit.id, {})
+		if owned.is_empty():
+			continue
+		upgrades.append(_name_for(unit.id))
+		for id in owned:
+			var upgrade: Dictionary = _definitions.upgrades[id]
+			upgrades.append("%s · %s · %d of %d acquired\n%s" % [
+				upgrade.label, upgrade.rarity.capitalize(), owned[id], upgrade.cap, upgrade.description])
+	var deadline: int = _rules.deadline(_state)
+	var round_label := "Round %d / %d" % [_state.round, deadline] if deadline > 0 else "Round %d" % _state.round
+	var status := _objective_progress_text(_state, progress) if _ongoing() else ""
+	if _ongoing() and _state.objective.handler == "leave_zone":
+		status += "  ·  Damaging standing orders remain active."
+	_storybook_page.render({"title": mission.title, "round": _state.round, "round_label": round_label,
+		"objective": headline, "objective_details": details,
+		"objective_status": status,
+		"selected_hero": _name_for(_actor_id) if not _actor_id.is_empty() else "",
+		"selected_action_id": _ability_id, "actions": actions, "orders": orders,
+		"targets": target_choices, "command_summary": summary, "inspection": inspection,
+		"forecast": "\n".join(events), "can_clear": _ongoing() and (not commanded.is_empty() or _unpreviewed_edit),
+		"clear_label": "Clear command", "can_commit": _can_commit(), "outcome": _state.outcome,
+		"can_restart": not _fixed_mission.is_empty(), "upgrades_text": "\n".join(upgrades)})
 
 
 func _restart_fixed() -> void:
 	_state = _opening_state.duplicate(true)
-	_clear_inspection()
+	_storybook_inspection = ""
 	_begin_attempt()
 
 
@@ -1079,131 +1134,47 @@ func _begin_attempt() -> void:
 	_board.clear_action_playback()
 	_planned_state = _state
 	_last_events.clear()
-	_last_round = 0
 	_unpreviewed_edit = false
 	_actor_id = ""
+	_storybook_ambiguous.clear()
+	_storybook_aiming = false
 	_sync_actors()
 	_sync_command()
-	_refresh(true)
+	_refresh()
 
 
 func _sync_actors() -> void:
-	_actor_select.clear()
-	var roster := _roster()
-	for unit in roster:
-		_add_choice(_actor_select, _name_for(unit.id), unit.id)
-		var index := _actor_select.item_count - 1
-		_actor_select.set_item_disabled(index, unit.hp <= 0)
-		var upgrades := _owned_upgrade_labels(unit.id)
-		if not upgrades.is_empty():
-			_actor_select.set_item_tooltip(index, "Outing upgrades: " + upgrades)
 	var current := _find(_actor_id)
 	if current.is_empty() or current.hp <= 0:
 		_actor_id = ""
-		for unit in roster:
+		for unit in _roster():
 			if unit.hp > 0:
 				_actor_id = unit.id
 				break
-	_pick(_actor_select, _actor_id)
 
 
 func _sync_command() -> void:
-	_ability_select.clear()
-	for choice in _rules.options(_state, _actor_id):
-		if choice.kind == "action":
-			_add_choice(_ability_select, _action_definition(choice.id).get("label", choice.label), choice.id)
 	var draft: Dictionary = _planned_state.overrides.get(_actor_id, {})
-	_pick(_ability_select, draft.get("ability_id", ""))
-	_ability_id = _picked(_ability_select)
+	_ability_id = draft.get("ability_id", "")
 	_target_id = draft.get("target_id", "")
 
 
-func _sync_targets(auto_pick: bool) -> void:
+func _sync_targets() -> void:
 	# A preview for the editor's hero replaces any queued override.
 	var editor_plan := _planned_state if _planned_state.overrides.has(_actor_id) else _state
 	var context := _rules.state_before_action(editor_plan, _actor_id)
 	_editor_actor = _find(_actor_id, context)
 	_editor_can_act = _rules.can_act(context, _actor_id)
-	_editor_move_blocked = _rules.has_status_handler(context, _actor_id, "stop_move")
 	_editor_knocked_down = _rules.knocked_down(context, _actor_id)
 	_editor_skip_label = ", ".join(_rules.status_labels(context, _actor_id, "skip_action"))
-	_target_select.clear()
 	var target_kind := _target_kind()
 	var selectable := _is_selectable(target_kind)
-	var summon := _is_summon()
 	_targets = _rules.targets(context, _actor_id, _ability_id) if selectable and _editor_can_act else []
-	var selected_exists := false
-	for choice in _targets:
-		var location := BridgeArt.coordinate(choice.position)
-		var label := location if target_kind == "cell" else "%s  ·  %s" % [choice.label, location]
-		_add_choice(_target_select, label, choice.id)
-		selected_exists = selected_exists or choice.id == _target_id
-	if _targets.is_empty():
-		var prompt := "No target needed"
-		if not _ongoing():
-			prompt = "Mission ended"
-		elif _actor_id.is_empty():
-			prompt = "No hero available"
-		elif _ability_id.is_empty():
-			prompt = "No action available"
-		elif not _editor_can_act:
-			if _editor_actor.get("hp", 0) <= 0:
-				prompt = "Falls before acting"
-			else:
-				prompt = "Knocked down" if _editor_knocked_down else "Skips turn"
-		elif summon and _rules.summon_capped(context, _actor_id, _ability_id):
-			prompt = "Summon already alive"
-		elif summon and target_kind == "entity":
-			prompt = "No unoccupied enemy corpse"
-		elif target_kind == "cell":
-			if not summon and _editor_move_blocked:
-				prompt = "Held in place"
-			else:
-				prompt = "No open adjacent tile" if summon or _rules.has_capability(context, _actor_id, "mobile") else "Cannot move"
-		elif selectable:
-			prompt = "No legal targets"
-		elif target_kind == "automatic":
-			prompt = "Random opponent (automatic)" if _action_definition(_ability_id).get("handler") == "perform" else "Automatic"
-		_add_choice(_target_select, prompt, "")
-	elif not selected_exists and (not auto_pick or not _target_id.is_empty()):
-		_add_choice(_target_select, "Choose a target", "")
-		_target_select.set_item_disabled(_target_select.item_count - 1, true)
-	_pick(_target_select, _target_id if selected_exists else "")
-	_target_id = _picked(_target_select)
-
-
-func _select_actor(index: int) -> void:
-	if _actor_select.is_item_disabled(index):
-		return
-	var actor_id := str(_actor_select.get_item_metadata(index))
-	if actor_id == _actor_id:
-		return
-	_actor_id = actor_id
-	_unpreviewed_edit = false
-	_sync_command()
-	_refresh(true)
-
-
-func _select_ability(index: int) -> void:
-	var ability_id := str(_ability_select.get_item_metadata(index))
-	if _ability_id != ability_id:
+	_storybook_ambiguous = _storybook_ambiguous.filter(func(ambiguous: Dictionary) -> bool:
+		return _targets.any(func(choice: Dictionary) -> bool:
+			return choice.id == ambiguous.id and choice.position == ambiguous.position))
+	if not _targets.any(func(choice: Dictionary) -> bool: return choice.id == _target_id):
 		_target_id = ""
-	_ability_id = ability_id
-	_unpreviewed_edit = true
-	_refresh(true)
-
-
-func _select_target(index: int) -> void:
-	_target_id = str(_target_select.get_item_metadata(index))
-	_note_unpreviewed_edit()
-	_refresh()
-
-
-func _select_order(index: int, hero: String) -> void:
-	var order_id := str(_orders[hero].get_item_metadata(index))
-	_state = _rules.set_order(_state, hero, order_id)
-	_planned_state = _rules.set_order(_planned_state, hero, order_id)
-	_refresh()
 
 
 func _stage_command() -> void:
@@ -1215,18 +1186,13 @@ func _stage_command() -> void:
 	_refresh()
 
 
-func _note_unpreviewed_edit() -> void:
-	var previous: Dictionary = _planned_state.overrides.get(_actor_id, {})
-	_unpreviewed_edit = previous.get("ability_id", "") != _ability_id \
-		or previous.get("target_id", "") != _target_id
-
-
 func _clear_command() -> void:
-	if not _unpreviewed_edit:
-		_planned_state = _rules.clear_manual(_planned_state)
+	_planned_state = _rules.clear_manual(_planned_state)
 	_unpreviewed_edit = false
+	_storybook_ambiguous.clear()
+	_storybook_aiming = false
 	_sync_command()
-	_refresh(true)
+	_refresh()
 
 
 func _ready_to_command() -> bool:
@@ -1270,12 +1236,15 @@ func _commit() -> void:
 	var committed := _rules.commit_round(_planned_state, _plan)
 	if committed == _planned_state:
 		return
-	_last_round = _state.round
 	_last_events = _plan.events.duplicate(true)
 	var cues := CastCues.build(_state, committed, _last_events)
 	_state = committed
 	_planned_state = _state
 	_unpreviewed_edit = false
+	_storybook_aiming = false
+	_storybook_ambiguous.clear()
+	_storybook_inspection = ""
+	_board.tooltip_text = ""
 	if not _ongoing() and _fixed_mission.is_empty():
 		_run = Adventure.settle_mission(_run, _state)
 		if _run.phase in ["reward", "route", "ready", "finished"]:
@@ -1286,7 +1255,9 @@ func _commit() -> void:
 			return
 	_sync_actors()
 	_sync_command()
-	_refresh(true)
+	_refresh()
+	if _board.has_focus() and _storybook_focus_cell is Vector2i:
+		_inspect_board(_storybook_focus_cell)
 	_board.play_committed_actions(cues)
 
 
@@ -1319,10 +1290,17 @@ func _take_terminal_board(cues: Array) -> BridgeArt:
 	replay.cell_selected.disconnect(_select_board)
 	replay.cell_hovered.disconnect(_inspect_board)
 	replay.hover_cleared.disconnect(_clear_inspection)
+	replay.gui_input.disconnect(_storybook_board_input)
+	replay.focus_entered.disconnect(_storybook_board_focused)
+	replay.focus_exited.disconnect(_storybook_board_unfocused)
+	replay.release_focus()
 	replay.name = "ReplayBoard"
 	replay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	replay.focus_mode = Control.FOCUS_NONE
 	replay.tooltip_text = ""
 	replay.get_parent().remove_child(replay)
+	replay.custom_minimum_size.y = 315
+	replay.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	return replay
 
 
@@ -1362,6 +1340,21 @@ func _input(event: InputEvent) -> void:
 		_clear_terminal_replay()
 
 
+func _unhandled_key_input(event: InputEvent) -> void:
+	if _screen != "battle" or not event.is_pressed() or event.is_echo():
+		return
+	if event.keycode == KEY_ESCAPE:
+		if _unpreviewed_edit or not _storybook_ambiguous.is_empty():
+			_unpreviewed_edit = false
+			_storybook_ambiguous.clear()
+			_storybook_aiming = false
+			_sync_command()
+			_refresh()
+		else:
+			_clear_command()
+		get_viewport().set_input_as_handled()
+
+
 func _clear_terminal_replay() -> void:
 	if _terminal_replay == null:
 		return
@@ -1373,76 +1366,21 @@ func _clear_terminal_replay() -> void:
 	set_process(false)
 
 
-func _refresh(auto_pick_target := false) -> void:
+func _refresh() -> void:
 	_plan = _rules.preview_round(_planned_state)
-	_sync_targets(auto_pick_target)
-	if _unpreviewed_edit:
-		_note_unpreviewed_edit()
-	var active := _ongoing()
-	var manual := active and not _actor_id.is_empty()
-	_status.text = "Fixed mission  ·  One direct command per round" if not _fixed_mission.is_empty() \
-		else "Mission %d of %d  ·  One direct command per round" % [_run.mission_index + 1, Adventure.mission_count(_run)]
-	_refresh_objective()
-	_refresh_initiative()
-	var commanded := _commanded_hero()
-	_command_note.set_meta("actor_id", commanded)
-	_command_note.text = ("Commanded: " + _name_for(commanded)) if not commanded.is_empty() else "No direct command queued"
-	_actor_select.disabled = not manual
-	_ability_select.disabled = not manual or _ability_select.item_count == 0
-	_target_select.disabled = not manual or _targets.is_empty()
-	_preview_button.disabled = not _can_stage_command()
-	_preview_button.text = "Preview replacement" if not commanded.is_empty() and commanded != _actor_id else "Preview command"
-	_clear_button.disabled = not active or (commanded.is_empty() and not _unpreviewed_edit)
-	_clear_button.text = "Discard edit" if _unpreviewed_edit else "Clear command"
-	_commit_button.disabled = not _can_commit()
-	_commit_button.text = "Commit round %d" % _state.round if active else "Mission complete" if _state.outcome == "victory" else "Mission failed"
-	_action_help.text = _command_help(active, manual)
-	_action_help.tooltip_text = _action_help.text
-	_refresh_orders(active)
-	_refresh_forecast()
+	_sync_targets()
 	_refresh_board()
+	_render_storybook()
 
 
-func _command_help(active: bool, manual: bool) -> String:
-	if not active:
-		return "Restart this mission to try again." if not _fixed_mission.is_empty() else "This mission has ended."
-	if not manual:
-		return ""
-	if not _editor_can_act:
-		if _editor_actor.get("hp", 0) <= 0:
-			return "This hero falls before acting. Change an earlier order or choose another hero."
-		if _editor_knocked_down:
-			if _rules.knocked_down(_state, _actor_id):
-				return "This hero is down and spends this turn getting up. Choose another hero."
-			return "This hero will be knocked down before acting. Change an earlier order or choose another hero."
-		return "%s. Change an earlier order or choose another hero." % _editor_skip_label
-	var target_kind := _target_kind()
-	var action := _action_definition(_ability_id)
-	var help: String = action.get("help", "")
-	if _ability_id == "knight_shield_throw" and action.get("handler") == "attack" \
-			and action.get("params", {}).has("damage") and action.get("targeting", {}).has("range"):
-		help = "Deal %d damage from up to %d tiles away. Retrieve the shield before guarding or throwing again." % [
-			action.params.damage, action.targeting.range]
-	var shield: Variant = _rules.shield_position(_state, _actor_id)
-	if shield is Vector2i:
-		help = "Shield at %s. %s" % [BridgeArt.coordinate(shield), help]
-	if _is_summon():
-		if _target_select.disabled:
-			return _target_select.text + ". " + help
-		return help
-	if target_kind == "cell":
-		if _editor_move_blocked:
-			return "Don't Go prevents Move this turn. Other actions remain available."
-		if not _rules.has_capability(_state, _actor_id, "mobile"):
-			return "This hero cannot move. Choose another action or hero."
-		if _targets.is_empty():
-			return "No open tile up, down, left, or right when this hero acts. Choose another action or hero."
-		if _editor_actor.position != _find(_actor_id).position:
-			return "This hero will act from %s. Choose a highlighted tile." % BridgeArt.coordinate(_editor_actor.position)
-		return "Choose a highlighted tile up, down, left, or right."
-	if target_kind == "entity" and _targets.is_empty():
-		return "No legal target when this hero acts. Choose another action or hero."
-	return help
+func _unavailable_hero_reason() -> String:
+	if _editor_actor.get("hp", 0) <= 0:
+		return "This hero falls before acting. Change an earlier order or choose another hero."
+	if _editor_knocked_down:
+		if _rules.knocked_down(_state, _actor_id):
+			return "This hero is down and spends this turn getting up. Choose another hero."
+		return "This hero will be knocked down before acting. Change an earlier order or choose another hero."
+	return "%s. Change an earlier order or choose another hero." % _editor_skip_label
 
 
 func _can_commit() -> bool:
@@ -1453,19 +1391,8 @@ func _commanded_hero() -> String:
 	return "" if _planned_state.overrides.is_empty() else str(_planned_state.overrides.keys()[0])
 
 
-func _refresh_objective() -> void:
-	var mission: Dictionary = _rules.mission_definition(_state)
-	var objective: Dictionary = mission.objective
-	var deadline: int = _rules.deadline(_state)
-	_mission_title.text = mission.title
-	_mission_title.tooltip_text = mission.title
-	_round_text.text = "Round %d / %d" % [_state.round, deadline] if deadline > 0 else "Round %d · No deadline" % _state.round
-	var text_key: String = "text" if _ongoing() else _state.outcome + "_text"
-	var values := {"deadline": deadline}
-	var progress: Dictionary = _rules.objective_progress(_state)
-	_objective_progress.text = _objective_progress_text(_state, progress)
-	if _state.objective.handler == "leave_zone" and _ongoing():
-		_objective_progress.text += "  ·  Damaging standing orders remain active."
+func _objective_format_values(progress: Dictionary) -> Dictionary:
+	var values := {"deadline": _rules.deadline(_state)}
 	match _state.objective.handler:
 		"escort":
 			var subject := _find(_state.objective.subject)
@@ -1477,9 +1404,7 @@ func _refresh_objective() -> void:
 				"position": position})
 		"defeat_all":
 			values.merge({"remaining": progress.alive, "total": progress.total})
-	_objective.text = str(objective.get(text_key, objective.text)).format(values)
-	_objective.tooltip_text = _objective.text
-	_objective_progress.visible = not _objective_progress.text.is_empty()
+	return values
 
 
 func _objective_progress_text(state: Dictionary, progress: Dictionary) -> String:
@@ -1499,81 +1424,13 @@ func _objective_progress_text(state: Dictionary, progress: Dictionary) -> String
 	return progress.get("text", "")
 
 
-func _refresh_initiative() -> void:
-	var labels: PackedStringArray = []
-	var ids: PackedStringArray = []
-	for unit in _rules.initiative(_state):
-		labels.append("%s. %s" % [labels.size() + 1, _name_for(unit.id)])
-		ids.append(unit.id)
-	_initiative.text = "Initiative: " + "   ".join(labels) if not labels.is_empty() else "Initiative: none"
-	_initiative.tooltip_text = _initiative.text
-	_initiative.set_meta("actor_ids", ids)
-
-
-func _refresh_orders(active: bool) -> void:
-	_sync_order_controls()
-	for hero in _orders:
-		var picker: OptionButton = _orders[hero]
-		picker.clear()
-		for choice in _rules.options(_state, hero):
-			if choice.kind == "order":
-				_add_choice(picker, choice.label, choice.id)
-		_pick(picker, _state.orders.get(hero, ""))
-		var unit := _find(hero)
-		picker.disabled = not active or unit.get("hp", 0) <= 0 or picker.item_count == 0
-		var note: Label = _order_notes[hero]
-		var is_commanded: bool = hero == _commanded_hero()
-		var detail := "%d/%d HP" % [unit.hp, unit.max_hp]
-		if unit.hp <= 0:
-			detail += " · Fallen"
-		elif _rules.knocked_down(_state, hero):
-			detail += " · Down"
-		elif _rules.has_status_handler(_state, hero, "skip_action"):
-			detail += " · Skips turn"
-		elif _rules.has_status_handler(_state, hero, "stop_move"):
-			detail += " · Held"
-		if is_commanded:
-			detail += " · Direct"
-		note.text = detail
-		note.add_theme_color_override("font_color", GOLD if is_commanded else RUST if unit.hp < unit.max_hp else MUTED)
-
-
-func _refresh_forecast() -> void:
-	_refresh_objective_forecast()
-	if not _ongoing():
-		_forecast.text = "[color=#e3b970][b]%s[/b][/color]\n%s" % [
-			_escape_log_text(_objective.text),
-			"Restart this mission for another attempt." if not _fixed_mission.is_empty() else ""]
-	else:
-		var summary := "Standing orders only this round."
-		var hero := _commanded_hero()
-		if not hero.is_empty():
-			var draft: Dictionary = _planned_state.overrides[hero]
-			var action: String = _action_definition(draft.ability_id, hero).label
-			var target := _target_description(hero, draft.ability_id, draft.target_id)
-			summary = "%s: %s%s" % [_name_for(hero), action, target]
-		var unpreviewed := ""
-		if _unpreviewed_edit:
-			var next_step := "Preview" if _can_stage_command() else "Change"
-			unpreviewed = "\n[color=#f0b495]Edit not queued. %s or discard it before committing.[/color]" % next_step
-		_forecast.text = "[color=#e3b970][b]%s[/b][/color]%s%s\n%s" % [
-			_escape_log_text(summary), unpreviewed, _forecast_upgrade_details(), _event_lines(_plan.events)]
-	_forecast.scroll_to_line(0)
-	_last_title.text = "Last round" if _last_round == 0 else "Round %d result" % _last_round
-	_last_result.text = "[color=#c0c7ad]Nothing resolved yet.[/color]" if _last_events.is_empty() else _last_report()
-	_last_result.scroll_to_line(0)
-
-
-func _refresh_objective_forecast() -> void:
+func _objective_forecast_text() -> String:
 	var text := ""
-	var outcome := ""
-	var ink := GOLD
 	if _ongoing() and _plan.get("valid", false):
 		var projected: Dictionary = _plan.result
-		outcome = projected.outcome
+		var outcome: String = projected.outcome
 		if outcome in ["victory", "defeat"]:
 			text = "Forecast: Victory this round." if outcome == "victory" else "Forecast: Defeat this round."
-			ink = MINT if outcome == "victory" else RUST
 			for event in _plan.events:
 				if event.type == outcome:
 					text += " " + str(event.text)
@@ -1585,53 +1442,7 @@ func _refresh_objective_forecast() -> void:
 				text = "After this round: " + next
 		if not text.is_empty() and _unpreviewed_edit:
 			text += " (Edit not previewed.)"
-	_objective_forecast.text = text
-	_objective_forecast.tooltip_text = text
-	_objective_forecast.add_theme_color_override("font_color", ink)
-	_objective_forecast.set_meta("outcome", outcome)
-	_objective_forecast.visible = not text.is_empty()
-
-
-func _forecast_upgrade_details() -> String:
-	var lines: PackedStringArray = []
-	for member in _roster():
-		var current: Variant = _rules.shield_position(_state, member.id)
-		var predicted: Variant = _rules.shield_position(_plan.result, member.id)
-		if predicted is Vector2i:
-			var timing := " after this round" if predicted != current else ""
-			lines.append("%s’s shield: %s%s." % [_name_for(member.id), BridgeArt.coordinate(predicted), timing])
-		elif current is Vector2i:
-			lines.append("%s recovers their shield from %s." % [_name_for(member.id), BridgeArt.coordinate(current)])
-		var focused: String = _rules.nominated_target(_plan.result, member.id)
-		if not focused.is_empty():
-			lines.append("%s’s summons pursue %s." % [_name_for(member.id), _name_for(focused)])
-	return "" if lines.is_empty() else "\n" + _escape_log_text("\n".join(lines))
-
-
-func _last_report() -> String:
-	var losses: PackedStringArray = []
-	for event in _last_events:
-		if event.type == "damage":
-			losses.append("%s −%d HP" % [_name_for(event.target_id), event.amount])
-	var cost := "[color=#f0b495][b]%s[/b][/color]" % _escape_log_text("  ·  ".join(losses)) if not losses.is_empty() \
-		else "[color=#cae1b6]No damage taken or dealt.[/color]"
-	return cost + "\n" + _event_lines(_last_events)
-
-
-func _event_lines(events: Array) -> String:
-	if events.is_empty():
-		return "No actions predicted."
-	var lines: PackedStringArray = []
-	for index in range(events.size()):
-		var event: Dictionary = events[index]
-		var ink := "#f0b495" if event.type in ["damage", "defeat"] else ("#cae1b6" if event.type in ["heal", "victory"] else "#f1dfb8")
-		lines.append("[color=#9ba792]%02d[/color]  [color=%s]%s[/color]" % [
-			index + 1, ink, _escape_log_text(event.text)])
-	return "\n".join(lines)
-
-
-func _escape_log_text(text: String) -> String:
-	return text.replace("[", "[lb]")
+	return text
 
 
 func _target_description(hero: String, ability: String, target: String) -> String:
@@ -1723,10 +1534,12 @@ func _refresh_board() -> void:
 		var commanded := _find(_commanded_hero())
 		if not commanded.is_empty():
 			overlay["commanded"] = commanded.position
+			if _planned_state.overrides[commanded.id].ability_id == "move":
+				overlay["quiet_manual_move"] = true
 		if not _actor_id.is_empty():
 			var selected := _find(_actor_id)
 			overlay["selected"] = selected.position
-			if _editor_can_act:
+			if _editor_can_act and (_ability_id == "move" or _storybook_aiming):
 				var positions: Array = []
 				for target in _targets:
 					positions.append(target.position)
@@ -1745,17 +1558,48 @@ func _refresh_board() -> void:
 				continue
 			if predicted.hp < entity.hp:
 				hits.append(entity.position)
-			if predicted.position != entity.position and not hooked.has(entity.id):
+			var manual_move: bool = entity.id == _commanded_hero() \
+				and _planned_state.overrides[entity.id].ability_id == "move"
+			if predicted.position != entity.position and not hooked.has(entity.id) and not manual_move:
 				paths.append([entity.position, predicted.position])
 		paths.append_array(_hooked_paths(hooked))
 		overlay["impact"] = hits
 		overlay["paths"] = paths
+	overlay.erase("selected")
 	_board.set_render_state(_painted_cells, units, overlay)
-	_board_cues.update_markers(_objective_markers, native_exit)
-	_refresh_map_legend(native_exit)
-	if _hover_cell != null:
-		_inspect_board(_hover_cell)
-
+	if _board_cues != null:
+		_board_cues.update_markers(_objective_markers, native_exit)
+	var ink := {}
+	if _board.has_focus() and _storybook_focus_cell is Vector2i:
+		ink["focus_cell"] = _storybook_focus_cell
+	var selected := _find(_actor_id)
+	if _ongoing() and not selected.is_empty():
+		ink["selected_cell"] = selected.position
+	if _ongoing() and not _commanded_hero().is_empty():
+		var hero := _commanded_hero()
+		var draft: Dictionary = _planned_state.overrides[hero]
+		if draft.ability_id == "move":
+			var before := _find(hero, _rules.state_before_action(_planned_state, hero))
+			var moves: Array = _plan.events.filter(func(event: Dictionary) -> bool:
+				return event.type == "move" and event.get("unit_id") == hero \
+					and event.get("ability_id") == "move")
+			if not before.is_empty() and moves.size() == 1 and before.position != moves[0].position:
+				var destination: Vector2i = moves[0].position
+				ink["move"] = {"from": before.position, "to": destination,
+					"cast_key": _rules.entity_profile(_state, hero).get("art_key", "")}
+				ink["context_cell"] = destination
+				ink["context_text"] = "Move to " + BridgeArt.coordinate(destination)
+	if _uses_builtin_catalog and _state.board_id == "frontier_gate_board" and _state.objective.handler == "pressure_gate":
+		var gate: Vector2i = _state.objective.gate
+		var now_open: bool = _rules.tile_definition(_state, gate).passable
+		var next_open: bool = _rules.tile_definition(_plan.result, gate).passable
+		ink["gate_actual"] = {"cell": gate, "open": now_open}
+		ink["landmarks"] = [
+			{"cell": _state.objective.plate, "kind": "plate", "label": "Pressure plate"},
+			{"cell": _state.objective.exit, "kind": "exit", "label": "Exit"}]
+		if _ongoing() and now_open != next_open:
+			ink["gate"] = {"cell": gate, "opens": next_open}
+	_storybook_page.render_ink(ink)
 
 func _shared_enemy_art() -> Dictionary:
 	var first_roles := {}
@@ -1771,34 +1615,6 @@ func _shared_enemy_art() -> Dictionary:
 		elif first_roles[art] != role:
 			shared[art] = true
 	return shared
-
-
-func _refresh_map_legend(native_exit: bool) -> void:
-	var kinds: PackedStringArray = []
-	for marker in _objective_markers.values():
-		if not marker.kind in kinds:
-			kinds.append(marker.kind)
-	if _legend.has_meta("objective_kinds") and _legend.get_meta("objective_kinds") == kinds:
-		return
-	_legend.set_meta("objective_kinds", kinds)
-	for entry in _legend.get_children():
-		_legend.remove_child(entry)
-		entry.queue_free()
-	for kind in kinds:
-		var mark: Array = BattleCues.MARKS.get(kind, ["", "Objective", GOLD])
-		var glyph: String = mark[0]
-		var title: String = mark[1]
-		if kind == "exit" and native_exit:
-			glyph = ""
-			title = _presentation("exit", "Destination")
-		_legend_key(_legend, kind, title, mark[2], glyph)
-	if native_exit:
-		_legend_key(_legend, "safe", "Safe bank", Color("#a0a67a"))
-		_legend_key(_legend, "broken", "Bridge gap", Color("#5c918e"))
-	_legend_key(_legend, "obstacle", "Blocked", Color("#b38b60"))
-	_legend_key(_legend, "target", "Target", MINT)
-	_legend_key(_legend, "impact", "Net HP loss", RUST)
-	_legend_key(_legend, "path", "Forecast end", GOLD)
 
 
 func _hooked_paths(hooked: Dictionary) -> Array:
@@ -1874,31 +1690,17 @@ func _highlight_safe_bank(eligible: Dictionary, destination: Vector2i) -> void:
 
 
 func _select_board(cell: Vector2i) -> void:
-	if not _ongoing():
-		return
-	var matching := _targets_at(cell)
-	if matching.size() > 1:
-		_target_select.show_popup()
-		return
-	if matching.size() == 1:
-		_pick(_target_select, matching[0].id)
-		_select_target(_target_select.selected)
-		return
-	for unit in _roster():
-		if unit.position == cell and unit.hp > 0:
-			_pick(_actor_select, unit.id)
-			_select_actor(_actor_select.selected)
-			return
+	if _ongoing():
+		_storybook_select_board(cell)
 
 
 func _inspect_board(cell: Vector2i) -> void:
-	_hover_cell = cell
 	var marker: Dictionary = _objective_markers.get(cell, {})
 	var place := BridgeArt.coordinate(cell) if marker.is_empty() else \
 		"%s  ·  %s" % [BridgeArt.coordinate(cell), marker.label]
 	var shield_note := _shield_tile_note(cell)
 	var target_note := ""
-	if _ongoing():
+	if _ongoing() and (_ability_id == "move" or _storybook_aiming):
 		var target_kind := _target_kind()
 		var matching := _targets_at(cell)
 		if not matching.is_empty():
@@ -1932,10 +1734,11 @@ func _inspect_board(cell: Vector2i) -> void:
 
 
 func _set_inspection(text: String, details := PackedStringArray()) -> void:
-	_hover_text.text = text if details.is_empty() else text + "  ·  " + details[0]
-	var full := text if details.is_empty() else text + "\n" + "\n".join(details)
-	_hover_text.tooltip_text = full
-	_board.tooltip_text = full
+	_storybook_inspection = text if details.is_empty() else text + "  ·  " + details[0]
+	_board.tooltip_text = text if details.is_empty() else text + "
+" + "
+".join(details)
+	_render_storybook()
 
 
 func _enemy_inspection_notes(id: String) -> PackedStringArray:
@@ -1975,10 +1778,9 @@ func _targets_at(cell: Vector2i) -> Array:
 
 
 func _clear_inspection() -> void:
-	_hover_cell = null
-	_hover_text.text = "Point at a tile to inspect it."
-	_hover_text.tooltip_text = ""
+	_storybook_inspection = ""
 	_board.tooltip_text = ""
+	_render_storybook()
 
 
 func _ongoing() -> bool:
@@ -2001,14 +1803,6 @@ func _roster() -> Array:
 
 func _name_for(id: String) -> String:
 	return _rules.display_name(_state, id)
-
-
-func _owned_upgrade_labels(hero: String) -> String:
-	var owned: Dictionary = _run.get("upgrades_by_id", {}).get(hero, {})
-	var labels: PackedStringArray = []
-	for id in owned:
-		labels.append("%s (%d)" % [_definitions.upgrades[id].label, owned[id]])
-	return ", ".join(labels)
 
 
 func _make_theme() -> void:
@@ -2185,25 +1979,6 @@ func _presentation_entry(art_key: String) -> Dictionary:
 	return _rules.definitions(_state).get("presentation", {}).get(art_key, {})
 
 
-func _legend_key(parent: Control, art_key: String, fallback_label: String, fallback_color: Color, glyph := "") -> void:
-	var definition := _presentation_entry(art_key) if glyph.is_empty() else {}
-	var title: String = definition.get("label", fallback_label)
-	var color := Color.from_string(definition.get("color", ""), fallback_color)
-	var entry := _row(parent, 6)
-	if glyph.is_empty():
-		var swatch := ColorRect.new()
-		swatch.custom_minimum_size = Vector2(8, 8)
-		swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		swatch.color = color
-		entry.add_child(swatch)
-	else:
-		_label(entry, glyph, 12, color)
-	var caption := _label(entry, title, 12, MUTED)
-	caption.custom_minimum_size.x = minf(caption.get_minimum_size().x, 105.0)
-	caption.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	caption.tooltip_text = title
-
-
 func _add_choice(picker: OptionButton, text: String, key: String) -> void:
 	picker.add_item(text)
 	picker.set_item_metadata(picker.item_count - 1, key)
@@ -2215,7 +1990,3 @@ func _pick(picker: OptionButton, key: String) -> void:
 			picker.select(index)
 			return
 	picker.select(0 if picker.item_count > 0 else -1)
-
-
-func _picked(picker: OptionButton) -> String:
-	return str(picker.get_selected_metadata()) if picker.selected >= 0 else ""

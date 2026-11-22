@@ -9,7 +9,7 @@ var defs: Dictionary
 
 
 func _initialize() -> void:
-	defs = catalog.read_default()
+	defs = preload("res://tests/fixtures/rules_catalog.gd").add_fixed_escort(catalog.read_default())
 	if not defs.get("characters", {}).has("necromancer"):
 		_check(false, "Necromancer must be authored")
 	else:
@@ -40,7 +40,7 @@ func _unit(id: String, character: String, position: Vector2i, hp := 10, max_hp :
 
 
 func _state(units: Array) -> Dictionary:
-	var state: Dictionary = rules.new_game(defs, "ferryman")
+	var state: Dictionary = rules.new_game(defs, "test_escort")
 	state.width = 12
 	state.height = 12
 	state.default_tile = "stone"
@@ -272,7 +272,7 @@ func _test_greeting_random_replay() -> void:
 	_check(errors.is_empty(), "Random greeting fixture validates: " + str(errors))
 	if not errors.is_empty():
 		return
-	var state: Dictionary = rules.new_game(fixture, "ferryman")
+	var state: Dictionary = rules.new_game(fixture, "test_escort")
 	state.width = 12
 	state.height = 12
 	state.default_tile = "stone"
@@ -328,7 +328,7 @@ func _test_zombie_reaches_flower_range() -> void:
 	_check(errors.is_empty(), "Flower pursuit catalog fixture validates: " + str(errors))
 	if not errors.is_empty():
 		return
-	var state: Dictionary = rules.new_game(fixture, "ferryman")
+	var state: Dictionary = rules.new_game(fixture, "test_escort")
 	state.width = 12
 	state.height = 12
 	state.default_tile = "stone"
@@ -381,7 +381,7 @@ func _test_healer_escapes_wave() -> void:
 	_check(errors.is_empty(), "Forced-Wave catalog fixture validates: " + str(errors))
 	if not errors.is_empty():
 		return
-	var state: Dictionary = rules.new_game(fixture, "ferryman")
+	var state: Dictionary = rules.new_game(fixture, "test_escort")
 	state.width = 12
 	state.height = 12
 	state.default_tile = "stone"

@@ -12,6 +12,7 @@ var scene: Node
 var direct_openings: Dictionary = {}
 var played_rounds := 0
 var viewport := SubViewport.new()
+var driver
 
 
 func _initialize() -> void:
@@ -75,7 +76,7 @@ func _run() -> void:
 			for actor in PARTY:
 				_check(opening.get("orders", {}).get(actor) == preserved_orders.get(actor),
 					id + " preserves " + actor + "'s standing order")
-		_check_battle_controls(id)
+		await _check_battle_controls(id)
 		if direct_openings.has(id):
 			_check(_geometry(opening) == _geometry(direct_openings[id]),
 				id + " uses the same board and encounter geometry as direct launch")
@@ -117,11 +118,8 @@ func _run() -> void:
 func _test_custom_adventure_bootstrap() -> void:
 	var catalog = load("res://content/catalog.gd")
 	var data: Dictionary = catalog.read_default().duplicate(true)
-	# This legacy custom catalog has no commission board; its roster adventure
-	# is deliberately removed below.
-	for table in ["mission_reports", "mission_kinds", "commission_settings"]:
-		data.erase(table)
 	data.adventures.erase("first_outing")
+	data.commission_settings.roster_adventure = "village_troubles"
 	var errors: PackedStringArray = catalog.validate(data)
 	_check(errors.is_empty() and data.adventures.has("village_troubles"),
 		"Custom village-only catalog validates: " + str(errors))
@@ -134,7 +132,7 @@ func _test_custom_adventure_bootstrap() -> void:
 		return
 	file.store_string(JSON.stringify(data))
 	file.close()
-	var args := PackedStringArray(["--content=" + ProjectSettings.globalize_path(path)])
+	var args := PackedStringArray(["--fixed-outings", "--content=" + ProjectSettings.globalize_path(path)])
 	await _launch(args)
 	_check(scene.current_screen() == "guild", "Custom catalog without first_outing opens the guild")
 	if scene.current_screen() == "guild":
@@ -149,18 +147,6 @@ func _test_custom_adventure_bootstrap() -> void:
 				and scene.battle_snapshot().get("mission_id") == "goblin_mob"
 				and scene.battle_snapshot().get("party") == PARTY,
 				"Custom guild deploys its selected company into the village adventure")
-	data.adventures.clear()
-	errors = catalog.validate(data)
-	_check(errors.is_empty(), "Zero-adventure standalone catalog validates: " + str(errors))
-	file = FileAccess.open(path, FileAccess.WRITE)
-	if file == null:
-		_check(false, "Can write zero-adventure catalog fixture")
-	else:
-		file.store_string(JSON.stringify(data))
-		file.close()
-		await _launch(args)
-		_check(scene.current_screen() == "battle" and scene.battle_snapshot().get("mission_id") == "ferryman",
-			"Zero-adventure custom catalog preserves standalone ferryman fallback")
 	_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(path)) == OK,
 		"Custom catalog fixture is removed")
 
@@ -174,9 +160,12 @@ func _launch(args: PackedStringArray) -> void:
 	viewport.add_child(scene)
 	await process_frame
 	await process_frame
+	driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
 
 
 func _play_battle(id: String) -> void:
+	if driver == null or driver.scene != scene:
+		driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
 	played_rounds = 0
 	for round_index in MAX_ROUNDS:
 		if scene.current_screen() != "battle":
@@ -186,43 +175,31 @@ func _play_battle(id: String) -> void:
 		# This is bounded and deterministic for the authored encounter seed.
 		var best_score := _score(scene.get("_plan").get("result", {}), PARTY)
 		var best := {}
-		var actor_ids := _choice_ids(_node("ActorSelect") as OptionButton)
-		for actor in actor_ids:
-			if not await _try_select("ActorSelect", actor):
+		var rules = driver.rules
+		for actor in PARTY:
+			var context: Dictionary = rules.state_before_action(scene.get("_state"), actor)
+			if not rules.can_act(context, actor):
 				continue
-			var abilities := _choice_ids(_node("AbilitySelect") as OptionButton)
-			for ability in abilities:
-				if not await _try_select("AbilitySelect", ability):
+			for choice: Dictionary in rules.options(scene.get("_state"), actor):
+				if choice.kind != "action":
 					continue
-				var targets := _choice_ids(_node("TargetSelect") as OptionButton)
+				var ability: String = choice.id
+				var targets: Array = rules.targets(context, actor, ability)
 				if targets.is_empty():
-					targets = [""]
-				for target in targets:
-					if not target.is_empty() and not await _try_select("TargetSelect", target):
+					targets = [{"id": ""}]
+				for target: Dictionary in targets:
+					if not await driver.command(actor, ability, str(target.id)):
 						continue
-					var preview := _node("Preview") as BaseButton
-					if preview == null or preview.disabled:
-						continue
-					await _press("Preview")
 					var plan: Dictionary = scene.get("_plan")
 					if plan.get("valid", false):
 						var score := _score(plan.get("result", {}), PARTY)
 						if score > best_score:
 							best_score = score
-							best = {"actor": actor, "ability": ability, "target": target}
+							best = {"actor": actor, "ability": ability, "target": str(target.id)}
+					await driver.clear()
 		# Discard the exploratory draft and apply only the chosen player command.
-		var clear := _node("ClearCommand") as BaseButton
-		if clear != null and not clear.disabled:
-			await _press("ClearCommand")
-			clear = _node("ClearCommand") as BaseButton
-			if clear != null and not clear.disabled:
-				await _press("ClearCommand")
 		if not best.is_empty():
-			await _try_select("ActorSelect", best.actor)
-			await _try_select("AbilitySelect", best.ability)
-			if not best.target.is_empty():
-				await _try_select("TargetSelect", best.target)
-			await _press("Preview")
+			_check(await driver.command(best.actor, best.ability, best.target), driver.error)
 		if round_index == 0:
 			await _capture(id + "_preview")
 		if round_index == 0 and _reachable(_node("Commit") as Control):
@@ -240,13 +217,12 @@ func _play_battle(id: String) -> void:
 
 func _check_battle_controls(id: String) -> void:
 	_check(_reachable(_node("Commit") as Control), id + " Commit is fully reachable at 1280x820")
+	_check(_reachable(_node("StandingOrders") as Control), id + " standing orders are fully reachable at 1280x820")
+	await _press("StandingOrders")
 	for actor in PARTY:
-		var picker: Control
-		for candidate in scene.find_children("*", "OptionButton", true, false):
-			if candidate.get_meta("actor_id", "") == actor:
-				picker = candidate
-				break
-		_check(_reachable(picker), id + " standing order for " + actor + " is fully reachable at 1280x820")
+		_check(_reachable(_node(actor.to_pascal_case() + "Order") as Control),
+			id + " standing order for " + actor + " is fully reachable at 1280x820")
+	await _press("StandingOrders")
 
 
 func _reachable(control: Control) -> bool:
@@ -318,16 +294,6 @@ func _geometry(state: Dictionary) -> Dictionary:
 	return result
 
 
-func _choice_ids(picker: OptionButton) -> Array:
-	var result: Array = []
-	if picker != null and not picker.disabled and picker.is_visible_in_tree():
-		for i in picker.item_count:
-			var id := str(picker.get_item_metadata(i))
-			if not id.is_empty() and not picker.is_item_disabled(i):
-				result.append(id)
-	return result
-
-
 func _has_id(picker: OptionButton, id: String) -> bool:
 	for i in picker.item_count:
 		if str(picker.get_item_metadata(i)) == id and not picker.is_item_disabled(i):
@@ -344,19 +310,6 @@ func _select_id(picker: OptionButton, id: String) -> bool:
 				await process_frame
 				return true
 	_check(false, "Missing selectable choice " + id)
-	return false
-
-
-func _try_select(name: String, id: String) -> bool:
-	var picker := _node(name) as OptionButton
-	if picker == null or picker.disabled or not picker.is_visible_in_tree():
-		return false
-	for i in picker.item_count:
-		if str(picker.get_item_metadata(i)) == id and not picker.is_item_disabled(i):
-			picker.select(i)
-			picker.item_selected.emit(i)
-			await process_frame
-			return true
 	return false
 
 

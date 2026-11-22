@@ -38,14 +38,14 @@ func _check(condition: bool, message: String) -> void:
 
 
 func _fixture() -> Dictionary:
-	var defs: Dictionary = catalog.call("read_default")
+	var defs: Dictionary = preload("res://tests/fixtures/rules_catalog.gd").add_fixed_escort(catalog.call("read_default"))
 	# Own all geometry used in these tests; the rest is valid authored schema.
 	defs["boards"]["bridge"]["width"] = 7
 	defs["boards"]["bridge"]["height"] = 5
 	defs["boards"]["bridge"]["default_tile"] = "stone"
 	defs["boards"]["bridge"]["tiles"] = []
 	defs["boards"]["bridge"]["locations"]["safe_bank"] = [6, 4]
-	defs["encounters"]["crossing"]["placements"] = [
+	defs["encounters"]["test_escort"]["placements"] = [
 		{"id": "knight", "character": "knight", "at": [0, 0]},
 		{"id": "civilian", "character": "ferryman", "at": [6, 3]},
 		{"id": "fixture_crate", "object": "crate", "at": [1, 0]}
@@ -57,13 +57,13 @@ func _test_validation() -> void:
 	var defs := _fixture()
 	_check(catalog.call("validate", defs).is_empty(), "Controlled fixture must validate")
 	var unknown := defs.duplicate(true)
-	unknown["encounters"]["crossing"]["placements"][2]["object"] = "missing_object"
+	unknown["encounters"]["test_escort"]["placements"][2]["object"] = "missing_object"
 	_check(not catalog.call("validate", unknown).is_empty(), "Unknown object reference must be rejected")
 	var duplicate := defs.duplicate(true)
-	duplicate["encounters"]["crossing"]["placements"][2]["id"] = "knight"
+	duplicate["encounters"]["test_escort"]["placements"][2]["id"] = "knight"
 	_check(not catalog.call("validate", duplicate).is_empty(), "Duplicate instance ID must be rejected")
 	var illegal := defs.duplicate(true)
-	illegal["encounters"]["crossing"]["placements"][2]["at"] = [7, 0]
+	illegal["encounters"]["test_escort"]["placements"][2]["at"] = [7, 0]
 	_check(not catalog.call("validate", illegal).is_empty(), "Out-of-bounds placement must be rejected")
 	var bad_shore := defs.duplicate(true)
 	bad_shore.boards.bridge.shore_cells = [[7, 0]]
@@ -253,8 +253,8 @@ func _test_world_isolation() -> void:
 	second_defs["characters"]["knight"]["label"] = "Second knight"
 	first_defs["characters"]["knight"]["max_hp"] = 17
 	second_defs["characters"]["knight"]["max_hp"] = 23
-	var first: Dictionary = catalog.call("build", first_defs, "ferryman")
-	var second: Dictionary = catalog.call("build", second_defs, "ferryman")
+	var first: Dictionary = catalog.call("build", first_defs, "test_escort")
+	var second: Dictionary = catalog.call("build", second_defs, "test_escort")
 	if first.is_empty() or second.is_empty():
 		_check(false, "Both independently authored worlds must build")
 		return
@@ -309,10 +309,10 @@ func _test_capability_opt_out() -> void:
 	defs["objects"]["crate"]["capabilities"] = ["pushable", "blocks_movement", "damageable"]
 	defs["objects"]["passable_crate"] = defs["objects"]["crate"].duplicate(true)
 	defs["objects"]["passable_crate"]["capabilities"] = []
-	var solid: Dictionary = rules.call("new_game", defs, "ferryman")
+	var solid: Dictionary = rules.call("new_game", defs, "test_escort")
 	var passable_defs := defs.duplicate(true)
-	passable_defs["encounters"]["crossing"]["placements"][2]["object"] = "passable_crate"
-	var passable: Dictionary = rules.call("new_game", passable_defs, "ferryman")
+	passable_defs["encounters"]["test_escort"]["placements"][2]["object"] = "passable_crate"
+	var passable: Dictionary = rules.call("new_game", passable_defs, "test_escort")
 	if solid.is_empty() or passable.is_empty():
 		_check(false, "Capability comparison fixtures must build")
 		return
@@ -352,7 +352,7 @@ func _test_reflect_capability_filter() -> void:
 	defs["statuses"]["aura"]["params"]["teams"] = ["enemies"]
 	defs["statuses"]["aura"]["params"]["objects"] = false
 	defs["statuses"]["aura"]["params"]["capabilities"] = ["reflection_target"]
-	defs["encounters"]["crossing"]["placements"] = [
+	defs["encounters"]["test_escort"]["placements"] = [
 		{"id": "knight", "character": "knight", "at": [2, 2]},
 		{"id": "ward", "character": "healer", "at": [3, 2]},
 		{"id": "near_enemy", "character": "harpooner", "at": [4, 2]},
@@ -363,7 +363,7 @@ func _test_reflect_capability_filter() -> void:
 	_check(errors.is_empty(), "Reflect capability filter fixture must validate: " + str(errors))
 	if not errors.is_empty():
 		return
-	var state: Dictionary = rules.call("new_game", defs, "ferryman")
+	var state: Dictionary = rules.call("new_game", defs, "test_escort")
 	if state.is_empty():
 		_check(false, "Reflect capability filter world must build")
 		return

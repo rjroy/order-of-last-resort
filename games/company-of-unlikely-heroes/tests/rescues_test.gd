@@ -54,7 +54,11 @@ func _run() -> void:
 			_fail("new_game must accept definitions and mission_id, without a mode")
 	if not failures.is_empty():
 		return
-	var initial = rules.call("new_game", null, "ferryman")
+	# These routes exercise a test-owned wizard starting position on the rescue board.
+	var defs: Dictionary = preload("res://content/catalog.gd").read_default()
+	defs.encounters.company_crossing.party_slots[2] = [4, 2]
+	var party := ["knight", "healer", "wizard"]
+	var initial = rules.call("open_mission", defs, "company_rescue", party)
 	if not initial is Dictionary:
 		_fail("new_game must return a state Dictionary")
 		return
@@ -64,7 +68,7 @@ func _run() -> void:
 	_play("pull rescue", initial, PULL_RESCUE, "victory", true)
 	_play("no-pull rescue", initial, NO_PULL_RESCUE, "victory", false)
 	_play("loss", initial, LOSS, "defeat", false)
-	var restart = rules.call("new_game", null, "ferryman")
+	var restart = rules.call("open_mission", defs, "company_rescue", party)
 	if _mutable_facts(restart) != _mutable_facts(initial):
 		_fail("Restart must reproduce the clean initial state, including orders and overrides")
 

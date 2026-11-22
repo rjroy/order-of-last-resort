@@ -20,7 +20,7 @@ func _run() -> void:
 	defs.statuses.knockdown = {"label": "Down", "handler": "skip_action",
 		"expiry": "consume_action", "params": {}}
 	scene = load("res://main.tscn").instantiate()
-	scene.configure_launch(PackedStringArray(["--mission=ferryman"]))
+	scene.configure_launch(PackedStringArray(["--mission=goblin_mob"]))
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
@@ -29,7 +29,7 @@ func _run() -> void:
 	if scene.current_screen() != "battle":
 		_finish()
 		return
-	var state: Dictionary = rules.new_game(defs, "ferryman")
+	var state: Dictionary = rules.open_mission(defs, "goblin_mob", ["necromancer", "healer", "bard"])
 	var hero := _unit(state, "healer")
 	_check(not hero.is_empty() and hero.get("hp", 0) > 0, "Fixture has a living Healer")
 	if hero.is_empty():
@@ -38,11 +38,12 @@ func _run() -> void:
 	hero.statuses = {"laughter": {"source_id": "enemy_bard"}}
 	await _show_editor(state)
 	_check(not rules.can_act(state, "healer"), "Pending laughter still prevents the hero's action")
-	_check((_node("Preview") as BaseButton).disabled, "Pending laughter disables command preview")
-	var target := _node("TargetSelect") as OptionButton
-	var help := str(_node("ActionHelp").text).to_lower()
-	_check(not target.get_item_text(0).to_lower().contains("knock")
-		and not help.contains("knock") and not help.contains("getting up") and not help.contains("is down"),
+	_check(_actions_unavailable(), "Pending laughter disables the Healer's direct actions")
+	var status := _visible_text()
+	_check("laugh" in status and ("skip" in status or "cannot act" in status or "can't act" in status),
+		"Player can see that laughter makes the Healer lose an action")
+	_check(not status.contains("knock")
+		and not status.contains("getting up") and not status.contains("is down"),
 		"Pending laughter is not described as knockdown or getting up")
 
 	var summary: Dictionary = adventure._summarize_mission(["healer"], state)
@@ -51,12 +52,10 @@ func _run() -> void:
 
 	hero.statuses = {"knockdown": {"source_id": "enemy_bard"}}
 	await _show_editor(state)
-	target = _node("TargetSelect") as OptionButton
-	help = str(_node("ActionHelp").text).to_lower()
-	_check(not rules.can_act(state, "healer") and (_node("Preview") as BaseButton).disabled,
+	status = _visible_text()
+	_check(not rules.can_act(state, "healer") and _actions_unavailable(),
 		"Actual knockdown still prevents a direct action")
-	_check(target.get_item_text(0).to_lower().contains("knock")
-		and (help.contains("getting up") or help.contains("knock")),
+	_check(status.contains("getting up") or status.contains("knock"),
 		"Actual knockdown is still described as knockdown or getting up")
 	summary = adventure._summarize_mission(["healer"], state)
 	_check(summary.get("heroes_by_id", {}).get("healer", {}).get("knocked_down", false),
@@ -69,22 +68,36 @@ func _show_editor(state: Dictionary) -> void:
 	scene.set("_planned_state", state.duplicate(true))
 	scene.call("_sync_actors")
 	scene.call("_sync_command")
-	scene.call("_refresh", true)
+	scene.call("_refresh")
 	await process_frame
-	await _select_id("ActorSelect", "healer")
-	await _select_id("AbilitySelect", "move")
+	var driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
+	_check(await driver.select_actor("healer"), "Healer can be selected: " + driver.error)
+	var board := _node("BridgeBoard")
+	board.cell_hovered.emit(_unit(state, "healer").position)
+	await process_frame
 
 
-func _select_id(name: String, id: String) -> void:
-	var picker := _node(name) as OptionButton
-	if picker != null:
-		for index in picker.item_count:
-			if str(picker.get_item_metadata(index)) == id:
-				picker.select(index)
-				picker.item_selected.emit(index)
-				await process_frame
-				return
-	_check(false, name + " offers " + id)
+func _actions_unavailable() -> bool:
+	var menu := _node("Actions") as MenuButton
+	if menu == null or not menu.is_visible_in_tree():
+		return false
+	if menu.disabled:
+		return true
+	var popup := menu.get_popup()
+	if popup.item_count == 0:
+		return false
+	for index in popup.item_count:
+		if not popup.is_item_disabled(index):
+			return false
+	return true
+
+
+func _visible_text() -> String:
+	var text := PackedStringArray()
+	for control in scene.find_children("*", "Control", true, false):
+		if control.is_visible_in_tree() and (control is Label or control is BaseButton):
+			text.append(str(control.text).to_lower())
+	return "\n".join(text)
 
 
 func _unit(state: Dictionary, id: String) -> Dictionary:

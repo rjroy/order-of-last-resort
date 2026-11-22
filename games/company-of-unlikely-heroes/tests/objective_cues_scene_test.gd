@@ -68,33 +68,37 @@ func _check_bridge_marker() -> void:
 func _check_cell_marker(state: Dictionary, cell: Vector2i, expected_kind: String) -> void:
 	var board := scene.find_child("BridgeBoard", true, false) as Control
 	var markers_node := scene.find_child("ObjectiveMarkers", true, false) as Control
-	var legend := scene.find_child("MapLegend", true, false) as Control
-	var inspection := scene.find_child("TileInspection", true, false) as Label
-	if board == null or markers_node == null or legend == null or inspection == null:
-		_check(false, "Board exposes visible markers, legend and tile inspection")
+	var ink := scene.find_child("StorybookInk", true, false) as Control
+	if board == null:
+		_check(false, "Book board exposes visible objective markers")
 		return
 	var markers: Dictionary = rules.objective_markers(state)
 	var marker: Dictionary = markers.get(cell, {})
 	_check(not expected_kind.is_empty() and marker.get("kind") == expected_kind,
 		"Named objective cell has the expected marker kind")
-	_check(markers_node.is_visible_in_tree() and markers_node.get_meta("markers", {}) == markers,
-		"Visible board marker layer displays the current objective markers")
-	_check(legend.is_visible_in_tree() and expected_kind in legend.get_meta("objective_kinds", PackedStringArray()),
-		"Visible legend identifies the objective marker")
+	if markers_node != null:
+		_check(markers_node.is_visible_in_tree() and markers_node.get_meta("markers", {}) == markers,
+			"Visible board marker layer displays the current objective markers")
+	else:
+		var landmarks: Array = ink.get("_cues").get("landmarks", []) if ink != null else []
+		_check(ink != null and ink.is_visible_in_tree() and landmarks.any(
+			func(mark: Dictionary) -> bool: return mark.get("cell") == cell and mark.get("kind") == expected_kind),
+			"Visible book artwork marks the objective cell")
 	board.cell_hovered.emit(cell)
-	var description := str(inspection.tooltip_text)
-	_check(inspection.is_visible_in_tree() and not str(marker.get("label", "")).is_empty()
-		and str(marker.get("label", "")).to_lower() in description.to_lower(),
-		"Pre-action tile inspection describes the named objective marker")
+	var description := _visible_text()
+	_check(not str(marker.get("label", "")).is_empty()
+		and str(marker.get("label", "")).to_lower() in description,
+		"Inspecting the marked cell visibly explains the objective marker")
 
 
 func _check_bridge_forecast() -> void:
-	var forecast := scene.find_child("ObjectiveForecast", true, false) as Label
-	var progress := scene.find_child("ObjectiveProgress", true, false) as Label
 	var commit := scene.find_child("Commit", true, false) as BaseButton
-	if forecast == null or progress == null or commit == null:
-		_check(false, "Battle exposes objective progress, forecast and commit")
+	var forecast_button := scene.find_child("ForecastDetails", true, false) as BaseButton
+	if commit == null or forecast_button == null or not forecast_button.is_visible_in_tree():
+		_check(false, "Book exposes forecast and commit controls")
 		return
+	forecast_button.pressed.emit()
+	await process_frame
 	var found_change := false
 	# Advance only until a forecast predicts changed objective progress or an outcome.
 	for attempt in range(6):
@@ -109,11 +113,11 @@ func _check_bridge_forecast() -> void:
 		var outcome := str(result.get("outcome", ""))
 		if (not predicted_text.is_empty() and predicted_text != current_text) or outcome in ["victory", "defeat"]:
 			found_change = true
-			_check(progress.is_visible_in_tree() and current_text in progress.text,
+			var visible := _visible_text()
+			_check(current_text.to_lower() in visible,
 				"Current objective progress remains visible before commitment")
-			_check(forecast.is_visible_in_tree() and (
-				(not predicted_text.is_empty() and predicted_text in forecast.text)
-				or (outcome in ["victory", "defeat"] and forecast.get_meta("outcome", "") == outcome)),
+			_check((not predicted_text.is_empty() and predicted_text.to_lower() in visible)
+				or (outcome in ["victory", "defeat"] and outcome in visible),
 				"Visible forecast describes the changed progress or terminal outcome")
 			_check(scene.battle_snapshot() == before, "Forecast does not commit the round")
 			break
@@ -124,6 +128,14 @@ func _check_bridge_forecast() -> void:
 		if scene.current_screen() != "battle":
 			break
 	_check(found_change, "Bridge opening produces an observable changed objective forecast")
+
+
+func _visible_text() -> String:
+	var text := PackedStringArray()
+	for control in scene.find_children("*", "Control", true, false):
+		if control.is_visible_in_tree() and (control is Label or control is BaseButton):
+			text.append(str(control.text).to_lower())
+	return "\n".join(text)
 
 
 func _check(condition: bool, message: String) -> void:

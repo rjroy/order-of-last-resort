@@ -11,7 +11,7 @@ const Summons = preload("res://rules/summons.gd")
 const Upgrades = preload("res://rules/upgrades.gd")
 
 
-func new_game(definitions_input: Variant = null, mission_id := "ferryman") -> Dictionary:
+func new_game(definitions_input: Variant, mission_id: String) -> Dictionary:
 	var authored: Variant = definitions_input if definitions_input != null else Catalog.read_default()
 	if not authored is Dictionary:
 		push_error("Company: definitions must be a Dictionary.")
@@ -21,7 +21,7 @@ func new_game(definitions_input: Variant = null, mission_id := "ferryman") -> Di
 	return open_mission(authored, mission_id)
 
 
-## With no party IDs, open a fixed authored regression scenario.
+## With no party IDs, open an authored encounter without party slots.
 static func open_mission(definitions_input: Dictionary, mission_id: String, party_ids: Array = []) -> Dictionary:
 	var state := Catalog.build(definitions_input, mission_id, party_ids)
 	if not state.is_empty() and not party_ids.is_empty():

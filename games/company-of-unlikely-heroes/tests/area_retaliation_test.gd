@@ -8,7 +8,7 @@ var defs: Dictionary
 
 
 func _initialize() -> void:
-	defs = Catalog.read_default()
+	defs = preload("res://tests/fixtures/rules_catalog.gd").add_fixed_escort(Catalog.read_default())
 	_test_area("skeleton", "wave")
 	_test_area("healer", "healer_bonk", "first")
 	_test_area("bard", "bard_take_the_stage")
@@ -38,7 +38,7 @@ func _entity(state: Dictionary, id: String) -> Dictionary:
 
 
 func _test_area(character: String, ability: String, target := "") -> void:
-	var state: Dictionary = rules.new_game(defs, "ferryman")
+	var state: Dictionary = rules.new_game(defs, "test_escort")
 	state.width = 12
 	state.height = 12
 	state.default_tile = "stone"

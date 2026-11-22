@@ -1,14 +1,18 @@
 extends SceneTree
 
-# Run: godot --headless --path games/company-of-unlikely-heroes --script res://tests/content_scene_test.gd
-# The child process exercises the same command-line content bootstrap as the game.
-const MISSION := "ferryman"
+# Run graphically: godot --path games/company-of-unlikely-heroes --script res://tests/content_scene_test.gd
+# The child exercises the real --content bootstrap, not a test-only launch path.
+const MISSION := "company_rescue"
 var failures: Array[String] = []
 var scene: Node
-var controls: Dictionary = {}
+var board: Control
 
 
 func _initialize() -> void:
+	if DisplayServer.get_name() == "headless":
+		printerr("Content scene test requires a graphical display.")
+		quit(1)
+		return
 	call_deferred("_run")
 
 
@@ -16,253 +20,179 @@ func _run() -> void:
 	if "--content-scene-child" not in OS.get_cmdline_user_args():
 		_run_child()
 		return
-	scene = load(ProjectSettings.get_setting("application/run/main_scene")).instantiate()
+	root.size = Vector2i(1280, 820)
+	scene = load("res://main.tscn").instantiate()
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
 	await process_frame
-	for name in ["Restart", "Preview", "Commit",
-			"ActorSelect", "AbilitySelect", "TargetSelect", "PreviewText", "ObjectiveText", "RoundText", "BridgeBoard"]:
-		var control := scene.find_child(name, true, false)
-		if control == null:
-			failures.append("Missing scene control: " + name)
-		else:
-			controls[name] = control
-	if failures.is_empty():
-		if "--permanent-regression" in OS.get_cmdline_user_args():
-			await _exercise_permanent_regression()
-		else:
-			await _exercise_scene()
+	_check(scene.current_screen() == "battle", "External mission launches into battle")
+	board = scene.find_child("BridgeBoard", true, false) as Control
+	var page: Control = scene.get("_storybook_page")
+	_check(board != null and board.is_visible_in_tree() and page != null and page.is_visible_in_tree(),
+		"External content uses the normal player battle page and board")
+	if board == null or page == null:
+		_finish()
+		return
+	_check((page.get("_title") as Label).text == "A courier crossing",
+		"Player page displays the external mission title")
+	var before: Dictionary = scene.battle_snapshot().duplicate(true)
+	var objective: Label = page.get("_objective")
+	_check(objective.is_visible_in_tree() and "Courier Sel" in objective.text
+		and "G5" in objective.text and "A4" in objective.text,
+		"Escort objective displays the authored subject, position and relocated exit")
+	_check((board.get("_overlay") as Dictionary).get("exit") == Vector2i(6, 4),
+		"Board marks the relocated escort destination")
+	await _cell(Vector2i(2, 2))
+	_check(_has_action("Push") and not _has_action("Blast nearest"),
+		"Original knight offers Push but not the other knight's Blast")
+	if await _action("Push"):
+		for target in [
+			{"cell": Vector2i(3, 2), "id": "crate", "name": "Supply crate"},
+			{"cell": Vector2i(2, 3), "id": "second_crate", "name": "Relic chest"},
+		]:
+			await _cell(target.cell)
+			var command: Dictionary = scene.get("_planned_state").get("overrides", {}).get("knight", {})
+			_check(command.get("ability_id") == "knight_push" and command.get("target_id") == target.id,
+				"Board selects authored target " + target.name)
+			_check(target.name in (page.get("_summary") as Label).text,
+				"Visible command identifies authored target " + target.name)
+			_check(scene.battle_snapshot() == before, "Targeting does not commit the forecast")
+	var clear := scene.find_child("ClearCommand", true, false) as BaseButton
+	if clear != null and clear.is_visible_in_tree() and not clear.disabled:
+		await _click(clear.get_global_rect().get_center())
+	await _cell(Vector2i(5, 3))
+	_check(_has_action("Blast nearest") and not _has_action("Push"),
+		"Second knight offers authored Blast but not Push")
+	if await _action("Blast nearest"):
+		_check(scene.get("_planned_state").get("overrides", {}).get("second_knight", {}).get("ability_id") == "wizard_blast",
+			"Selecting Blast stages the second knight's authored ability")
+	if clear != null and not clear.disabled:
+		await _click(clear.get_global_rect().get_center())
+	var orders := scene.find_child("StandingOrders", true, false) as BaseButton
+	if orders != null and orders.is_visible_in_tree() and not orders.disabled:
+		await _click(orders.get_global_rect().get_center())
+	else:
+		_check(false, "Standing orders control is available")
+	var first := scene.find_child("KnightOrder", true, false) as OptionButton
+	var second := scene.find_child("SecondKnightOrder", true, false) as OptionButton
+	_check(first != null and second != null and first.is_visible_in_tree() and second.is_visible_in_tree(),
+		"Same-class heroes have independent visible order controls")
+	if first != null and second != null:
+		_check(not _has_option(first, "Blast nearest") and _has_option(second, "Blast nearest"),
+			"Only the second knight offers its authored Blast order")
+		if await _select_option(second, "Blast nearest"):
+			_check(scene.battle_snapshot().orders.get("second_knight") == "order_blast"
+				and scene.battle_snapshot().orders.get("knight") == before.orders.get("knight"),
+				"Changing second knight's order leaves the first knight unchanged")
 	_finish()
 
 
 func _run_child() -> void:
-	var catalog = load("res://content/catalog.gd")
-	var data: Dictionary = catalog.read_default()
+	var data: Dictionary = load("res://content/catalog.gd").read_default()
 	if data.is_empty():
-		failures.append("Default authored catalog is missing or invalid")
+		_check(false, "Default catalog is available to construct the test-owned fixture")
 		_finish()
 		return
-	data["missions"][MISSION]["title"] = "A courier crossing"
-	data["missions"][MISSION]["objective"]["subject"] = "passenger"
-	data["missions"][MISSION]["objective"]["text"] = "Escort {subject_label} to {destination}; {hp}/{max_hp} at {position}"
-	data["boards"]["bridge"]["locations"]["safe_bank"] = [6, 4]
-	data["characters"]["courier"] = {"class": "civilian", "label": "Courier Sel"}
-	data["characters"]["blast_knight"] = {
+	data.missions[MISSION].title = "A courier crossing"
+	data.missions[MISSION].default_party = ["knight", "second_knight", "healer"]
+	data.missions[MISSION].objective.subject = "passenger"
+	data.missions[MISSION].objective.text = "Escort {subject_label} to {destination}. {hp}/{max_hp} HP at {position}"
+	data.boards.bridge.locations.safe_bank = [6, 4]
+	data.characters.courier = {"class": "civilian", "label": "Courier Sel"}
+	data.characters.second_knight = {
 		"class": "knight", "label": "Spark Knight", "abilities": ["move", "wizard_blast"],
 		"habits": {"order_cautious": "hold", "order_blast": "blast"}, "default_order": "order_cautious"
 	}
-	data["encounters"]["crossing"]["placements"] = [
-		{"id": "knight", "character": "knight", "at": [4, 3]},
-		{"id": "second_knight", "character": "blast_knight", "at": [6, 3]},
+	data.objects.supply_crate = data.objects.crate.duplicate(true)
+	data.objects.supply_crate.label = "Supply crate"
+	data.objects.relic_chest = data.objects.crate.duplicate(true)
+	data.objects.relic_chest.label = "Relic chest"
+	data.encounters.company_crossing.party_slots = [[2, 2], [5, 3], [0, 1]]
+	data.encounters.company_crossing.placements = [
 		{"id": "passenger", "character": "courier", "at": [0, 3]},
-		{"id": "crate", "object": "crate", "at": [4, 2]},
-		{"id": "second_crate", "object": "crate", "at": [5, 3]}
+		{"id": "crate", "object": "supply_crate", "at": [3, 2]},
+		{"id": "second_crate", "object": "relic_chest", "at": [2, 3]}
 	]
 	var fixture := "user://content_scene_fixture_%d.json" % OS.get_process_id()
-	var output_file := FileAccess.open(fixture, FileAccess.WRITE)
-	if output_file == null:
-		failures.append("Cannot write temporary authored fixture")
+	var file := FileAccess.open(fixture, FileAccess.WRITE)
+	if file == null:
+		_check(false, "Can write temporary fixture")
 		_finish()
 		return
-	output_file.store_string(JSON.stringify(data))
-	output_file.close()
+	file.store_string(JSON.stringify(data))
+	file.close()
 	var output: Array = []
-	var exit_code := OS.execute(OS.get_executable_path(), [
-		"--headless", "--path", ProjectSettings.globalize_path("res://"),
-		"--script", "res://tests/content_scene_test.gd", "--",
-		"--content=" + ProjectSettings.globalize_path(fixture), "--mission=" + MISSION,
+	var code := OS.execute(OS.get_executable_path(), [
+		"--path", ProjectSettings.globalize_path("res://"), "--script", "res://tests/content_scene_test.gd",
+		"--", "--content=" + ProjectSettings.globalize_path(fixture), "--mission=" + MISSION,
 		"--content-scene-child"
 	], output, true)
-	if DirAccess.remove_absolute(ProjectSettings.globalize_path(fixture)) != OK:
-		failures.append("Could not remove temporary authored fixture: " + fixture)
+	_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(fixture)) == OK,
+		"Temporary fixture was removed")
 	for line in output:
 		print(line)
-	if exit_code != 0:
-		failures.append("Authored scene child failed (exit %d)" % exit_code)
-	output.clear()
-	exit_code = OS.execute(OS.get_executable_path(), [
-		"--headless", "--path", ProjectSettings.globalize_path("res://"),
-		"--script", "res://tests/content_scene_test.gd", "--",
-		"--mission=extra_knight", "--content-scene-child", "--permanent-regression"
-	], output, true)
-	for line in output:
-		print(line)
-	if exit_code != 0:
-		failures.append("Permanent regression scene child failed (exit %d)" % exit_code)
+	_check(code == 0, "External content child succeeded (exit %d)" % code)
 	_finish()
 
 
-func _exercise_permanent_regression() -> void:
-	var initial: Dictionary = scene.get("_state").duplicate(true)
-	_check(_entity(initial, "blast_knight").get("position") == Vector2i(0, 0), "Blast knight starts at A1")
-	_check(_entity(initial, "near_crate").get("position") == Vector2i(1, 0), "Near crate starts at B1")
-	_check(_entity(initial, "far_crate").get("position") == Vector2i(2, 2), "Far crate starts at C3")
-	_check(initial.objective.destination == Vector2i(2, 0), "Regression exit is at C1")
-	_check(controls["BridgeBoard"].get("_overlay").get("exit") == Vector2i(2, 0),
-		"Board displays the regression exit")
-	_check_shore(controls["BridgeBoard"].get("_overlay").get("safe", {}), 0)
-	_check("C1" in str(controls["ObjectiveText"].text), "Objective displays the regression exit")
-	var first_plan: Dictionary = scene.get("_plan")
-	_check(_event_targets(first_plan, "near_crate"), "First forecast hits the B1 crate")
-	_check(not _event_targets(first_plan, "far_crate"), "First forecast does not hit the C3 crate")
-	_check(_entity(first_plan.get("result", {}), "near_crate").get("hp", 0) <
-		_entity(initial, "near_crate").get("hp", 0), "First forecast damages the near crate")
-	_check(_entity(first_plan.get("result", {}), "far_crate") == _entity(initial, "far_crate"),
-		"First forecast leaves the far crate unchanged")
-	_check(_same_state(scene.get("_state"), initial), "First forecast does not commit")
-	_check(scene.get("_state").get("overrides", {}).is_empty(), "Hybrid starts without a command")
-	for hero in ["blast_knight", "knight", "healer", "wizard"]:
-		_check(_has_id(controls["ActorSelect"], hero), "Hybrid mode offers " + hero)
-	if await _select_id(controls["ActorSelect"], "blast_knight"):
-		_check(_has_id(controls["AbilitySelect"], "wizard_blast"), "Blast knight has blast")
-		_check(not _has_id(controls["AbilitySelect"], "knight_push"), "Blast knight does not have push")
-	if await _select_id(controls["ActorSelect"], "knight"):
-		_check(_has_id(controls["AbilitySelect"], "knight_push"), "Original knight retains push")
-		_check(not _has_id(controls["AbilitySelect"], "wizard_blast"), "Original knight does not have blast")
+func _cell(cell: Vector2i) -> void:
+	await _click(board.get_global_transform_with_canvas() * board.cell_center(cell))
 
 
-func _exercise_scene() -> void:
-	var initial: Dictionary = scene.get("_state").duplicate(true)
-	_check(initial.objective.destination == Vector2i(6, 4), "CLI content must relocate the named exit")
-	_check(_entity(initial, "passenger").get("position") == Vector2i(0, 3),
-		"CLI content must instantiate the renamed subject")
-	var objective: String = controls["ObjectiveText"].text
-	_check("Courier Sel" in objective and "G5" in objective,
-		"Objective must display authored subject label and relocated destination")
-	var overlay: Dictionary = controls["BridgeBoard"].get("_overlay")
-	_check(overlay.get("exit") == Vector2i(6, 4), "Board must mark the authored exit")
-	_check_shore(overlay.get("safe", {}), 4)
-
-	var before: Dictionary = scene.get("_state").duplicate(true)
-	if await _select_id(controls["ActorSelect"], "knight") and await _select_id(controls["AbilitySelect"], "knight_push"):
-		var retained_forecast: Dictionary = {}
-		for crate_id in ["crate", "second_crate"]:
-			if not await _select_id(controls["TargetSelect"], crate_id):
-				continue
-			await _press("Preview")
-			var plan: Dictionary = scene.get("_plan")
-			_check(_entity(plan.get("result", {}), crate_id) != _entity(before, crate_id),
-				"Forecast must act on selected " + crate_id)
-			var pos: Vector2i = _entity(before, crate_id).get("position")
-			var coordinate := "%s%d" % [char(65 + pos.x), pos.y + 1]
-			_check(coordinate in str(controls["PreviewText"].text),
-				"Forecast must distinguish selected crate by its location")
-			_check(_same_state(scene.get("_state"), before), "Preview must not commit either crate selection")
-			if crate_id == "second_crate":
-				retained_forecast = plan.get("result", {}).duplicate(true)
-		await _press("Commit")
-		_check(not retained_forecast.is_empty() and _same_state(scene.get("_state"), retained_forecast),
-			"Commit must match the retained second-crate forecast")
-		await _press("Restart")
-		_check(_same_state(scene.get("_state"), before), "Restart must restore authored hybrid encounter")
-
-	if await _select_id(controls["ActorSelect"], "second_knight"):
-		_check(_has_id(controls["AbilitySelect"], "wizard_blast"), "Second knight must expose its authored blast")
-		_check(not _has_id(controls["AbilitySelect"], "knight_push"), "Second knight must not inherit the other knight's push")
-		if await _select_id(controls["AbilitySelect"], "wizard_blast"):
-			await _press("Preview")
-			_check(_event_targets(scene.get("_plan"), "second_crate"), "Second knight blast must forecast its nearby crate")
-			_check(_same_state(scene.get("_state"), before), "Second knight preview must not mutate committed state")
-
-	await _press("Restart")
-	var standing_before: Dictionary = scene.get("_state").duplicate(true)
-	var first_order := _order_picker("knight")
-	var second_order := _order_picker("second_knight")
-	_check(first_order != null and second_order != null and first_order != second_order,
-		"Each knight must have an independent visible order control")
-	if first_order != null and second_order != null:
-		_check(_has_id(second_order, "order_blast") and not _has_id(first_order, "order_blast"),
-			"Only the authored knight gets its blast habit")
-		if await _select_id(second_order, "order_blast"):
-			var ordered: Dictionary = scene.get("_state")
-			_check(ordered.get("orders", {}).get("second_knight") == "order_blast",
-				"Second knight order control must update its own order")
-			_check(ordered.get("orders", {}).get("knight") == standing_before.get("orders", {}).get("knight"),
-				"Changing second knight order must not change the first knight")
-			_check(_event_targets(scene.get("_plan"), "second_crate"),
-				"Standing forecast must show the authored habit affecting its nearby crate")
-			var standing_forecast: Dictionary = scene.get("_plan").get("result", {}).duplicate(true)
-			var predicted_crate := _entity(standing_forecast, "second_crate")
-			_check(predicted_crate.get("hp", 0) < _entity(ordered, "second_crate").get("hp", 0),
-				"Standing blast must predict damage to the second crate")
-			await _press("Commit")
-			_check(_same_state(scene.get("_state"), standing_forecast)
-				and _entity(scene.get("_state"), "second_crate") == predicted_crate,
-				"Standing commit must apply the predicted crate damage")
-			await _press("Restart")
-			_check(_same_state(scene.get("_state"), standing_before), "Restart must restore authored standing orders and placements")
-
-
-func _check_shore(safe: Dictionary, first_x: int) -> void:
-	_check(safe.size() == 15, "Shore tint covers exactly one 3 by 5 bank")
-	for x in range(7):
-		for y in range(5):
-			_check(safe.has(Vector2i(x, y)) == (x >= first_x and x < first_x + 3),
-				"Shore tint matches authored bank at %s" % Vector2i(x, y))
-
-
-func _same_state(left: Dictionary, right: Dictionary) -> bool:
-	if not left.has("catalog") or not right.has("catalog"):
+func _has_action(label: String) -> bool:
+	var menu := scene.find_child("Actions", true, false) as MenuButton
+	if menu == null or not menu.is_visible_in_tree() or menu.disabled:
 		return false
-	var left_content: Dictionary = left["catalog"].defs
-	var right_content: Dictionary = right["catalog"].defs
-	var left_state := left.duplicate()
-	var right_state := right.duplicate()
-	left_state.erase("catalog")
-	right_state.erase("catalog")
-	return left_content == right_content and left_state == right_state
-
-
-func _event_targets(plan: Dictionary, id: String) -> bool:
-	for event in plan.get("events", []):
-		if event.get("target_id", "") == id:
+	var popup := menu.get_popup()
+	for index in popup.item_count:
+		if popup.get_item_text(index).begins_with(label) and not popup.is_item_disabled(index):
 			return true
 	return false
 
 
-func _entity(state: Dictionary, id: String) -> Dictionary:
-	for entity in state.get("units", []) + state.get("obstacles", []):
-		if entity.get("id", "") == id:
-			return entity
-	return {}
+func _action(label: String) -> bool:
+	var menu := scene.find_child("Actions", true, false) as MenuButton
+	if _has_action(label):
+		var popup := menu.get_popup()
+		for index in popup.item_count:
+			if popup.get_item_text(index).begins_with(label) and not popup.is_item_disabled(index):
+				popup.id_pressed.emit(popup.get_item_id(index))
+				await process_frame
+				return true
+	_check(false, "Action is selectable: " + label)
+	return false
 
 
-func _order_picker(actor_id: String) -> OptionButton:
-	for picker in scene.find_children("*", "OptionButton", true, false):
-		if picker.get_meta("actor_id", "") == actor_id:
-			return picker
-	return null
-
-
-func _has_id(picker: OptionButton, id: String) -> bool:
+func _has_option(picker: OptionButton, label: String) -> bool:
 	for index in picker.item_count:
-		if str(picker.get_item_metadata(index)) == id:
+		if picker.get_item_text(index) == label and not picker.is_item_disabled(index):
 			return true
 	return false
 
 
-func _select_id(picker: OptionButton, id: String) -> bool:
-	for index in picker.item_count:
-		if str(picker.get_item_metadata(index)) == id:
-			if picker.disabled or picker.is_item_disabled(index) or not picker.is_visible_in_tree():
-				failures.append("Choice %s is not selectable" % id)
-				return false
-			picker.select(index)
-			picker.item_selected.emit(index)
-			await process_frame
-			return true
-	failures.append("Missing selectable choice: " + id)
+func _select_option(picker: OptionButton, label: String) -> bool:
+	if picker.is_visible_in_tree() and not picker.disabled:
+		for index in picker.item_count:
+			if picker.get_item_text(index) == label and not picker.is_item_disabled(index):
+				picker.select(index)
+				picker.item_selected.emit(index)
+				await process_frame
+				return true
+	_check(false, "Order is selectable: " + label)
 	return false
 
 
-func _press(name: String) -> void:
-	var button: BaseButton = controls[name]
-	if button.disabled or not button.is_visible_in_tree():
-		failures.append(name + " must be visible and enabled")
-		return
-	button.pressed.emit()
-	await process_frame
+func _click(point: Vector2) -> void:
+	for pressed in [true, false]:
+		var event := InputEventMouseButton.new()
+		event.button_index = MOUSE_BUTTON_LEFT
+		event.pressed = pressed
+		event.position = point
+		event.global_position = point
+		event.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0
+		root.push_input(event, true)
+		await process_frame
 
 
 func _check(condition: bool, message: String) -> void:
@@ -271,9 +201,8 @@ func _check(condition: bool, message: String) -> void:
 
 
 func _finish() -> void:
+	for failure in failures:
+		printerr("FAIL: ", failure)
 	if failures.is_empty():
-		print("PASS: authored encounter scene")
-	else:
-		for failure in failures:
-			push_error("FAIL: " + failure)
+		print("PASS: external content uses player battle controls")
 	quit(0 if failures.is_empty() else 1)

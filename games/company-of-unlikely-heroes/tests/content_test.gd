@@ -59,9 +59,9 @@ func _check_restart(restarted: Dictionary, before: Dictionary, message: String) 
 
 
 func _test_instances() -> void:
-	var definitions: Dictionary = catalog.call("read_default")
-	var untouched := definitions.duplicate(true)
-	var placements: Array = definitions["encounters"]["crossing"]["placements"]
+	var untouched: Dictionary = catalog.call("read_default")
+	var definitions: Dictionary = preload("res://tests/fixtures/rules_catalog.gd").add_fixed_escort(untouched.duplicate(true))
+	var placements: Array = definitions["encounters"]["test_escort"]["placements"]
 	# Fixture-owned positions ensure the new crate is the blast's nearest target.
 	var wizard_profile: Dictionary = catalog.call("profile", definitions, "wizard")
 	definitions["characters"]["blast_knight"] = {
@@ -73,7 +73,7 @@ func _test_instances() -> void:
 	placements.append({"id": "second_knight", "character": "blast_knight", "at": [6, 4]})
 	placements.append({"id": "second_crate", "object": "crate", "at": [5, 4]})
 	var authored := definitions.duplicate(true)
-	var initial: Dictionary = rules.call("new_game", definitions, "ferryman")
+	var initial: Dictionary = rules.call("new_game", definitions, "test_escort")
 	if initial.is_empty():
 		failures.append("Instance fixture failed to build")
 		return
@@ -107,23 +107,23 @@ func _test_instances() -> void:
 		_check(_entity(committed, "second_crate").get("hp", 0) == crate.get("hp", 0) - 1,
 			"Second knight follows its personal blast habit")
 		_check(_entity(committed, "crate") == original_crate, "Personal habit leaves other crate unchanged")
-	var restarted: Dictionary = rules.call("new_game", definitions, "ferryman")
+	var restarted: Dictionary = rules.call("new_game", definitions, "test_escort")
 	_check_restart(restarted, before, "Restart restores authored instance positions and health")
 	_check(definitions == authored, "Play and restart must not mutate authoring data")
 	_check(catalog.call("read_default") == untouched, "A modified catalog does not alter fresh defaults")
 
 
 func _test_escort() -> void:
-	var definitions: Dictionary = catalog.call("read_default")
+	var definitions: Dictionary = preload("res://tests/fixtures/rules_catalog.gd").add_fixed_escort(catalog.call("read_default"))
 	definitions["boards"]["bridge"]["locations"]["safe_bank"] = [6, 4]
-	definitions["missions"]["ferryman"]["objective"]["subject"] = "passenger"
-	definitions["encounters"]["crossing"]["placements"] = [
+	definitions["missions"]["test_escort"]["objective"]["subject"] = "passenger"
+	definitions["encounters"]["test_escort"]["placements"] = [
 		{"id": "knight", "character": "knight", "at": [0, 0]},
 		{"id": "other_ferryman", "character": "ferryman", "at": [6, 3]},
 		{"id": "passenger", "character": "ferryman", "at": [5, 4]},
 		{"id": "harpooner", "character": "harpooner", "at": [4, 4]}
 	]
-	var initial: Dictionary = rules.call("new_game", definitions, "ferryman")
+	var initial: Dictionary = rules.call("new_game", definitions, "test_escort")
 	if initial.is_empty():
 		failures.append("Escort fixture failed to build")
 		return
@@ -147,14 +147,14 @@ func _test_escort() -> void:
 	_check(committed.get("outcome", "") == "victory",
 		"Renamed subject reaching relocated destination wins")
 	_check(rules.call("commit_round", initial, plan) == committed, "Committing the same escort preview is deterministic")
-	_check_restart(rules.call("new_game", definitions, "ferryman"), before,
+	_check_restart(rules.call("new_game", definitions, "test_escort"), before,
 		"Restart restores the renamed objective and relocated destination")
 
 
 func _test_authored_deadline() -> void:
-	var definitions: Dictionary = catalog.read_default()
-	definitions.encounters.crossing.deadline = 1
-	var state: Dictionary = rules.new_game(definitions, "ferryman")
+	var definitions: Dictionary = preload("res://tests/fixtures/rules_catalog.gd").add_fixed_escort(catalog.read_default())
+	definitions.encounters.test_escort.deadline = 1
+	var state: Dictionary = rules.new_game(definitions, "test_escort")
 	_check(not state.has("bridge_deadline") and not state.has("exit") \
 		and not state.has("victory") and not state.has("defeat"), "Opening has no duplicate authorities")
 	_check(rules.deadline(state) == 1, "Deadline comes from authored encounter")

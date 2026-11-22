@@ -5,6 +5,7 @@ extends SceneTree
 # --capture-battle=/absolute/path.png to inspect the actual viewport.
 var failures: Array[String] = []
 var scene: Node
+var driver
 
 
 func _initialize() -> void:
@@ -18,6 +19,7 @@ func _run() -> void:
 	current_scene = scene
 	await process_frame
 	await process_frame
+	driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
 	if not scene.has_method("current_screen") or not scene.has_method("selected_recruits") \
 			or not scene.has_method("battle_snapshot"):
 		_check(false, "Scene must expose the adventure screen and snapshot contract")
@@ -61,9 +63,7 @@ func _run() -> void:
 		_check(false, "Starting a full company launches battle")
 		_finish()
 		return
-	for name in ["BattleScreen", "MissionTitle", "RoundText", "ObjectiveText", "ObjectiveProgress",
-			"InitiativeText", "BridgeBoard", "ActorSelect", "AbilitySelect", "TargetSelect",
-			"Preview", "ClearCommand", "PreviewText", "Commit", "CommandedHero", "LastResult"]:
+	for name in ["BridgeBoard", "Actions", "StandingOrders", "ForecastDetails", "ClearCommand", "Commit"]:
 		_check(_node(name) != null, "Battle exposes " + name)
 	_check(_node("ModeDirect") == null and _node("ModeStanding") == null,
 		"Battle has no retired mode selectors")
@@ -84,21 +84,24 @@ func _run() -> void:
 			first_events.append(actor)
 	_check(first_events == picks, "Opening forecast executes heroes in the selected order")
 	await _capture("capture-battle")
-	var order := _order_picker("knight")
-	if order == null or order.item_count < 2:
-		_check(false, "Knight has an editable standing order")
-	else:
-		var index := (order.selected + 1) % order.item_count
-		var order_id := str(order.get_item_metadata(index))
-		await _select(order, index)
-		_check(scene.battle_snapshot().get("orders", {}).get("knight") == order_id,
-			"Standing order changes the selected hero's order")
+	var order_id := ""
+	for choice: Dictionary in driver.rules.options(battle, "knight"):
+		if choice.kind == "order" and choice.id != battle.get("orders", {}).get("knight"):
+			order_id = choice.id
+			break
+	_check(not order_id.is_empty() and await driver.order("knight", order_id), "Knight has an editable standing order")
+	_check(scene.battle_snapshot().get("orders", {}).get("knight") == order_id,
+		"Standing order changes the selected hero's order")
 	var round_before: Dictionary = scene.battle_snapshot()
 	if await _choose_first_ability("wizard"):
-		await _press("Preview")
-		_check(not str(_node("PreviewText").text).strip_edges().is_empty(), "Override shows a forecast")
+		await _press("ForecastDetails")
+		var forecast := scene.get("_storybook_page").get("_forecast_text") as Label
+		_check(forecast != null and forecast.is_visible_in_tree() and not forecast.text.strip_edges().is_empty(),
+			"Override shows a forecast")
+		await _press("ForecastDetails")
 		_check(scene.battle_snapshot().get("round") == round_before.get("round"), "Preview does not advance")
-		_check("wizard" in str(_node("CommandedHero").text).to_lower(),
+		var summary := scene.get("_storybook_page").get("_summary") as Label
+		_check(summary != null and summary.is_visible_in_tree() and "wizard" in summary.text.to_lower(),
 			"HUD identifies the commanded hero")
 		await _press("Commit")
 		_check(scene.current_screen() == "battle", "Opening combat remains active after one round")
@@ -106,8 +109,8 @@ func _run() -> void:
 			_check(scene.battle_snapshot().get("round", 0) > round_before.get("round", 0),
 				"Commit advances the round")
 			if await _choose_first_ability("knight"):
-				await _press("Preview")
-				_check("knight" in str(_node("CommandedHero").text).to_lower(),
+				summary = scene.get("_storybook_page").get("_summary") as Label
+				_check(summary != null and summary.is_visible_in_tree() and "knight" in summary.text.to_lower(),
 					"A different hero can be commanded next round")
 	await _exercise_transition_fixture()
 	await _exercise_bard_guild()
@@ -123,6 +126,7 @@ func _exercise_bard_guild() -> void:
 	current_scene = scene
 	await process_frame
 	await process_frame
+	driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
 	var recruit := _node("Recruit_bard") as BaseButton
 	_check(recruit != null and not recruit.disabled, "Guild offers Bard")
 	if recruit == null or recruit.disabled:
@@ -135,41 +139,28 @@ func _exercise_bard_guild() -> void:
 	_check(scene.current_screen() == "battle", "Company with Bard deploys")
 	if scene.current_screen() != "battle":
 		return
-	var picker := _order_picker("bard")
-	_check(picker != null, "Bard has a standing order selector")
-	if picker == null:
-		return
 	for id in ["order_inspiring_melody", "order_healing_sonnet"]:
-		if await _select_id(picker, id):
+		if await driver.order("bard", id):
 			_check(scene.battle_snapshot().get("orders", {}).get("bard") == id,
 				"Bard scene selects " + id)
-			picker = _order_picker("bard")
+		else:
+			_check(false, driver.error)
 
 
 func _exercise_transition_fixture() -> void:
-	# Keep this UI transition probe separate from the shipped-content winning routes.
-	# The wizard takes recoil, then the adjacent alchemist defeats a fragile foe.
+	# Keep the stock catalog and control the transient battle state: Wizard takes
+	# recoil, then Alchemist defeats the remaining fragile foe.
 	var catalog = load("res://content/catalog.gd")
-	var defs: Dictionary = catalog.read_default().duplicate(true)
-	defs.encounters.road_patrol.party_slots = [[1, 1], [1, 2], [3, 1]]
-	defs.encounters.road_patrol.placements = [{"id": "raider_one", "character": "scene_foe", "at": [4, 1]}]
-	defs.characters.scene_foe = {"class": "enemy", "label": "Scene foe", "max_hp": 1, "behavior": "hold"}
-	defs.encounters.company_crossing.deadline = 1
-	var path := "user://adventure_scene_fixture_%d.json" % OS.get_process_id()
-	var file := FileAccess.open(path, FileAccess.WRITE)
-	if file == null:
-		_check(false, "Can write the isolated content fixture")
-		return
-	file.store_string(JSON.stringify(defs))
-	file.close()
+	var defs: Dictionary = catalog.read_default()
 	scene.queue_free()
 	await process_frame
 	scene = load("res://main.tscn").instantiate()
-	scene.configure_launch(PackedStringArray(["--fixed-outings", "--content=" + ProjectSettings.globalize_path(path)]))
+	scene.configure_launch(PackedStringArray(["--fixed-outings"]))
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
 	await process_frame
+	driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
 	for id in ["wizard", "knight", "alchemist"]:
 		await _press("Recruit_" + id)
 	await _press("StartAdventure")
@@ -178,16 +169,26 @@ func _exercise_transition_fixture() -> void:
 	var outing: Dictionary = scene.get("_run")
 	outing.reward_rng_state = reward_rng.state
 	if scene.current_screen() == "battle":
-		var order := _order_picker("alchemist")
-		if order != null:
-			await _select_id(order, "order_blast")
-		else:
-			_check(false, "Fixture offers the alchemist order")
-		if await _select_id(_node("ActorSelect") as OptionButton, "wizard") \
-				and await _select_id(_node("AbilitySelect") as OptionButton, "wizard_pull") \
-				and await _select_id(_node("TargetSelect") as OptionButton, "knight"):
-			await _press("Preview")
+		var state: Dictionary = scene.get("_state").duplicate(true)
+		var foe_set := false
+		for unit: Dictionary in state.units:
+			if unit.id == "alchemist":
+				unit.position = Vector2i(3, 1)
+			elif unit.id not in ["wizard", "knight", "alchemist"]:
+				if not foe_set:
+					unit.position = Vector2i(4, 1)
+					unit.hp = 1
+					foe_set = true
+				else:
+					unit.hp = 0
+		_check(foe_set, "Stock patrol supplies a foe for the transition fixture")
+		scene.set("_state", state)
+		scene.set("_planned_state", state.duplicate(true))
+		_check(await driver.order("alchemist", "order_blast"), driver.error)
+		if await driver.command("wizard", "wizard_pull", "knight"):
 			await _press("Commit")
+		else:
+			_check(false, driver.error)
 	_check(scene.current_screen() == "debrief", "Committed fixture victory opens debrief")
 	if scene.current_screen() == "debrief":
 		var report := _node("CarryReport")
@@ -246,6 +247,12 @@ func _exercise_transition_fixture() -> void:
 				if unit.get("id") == "wizard":
 					wizard_hp = unit.get("hp", -1)
 			_check(wizard_hp == 4, "Second mission carries the wizard's wound")
+			var final_round: Dictionary = scene.get("_state").duplicate(true)
+			final_round.round = driver.rules.deadline(final_round)
+			scene.set("_state", final_round)
+			scene.set("_planned_state", final_round.duplicate(true))
+			# Refresh the forecast through an ordinary order selection.
+			_check(await driver.order("knight", str(final_round.orders.knight)), driver.error)
 			await _press("Commit")
 			_check(scene.current_screen() == "result", "Deadline defeat ends the adventure")
 			if scene.current_screen() == "result":
@@ -258,54 +265,22 @@ func _exercise_transition_fixture() -> void:
 				var guild_run: Dictionary = scene.get("_run")
 				_check(guild_run.get("upgrades_by_id", {}).is_empty() and guild_run.get("reward_offers", []).is_empty(),
 					"Returning after defeat clears rewards")
-	_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(path)) == OK,
-		"Temporary content fixture is removed")
-
-
-func _select_id(picker: OptionButton, id: String) -> bool:
-	if picker != null:
-		for i in picker.item_count:
-			if str(picker.get_item_metadata(i)) == id:
-				await _select(picker, i)
-				return true
-	_check(false, "Missing selectable choice " + id)
-	return false
-
-
 func _node(name: String) -> Node:
 	return scene.find_child(name, true, false)
 
 
-func _order_picker(id: String) -> OptionButton:
-	for picker in scene.find_children("*", "OptionButton", true, false):
-		if picker.get_meta("actor_id", "") == id:
-			return picker
-	return null
-
-
 func _choose_first_ability(actor: String) -> bool:
-	var actors := _node("ActorSelect") as OptionButton
-	if actors == null:
-		_check(false, "Actor selector is available")
-		return false
-	for i in actors.item_count:
-		if str(actors.get_item_metadata(i)) == actor:
-			await _select(actors, i)
-			var abilities := _node("AbilitySelect") as OptionButton
-			if abilities != null and abilities.item_count > 0:
-				await _select(abilities, 0)
-				return true
+	var state: Dictionary = scene.get("_state")
+	var context: Dictionary = driver.rules.state_before_action(state, actor)
+	for choice: Dictionary in driver.rules.options(state, actor):
+		if choice.kind != "action":
+			continue
+		var targets: Array = driver.rules.targets(context, actor, choice.id)
+		var target := str(targets[0].id) if not targets.is_empty() else ""
+		if await driver.command(actor, choice.id, target):
+			return true
 	_check(false, "Selectable actor and ability: " + actor)
 	return false
-
-
-func _select(picker: OptionButton, index: int) -> void:
-	if picker.disabled or picker.is_item_disabled(index) or not picker.is_visible_in_tree():
-		_check(false, "%s option %d is selectable" % [picker.name, index])
-		return
-	picker.select(index)
-	picker.item_selected.emit(index)
-	await process_frame
 
 
 func _press(name: String) -> void:

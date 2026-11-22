@@ -163,18 +163,6 @@
       "cast_key": "knight",
       "cast_art_key": "knight"
     },
-    "regression_blast_knight": {
-      "class": "knight",
-      "label": "Blast knight",
-      "abilities": [
-        "move",
-        "wizard_blast"
-      ],
-      "habits": {
-        "order_blast": "blast"
-      },
-      "default_order": "order_blast"
-    },
     "healer": {
       "class": "healer",
       "label": "Healer",
@@ -1001,10 +989,6 @@
         "safe_bank": [
           6,
           2
-        ],
-        "near_landing": [
-          2,
-          0
         ]
       }
     }

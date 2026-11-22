@@ -8,6 +8,25 @@ From the repository root, with Godot 4.7:
 godot --path games/company-of-unlikely-heroes
 ```
 
+### Play a battle
+
+Take a commission, recruit your party, and choose a route. Every built-in battle opens on the storybook board. No launch flag is needed. To skip directly to a standalone practice mission:
+
+```sh
+godot --path games/company-of-unlikely-heroes -- --mission=wrong_side_of_the_door
+```
+
+Click the Knight, then **B2**. That plans a step rather than spending the round. Commit it, then click the Knight and **C2**, the pressure plate. Before committing again, look for three things: the Knight is still on B2, his pencilled move would open the gate, and moving replaces Guard for this round. Clear the command to compare with Guard. The other heroes keep their standing orders.
+
+The same book and controls support the eight built-in defeat-all encounters on the shared frontier field. Try these two from the repository root:
+
+```sh
+godot --path games/company-of-unlikely-heroes -- --mission=explosive_situation
+godot --path games/company-of-unlikely-heroes -- --mission=mirror_company
+```
+
+In the first fight, inspect the forecast for who stands next to a dying Bomber. In the second, look at the rival company's actions in initiative order. Standalone launches do not use your guild save.
+
 ### Take a commission
 
 Name your guild on first launch. The board offers three commissions: two of **5 missions** and one of **10 missions**, each counting its named finale. Use **Choose commission**, then recruit three distinct heroes and set their deployment order before you see any field reports.
@@ -24,7 +43,7 @@ The seven original fixed routes are available under **Practice outings**, or you
 godot --path games/company-of-unlikely-heroes -- --fixed-outings
 ```
 
-Pick an outing, recruit and order your company, and play its missions in sequence. Practice has **20 playable missions**: two in **The company's first outing**, three in **Village Troubles**, and three in each of the five outings below. The fixed test fixtures (`ferryman`, `necromancer_wave`, and `extra_knight`) are separate.
+Pick an outing, recruit and order your company, and play its missions in sequence. Practice has **20 playable missions**: two in **The company's first outing**, three in **Village Troubles**, and three in each of the five outings below.
 
 **The company's first outing** (`first_outing`) starts with Trouble on the road (`bridge_patrol`) and ends with The last ferryman (`company_rescue`). **Village Troubles** (`village_troubles`) takes the same company through The Goblin Mob (`goblin_mob`), The Harpoon Squad (`harpoon_squad`), and The Unwelcome Guest (`unwelcome_guest`).
 
@@ -52,7 +71,7 @@ Missions are listed in play order within each outing.
 
 #### Launch a standalone mission
 
-A `--mission` launch opens one isolated battle with its authored starting party and a restart button. It does not offer guild rewards or carry wounds, orders, or upgrades into another mission. The two missions in the company's first outing require recruitment; the separate `ferryman` fixture is the fixed-party version of the rescue.
+A `--mission` launch opens one isolated battle with its authored starting party and a restart button. It does not offer guild rewards or carry wounds, orders, or upgrades into another mission. The two missions in the company's first outing, including `company_rescue`, require recruitment through the outing.
 
 From the repository root:
 
@@ -100,7 +119,7 @@ These examples use the standalone missions' authored parties and fresh opening p
 
 Your deployment order stays fixed for the run. In **The company's first outing**, the patrol has no round limit. In the second mission, get the ferryman to the marked landing before the bridge fails. Clearing the bridge of enemies does not by itself win the rescue.
 
-Give each hero a standing order. Each round you may queue **one** manual command instead: select a hero, action and target if needed, preview it, and read the ordered forecast. You can revise it, switch the hero you command, or clear it before committing the round. Everyone else follows their standing order. There is no full-manual or standing-only mode selector.
+Give each hero a standing order. Each round you may replace **one** hero's order. Click the hero and a legal destination to preview a move, or open their **Actions** and choose an ability. Pick a target only if that ability asks for one. Open **Forecast** to see everyone's actions in order. Nothing moves until you commit; you can revise or clear the command first. Everyone else keeps their standing order.
 
 After a victory with another mission ahead, inspect the debrief before continuing. Survivors carry their current HP and standing orders forward. Fallen heroes rejoin at **1 HP**; mission statuses clear. A defeat or final victory ends the run.
 
@@ -130,7 +149,7 @@ The game collects no playtest telemetry. The question to take away: **Did you en
 
 The battle board in commissions, practice outings, and standalone missions uses sprites rendered from Blender for six heroes (Knight, Healer, Wizard, Rogue, Necromancer, and Bard) and both summons (Skeleton and Zombie). The Alchemist keeps the existing board drawing. The [cast manifest](assets/cast/manifest.json) lists the packaged sprite sheets and clips. The original summon sprites were rendered from static Blender models based on the approved *First Greetings* concept. Those [models and sprites](assets/summons/README.md) are still in the game directory; the rigged summons were built from those models.
 
-Preview updates the forecast without resolving the round or starting any action clips. Commit resolves the round. Action playback is cosmetic and uses supported actions from the committed round, including standing orders. Not every ability has its own clip. To compare preview and commit with the stock Necromancer and both summons, try [First Greetings](#play-the-checked-in-regressions) below.
+Preview updates the forecast without resolving the round or starting any action clips. Commit resolves the round. Action playback is cosmetic and uses supported actions from the committed round, including standing orders. Not every ability has its own clip. To try the Necromancer, launch `goblin_mob` and follow the opening above.
 
 ### Rewards between missions
 
@@ -142,41 +161,7 @@ There is no reward after a final victory or a defeat, or in standalone missions.
 
 ### Author a variation
 
-The built-in catalog starts at `content/catalog.json`. Shared definitions, adventure content and fixed regressions are authored separately and loaded as one catalog. An adventure references an ordered mission list and an eligible roster. Its missions provide deployment slots rather than prescribing the player's heroes. Placement IDs identify individual NPCs and objects; multiple placements can use the same definition. Character fields override class defaults as whole fields. New mechanics need code; new combinations of existing handlers need only data.
-
-### Play the checked-in regressions
-
-From the repository root, launch the stock **First Greetings** fixture to see both summons and give the Healer a chance to escape a Wave:
-
-```sh
-godot --path games/company-of-unlikely-heroes -- --mission=necromancer_wave
-```
-
-1. **Round 1:** Select Necromancer → **Raise Dead** → corpse at **E4**. Preview to see the forecast, then commit to see the Necromancer's **Raise Dead** clip and raise a 3 HP zombie.
-2. **Round 2:** Select Necromancer → **Summon Skeleton** → **C2**. Preview, then commit to see the summoning clip. Both summons are now on the board.
-3. **Round 3:** Scroll through the standing forecast: the skeleton's **Wave** will hit the Healer at B2, the Necromancer, and the practice raider. Select Healer → **Move one tile** → **A2**, then preview. The Healer's Move now precedes Wave; the forecast still shows the other hits. Commit to leave the Healer at A2 with full HP.
-
-Leave standing orders unchanged. The fixture has no time limit and restarts from the same seed; the practice raider holds position.
-
-From the repository root, launch the permanent four-hero, two-crate variation:
-
-```sh
-godot --path games/company-of-unlikely-heroes -- --mission=extra_knight
-```
-
-The Blast knight starts at A1, with crates at B1 and C3 and the exit at C1. The first forecast should hit the B1 crate. To run its automated real-boot regression (alongside the custom-catalog scene checks):
-
-```sh
-godot --headless --path games/company-of-unlikely-heroes --script res://tests/content_scene_test.gd
-```
-
-To launch the original fixed rescue:
-
-```sh
-godot --path games/company-of-unlikely-heroes -- --mission=ferryman
-```
-
-These are **fixed regression scenarios**, not guild outings. The `extra_knight` exit is `near_landing`; the original rescue uses `safe_bank`. The fixtures use the same hybrid resolver as the adventure. See the [catalog guide](content/README.md) for the authoring rules.
+The built-in catalog starts at `content/catalog.json`. Shared definitions and adventure content are authored separately and loaded as one catalog. An adventure references an ordered mission list and an eligible roster. Its missions provide deployment slots rather than prescribing the player's heroes. Placement IDs identify individual NPCs and objects; multiple placements can use the same definition. Character fields override class defaults as whole fields. New mechanics need code; new combinations of existing handlers need only data. Stock and custom standalone missions use the same storybook controls. See the [catalog guide](content/README.md) for custom catalog loading and authoring rules.
 
 ### Recheck the build
 
@@ -197,7 +182,7 @@ From the game directory, run the suites with `godot --headless --script res://te
 | `commission_scene_test` | Guild creation and reload, recruitment before reports, reward gating, carryover, and board renewal |
 | `guild_profile_test` | Local profile creation, reload, seed renewal, and invalid data |
 | `content_test` | Extra crate, alternate knight kit and habit, relocated escort destination |
-| `content_scene_test` | Loading a custom catalog and the permanent extra-knight mission through the game controls |
+| `single_battle_ui_test` | Stock and custom standalone missions through the same battle controls |
 | `rules_test` | Ability interactions and command rules |
 | `rescues_test` | Fixed-start rescues, loss, and restart |
 | `adventure_test` | Party selection and formation, deployment, combat and mission transitions |
@@ -212,9 +197,9 @@ From the game directory, run the suites with `godot --headless --script res://te
 | `necromancer_test` | Summons, corpse selection, greetings, round order and forecast consistency, and expedition boundaries |
 | `bard_test` | Both persistent songs, seeded listeners, skipped turns and full-round laughter immunity, damage, and direct-command interactions |
 | `laughter_presentation_test` | A laughing hero loses their turn without being shown as knocked down in the command editor or debrief |
-| `scene_smoke` | Guild entry, battle controls, one-command forecasts, commit, and fixed-scenario restart |
-
-In a graphical session, `godot --script res://tests/scene_smoke.gd -- --capture=/absolute/path.png` also saves the game viewport after the smoke run.
+| `storybook_gate_scene_test` | Board clicks, keyboard movement, automatic and aimed actions, and standing orders |
+| `commission_storybook_scene_test` | Normal launch through commission, recruitment, route selection, board input, and round commitment |
+| `storybook_gate_outcome_scene_test` | Forecast-vacated movement, tile inspection, and a legal eight-round victory followed by restart |
 
 Run `godot --script res://tests/bridge_art_test.gd` from this game directory in a graphical session to check the **rendered** shore tint and exit flag. It compares the board before and after moving the objective; no reference screenshot is required.
 

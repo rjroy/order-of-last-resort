@@ -22,12 +22,11 @@ func _run() -> void:
 	await _press("Commit")
 	var state: Dictionary = scene.battle_snapshot()
 	_check(_position(state, "healer") == Vector2i(2, 2), "First commit places Healer at C3")
-	if not await _select("ActorSelect", "healer") \
-			or not await _select("AbilitySelect", "move") \
-			or not await _select("TargetSelect", "2,1"):
+	var driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
+	if not await driver.command("healer", "move", "2,1"):
+		_check(false, "Book offers Healer's move: " + driver.error)
 		_finish()
 		return
-	await _press("Preview")
 	var plan: Dictionary = scene.get("_plan")
 	_check(plan.get("valid", false), "Second round direct Move forecasts")
 	_check(_has_event(plan.get("events", []), "move", "healer", "", Vector2i(2, 1)),
@@ -40,8 +39,19 @@ func _run() -> void:
 		var overlay: Dictionary = board.get("_overlay")
 		var paths: Array = overlay.get("paths", [])
 		_check([Vector2i(2, 2), Vector2i(2, 1)] in paths, "Overlay draws Healer's real C3 to C2 move")
-		_check([Vector2i(2, 1), Vector2i(3, 1)] in paths, "Overlay draws Hookhand's real C2 to D2 pull")
+		_check(board.is_visible_in_tree() and [Vector2i(2, 1), Vector2i(3, 1)] in paths,
+			"Visible board overlay draws Hookhand's later C2 to D2 pull")
 		_check([Vector2i(2, 2), Vector2i(3, 1)] not in paths, "Overlay does not draw a diagonal C3 to D2 shortcut")
+		var ink := scene.find_child("StorybookInk", true, false) as Control
+		_check(ink != null and ink.is_visible_in_tree(), "Manual move pencil ink is visible")
+		if ink != null:
+			var cues: Dictionary = ink.get("_cues")
+			var move: Dictionary = cues.get("move", {})
+			_check(move.get("from") == Vector2i(2, 2) and move.get("to") == Vector2i(2, 1),
+				"Manual pencil path shows C3 to C2, not the final pulled position: " + str(move))
+			_check(cues.get("context_cell") == Vector2i(2, 1) and cues.get("context_text") == "Move to C2",
+				"Manual move tag says Move to C2 at C2: %s / %s" % [
+					str(cues.get("context_cell")), str(cues.get("context_text"))])
 	_finish()
 
 
@@ -61,23 +71,10 @@ func _position(state: Dictionary, id: String) -> Variant:
 	return null
 
 
-func _select(name: String, id: String) -> bool:
-	var picker := scene.find_child(name, true, false) as OptionButton
-	if picker != null:
-		for i in picker.item_count:
-			if str(picker.get_item_metadata(i)) == id and not picker.is_item_disabled(i):
-				picker.select(i)
-				picker.item_selected.emit(i)
-				await process_frame
-				return true
-	_check(false, name + " offers " + id)
-	return false
-
-
 func _press(name: String) -> void:
 	var button := scene.find_child(name, true, false) as BaseButton
-	if button == null or button.disabled:
-		_check(false, name + " is enabled")
+	if button == null or button.disabled or not button.is_visible_in_tree():
+		_check(false, name + " is visible and enabled")
 		return
 	button.pressed.emit()
 	await process_frame

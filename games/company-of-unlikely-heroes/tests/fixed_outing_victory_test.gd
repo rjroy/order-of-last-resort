@@ -137,22 +137,14 @@ func _play_route(adventure_id: String, id: String, route: Dictionary) -> bool:
 			adventure_id, id, step_index + 1, scene.battle_snapshot().get("round", "?"),
 			command.get("actor", ""), command.get("ability", ""), command.get("target", "")]
 		for actor in step.get("orders", {}):
-			var picker: OptionButton
-			for candidate in scene.find_children("*", "OptionButton", true, false):
-				if candidate.get_meta("actor_id", "") == actor:
-					picker = candidate
-					break
-			if not await _select_route_id(picker, str(step.orders[actor]), context + " order_actor=" + str(actor)):
+			if not await driver.order(str(actor), str(step.orders[actor])):
+				_check(false, context + " " + driver.error)
 				return false
 		var before: Dictionary = scene.get("_state").duplicate(true)
 		if not command.is_empty():
-			if not await _select_route_id(_node("ActorSelect") as OptionButton, str(command.get("actor", "")), context):
+			if not await driver.command(str(command.get("actor", "")), str(command.get("ability", "")), str(command.get("target", ""))):
+				_check(false, context + " " + driver.error)
 				return false
-			if not await _select_route_id(_node("AbilitySelect") as OptionButton, str(command.get("ability", "")), context):
-				return false
-			if command.has("target") and not await _select_route_id(_node("TargetSelect") as OptionButton, str(command.target), context):
-				return false
-			await _press("Preview")
 		var plan: Dictionary = scene.get("_plan")
 		if not plan.get("valid", false) or not _same_state(scene.get("_state"), before):
 			_check(false, id + ": forecast must be valid and leave committed state unchanged")
@@ -170,14 +162,6 @@ func _play_route(adventure_id: String, id: String, route: Dictionary) -> bool:
 			_check(scene.get("_state").get("_terminal_commit", false),
 				id + ": victory must be committed, not merely forecast")
 	return true
-
-
-func _select_route_id(picker: OptionButton, id: String, context: String) -> bool:
-	if await _select_id(picker, id):
-		return true
-	var name := str(picker.name) if picker != null else "<missing>"
-	_check(false, "%s picker=%s requested=%s available=%s" % [context, name, id, _choice_ids(picker)])
-	return false
 
 
 func _same_state(left: Dictionary, right: Dictionary) -> bool:

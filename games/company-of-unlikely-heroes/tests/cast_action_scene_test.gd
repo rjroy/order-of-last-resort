@@ -3,7 +3,6 @@ extends SceneTree
 # Run: godot --headless --path games/company-of-unlikely-heroes --script res://tests/cast_action_scene_test.gd
 var failures: Array[String] = []
 var scene: Node
-var fixture_path := ""
 
 
 func _initialize() -> void:
@@ -28,18 +27,19 @@ func _run() -> void:
 	_finish()
 
 
-func _launch(content := "") -> void:
+func _launch(wounded := "", bard := false) -> void:
 	if is_instance_valid(scene):
 		scene.queue_free()
 		await process_frame
 	scene = load("res://main.tscn").instantiate()
-	var args := PackedStringArray(["--mission=necromancer_wave"])
-	if not content.is_empty():
-		args.append("--content=" + ProjectSettings.globalize_path(content))
-	scene.configure_launch(args)
+	scene.configure_launch(PackedStringArray(["--mission=goblin_mob"]))
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
+	await process_frame
+	var opening: Dictionary = load("res://tests/necromancer_scene_test.gd").practice_snapshot(wounded, bard)
+	scene.set("_opening_state", opening.duplicate(true))
+	scene.call("_show_battle", opening)
 	await process_frame
 
 
@@ -47,6 +47,14 @@ func _summons_and_restart() -> void:
 	var board := _node("BridgeBoard")
 	_check(_playback(board).is_empty(), "Opening forecast does not play actions")
 	var before: Dictionary = scene.battle_snapshot()
+	var driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
+	var changed: bool = await driver.order("healer", "order_aggressive")
+	_check(changed, "Book offers the Healer's aggressive standing order: " + driver.error)
+	if changed:
+		_check(scene.get("_planned_state").orders.get("healer") == "order_aggressive",
+			"Book standing order updates the planned round")
+		var restored: bool = await driver.order("healer", "order_support")
+		_check(restored, "Book restores the Healer's support order: " + driver.error)
 	if not await _command("necromancer", "raise_dead", "fallen_raider"):
 		return
 	_check(scene.battle_snapshot() == before, "Summon preview preserves battle state")
@@ -74,19 +82,7 @@ func _summons_and_restart() -> void:
 
 
 func _heal_case(wounded: String, clip: String) -> void:
-	var catalog = load("res://content/catalog.gd")
-	var defs: Dictionary = catalog.read_default().duplicate(true)
-	for placement in defs.encounters.necromancer_practice.placements:
-		if placement.id == wounded:
-			placement.hp = 4
-	fixture_path = "user://cast_action_scene_%d.json" % OS.get_process_id()
-	var file := FileAccess.open(fixture_path, FileAccess.WRITE)
-	if file == null:
-		_check(false, "Can write isolated heal fixture")
-		return
-	file.store_string(JSON.stringify(defs))
-	file.close()
-	await _launch(fixture_path)
+	await _launch(wounded)
 	if scene.current_screen() != "battle":
 		_check(false, "Heal fixture launches")
 		return
@@ -114,42 +110,13 @@ func _heal_case(wounded: String, clip: String) -> void:
 
 
 func _bard_repeat() -> void:
-	var catalog = load("res://content/catalog.gd")
-	var defs: Dictionary = catalog.read_default().duplicate(true)
-	for placement in defs.encounters.necromancer_practice.placements:
-		if placement.id == "healer":
-			placement.id = "bard"
-			placement.character = "bard"
-	defs.characters.practice_raider.max_hp = 30
-	defs.characters.practice_raider.behavior = "hold"
-	fixture_path = "user://cast_action_scene_%d.json" % OS.get_process_id()
-	var file := FileAccess.open(fixture_path, FileAccess.WRITE)
-	if file == null:
-		_check(false, "Can write isolated Bard fixture")
-		return
-	file.store_string(JSON.stringify(defs))
-	file.close()
-	await _launch(fixture_path)
+	await _launch("", true)
 	if scene.current_screen() != "battle":
 		_check(false, "Bard fixture launches")
 		return
-	var picker: OptionButton
-	for candidate in scene.find_children("*", "OptionButton", true, false):
-		if candidate.get_meta("actor_id", "") == "bard":
-			picker = candidate
-			break
-	if picker == null:
-		_check(false, "Bard has a standing order picker")
-		return
-	var selected := false
-	for i in picker.item_count:
-		if picker.get_item_metadata(i) == "order_healing_sonnet":
-			picker.select(i)
-			picker.item_selected.emit(i)
-			selected = true
-			break
-	if not selected:
-		_check(false, "Bard offers Healing Sonnet as a standing order")
+	var driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
+	if not await driver.order("bard", "order_healing_sonnet"):
+		_check(false, "Book offers Bard's Healing Sonnet standing order: " + driver.error)
 		return
 	await process_frame
 	var board := _node("BridgeBoard")
@@ -175,24 +142,10 @@ func _bard_repeat() -> void:
 
 
 func _command(actor: String, ability: String, target := "") -> bool:
-	if not await _select("ActorSelect", actor) or not await _select("AbilitySelect", ability):
-		return false
-	if not target.is_empty() and not await _select("TargetSelect", target):
-		return false
-	return await _press("Preview")
-
-
-func _select(name: String, id: String) -> bool:
-	var picker := _node(name) as OptionButton
-	if picker != null and not picker.disabled and picker.is_visible_in_tree():
-		for i in picker.item_count:
-			if str(picker.get_item_metadata(i)) == id and not picker.is_item_disabled(i):
-				picker.select(i)
-				picker.item_selected.emit(i)
-				await process_frame
-				return true
-	_check(false, "%s offers selectable %s" % [name, id])
-	return false
+	var driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
+	var ok: bool = await driver.command(actor, ability, target)
+	_check(ok, "Book command is available: " + driver.error)
+	return ok
 
 
 func _press(name: String) -> bool:
@@ -244,9 +197,6 @@ func _check(condition: bool, message: String) -> void:
 
 
 func _finish() -> void:
-	if not fixture_path.is_empty() and FileAccess.file_exists(fixture_path):
-		_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(fixture_path)) == OK,
-			"Temporary fixture is removed")
 	if failures.is_empty():
 		print("PASS: committed cast action scene")
 	else:

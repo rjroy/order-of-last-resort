@@ -9,7 +9,7 @@ var failures: Array[String] = []
 
 
 func _initialize() -> void:
-	defs = catalog.read_default().duplicate(true)
+	defs = preload("res://tests/fixtures/rules_catalog.gd").add_fixed_escort(catalog.read_default())
 	defs.abilities.healer_bonk.params.damage = 2
 	defs.abilities.healer_heal.params.amount = 4
 	defs.abilities.wizard_blast.params.damage = 4
@@ -55,7 +55,7 @@ func _unit(id: String, character: String, pos: Vector2i, hp := 20, upgrades := {
 
 
 func _state(units: Array) -> Dictionary:
-	var state: Dictionary = rules.new_game(defs, "ferryman")
+	var state: Dictionary = rules.new_game(defs, "test_escort")
 	state.width = 12
 	state.height = 12
 	state.default_tile = "stone"

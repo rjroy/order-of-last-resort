@@ -98,8 +98,7 @@
       ],
       "habits": {
         "order_cautious": "hold",
-        "order_blast": "blast",
-        "order_rescue": "rescue"
+        "order_blast": "blast"
       },
       "default_order": "order_cautious",
       "art_key": "wizard",
@@ -576,9 +575,6 @@
     },
     "order_blast": {
       "label": "Blast nearest"
-    },
-    "order_rescue": {
-      "label": "Pull civilian toward ferry"
     }
   },
   "behaviors": {
@@ -651,12 +647,6 @@
     "alchemist_throw_samples": {
       "handler": "nearest_target",
       "params": {"ability": "alchemist_acid"}
-    },
-    "rescue": {
-      "handler": "rescue",
-      "params": {
-        "ability": "wizard_pull"
-      }
     },
     "harpooner": {
       "handler": "threat",

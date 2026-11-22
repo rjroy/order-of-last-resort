@@ -65,12 +65,30 @@ func _run() -> void:
 	if initial.get("outcome", "") != "ongoing":
 		_fail("A new hybrid game must start ongoing")
 		return
+	_check_wizard_orders(initial)
 	_play("pull rescue", initial, PULL_RESCUE, "victory", true)
 	_play("no-pull rescue", initial, NO_PULL_RESCUE, "victory", false)
 	_play("loss", initial, LOSS, "defeat", false)
 	var restart = rules.call("open_mission", defs, "company_rescue", party)
 	if _mutable_facts(restart) != _mutable_facts(initial):
 		_fail("Restart must reproduce the clean initial state, including orders and overrides")
+
+
+func _check_wizard_orders(state: Dictionary) -> void:
+	var order_ids: Array = []
+	for option in rules.call("options", state, "wizard"):
+		if option.get("kind") == "order":
+			order_ids.append(option.get("id"))
+	order_ids.sort()
+	if order_ids != ["order_blast", "order_cautious"]:
+		_fail("Stock wizard must offer exactly Hold and Blast standing orders, got %s" % [order_ids])
+	for order_id in ["order_cautious", "order_blast"]:
+		if not _has_option(state, "wizard", order_id, "order") \
+				or rules.call("set_order", state, "wizard", order_id).get("orders", {}).get("wizard") != order_id:
+			_fail("Stock wizard must be able to select %s" % order_id)
+	var rejected: Dictionary = rules.call("set_order", state, "wizard", "order_rescue")
+	if rejected.get("orders") != state.get("orders"):
+		_fail("Stock wizard must reject the retired ferry standing order")
 
 
 func _play(name: String, initial: Dictionary, route: Array, outcome: String, require_pull: bool) -> void:

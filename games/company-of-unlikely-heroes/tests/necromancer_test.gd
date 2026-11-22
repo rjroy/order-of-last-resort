@@ -16,6 +16,12 @@ func _initialize() -> void:
 		_test_kit()
 		_test_summons()
 		_test_greetings()
+		_test_opponent_greeting_selection()
+		_test_direct_wave_requires_damageable_opponent()
+		_test_greeting_configured_team()
+		_test_greeting_nomination_other_faction()
+		_test_wave_skips_ineligible_opponent()
+		_test_greeting_configured_target_in_range()
 		_test_rounds()
 		_test_greeting_random_replay()
 		_test_zombie_reaches_flower_range()
@@ -174,12 +180,12 @@ func _test_greetings() -> void:
 	_entity(ranged, "enemy").position = Vector2i(8, 5)
 	_check("enemy" not in _ids(rules.targets(ranged, "zombie", "offer_flower")), "Flower does not exceed range two")
 	var hello_state := _state([_unit("zombie", "zombie", Vector2i(5, 5), 5, 5),
-		_unit("near", "knight", Vector2i(6, 5)), _unit("far", "harpooner", Vector2i(9, 5))])
+		_unit("near", "knight", Vector2i(4, 5)), _unit("far", "harpooner", Vector2i(7, 5))])
 	var hello := _action(hello_state, "zombie", "say_hello")
 	if not hello.is_empty():
-		_check(_entity(hello, "near").get("position") == Vector2i(7, 5)
-			and _entity(hello, "far").get("position") == Vector2i(9, 5),
-			"Say Hello makes the closest other character back one tile")
+		_check(_entity(hello, "near").get("position") == Vector2i(4, 5)
+			and _entity(hello, "far").get("position") == Vector2i(8, 5),
+			"Say Hello selects an opponent rather than a nearer ally")
 	var stop_state := _state([
 		_unit("minion", "skeleton", Vector2i(5, 5), 1, 1),
 		_unit("ally", "knight", Vector2i(4, 5)),
@@ -189,20 +195,264 @@ func _test_greetings() -> void:
 	])
 	var stopped := _action(stop_state, "minion", "dont_go")
 	if not stopped.is_empty():
-		_check(not rules.preview(stopped, "ally", "move", "3,5").get("valid", false),
-			"Don't Go blocks the closest other character, even when friendly")
-		_check(rules.preview(stopped, "enemy", "move", "8,5").get("valid", false),
-			"Don't Go does not block the more distant opponent")
+		_check(rules.preview(stopped, "ally", "move", "3,5").get("valid", false),
+			"Don't Go does not block the nearer ally")
+		_check(not rules.preview(stopped, "enemy", "move", "8,5").get("valid", false),
+			"Don't Go blocks the opponent instead")
 		_check(rules.preview(stopped, "ally", "knight_push", "minion").get("valid", false),
 			"Don't Go does not block other actions")
 		# Prevent a second autonomous greeting from renewing the effect.
 		_entity(stopped, "minion").hp = 0
 		var round_plan: Dictionary = rules.preview_round(stopped)
 		var after_turn: Dictionary = rules.commit_round(stopped, round_plan)
-		if _entity(after_turn, "ally").get("hp", 0) > 0:
-			var pos: Vector2i = _entity(after_turn, "ally").position
-			var legal_steps := _ids(rules.targets(after_turn, "ally", "move"))
+		if _entity(after_turn, "enemy").get("hp", 0) > 0:
+			var pos: Vector2i = _entity(after_turn, "enemy").position
+			var legal_steps := _ids(rules.targets(after_turn, "enemy", "move"))
 			_check(not legal_steps.is_empty(), "Don't Go expires after the affected character's next turn at %s" % pos)
+
+
+func _test_opponent_greeting_selection() -> void:
+	# Force one greeting at a time so each path is independent of the RNG draw.
+	for entry in [["skeleton", "dont_go"], ["skeleton", "wave"],
+			["zombie", "say_hello"], ["zombie", "offer_flower"]]:
+		var character: String = entry[0]
+		var greeting: String = entry[1]
+		var behavior: String = catalog.profile(defs, character).behavior
+		var original: Array = defs.behaviors[behavior].params.greetings.duplicate()
+		var enemy_had_behavior: bool = defs.characters.harpooner.has("behavior")
+		var enemy_behavior: Variant = defs.characters.harpooner.get("behavior")
+		var flower_range: int = defs.abilities.offer_flower.targeting.range
+		if greeting == "say_hello":
+			# The catalog requires Flower in the zombie kit. Keep it authored but
+			# out of range so Say Hello is the only available greeting.
+			defs.behaviors[behavior].params.greetings = ["say_hello", "offer_flower"]
+			defs.abilities.offer_flower.targeting.range = 1
+		else:
+			defs.behaviors[behavior].params.greetings = [greeting]
+		defs.characters.harpooner.behavior = "hold"
+		var enemy_pos := Vector2i(6, 5) if character == "skeleton" else Vector2i(7, 5)
+		var state := _state([_unit("necromancer", "necromancer", Vector2i(1, 1)),
+			_unit("ally", "knight", Vector2i(4, 5)),
+			_unit("enemy", "harpooner", enemy_pos),
+			_unit("minion", character, Vector2i(5, 5), 5, 5),
+			_unit("civilian", "ferryman", Vector2i(10, 10))])
+		state.orders = {"ally": "order_hold"}
+		defs.behaviors[behavior].params.greetings = original
+		defs.abilities.offer_flower.targeting.range = flower_range
+		if enemy_had_behavior:
+			defs.characters.harpooner.behavior = enemy_behavior
+		else:
+			defs.characters.harpooner.erase("behavior")
+		var before := state.duplicate(true)
+		var plan: Dictionary = rules.preview_round(state)
+		_check(plan.get("valid", false) and state == before and plan == rules.preview_round(state),
+			greeting + " opponent selection previews deterministically")
+		if not plan.get("valid", false):
+			continue
+		var result: Dictionary = rules.commit_round(state, plan)
+		_check(result == plan.get("result"), greeting + " opponent selection commits the forecast")
+		match greeting:
+			"dont_go":
+				_check(rules.preview(result, "ally", "move", "3,5").get("valid", false)
+					and not rules.preview(result, "enemy", "move", "7,5").get("valid", false),
+					"Autonomous Don't Go holds the opponent, not the nearer ally")
+			"say_hello":
+				_check(_entity(result, "ally").position == Vector2i(4, 5)
+					and _entity(result, "enemy").position == Vector2i(8, 5),
+					"Autonomous Say Hello repels the opponent, not the nearer ally")
+			"offer_flower":
+				_check(_entity(result, "ally").hp == 10 and _entity(result, "enemy").hp == 9,
+					"Autonomous Offer Flower damages the opponent, not the nearer ally")
+			"wave":
+				_check(_wave_hits(plan, "enemy") and _wave_hits(plan, "ally"),
+					"Autonomous Wave is triggered by an opponent but still damages an adjacent ally")
+		# A living ally alone must not trigger any greeting, including area Wave.
+		var alone := state.duplicate(true)
+		_entity(alone, "enemy").hp = 0
+		var alone_before := alone.duplicate(true)
+		var alone_plan: Dictionary = rules.preview_round(alone)
+		_check(alone_plan.get("valid", false) and alone == alone_before,
+			greeting + " ally-only round previews without mutation")
+		if alone_plan.get("valid", false):
+			var after: Dictionary = rules.commit_round(alone, alone_plan)
+			_check(after == alone_plan.get("result")
+				and _entity(after, "ally").hp == 10
+				and _entity(after, "ally").position == Vector2i(4, 5)
+				and rules.preview(after, "ally", "move", "3,5").get("valid", false),
+				greeting + " does not fall back to an ally when no opponent lives")
+		if greeting in ["dont_go", "say_hello"]:
+			var direct: Dictionary = rules.preview(alone, "minion", greeting)
+			if direct.get("valid", false):
+				var direct_result: Dictionary = direct.get("result", {})
+				_check(_entity(direct_result, "ally").position == Vector2i(4, 5)
+					and rules.preview(direct_result, "ally", "move", "3,5").get("valid", false),
+					greeting + " direct selection does not fall back to an ally")
+		print("Checked opponent greeting selection: " + greeting)
+
+
+func _test_direct_wave_requires_damageable_opponent() -> void:
+	for scenario in ["distant", "invulnerable"]:
+		for gate_enabled in [true, false]:
+			var fixture := defs.duplicate(true)
+			fixture.abilities.wave.params.opponents_only = gate_enabled
+			if scenario == "invulnerable":
+				var capabilities: Array = catalog.profile(fixture, "harpooner").capabilities.duplicate()
+				capabilities.erase("damageable")
+				fixture.characters.harpooner["capabilities"] = capabilities
+			var saved_defs := defs
+			defs = fixture
+			var enemy_position := Vector2i(8, 5) if scenario == "distant" else Vector2i(6, 5)
+			var state := _state([_unit("minion", "skeleton", Vector2i(5, 5), 5, 5),
+				_unit("ally", "knight", Vector2i(4, 5)),
+				_unit("enemy", "harpooner", enemy_position),
+				_unit("civilian", "ferryman", Vector2i(10, 10))])
+			defs = saved_defs
+			var before := state.duplicate(true)
+			var plan: Dictionary = rules.preview(state, "minion", "wave")
+			_check(state == before and plan == rules.preview(state, "minion", "wave"),
+				"Direct Wave %s gate=%s previews repeatably" % [scenario, gate_enabled])
+			if gate_enabled:
+				_check(not plan.get("valid", false),
+					"Direct Wave rejects an ally with only a %s opponent" % scenario)
+			else:
+				_check(plan.get("valid", false),
+					"Direct Wave %s fixture exposes the disabled opponent gate" % scenario)
+				if plan.get("valid", false):
+					var result: Dictionary = rules.apply_plan(state, plan)
+					_check(result == plan.get("result") and _entity(result, "ally").get("hp") == 9,
+						"Without the gate, direct Wave %s would damage the ally" % scenario)
+
+
+func _test_greeting_configured_team() -> void:
+	var fixture := defs.duplicate(true)
+	fixture.behaviors.skeleton_greetings.params.team = "rivals"
+	fixture.behaviors.skeleton_greetings.params.greetings = ["dont_go"]
+	fixture.characters.harpooner["team"] = "rivals"
+	fixture.characters.harpooner["behavior"] = "hold"
+	fixture.characters.duelist["behavior"] = "hold"
+	var saved_defs := defs
+	defs = fixture
+	var state := _state([_unit("necromancer", "necromancer", Vector2i(1, 1)),
+		_unit("wrong_faction", "duelist", Vector2i(4, 5)),
+		_unit("configured_target", "harpooner", Vector2i(8, 4)),
+		_unit("minion", "skeleton", Vector2i(4, 4), 5, 5),
+		_unit("civilian", "ferryman", Vector2i(10, 10))])
+	defs = saved_defs
+	var before := state.duplicate(true)
+	var plan: Dictionary = rules.preview_round(state)
+	_check(plan.get("valid", false) and state == before and plan == rules.preview_round(state),
+		"Custom-team greeting round previews repeatably")
+	if not plan.get("valid", false):
+		return
+	var result: Dictionary = rules.commit_round(state, plan)
+	_check(result == plan.get("result") and state == before,
+		"Custom-team greeting round commits its forecast")
+	var position: Vector2i = _entity(result, "minion").get("position", Vector2i(4, 4))
+	_check(position != Vector2i(4, 4) and position.distance_to(Vector2i(8, 4)) < 4.0,
+		"Skeleton pursues the configured rivals team instead of greeting a nearer enemy faction")
+	_check(rules.preview(result, "wrong_faction", "move", "3,5").get("valid", false),
+		"Skeleton does not hold the nearer wrong-faction opponent")
+
+
+func _test_greeting_nomination_other_faction() -> void:
+	var fixture := defs.duplicate(true)
+	fixture.behaviors.skeleton_greetings.params.team = "rivals"
+	fixture.behaviors.skeleton_greetings.params.greetings = ["dont_go"]
+	fixture.characters.harpooner["team"] = "rivals"
+	fixture.characters.harpooner["behavior"] = "hold"
+	fixture.characters.duelist["behavior"] = "hold"
+	var saved_defs := defs
+	defs = fixture
+	var owner := _unit("necromancer", "necromancer", Vector2i(1, 1))
+	owner["upgrades"] = {"necromancer_say_hello_to_that_one": 1}
+	var skeleton := _unit("minion", "skeleton", Vector2i(4, 4), 5, 5)
+	skeleton["summoner_id"] = "necromancer"
+	var state := _state([owner, _unit("default_target", "harpooner", Vector2i(4, 5)),
+		_unit("nominee", "duelist", Vector2i(8, 4)), skeleton,
+		_unit("civilian", "ferryman", Vector2i(10, 10))])
+	defs = saved_defs
+	var ability := "necromancer_say_hello_to_that_one"
+	_check("nominee" in _ids(rules.targets(state, "necromancer", ability)),
+		"Nomination legally offers the opposing non-default faction")
+	var nominated := _action(state, "necromancer", ability, "nominee")
+	if nominated.is_empty():
+		return
+	_check(_entity(nominated, "necromancer").get("nominated_target_id") == "nominee",
+		"Legal cross-faction nomination is accepted and recorded")
+	var before := nominated.duplicate(true)
+	var plan: Dictionary = rules.preview_round(nominated)
+	_check(plan.get("valid", false) and nominated == before and plan == rules.preview_round(nominated),
+		"Cross-faction nomination previews repeatably")
+	if not plan.get("valid", false):
+		return
+	var result: Dictionary = rules.commit_round(nominated, plan)
+	_check(result == plan.get("result") and nominated == before,
+		"Cross-faction nomination commits its forecast")
+	var pos: Vector2i = _entity(result, "minion").get("position", Vector2i(4, 4))
+	_check(pos != Vector2i(4, 4) and pos.distance_to(Vector2i(8, 4)) < 4.0,
+		"Explicit opposing nomination overrides the configured greeting team")
+	_check(rules.preview(result, "default_target", "move", "3,5").get("valid", false),
+		"Cross-faction nomination does not hold the nearer default-team opponent")
+
+
+func _test_wave_skips_ineligible_opponent() -> void:
+	var fixture := defs.duplicate(true)
+	fixture.behaviors.skeleton_greetings.params.greetings = ["wave"]
+	fixture.characters.harpooner["behavior"] = "hold"
+	fixture.characters["invulnerable_harpooner"] = fixture.characters.harpooner.duplicate(true)
+	var capabilities: Array = catalog.profile(fixture, "harpooner").capabilities.duplicate()
+	capabilities.erase("damageable")
+	fixture.characters.invulnerable_harpooner["capabilities"] = capabilities
+	var saved_defs := defs
+	defs = fixture
+	var state := _state([_unit("necromancer", "necromancer", Vector2i(1, 1)),
+		_unit("ineligible", "invulnerable_harpooner", Vector2i(4, 5)),
+		_unit("eligible", "harpooner", Vector2i(6, 5)),
+		_unit("minion", "skeleton", Vector2i(5, 5), 5, 5),
+		_unit("civilian", "ferryman", Vector2i(10, 10))])
+	defs = saved_defs
+	var before := state.duplicate(true)
+	var plan: Dictionary = rules.preview_round(state)
+	_check(plan.get("valid", false) and state == before and plan == rules.preview_round(state),
+		"Wave with tied ineligible and eligible opponents previews repeatably")
+	if not plan.get("valid", false):
+		return
+	var result: Dictionary = rules.commit_round(state, plan)
+	_check(result == plan.get("result") and state == before,
+		"Wave with tied opponents commits its forecast")
+	_check(_wave_hits(plan, "eligible") and not _wave_hits(plan, "ineligible")
+		and _entity(result, "eligible").get("hp") == 9,
+		"An ineligible first opponent does not block Wave against an eligible adjacent opponent")
+
+
+func _test_greeting_configured_target_in_range() -> void:
+	var fixture := defs.duplicate(true)
+	fixture.behaviors.zombie_greetings.params.team = "rivals"
+	fixture.behaviors.zombie_greetings.params.greetings = ["say_hello", "offer_flower"]
+	fixture.abilities.offer_flower.targeting.range = 1
+	fixture.characters.harpooner["team"] = "rivals"
+	fixture.characters.harpooner["behavior"] = "hold"
+	fixture.characters.duelist["behavior"] = "hold"
+	var saved_defs := defs
+	defs = fixture
+	var state := _state([_unit("necromancer", "necromancer", Vector2i(1, 1)),
+		_unit("wrong_faction", "duelist", Vector2i(4, 5)),
+		_unit("configured_target", "harpooner", Vector2i(7, 5)),
+		_unit("minion", "zombie", Vector2i(5, 5), 5, 5),
+		_unit("civilian", "ferryman", Vector2i(10, 10))])
+	defs = saved_defs
+	var before := state.duplicate(true)
+	var plan: Dictionary = rules.preview_round(state)
+	_check(plan.get("valid", false) and state == before and plan == rules.preview_round(state),
+		"Configured-team in-range greeting previews repeatably")
+	if not plan.get("valid", false):
+		return
+	var result: Dictionary = rules.commit_round(state, plan)
+	_check(result == plan.get("result") and state == before,
+		"Configured-team in-range greeting commits its forecast")
+	_check(_entity(result, "configured_target").get("position") == Vector2i(8, 5)
+		and _entity(result, "wrong_faction").get("position") == Vector2i(4, 5),
+		"Say Hello resolves on the configured opponent, not a nearer wrong-faction opponent")
 
 
 func _test_rounds() -> void:

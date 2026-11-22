@@ -219,7 +219,7 @@
       "guild_portrait": "necromancer",
       "cast_key": "necromancer",
       "cast_art_key": "wizard",
-      "description": "Raise a defeated opponent as a zombie or call a skeleton onto an open neighboring tile. Both act on their own and can greet allies as well as enemies.",
+      "description": "Raise a defeated opponent as a zombie or call a skeleton onto an open neighboring tile. Both pursue opponents on their own. A skeleton's Wave can also hurt nearby allies.",
       "abilities": ["move", "raise_dead", "summon_skeleton"],
       "habits": {"order_hold": "hold"},
       "default_order": "order_hold",
@@ -347,30 +347,30 @@
     },
     "wave": {
       "label": "Wave",
-      "help": "Deals 1 damage to every other living character next to the skeleton, friend or foe.",
+      "help": "Requires a nearby opponent. Deals 1 damage to every other living character next to the skeleton, friend or foe.",
       "handler": "sweep",
-      "params": {"damage": 1},
+      "params": {"damage": 1, "opponents_only": true},
       "targeting": {"kind": "none", "range": 1}
     },
     "dont_go": {
       "label": "Don't Go",
-      "help": "The closest other character, friend or foe, cannot use Move on their next turn.",
+      "help": "The closest eligible opponent cannot use Move on their next turn.",
       "handler": "stop_target",
-      "params": {"status": "held_in_place"},
+      "params": {"status": "held_in_place", "opponents_only": true},
       "targeting": {"kind": "automatic"}
     },
     "say_hello": {
       "label": "Say Hello",
-      "help": "The closest other character, friend or foe, steps one tile back if that tile is open.",
+      "help": "The closest opponent steps one tile back if that tile is open.",
       "handler": "repel",
-      "params": {},
+      "params": {"opponents_only": true},
       "targeting": {"kind": "automatic"}
     },
     "offer_flower": {
       "label": "Offer Flower",
       "help": "Offer a flower tied to a rock. Deals 1 damage to an opponent up to two tiles away.",
       "handler": "attack",
-      "params": {"damage": 1, "source_suffix": "'s Offer Flower"},
+      "params": {"damage": 1, "source_suffix": "'s Offer Flower", "opponents_only": true},
       "targeting": {"kind": "entity", "range": 2, "teams": ["enemies"]}
     },
     "rogue_confusing_dodge": {

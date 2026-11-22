@@ -50,6 +50,8 @@ static func _in_reach(actor: Dictionary, position: Vector2i, targeting: Dictiona
 static func _entity_allowed(state: Dictionary, actor: Dictionary, candidate: Dictionary, ability: Dictionary) -> bool:
 	if ability.handler in ["healing_potion", "acid", "plain_tonic"]:
 		return Alchemy.can_target(state, actor, candidate, ability)
+	if ability.params.get("opponents_only", false) and not Board.opponents(state, actor, candidate):
+		return false
 	if candidate.id == actor.id:
 		return ability.handler == "heal" and Board.capable(state, actor, "healable") \
 			and ((ability.targeting.kind == "entity" and ability.params.get("allow_self", false)) \
@@ -243,13 +245,16 @@ static func targets(state: Dictionary, actor: Dictionary, ability_id: String) ->
 
 
 static func selection(state: Dictionary, actor: Dictionary, ability: Dictionary, target_id: String,
-		ability_id := "") -> Dictionary:
+		ability_id := "", automatic_target_id := "") -> Dictionary:
 	if ability.is_empty() or not accepts_target_argument(ability, target_id) or not Shield.available(actor, ability_id):
 		return {}
 	var choices := _legal_choices(state, actor, ability, ability_id)
 	if choices.is_empty():
 		return {}
 	if ability.handler == "sweep":
+		if ability.params.get("opponents_only", false) and not choices.any(
+				func(candidate: Dictionary) -> bool: return Board.opponents(state, actor, candidate)):
+			return {}
 		return {"id": "", "recipients": choices}
 	if ability.handler == "perform":
 		if ability_id == "healing_sonnet" and Upgrades.amount(state, actor, "front_row_seats") > 0:
@@ -259,6 +264,10 @@ static func selection(state: Dictionary, actor: Dictionary, ability: Dictionary,
 		choice["rng_seed"] = draw.seed
 		return choice
 	if ability.targeting.kind == "automatic":
+		if not automatic_target_id.is_empty():
+			choices = choices.filter(func(choice: Dictionary) -> bool: return choice.id == automatic_target_id)
+			if choices.is_empty():
+				return {}
 		for choice in choices:
 			if choice.id == actor.id:
 				return choice
@@ -311,7 +320,7 @@ static func execute(state: Dictionary, actor: Dictionary, action: Dictionary, ev
 	if ability.is_empty() or not can_act(state, actor) or not accepts_target_argument(ability, target_id) \
 			or not Shield.available(actor, id):
 		return false
-	var choice := selection(state, actor, ability, target_id, id)
+	var choice := selection(state, actor, ability, target_id, id, action.get("automatic_target_id", ""))
 	var first_event := events.size()
 	if ability.handler == "perform":
 		return _perform(state, actor, ability, id, choice, events)

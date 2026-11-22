@@ -519,6 +519,10 @@ class Validator:
 				var expected := {"allied_only": "hook", "hostile_only": "stop_target", "allow_self": "heal"}
 				if handler != expected[flag]:
 					_error(param_path + flag, "not supported by this ability handler")
+		if params.has("opponents_only"):
+			_boolean(params.opponents_only, param_path + "opponents_only")
+			if handler not in ["attack", "repel", "stop_target", "sweep"]:
+				_error(param_path + "opponents_only", "not supported by this ability handler")
 		if params.has("damage_ability") and handler != "perform":
 			_error(param_path + "damage_ability", "requires the perform handler")
 		if params.has("prefer_wounded_self"):

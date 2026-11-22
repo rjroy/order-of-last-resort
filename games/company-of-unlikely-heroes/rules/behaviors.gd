@@ -250,22 +250,27 @@ static func _make_friend(state: Dictionary, actor: Dictionary, id: String) -> Di
 static func _greet(state: Dictionary, actor: Dictionary, params: Dictionary) -> Dictionary:
 	var enemy := Summons.nominated_target(state, actor)
 	var opponents: Array = []
-	if enemy.is_empty():
-		opponents = Board.occupants(state, {"teams": [params.team]})
+	if not enemy.is_empty() and not Board.opponents(state, actor, enemy):
+		enemy = {}
+	if not enemy.is_empty():
+		opponents = [enemy]
+	else:
+		opponents = Board.occupants(state, {"teams": [params.team]}).filter(func(unit: Dictionary) -> bool:
+			return Board.opponents(state, actor, unit))
 		enemy = Board.nearest(actor, opponents)
 	if enemy.is_empty():
 		return {"wait": "hold"}
 	var reach: int = params.greeting_range
-	var options := _greeting_options(state, actor, enemy, reach, params.greetings)
-	var distance := Board.distance(actor.position, enemy.position)
-	if options.is_empty() and distance > reach:
-		# Outside normal range, an equally near opponent may still be reachable
-		# by an upgraded greeting. A nomination never considers alternatives.
-		for opponent in opponents:
-			if opponent.id != enemy.id and Board.distance(actor.position, opponent.position) == distance:
-				options = _greeting_options(state, actor, opponent, reach, params.greetings)
-				if not options.is_empty():
-					break
+	var options: Array = []
+	var best_distance := 2147483647
+	for opponent in opponents:
+		var distance := Board.distance(actor.position, opponent.position)
+		if distance >= best_distance:
+			continue
+		var candidate_options := _greeting_options(state, actor, opponent, reach, params.greetings)
+		if not candidate_options.is_empty():
+			options = candidate_options
+			best_distance = distance
 	if not options.is_empty():
 		state.rng_state = EncounterRandom.step(state.rng_state)
 		return options[state.rng_state % options.size()]
@@ -294,17 +299,21 @@ static func _greeting_options(state: Dictionary, actor: Dictionary, opponent: Di
 						break
 			continue
 		if ability.targeting.kind == "entity":
-			var choices := Actions.targets(state, actor, id)
-			var nominated := Summons.nominated_target(state, actor)
-			var target := Board.nearest(actor, choices)
-			for choice in choices:
-				if choice.id == nominated.get("id"):
-					target = choice
+			for choice in Actions.targets(state, actor, id):
+				if choice.id == opponent.id:
+					options.append(_action(id, choice.id))
 					break
-			if not target.is_empty():
-				options.append(_action(id, target.id))
-		elif not Actions.selection(state, actor, ability, "", id).is_empty():
-			options.append(_action(id))
+		elif ability.targeting.kind == "automatic":
+			if not Actions.selection(state, actor, ability, "", id, opponent.id).is_empty():
+				options.append({"ability_id": id, "automatic_target_id": opponent.id})
+		else:
+			var selected := Actions.selection(state, actor, ability, "", id)
+			if ability.handler == "sweep":
+				if selected.get("recipients", []).any(func(recipient: Dictionary) -> bool:
+						return recipient.id == opponent.id):
+					options.append(_action(id))
+			elif not selected.is_empty():
+				options.append(_action(id))
 	return options
 
 

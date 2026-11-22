@@ -7,6 +7,7 @@ signal target_selected(target_id: String)
 signal clear_requested
 signal commit_requested
 signal restart_requested
+signal forfeit_requested
 
 const Ink := preload("res://presentation/storybook_battle_ink.gd")
 const Surround := preload("res://presentation/storybook_battle_surround.gd")
@@ -22,6 +23,30 @@ const PARCHMENT := Color("#f7e9c7")
 const MUTED := Color("#dfc9a2")
 const GOLD := Color("#ffda88")
 
+
+class BattleSurface extends Control:
+	var _inert := false
+
+	func set_inert(inert: bool) -> void:
+		_inert = inert
+		focus_behavior_recursive = FOCUS_BEHAVIOR_DISABLED if inert else FOCUS_BEHAVIOR_INHERITED
+		mouse_behavior_recursive = MOUSE_BEHAVIOR_DISABLED if inert else MOUSE_BEHAVIOR_INHERITED
+		queue_accessibility_update()
+
+	func _notification(what: int) -> void:
+		if what == NOTIFICATION_ACCESSIBILITY_UPDATE:
+			AccessibilityServer.update_set_flag(get_accessibility_element(), AccessibilityServer.FLAG_HIDDEN, _inert)
+
+
+class ForfeitDialog extends ColorRect:
+	func _notification(what: int) -> void:
+		if what == NOTIFICATION_ACCESSIBILITY_UPDATE:
+			var element := get_accessibility_element()
+			AccessibilityServer.update_set_role(element, AccessibilityServer.ROLE_DIALOG)
+			AccessibilityServer.update_set_flag(element, AccessibilityServer.FLAG_MODAL, true)
+
+
+var _surface_root: BattleSurface
 var _board: Control
 var _board_id := ""
 var _dimensions := Vector2i(7, 5)
@@ -32,6 +57,12 @@ var _round: Label
 var _objective: Label
 var _restart: Button
 var _upgrades: Button
+var _forfeit: Button
+var _forfeit_modal: ForfeitDialog
+var _forfeit_panel: PanelContainer
+var _forfeit_copy: Label
+var _forfeit_cancel: Button
+var _forfeit_confirm: Button
 var _upgrade_dialog: AcceptDialog
 var _upgrade_text: Label
 var _summary: Label
@@ -59,6 +90,7 @@ var _target_rows: Array = []
 var _order_rows: Array = []
 var _order_widgets: Dictionary = {}
 var _expanded := ""
+var _popup_epoch := 0
 var _display: SystemFont
 var _built := false
 
@@ -101,12 +133,15 @@ func render(view: Dictionary) -> void:
 	var active := outcome == "ongoing"
 	_title.text = view.get("title", "")
 	var round_label: String = view.get("round_label", "Round %d" % int(view.get("round", 1)))
-	if _round.text != round_label:
-		_round.text = round_label
-		_layout_header()
+	_round.text = round_label
 	_restart.visible = view.get("can_restart", true)
+	_restart.accessibility_description = "Mission ended in defeat." if outcome == "defeat" else ""
 	_upgrade_text.text = view.get("upgrades_text", "")
 	_upgrades.visible = not _restart.visible and not _upgrade_text.text.is_empty()
+	_forfeit.visible = active
+	if not active and is_forfeit_confirmation_open():
+		_close_forfeit_confirmation()
+	_layout_header()
 	var objective: String = view.get("objective", "")
 	var status: String = view.get("objective_status", "")
 	if active and _board_id == GATE_BOARD and status.begins_with("Gate "):
@@ -120,6 +155,7 @@ func render(view: Dictionary) -> void:
 	_summary.text = command if not command.is_empty() else (
 		"Standing orders only" if active else _victory_summary() if outcome == "victory" else "Mission failed")
 	_summary.tooltip_text = _summary.text
+	_summary.accessibility_live = AccessibilityServer.LIVE_POLITE if outcome == "defeat" else AccessibilityServer.LIVE_OFF
 	var rows: Array = view.get("orders", [])
 	_inspection.text = view.get("inspection", "")
 	if _inspection.text.is_empty() and active:
@@ -155,6 +191,10 @@ func render(view: Dictionary) -> void:
 
 func _victory_summary() -> String:
 	return "The company made it through" if _board_id == GATE_BOARD else "Mission complete"
+
+
+func is_forfeit_confirmation_open() -> bool:
+	return is_instance_valid(_forfeit_modal) and _forfeit_modal.is_visible_in_tree()
 
 
 func render_ink(cues: Dictionary) -> void:
@@ -214,34 +254,39 @@ func _build() -> void:
 	theme = _make_theme()
 	resized.connect(_layout_page)
 
+	_surface_root = BattleSurface.new()
+	_surface_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_surface_root)
+	_surface_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_bleed = Surround.new()
-	add_child(_bleed)
+	_surface_root.add_child(_bleed)
 	_bleed.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_board_host = Control.new()
 	_board_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_board_host)
+	_surface_root.add_child(_board_host)
 	_scenery = TextureRect.new()
 	_scenery.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_scenery.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_scenery)
+	_surface_root.add_child(_scenery)
 	_scenery.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	# The leaf edge, shaded margins, and separating rules sit above the painting,
 	# but never take input from the mounted board or the controls.
 	var book := Control.new()
 	book.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	book.draw.connect(_draw_book.bind(book))
-	add_child(book)
+	_surface_root.add_child(book)
 	book.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	resized.connect(book.queue_redraw)
 	_build_header()
 	_build_footer()
 	_build_leaf()
+	_build_forfeit_confirmation()
 
 
 func _build_header() -> void:
 	_header = Control.new()
 	_header.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_header)
+	_surface_root.add_child(_header)
 	_title = _label("", 36, PARCHMENT, true)
 	_header.add_child(_title)
 	_round = _label("", 19, GOLD, true)
@@ -249,11 +294,19 @@ func _build_header() -> void:
 	_objective = _label("", 15, PARCHMENT)
 	_header.add_child(_objective)
 	_restart = _button("Restart", "Restart mission")
+	_restart.custom_minimum_size.x = 141.0
 	_header.add_child(_restart)
-	_restart.pressed.connect(func() -> void: restart_requested.emit())
+	_restart.pressed.connect(_request_battle_action.bind(restart_requested))
 	_upgrades = _button("ShowLoadout", "Outing upgrades")
+	_upgrades.custom_minimum_size.x = 150.0
 	_header.add_child(_upgrades)
 	_upgrades.hide()
+	_forfeit = _button("Forfeit", "Forfeit")
+	_forfeit.custom_minimum_size.x = 96.0
+	_forfeit.tooltip_text = "End this mission as a defeat"
+	_header.add_child(_forfeit)
+	_forfeit.hide()
+	_forfeit.pressed.connect(_open_forfeit_confirmation)
 	_upgrade_dialog = AcceptDialog.new()
 	_upgrade_dialog.name = "OutingLoadout"
 	_upgrade_dialog.title = "Outing upgrades"
@@ -271,11 +324,141 @@ func _build_header() -> void:
 	_upgrade_text.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	scroll.add_child(_upgrade_text)
 	_upgrades.pressed.connect(func() -> void:
+		if is_forfeit_confirmation_open():
+			return
 		_upgrade_dialog.popup_centered(Vector2i(540, 310))
 		scroll.grab_focus())
 	_upgrade_dialog.visibility_changed.connect(func() -> void:
-		if not _upgrade_dialog.visible and _upgrades.is_visible_in_tree():
+		if not is_forfeit_confirmation_open() and not _upgrade_dialog.visible and _upgrades.is_visible_in_tree():
 			_upgrades.grab_focus())
+
+
+func _build_forfeit_confirmation() -> void:
+	_forfeit_modal = ForfeitDialog.new()
+	_forfeit_modal.name = "ForfeitConfirmation"
+	_forfeit_modal.accessibility_name = "Forfeit mission?"
+	_forfeit_modal.color = Color("#170e0abc")
+	_forfeit_modal.mouse_filter = Control.MOUSE_FILTER_STOP
+	_forfeit_modal.mouse_force_pass_scroll_events = false
+	_forfeit_modal.z_index = 20
+	add_child(_forfeit_modal)
+	_forfeit_modal.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var center := CenterContainer.new()
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_forfeit_modal.add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_forfeit_panel = PanelContainer.new()
+	_forfeit_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_forfeit_panel.add_theme_stylebox_override("panel", _surface(Color("#2f2218"), Color("#c59857"), 22, 18))
+	center.add_child(_forfeit_panel)
+	var content := VBoxContainer.new()
+	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_theme_constant_override("separation", 6)
+	_forfeit_panel.add_child(content)
+	content.add_child(_label("Forfeit mission?", 26, GOLD, true))
+	_forfeit_copy = _label("", 17, PARCHMENT)
+	_forfeit_copy.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_forfeit_copy.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	content.add_child(_forfeit_copy)
+	var gap := Control.new()
+	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	gap.custom_minimum_size.y = 6
+	content.add_child(gap)
+	var buttons := HBoxContainer.new()
+	buttons.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	buttons.alignment = BoxContainer.ALIGNMENT_END
+	buttons.add_theme_constant_override("separation", 10)
+	content.add_child(buttons)
+	_forfeit_cancel = _button("CancelForfeit", "Cancel")
+	_forfeit_cancel.custom_minimum_size.x = 92
+	buttons.add_child(_forfeit_cancel)
+	_forfeit_confirm = _button("ConfirmForfeit", "Forfeit mission")
+	_forfeit_confirm.add_theme_stylebox_override("normal", _surface(Color("#4e2e23"), Color("#c28d6b"), 12, 6))
+	_forfeit_confirm.add_theme_stylebox_override("hover", _surface(Color("#673e30"), Color("#dfaa87"), 12, 6))
+	_forfeit_confirm.add_theme_stylebox_override("pressed", _surface(Color("#41261e"), Color("#dfaa87"), 12, 6))
+	buttons.add_child(_forfeit_confirm)
+	for button: Button in [_forfeit_cancel, _forfeit_confirm]:
+		var other := _forfeit_confirm if button == _forfeit_cancel else _forfeit_cancel
+		var peer := button.get_path_to(other)
+		button.focus_next = peer
+		button.focus_previous = peer
+		button.focus_neighbor_left = peer if button == _forfeit_confirm else NodePath(".")
+		button.focus_neighbor_right = peer if button == _forfeit_cancel else NodePath(".")
+		button.focus_neighbor_top = NodePath(".")
+		button.focus_neighbor_bottom = NodePath(".")
+	_forfeit_cancel.pressed.connect(_cancel_forfeit)
+	_forfeit_confirm.pressed.connect(_confirm_forfeit)
+	_forfeit_modal.hide()
+
+
+func _open_forfeit_confirmation() -> void:
+	if not _forfeit.is_visible_in_tree() or is_forfeit_confirmation_open():
+		return
+	_forfeit_copy.text = "This mission will count as a defeat."
+	if not _restart.visible:
+		_forfeit_copy.text += "\nYour outing will end."
+	_forfeit_modal.accessibility_description = _forfeit_copy.text
+	_forfeit_cancel.accessibility_description = _forfeit_copy.text
+	_popup_epoch += 1
+	_forfeit_modal.show()
+	_surface_root.set_inert(true)
+	_dismiss_battle_popups()
+	_forfeit_cancel.grab_focus()
+
+
+func _close_forfeit_confirmation() -> void:
+	_surface_root.set_inert(false)
+	_forfeit_modal.hide()
+
+
+func _cancel_forfeit() -> void:
+	if not is_forfeit_confirmation_open():
+		return
+	_close_forfeit_confirmation()
+	if _forfeit.is_visible_in_tree():
+		_forfeit.grab_focus()
+
+
+func _confirm_forfeit() -> void:
+	if not is_forfeit_confirmation_open() or not _forfeit.is_visible_in_tree():
+		return
+	_close_forfeit_confirmation()
+	forfeit_requested.emit()
+	# Standalone defeat renders on this page; an outing replaces the page.
+	if not _forfeit.visible and _restart.is_visible_in_tree():
+		_restart.grab_focus()
+
+
+func _request_battle_action(intent: Signal) -> void:
+	if not is_forfeit_confirmation_open():
+		intent.emit()
+
+
+func _dismiss_battle_popups() -> void:
+	_upgrade_dialog.hide()
+	_actions.get_popup().hide()
+	_targets.get_popup().hide()
+	for widgets: Dictionary in _order_widgets.values():
+		widgets.picker.get_popup().hide()
+
+
+func _battle_popup_visibility_changed(popup: PopupMenu) -> void:
+	if not popup.visible:
+		return
+	# A native menu can still receive an assistive click queued before the
+	# background was hidden from accessibility.
+	if is_forfeit_confirmation_open():
+		popup.hide()
+		if get_viewport().gui_get_focus_owner() not in [_forfeit_cancel, _forfeit_confirm]:
+			_forfeit_cancel.grab_focus()
+	else:
+		popup.set_meta(&"_battle_popup_epoch", _popup_epoch)
+
+
+func _battle_popup_accepts_selection(popup: PopupMenu) -> bool:
+	# Godot hides the popup before signaling a valid selection. Keep accepting
+	# its callbacks until Forfeit invalidates them, and rearm only on reopening.
+	return not is_forfeit_confirmation_open() and popup.get_meta(&"_battle_popup_epoch", 0) == _popup_epoch
 
 
 func _build_footer() -> void:
@@ -283,7 +466,7 @@ func _build_footer() -> void:
 	_footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_footer.add_theme_constant_override("separation", 4)
 	_footer.minimum_size_changed.connect(_layout_page, CONNECT_DEFERRED)
-	add_child(_footer)
+	_surface_root.add_child(_footer)
 	var line := HBoxContainer.new()
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line.add_theme_constant_override("separation", 16)
@@ -319,14 +502,18 @@ func _build_footer() -> void:
 	_footer.add_child(controls)
 	_actions = _menu("Actions", "Actions")
 	controls.add_child(_actions)
-	_actions.get_popup().id_pressed.connect(func(index: int) -> void:
-		if index >= 0 and index < _action_rows.size():
+	var actions_popup := _actions.get_popup()
+	actions_popup.visibility_changed.connect(_battle_popup_visibility_changed.bind(actions_popup))
+	actions_popup.id_pressed.connect(func(index: int) -> void:
+		if _battle_popup_accepts_selection(actions_popup) and index >= 0 and index < _action_rows.size():
 			action_selected.emit(str(_action_rows[index].id)))
 	_targets = _menu("Targets", "Choose target")
 	_targets.hide()
 	controls.add_child(_targets)
-	_targets.get_popup().id_pressed.connect(func(index: int) -> void:
-		if index >= 0 and index < _target_rows.size():
+	var targets_popup := _targets.get_popup()
+	targets_popup.visibility_changed.connect(_battle_popup_visibility_changed.bind(targets_popup))
+	targets_popup.id_pressed.connect(func(index: int) -> void:
+		if _battle_popup_accepts_selection(targets_popup) and index >= 0 and index < _target_rows.size():
 			target_selected.emit(str(_target_rows[index].id)))
 	_orders = _button("StandingOrders", "Standing orders")
 	_orders.toggle_mode = true
@@ -342,11 +529,11 @@ func _build_footer() -> void:
 	controls.add_child(space)
 	_clear = _button("ClearCommand", "Clear command")
 	controls.add_child(_clear)
-	_clear.pressed.connect(func() -> void: clear_requested.emit())
+	_clear.pressed.connect(_request_battle_action.bind(clear_requested))
 	_commit = _button("Commit", "Commit round 1", true)
 	_commit.custom_minimum_size.x = 182
 	controls.add_child(_commit)
-	_commit.pressed.connect(func() -> void: commit_requested.emit())
+	_commit.pressed.connect(_request_battle_action.bind(commit_requested))
 
 
 func _build_leaf() -> void:
@@ -355,7 +542,7 @@ func _build_leaf() -> void:
 	_leaf.z_index = 5
 	_leaf.mouse_filter = Control.MOUSE_FILTER_STOP
 	_leaf.add_theme_stylebox_override("panel", _surface(Color("#2f2218"), Color("#c59857"), 12, 12))
-	add_child(_leaf)
+	_surface_root.add_child(_leaf)
 	_order_entries = VBoxContainer.new()
 	_order_entries.add_theme_constant_override("separation", 6)
 	_leaf.add_child(_order_entries)
@@ -387,9 +574,13 @@ func _build_leaf() -> void:
 
 
 func _toggle_leaf(section: String) -> void:
-	_expanded = "" if _expanded == section else section
+	# Assistive activation can bypass GUI input and toggle a button directly.
+	if not is_forfeit_confirmation_open():
+		_expanded = "" if _expanded == section else section
 	_orders.set_pressed_no_signal(_expanded == "orders")
 	_forecast.set_pressed_no_signal(_expanded == "forecast")
+	if is_forfeit_confirmation_open():
+		return
 	_order_entries.visible = _expanded == "orders"
 	_forecast_scroll.visible = _expanded == "forecast"
 	_leaf.visible = not _expanded.is_empty()
@@ -404,6 +595,9 @@ func _toggle_leaf(section: String) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if is_forfeit_confirmation_open():
+		_forfeit_input(event)
+		return
 	if not _expanded.is_empty() and event.is_action_pressed("ui_cancel"):
 		var source := _orders if _expanded == "orders" else _forecast
 		var focused := get_viewport().gui_get_focus_owner()
@@ -411,6 +605,24 @@ func _input(event: InputEvent) -> void:
 			_toggle_leaf(_expanded)
 			source.grab_focus()
 			get_viewport().set_input_as_handled()
+
+
+func _forfeit_input(event: InputEvent) -> void:
+	if not (event is InputEventKey or event is InputEventAction
+			or event is InputEventJoypadButton or event is InputEventJoypadMotion):
+		return  # The full-page scrim handles pointer input in the GUI.
+	if event.is_action("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		if event.is_action_pressed("ui_cancel"):
+			_cancel_forfeit()
+		return
+	var focused := get_viewport().gui_get_focus_owner()
+	if focused != _forfeit_cancel and focused != _forfeit_confirm:
+		_forfeit_cancel.grab_focus()
+	for action in ["ui_accept", "ui_focus_next", "ui_focus_prev", "ui_left", "ui_right", "ui_up", "ui_down"]:
+		if event.is_action(action) and not event.is_echo():
+			return  # Let the modal buttons handle activation and their focus links.
+	get_viewport().set_input_as_handled()
 
 
 func _refresh_actions(rows: Array, hero: String, chosen: String, active: bool) -> void:
@@ -475,7 +687,8 @@ func _refresh_orders(rows: Array) -> void:
 			for item: Dictionary in items:
 				picker.add_item(item.label)
 		picker.disabled = not row.get("enabled", true) or items.is_empty()
-		picker.select(items.find_custom(func(item: Dictionary) -> bool: return item.id == row.order_id))
+		widgets.selected_index = items.find_custom(func(item: Dictionary) -> bool: return item.id == row.order_id)
+		picker.select(widgets.selected_index)
 
 
 func _add_order(hero: String, label: String) -> void:
@@ -490,15 +703,22 @@ func _add_order(hero: String, label: String) -> void:
 	picker.accessibility_name = label + " standing order"
 	picker.custom_minimum_size = Vector2(164, 32)
 	row.add_child(picker)
-	_order_widgets[hero] = {"row": row, "note": note, "picker": picker, "choices": []}
+	var popup := picker.get_popup()
+	popup.visibility_changed.connect(_battle_popup_visibility_changed.bind(popup))
+	var widgets := {"row": row, "note": note, "picker": picker, "choices": [], "selected_index": -1}
+	_order_widgets[hero] = widgets
 	picker.item_selected.connect(func(index: int) -> void:
-		var items: Array = _order_widgets[hero].choices
+		# OptionButton updates its display before delivering even a stale click.
+		if not _battle_popup_accepts_selection(popup):
+			picker.select(widgets.selected_index)
+			return
+		var items: Array = widgets.choices
 		if index >= 0 and index < items.size():
 			order_selected.emit(hero, str(items[index].id)))
 
 
 func _layout_page() -> void:
-	if not _built or not is_instance_valid(_footer) or not is_instance_valid(_leaf):
+	if not _built or not is_instance_valid(_forfeit_panel):
 		return
 	var width := size.x - EDGE * 2.0
 	var height := size.y - EDGE * 2.0
@@ -525,21 +745,27 @@ func _layout_page() -> void:
 	var leaf_height := 210.0 if _expanded == "orders" else 242.0
 	_leaf.position = Vector2(margin, footer_top - leaf_height - 5.0)
 	_leaf.size = Vector2(minf(maxf(content_width, 0), 510.0), leaf_height)
+	_forfeit_panel.custom_minimum_size.x = minf(432.0, maxf(0.0, content_width))
 
 
 func _layout_header() -> void:
 	var width := _header.size.x
 	var round_width := maxf(103.0, _round.get_theme_font("font").get_string_size(
 		_round.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 19).x + 2.0)
-	_title.size = Vector2(maxf(0.0, width - 154.0), 44.0)
+	var text_edge := width
+	for button: Button in [_forfeit, _restart, _upgrades]:
+		if not button.visible:
+			continue
+		var button_width := button.get_combined_minimum_size().x
+		text_edge = maxf(0.0, text_edge - button_width)
+		button.position = Vector2(text_edge, 10.0)
+		button.size = Vector2(button_width, 41.0)
+		text_edge -= 12.0
+	_title.size = Vector2(maxf(0.0, text_edge), 44.0)
 	_round.position = Vector2(0, 39.0)
 	_round.size = Vector2(round_width, 22.0)
 	_objective.position = Vector2(round_width + 4.0, 41.0)
-	_objective.size = Vector2(maxf(0.0, width - 158.0 - _objective.position.x), 24.0)
-	_restart.position = Vector2(maxf(0.0, width - 141.0), 10.0)
-	_restart.size = Vector2(141.0, 39.0)
-	_upgrades.position = Vector2(maxf(0.0, width - 150.0), 10.0)
-	_upgrades.size = Vector2(150.0, 39.0)
+	_objective.size = Vector2(maxf(0.0, text_edge - _objective.position.x), 24.0)
 
 
 func _draw_book(canvas: Control) -> void:

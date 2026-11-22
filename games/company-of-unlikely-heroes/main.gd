@@ -1081,6 +1081,7 @@ func _show_storybook_battle() -> void:
 	_storybook_page.clear_requested.connect(_clear_command)
 	_storybook_page.commit_requested.connect(_commit)
 	_storybook_page.restart_requested.connect(_restart_fixed)
+	_storybook_page.forfeit_requested.connect(_forfeit)
 	_begin_attempt()
 
 
@@ -1096,6 +1097,8 @@ func _storybook_board_unfocused() -> void:
 
 
 func _storybook_board_input(event: InputEvent) -> void:
+	if _forfeit_confirmation_open():
+		return
 	if not event is InputEventKey or not event.pressed:
 		return
 	if event.is_action_pressed("ui_accept") and not event.is_echo():
@@ -1123,7 +1126,7 @@ func _storybook_board_input(event: InputEvent) -> void:
 
 
 func _storybook_action(ability: String) -> void:
-	if not _ongoing() or _actor_id.is_empty():
+	if _forfeit_confirmation_open() or not _ongoing() or _actor_id.is_empty():
 		return
 	var available := _rules.options(_state, _actor_id).any(
 		func(choice: Dictionary) -> bool: return choice.kind == "action" and choice.id == ability)
@@ -1155,7 +1158,7 @@ func _storybook_action(ability: String) -> void:
 
 
 func _storybook_target(target: String) -> void:
-	if not _targets.any(func(choice: Dictionary) -> bool: return choice.id == target):
+	if _forfeit_confirmation_open() or not _targets.any(func(choice: Dictionary) -> bool: return choice.id == target):
 		return
 	_storybook_ambiguous.clear()
 	_target_id = target
@@ -1163,7 +1166,7 @@ func _storybook_target(target: String) -> void:
 
 
 func _storybook_order(hero: String, order: String) -> void:
-	if not _ongoing() or _find(hero).get("hp", 0) <= 0:
+	if _forfeit_confirmation_open() or not _ongoing() or _find(hero).get("hp", 0) <= 0:
 		return
 	if not _rules.options(_state, hero).any(
 			func(choice: Dictionary) -> bool: return choice.kind == "order" and choice.id == order):
@@ -1268,7 +1271,9 @@ func _render_storybook() -> void:
 	var values := _objective_format_values(progress)
 	var details := str(objective.text).format(values)
 	var headline := str(objective.get(text_key, objective.text)).format(values)
-	if _ongoing() and _state.objective.handler == "pressure_gate":
+	if _state.get("_voluntary_defeat", false):
+		headline = _rules.mission_result_text(_state)
+	elif _ongoing() and _state.objective.handler == "pressure_gate":
 		headline = "Get a hero to the exit at %s." % BridgeArt.coordinate(_state.objective.exit)
 	elif _ongoing() and _state.objective.handler != "pressure_gate":
 		var first_sentence := headline.find(". ")
@@ -1315,6 +1320,8 @@ func _render_storybook() -> void:
 
 
 func _restart_fixed() -> void:
+	if _forfeit_confirmation_open():
+		return
 	_state = _opening_state.duplicate(true)
 	_begin_attempt()
 
@@ -1382,6 +1389,8 @@ func _stage_command() -> void:
 
 
 func _clear_command() -> void:
+	if _forfeit_confirmation_open():
+		return
 	_planned_state = _rules.clear_manual(_planned_state)
 	_unpreviewed_edit = false
 	_storybook_ambiguous.clear()
@@ -1426,7 +1435,7 @@ func _can_stage_command() -> bool:
 
 
 func _commit() -> void:
-	if not _can_commit():
+	if _forfeit_confirmation_open() or not _can_commit():
 		return
 	var committed := _rules.commit_round(_planned_state, _plan)
 	if committed == _planned_state:
@@ -1456,6 +1465,31 @@ func _commit() -> void:
 	_refresh()
 	_board.play_committed_actions(cues)
 	_storybook_page.play_committed_reactions(reactions)
+
+
+func _forfeit() -> void:
+	if _screen != "battle" or not _ongoing():
+		return
+	_state = _rules.forfeit(_state)
+	_planned_state = _state
+	_last_events.clear()
+	_unpreviewed_edit = false
+	_storybook_aiming = false
+	_storybook_ambiguous.clear()
+	_storybook_inspected_cell = null
+	_board.clear_action_playback()
+	_storybook_page.play_committed_reactions([])
+	if _fixed_mission.is_empty():
+		_run = Adventure.settle_mission(_run, _state)
+		if _run.phase == "finished":
+			_show_settled_mission()
+			return
+	_sync_command()
+	_refresh()
+
+
+func _forfeit_confirmation_open() -> bool:
+	return is_instance_valid(_storybook_page) and _storybook_page.is_forfeit_confirmation_open()
 
 
 func _committed_reactions() -> Array:
@@ -1561,7 +1595,7 @@ func _input(event: InputEvent) -> void:
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if _screen != "battle" or not event.is_pressed() or event.is_echo():
+	if _screen != "battle" or _forfeit_confirmation_open() or not event.is_pressed() or event.is_echo():
 		return
 	if event.keycode == KEY_ESCAPE:
 		if _unpreviewed_edit or not _storybook_ambiguous.is_empty():
@@ -1915,11 +1949,13 @@ func _highlight_safe_bank(eligible: Dictionary, destination: Vector2i) -> void:
 
 
 func _select_board(cell: Vector2i) -> void:
-	if _ongoing():
+	if not _forfeit_confirmation_open() and _ongoing():
 		_storybook_select_board(cell)
 
 
 func _inspect_board(cell: Vector2i) -> void:
+	if _forfeit_confirmation_open():
+		return
 	_storybook_inspected_cell = cell
 	_sync_inspection()
 	_render_storybook()
@@ -2012,6 +2048,8 @@ func _board_targets_at(cell: Vector2i) -> Array:
 
 
 func _clear_inspection() -> void:
+	if _forfeit_confirmation_open():
+		return
 	_storybook_inspected_cell = null
 	_set_inspection("")
 	_render_storybook()

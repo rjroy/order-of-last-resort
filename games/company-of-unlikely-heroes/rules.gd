@@ -278,11 +278,28 @@ func commit_round(state: Dictionary, plan: Dictionary) -> Dictionary:
 	return result
 
 
+func forfeit(state: Dictionary) -> Dictionary:
+	if state.get("outcome") != "ongoing":
+		return state.duplicate(true)
+	var result := clear_manual(state)
+	result.outcome = "defeat"
+	result["_terminal_commit"] = true
+	result["_voluntary_defeat"] = true
+	return result
+
+
 func is_committed_terminal(state: Dictionary) -> bool:
-	return state.get("_terminal_commit", false) == true and _matches_board_outcome(state)
+	return state.get("_terminal_commit", false) == true \
+		and ((_is_voluntary_defeat(state)) or _matches_board_outcome(state))
+
+
+func _is_voluntary_defeat(state: Dictionary) -> bool:
+	return state.get("_voluntary_defeat", false) == true and state.get("outcome") == "defeat"
 
 
 func mission_result_text(state: Dictionary) -> String:
+	if _is_voluntary_defeat(state):
+		return "The company forfeited the mission."
 	var ending := _end_condition(state)
 	if ending.get("outcome") != state.get("outcome"):
 		return ""

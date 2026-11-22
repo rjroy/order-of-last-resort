@@ -155,6 +155,8 @@ The battle board in commissions, practice outings, and standalone missions uses 
 
 Preview updates the forecast without resolving the round or starting any action clips. Commit resolves the round. Action playback is cosmetic and uses supported actions from the committed round, including standing orders. Not every ability has its own clip. To try the Friendly Crypter, launch `goblin_mob` and follow the opening above.
 
+Use **Forfeit** during an ongoing battle to concede without playing the next round. Confirm to end the mission as a defeat, or cancel to keep your plans. In an outing, defeat ends the outing without a reward; returning to the guild clears its upgrades. In a standalone mission, use **Restart** to try again.
+
 ### Rewards between missions
 
 After a victory with another mission ahead, the debrief shows **one offer per eligible deployed hero**. Each entry describes what changes, its rarity, and how many times you can take it during this outing. Choose **one reward total** using its **Take reward** button, or use Tab and Enter. The claimed reward stays on the debrief while you review the party and continue. Passing on an offer does not count against its cap. If there are no eligible offers, you can continue without choosing.

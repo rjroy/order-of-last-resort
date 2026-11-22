@@ -45,6 +45,10 @@ static func decide(state: Dictionary, actor: Dictionary, behavior_id: String) ->
 			return _follow(state, actor, params.move_ability, allies, "follow_ally")
 		"most_injured":
 			return _most_injured(state, actor, params.ability)
+		"pass_blame":
+			return _pass_blame(state, actor, params.ability)
+		"make_friend":
+			return _make_friend(state, actor, params.ability)
 		"nearest_target":
 			var target := Board.nearest(actor, Actions.targets(state, actor, params.ability), true)
 			if not target.is_empty():
@@ -210,6 +214,37 @@ static func _most_injured(state: Dictionary, actor: Dictionary, id: String) -> D
 			most_missing = missing
 			recipient = candidate.id
 	return _action(id, recipient) if not recipient.is_empty() else {"wait": "hold"}
+
+
+static func _pass_blame(state: Dictionary, actor: Dictionary, id: String) -> Dictionary:
+	var legal := {}
+	for choice in Actions.targets(state, actor, id):
+		legal[choice.id] = true
+	var candidates := Board.turn_order(state).filter(func(target: Dictionary) -> bool:
+		return legal.has(target.id) and Board.opponents(state, actor, target) \
+			and Statuses.ids_with_handler(state, target, "misdirect").is_empty())
+	var target := Board.nearest(actor, candidates)
+	return _action(id, target.id) if not target.is_empty() else {"wait": "hold"}
+
+
+static func _make_friend(state: Dictionary, actor: Dictionary, id: String) -> Dictionary:
+	# The summon picker already enforces the per-summoner cap and returns cells in board-direction order.
+	var choices := Actions.targets(state, actor, id)
+	if choices.is_empty():
+		return {"wait": "hold"}
+	var opponents := Board.occupants(state, {}).filter(func(unit: Dictionary) -> bool:
+		return Board.opponents(state, actor, unit))
+	if opponents.is_empty():
+		return {"wait": "hold"}
+	var cell := ""
+	var best_distance := 2147483647
+	for choice in choices:
+		var opponent := Board.nearest(choice, opponents, true)
+		var distance := Board.distance(choice.position, opponent.position)
+		if distance < best_distance:
+			cell = choice.id
+			best_distance = distance
+	return _action(id, cell)
 
 
 static func _greet(state: Dictionary, actor: Dictionary, params: Dictionary) -> Dictionary:

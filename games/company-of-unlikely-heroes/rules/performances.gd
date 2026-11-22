@@ -8,7 +8,7 @@ const Upgrades = preload("res://rules/upgrades.gd")
 
 
 static func perform(state: Dictionary, actor: Dictionary, ability: Dictionary, ability_id: String,
-		choice: Dictionary, events: Array) -> bool:
+		choice: Dictionary, events: Array, echoed := false) -> bool:
 	var name := Board.display_name(state, actor)
 	var copy := {"actor": name, "ability": ability.label}
 	var data := {"unit_id": actor.id, "ability_id": ability_id}
@@ -40,6 +40,10 @@ static func perform(state: Dictionary, actor: Dictionary, ability: Dictionary, a
 		state.rng_state = choice.rng_seed
 	for index in range(first_event, events.size()):
 		events[index]["ability_id"] = ability_id
+		if echoed:
+			events[index]["song_echo"] = true
+	if echoed and first_event < events.size():
+		events[first_event].text = "Echo of %s — %s" % [ability.label, events[first_event].text]
 	return true
 
 

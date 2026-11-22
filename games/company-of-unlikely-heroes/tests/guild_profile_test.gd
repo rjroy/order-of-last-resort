@@ -66,11 +66,11 @@ func _check_roster(profile: Dictionary, expected: Array, label: String) -> void:
 		_check(actual == wanted, label + ": expected roster " + str(wanted) + "; got " + str(actual))
 
 
-func _check_zero_points(profile: Dictionary, label: String) -> void:
+func _check_zero_points(profile: Dictionary, label: String, expected_purchases: Array = []) -> void:
 	_check(profile.has("points") and profile.get("points") == 0,
 		label + ": no points are invented: " + str(profile))
-	_check(profile.get("purchased_ids") is Array and profile.get("purchased_ids") == [],
-		label + ": no purchases are invented: " + str(profile))
+	_check(profile.get("purchased_ids") is Array and profile.get("purchased_ids") == expected_purchases,
+		label + ": only expected entitlements are recorded: " + str(profile))
 	_check(profile.get("board_generation") is int and profile.get("board_generation", -1) >= 0,
 		label + ": profile exposes a nonnegative board generation: " + str(profile))
 
@@ -113,6 +113,7 @@ func _test_profile() -> void:
 	_check(completed.get("versions", false), "Invalid versions test completed")
 	_test_legacy_migration()
 	_check(completed.get("migration", false), "Legacy migration test completed")
+	_test_v2_preference()
 
 	# Launch a new Godot process, rather than relying on a cached in-memory dictionary.
 	var output: Array = []
@@ -238,7 +239,14 @@ func _test_legacy_migration() -> void:
 	var migrated := _load_profile(path)
 	_check_profile(migrated, INITIAL_SEED, "Migrated v1 profile")
 	_check_roster(migrated, LEGACY_ROSTER, "Migrated v1 profile")
-	_check_zero_points(migrated, "Migrated v1 profile")
+	_check_zero_points(migrated, "Migrated v1 profile", ["alchemist_throw_samples"])
+	var defs: Dictionary = preload("res://content/catalog.gd").read_default()
+	for hero in LEGACY_ROSTER:
+		var kit: Dictionary = profile_store.call("default_loadout", defs, migrated, hero)
+		_check(not kit.is_empty(), "Migrated v1 retains a usable kit for " + hero)
+		for row in profile_store.call("petitions", defs, migrated):
+			if row.get("id") == "recruit_" + hero:
+				_check(row.get("owned", false), "Migrated v1 does not pay twice for " + hero)
 	if not migrated.has("error") and not migrated.is_empty():
 		var renewed: Dictionary = profile_store.call("renew", path, migrated, RENEWED_SEED)
 		_check_profile(renewed, RENEWED_SEED, "Renewed migrated profile")
@@ -247,3 +255,33 @@ func _test_legacy_migration() -> void:
 	var remove_error := DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	_check(remove_error == OK, "Legacy test profile is removed: " + str(remove_error))
 	completed["migration"] = true
+
+
+func _test_v2_preference() -> void:
+	var path := "user://guild_profile_v2_preference_%d_%d.json" % [OS.get_process_id(), Time.get_ticks_usec()]
+	# This is an already-written v2 preference, not a fresh guild purchase.
+	var stored := {"version": 2, "name": GUILD_NAME, "board_seed": str(INITIAL_SEED),
+		"guild_id": "a".repeat(64), "points": "0", "board_generation": "0",
+		"recruited_ids": LEGACY_ROSTER, "purchased_ids": [],
+		"preferred_loadouts": {"alchemist": {"slots": {"offense": "alchemist_acid",
+			"utility": "alchemist_potion"}, "order_id": "order_throw_samples"}},
+		"last_receipt": {}}
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		_check(false, "Could not write existing v2 profile")
+		return
+	file.store_string(JSON.stringify(stored))
+	file.close()
+	var loaded := _load_profile(path)
+	var defs: Dictionary = preload("res://content/catalog.gd").read_default()
+	_check(not loaded.has("error"), "Existing v2 profile loads")
+	if not loaded.has("error"):
+		_check_zero_points(loaded, "Migrated v2 profile", ["alchemist_throw_samples"])
+		_check(profile_store.call("default_loadout", defs, loaded, "alchemist") == stored.preferred_loadouts.alchemist,
+			"Existing v2 Throw Samples preference remains valid without another purchase")
+		var renewed: Dictionary = profile_store.call("renew", path, loaded, RENEWED_SEED)
+		_check(not renewed.has("error") and _load_profile(path) == renewed
+			and renewed.get("preferred_loadouts", {}) == stored.preferred_loadouts,
+			"Existing v2 preference survives save and reload")
+	_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(path)) == OK,
+		"Existing v2 profile fixture is removed")

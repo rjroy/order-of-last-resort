@@ -104,6 +104,17 @@ static func consume_skips(state: Dictionary, unit: Dictionary, events: Array) ->
 	_consume_skips(state, unit, events, ids, jelly)
 
 
+static func consume_voluntary_move_block(state: Dictionary, unit: Dictionary, events: Array) -> bool:
+	var ids := ids_with_handler(state, unit, "block_voluntary_move")
+	if ids.is_empty():
+		return false
+	var id := ids[0]
+	unit.statuses.erase(id)
+	Board.event(events, "status", "%s cannot move (%s)." % [Board.display_name(state, unit), definition(state, id).label],
+		{"unit_id": unit.id, "target_id": unit.id, "status_id": id, "consumed": true})
+	return true
+
+
 static func _consume_skips(state: Dictionary, unit: Dictionary, events: Array,
 		ids: Array[String], jelly: bool) -> void:
 	if ids.is_empty() and not jelly:
@@ -160,7 +171,7 @@ static func accepts(state: Dictionary, target: Dictionary, id: String, source: D
 				and (not spec.params.has("immunity_rounds") or not target.statuses.has(id))
 		"retarget":
 			return Board.capable(state, target, "tauntable") and _accepts_source(state, source, spec.params)
-		"reflect", "misdirect", "stop_move":
+		"reflect", "misdirect", "stop_move", "block_voluntary_move":
 			return true
 	return false
 

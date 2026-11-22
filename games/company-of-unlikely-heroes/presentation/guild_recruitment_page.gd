@@ -7,6 +7,7 @@ signal hero_edit_requested(id: String)
 signal recruit_list_requested
 signal reorder_requested(id: String, delta: int)
 signal offense_requested(id: String, ability_id: String)
+signal utility_requested(hero_id: String, ability_id: String)
 signal order_requested(id: String, order_id: String)
 signal depart_requested
 
@@ -185,26 +186,26 @@ func _build_loadout(parent: VBoxContainer, model: Dictionary, hero: Dictionary) 
 	var panel := _book.stack(scroll, 7)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_loadout_group(panel, "Offense", model.get("offense", []), "Offense")
-	_loadout_group(panel, "Utility", model.get("utility", []), "")
+	_loadout_group(panel, "Utility", model.get("utility", []), "Utility")
 	_loadout_group(panel, "Starting order", model.get("orders", []), "Order")
 
 
 func _loadout_group(parent: VBoxContainer, title: String, entries: Array, kind: String) -> void:
 	_book.rule(parent, Prep.RULE)
 	Prep.text(_book, parent, title, 29)
-	if kind == "Offense":
+	if kind != "Order":
 		for entry: Dictionary in entries:
 			if bool(entry.get("selected", false)):
-				_loadout_row(parent, entry, kind)
+				_loadout_row(parent, entry, kind, entries.size())
 		for entry: Dictionary in entries:
 			if not bool(entry.get("selected", false)):
-				_loadout_row(parent, entry, kind)
+				_loadout_row(parent, entry, kind, entries.size())
 		return
 	for entry: Dictionary in entries:
-		_loadout_row(parent, entry, kind)
+		_loadout_row(parent, entry, kind, entries.size())
 
 
-func _loadout_row(parent: Control, entry: Dictionary, kind: String) -> void:
+func _loadout_row(parent: Control, entry: Dictionary, kind: String, count: int) -> void:
 	var id := str(entry.id)
 	var label := _action_label(id, str(entry.get("label", "")))
 	var selected := bool(entry.get("selected", false))
@@ -219,7 +220,8 @@ func _loadout_row(parent: Control, entry: Dictionary, kind: String) -> void:
 	var title := Prep.text(_book, row, label, 22, Prep.QUIET if locked else Prep.INK)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	if kind.is_empty():
+	var long_reason := locked and reason.length() > 21
+	if kind == "Utility" and count == 1:
 		var status := Prep.line(_book, row, reason if locked else "Equipped", 18,
 			Prep.QUIET if locked else Prep.FOREST)
 		status.name = "UtilityStatus_" + id
@@ -227,14 +229,15 @@ func _loadout_row(parent: Control, entry: Dictionary, kind: String) -> void:
 		title.tooltip_text = help
 	else:
 		var chosen_caption := "Selected" if kind == "Order" else "Equipped"
-		var normal_caption := "Select" if kind == "Order" else "Equip " + label
-		var button_text := reason if locked else (chosen_caption if selected else normal_caption)
+		var normal_caption := "Select" if kind == "Order" else "Equip"
+		var button_text := ("Needs an ability" if long_reason else reason) if locked else \
+			(chosen_caption if selected else normal_caption)
 		var control_name := "%s_%s" % [kind, id]
 		var action := Prep.small_button(_book, row, control_name, button_text)
 		action.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		action.accessibility_name = ("%s: %s" % [button_text, label]) if locked or selected \
+		action.accessibility_name = ("%s: %s" % [reason if locked else chosen_caption, label]) if locked or selected \
 			else ("Select starting order: " + label if kind == "Order" else "Equip " + label)
-		action.accessibility_description = help
+		action.accessibility_description = reason if locked else help
 		action.tooltip_text = help
 		_book.set_disabled(action, not enabled)
 		if locked or selected:
@@ -245,15 +248,20 @@ func _loadout_row(parent: Control, entry: Dictionary, kind: String) -> void:
 				action.add_theme_stylebox_override("normal", Prep.text_status(Prep.GREEN_PAPER))
 				action.add_theme_color_override("font_color", Prep.FOREST)
 		var hero_id := _editing_id
-		if kind == "Offense":
-			action.pressed.connect(func() -> void: offense_requested.emit(hero_id, id))
-		else:
-			action.pressed.connect(func() -> void: order_requested.emit(hero_id, id))
-	if not help.is_empty() and not locked and kind == "Offense" and (selected or id == "wizard_blast"):
+		match kind:
+			"Offense":
+				action.pressed.connect(func() -> void: offense_requested.emit(hero_id, id))
+			"Utility":
+				action.pressed.connect(func() -> void: utility_requested.emit(hero_id, id))
+			"Order":
+				action.pressed.connect(func() -> void: order_requested.emit(hero_id, id))
+	var show_help := not locked and not help.is_empty() and (
+		(kind == "Offense" and (selected or id == "wizard_blast")) or (kind == "Utility" and count > 1))
+	if long_reason or show_help:
 		var context := _book.row(parent, 0)
 		_book.space(context, 36)
-		var detail := Prep.text(_book, context, help, 18, Prep.QUIET)
-		detail.name = "AbilityHelp_" + id
+		var detail := Prep.text(_book, context, reason if long_reason else help, 18, Prep.QUIET)
+		detail.name = ("OrderRequirement_" if long_reason else "AbilityHelp_") + id
 		detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 

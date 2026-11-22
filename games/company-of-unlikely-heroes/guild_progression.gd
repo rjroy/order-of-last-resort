@@ -30,13 +30,23 @@ static func petitions(defs: Dictionary, profile: Dictionary) -> Array[Dictionary
 			if not _owns_petition(profile, table, dependency):
 				missing.append(dependency)
 		var recipient: String = grant.get("hero_id", "")
+		var missing_labels: Array[String] = []
+		for dependency in missing:
+			missing_labels.append(str(table[dependency].label))
+		var dependency_labels: Array[String] = []
+		for dependency in spec.get("prerequisites", []):
+			dependency_labels.append(str(table[dependency].label))
 		var recipient_locked: bool = not grant.is_empty() and grant.kind != "recruit" \
 			and recipient not in profile.get("recruited_ids", [])
 		var affordable: bool = profile.get("points", 0) >= cost
 		rows.append({"id": id, "label": spec.label, "description": spec.description, "cost": cost,
 			"owned": owned, "purchasable": purchasable, "affordable": affordable,
 			"can_buy": purchasable and not owned and not recipient_locked and missing.is_empty() and affordable,
-			"missing_prerequisites": missing, "recipient_locked": recipient_locked, "hero_id": recipient})
+			"missing_prerequisites": missing, "missing_prerequisite_labels": missing_labels,
+			"prerequisites": spec.get("prerequisites", []).duplicate(), "prerequisite_labels": dependency_labels,
+			"recipient_locked": recipient_locked, "hero_id": recipient,
+			"recipient_label": Catalog.profile(defs, recipient).get("label", recipient),
+			"grant_kind": grant.get("kind", "")})
 	return rows
 
 
@@ -92,10 +102,11 @@ static func default_loadout(defs: Dictionary, profile: Dictionary, hero_id: Stri
 	for slot_id in choices:
 		slots[slot_id] = choices[slot_id][0]
 	var loadout := {"slots": slots, "order_id": Catalog.profile(defs, hero_id).default_order}
-	for order in order_options(defs, profile, hero_id, loadout):
+	var orders := order_options(defs, profile, hero_id, loadout)
+	for order in orders:
 		if order.id == loadout.order_id and order.compatible:
 			return loadout
-	for order in order_options(defs, profile, hero_id, loadout):
+	for order in orders:
 		if order.compatible:
 			loadout.order_id = order.id
 			return loadout
@@ -105,7 +116,7 @@ static func default_loadout(defs: Dictionary, profile: Dictionary, hero_id: Stri
 static func order_options(defs: Dictionary, profile: Dictionary, hero_id: String,
 		loadout: Dictionary) -> Array[Dictionary]:
 	var abilities := _equipped_abilities(defs, profile, hero_id, loadout)
-	return _order_rows(defs, _learned_habits(defs, profile, hero_id), abilities) if not abilities.is_empty() else []
+	return _order_rows(defs, profile, hero_id, abilities) if not abilities.is_empty() else []
 
 
 static func effective_kit(defs: Dictionary, profile: Dictionary, hero_id: String, loadout: Dictionary) -> Dictionary:
@@ -115,12 +126,17 @@ static func effective_kit(defs: Dictionary, profile: Dictionary, hero_id: String
 	if abilities.is_empty():
 		return {}
 	var habits: Dictionary = {}
-	for row in _order_rows(defs, _learned_habits(defs, profile, hero_id), abilities):
+	for row in _order_rows(defs, profile, hero_id, abilities):
 		if row.compatible:
 			habits[row.id] = row.behavior_id
 	if not habits.has(loadout.order_id):
 		return {}
-	return {"abilities": abilities, "habits": habits, "default_order": loadout.order_id}
+	var techniques: Array[String] = []
+	for grant in _owned_grants(defs, profile, hero_id):
+		if grant.kind == "effect" and grant.effect_id not in techniques:
+			techniques.append(grant.effect_id)
+	return {"abilities": abilities, "habits": habits, "default_order": loadout.order_id,
+		"guild_techniques": techniques}
 
 
 static func valid_loadouts(defs: Dictionary, profile: Dictionary, loadouts: Dictionary) -> bool:
@@ -149,27 +165,32 @@ static func _equipped_abilities(defs: Dictionary, profile: Dictionary, hero_id: 
 	return equipped
 
 
-static func _learned_habits(defs: Dictionary, profile: Dictionary, hero_id: String) -> Dictionary:
-	var habits: Dictionary = Catalog.profile(defs, hero_id).get("habits", {}).duplicate()
+static func _starting_habits(defs: Dictionary, hero_id: String) -> Dictionary:
+	var starting: Dictionary = defs.get("guild_progression", {}).get("starting_habits", {})
+	return starting.get(hero_id, Catalog.profile(defs, hero_id).get("habits", {}))
+
+
+static func _order_rows(defs: Dictionary, profile: Dictionary, hero_id: String,
+		abilities: Array[String]) -> Array[Dictionary]:
+	var starting := _starting_habits(defs, hero_id)
+	var habits := starting.duplicate()
 	for grant in _owned_grants(defs, profile, hero_id):
 		if grant.kind == "order":
 			habits[grant.order_id] = grant.behavior_id
-	return habits
-
-
-static func _order_rows(defs: Dictionary, habits: Dictionary, abilities: Array[String]) -> Array[Dictionary]:
 	var rows: Array[Dictionary] = []
-	var any_compatible := false
+	var starting_compatible := false
 	for id in habits:
 		var behavior_id: String = habits[id]
 		var missing := Catalog.behavior_ability_ids(defs.behaviors[behavior_id])
 		for ability in abilities:
 			missing.erase(ability)
 		var compatible := missing.is_empty()
-		any_compatible = any_compatible or compatible
+		starting_compatible = starting_compatible or (starting.has(id) and compatible)
 		rows.append({"id": id, "label": defs.orders[id].label, "behavior_id": behavior_id,
 			"compatible": compatible, "missing_abilities": missing})
-	if not any_compatible and defs.orders.has(HOLD_ORDER) and defs.behaviors.has(HOLD_BEHAVIOR):
+	# Learned orders do not revoke a fallback that made an existing loadout valid.
+	if not starting_compatible and not habits.has(HOLD_ORDER) \
+			and defs.orders.has(HOLD_ORDER) and defs.behaviors.has(HOLD_BEHAVIOR):
 		rows.append({"id": HOLD_ORDER, "label": defs.orders[HOLD_ORDER].label, "behavior_id": HOLD_BEHAVIOR,
 			"compatible": true, "missing_abilities": []})
 	return rows

@@ -14,7 +14,7 @@
 
 ## Guild petitions and equipped kits
 
-[`guild_progression.json`](guild_progression.json) defines the permanent petitions for the built-in guild. `kits` names each recruit’s base `offense` and `utility` ability IDs; Move is separate. A petition grants either `recruit` (one hero ID) or `ability` (one recipient, slot and ability ID). Its `cost` is paid once by the guild, not once per deployment. `prerequisites` lists other petition IDs. A `teaser` without a grant can communicate a future dependency but cannot be purchased, even after its prerequisite is met.
+[`guild_progression.json`](guild_progression.json) defines the permanent petitions for the built-in guild. `kits` names each recruit’s base `offense` and `utility` ability IDs; Move is separate. A petition grants a recruit, an ability for one recipient and slot, a standing order and its behavior, or a supported passive technique. Its `cost` is paid once by the guild, not once per deployment. `prerequisites` lists other petition IDs. [`guild_training.json`](guild_training.json) supplies the actions and habits introduced by guild training. Add mechanical effects in rules code rather than expressing new behavior as a purchase label.
 
 Ownership is separate from what is equipped. Borrowed abilities retain their existing rules and do not bring the donor’s habits or rewards. A character’s standing order must be compatible with the equipped kit. `requires_abilities` on an outing upgrade filters out offers for abilities the deployed hero is not using. Practice and standalone runs do not pay or consume guild points.
 

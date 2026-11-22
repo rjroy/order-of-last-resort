@@ -108,7 +108,7 @@ static func petition_slip(book: Book, parent: Control, id: String, selected: boo
 	slip.name = "PetitionSlip_" + id
 	slip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	parent.add_child(slip)
-	slip.paper = mount(slip, selected)
+	slip.paper = mount(slip, selected, false, false, PAPER, 14, 8)
 	slip.paper.minimum_size_changed.connect(slip.update_minimum_size)
 	slip.action = book.button(slip, "Petition_" + id, "")
 	slip.action.toggle_mode = true

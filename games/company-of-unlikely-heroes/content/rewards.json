@@ -267,8 +267,8 @@
     },
     "alchemist_keep_the_culture": {
       "hero_id": "alchemist", "rarity": "legendary", "cap": 1, "effect": "keep_the_culture", "amount": 1,
-      "requires_any_ability": ["alchemist_potion", "alchemist_acid"],
-      "label": "Keep the Culture", "description": "Bottle the last potion or Acid reaction. Repeat Batch uses that recipe and reaction on another legal recipient, then empties the bottle. Bottles do not carry between missions.",
+      "requires_any_ability": ["alchemist_potion", "alchemist_acid", "alchemist_etching_paste"],
+      "label": "Keep the Culture", "description": "Save the recipe and reaction from your last Healing Potion, Acid, or Etching Paste. Repeat Batch uses both on another legal recipient, then empties the bottle. Bottles do not carry between missions.",
       "ability": "alchemist_repeat_batch"
     }
   },

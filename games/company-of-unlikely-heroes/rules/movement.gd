@@ -5,8 +5,14 @@ const Board = preload("res://rules/board.gd")
 const Statuses = preload("res://rules/statuses.gd")
 
 
-static func blocks_voluntary(state: Dictionary, unit: Dictionary, events: Array) -> bool:
-	return Statuses.consume_alchemy(state, unit, "boot_toffee", "sticks in place instead of moving", events)
+static func blocks_voluntary(state: Dictionary, unit: Dictionary, events: Array, forced_recipient := {}) -> bool:
+	# Keep existing movement reactions ahead of a persistent block. A swap can
+	# also fail when the other unit resists its forced half of the move.
+	if Statuses.consume_alchemy(state, unit, "boot_toffee", "sticks in place instead of moving", events):
+		return true
+	if not forced_recipient.is_empty() and blocks_forced(state, forced_recipient, events):
+		return true
+	return Statuses.consume_voluntary_move_block(state, unit, events)
 
 
 static func blocks_forced(state: Dictionary, unit: Dictionary, events: Array) -> bool:

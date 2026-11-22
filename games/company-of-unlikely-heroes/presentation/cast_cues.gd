@@ -6,7 +6,8 @@ const Catalog = preload("res://content/catalog.gd")
 # [expected rules handler, clip]. Catalog authors can redefine an ability ID.
 const CLIPS := {
 	"knight": {"knight_aura": ["apply_status", "guard"], "knight_shield_throw": ["attack", "shield_away"]},
-	"healer": {"healer_heal": ["heal", "ally_heal"], "healer_bonk": ["bonk", "bonk"]},
+	"healer": {"healer_heal": ["heal", "ally_heal"], "healer_field_dressing": ["heal", "ally_heal"],
+		"healer_bonk": ["bonk", "bonk"]},
 	"wizard": {"wizard_blast": ["blast", "blast"], "wizard_pull": ["pull", "pull"]},
 	"rogue": {"move": ["move", "retreat"], "rogue_confusing_dodge": ["swap_furthest", "swap"],
 		"rogue_wasnt_me": ["misdirect", "misdirect"]},
@@ -58,8 +59,17 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 		if end <= index or end > events.size():
 			push_error("Invalid resolved action span at event %d." % index)
 			return []
+		var echo_started := false
 		while index < end:
 			var event: Dictionary = events[index]
+			if not echo_started and event.get("song_echo", false):
+				# Weaving is one rules action, but the two songs have distinct poses and recipients.
+				if not cue.is_empty():
+					cues.append(cue)
+				var echo_action := action.duplicate()
+				echo_action["ability_id"] = event.ability_id
+				cue = _start_cue(after, actor, echo_action)
+				echo_started = true
 			if not cue.is_empty():
 				_observe(cue, event, positions)
 			_trace_position(event, positions)

@@ -43,6 +43,9 @@ var _commission: Dictionary
 var _petition_page
 var _recruitment_page
 var _petition_selected := ""
+var _petition_hero_filter := ""
+var _petition_scroll_position := 0
+var _petition_input_revision := 0
 var _guild_feedback := ""
 var _return_error := ""
 var _return_conflict := false
@@ -268,6 +271,10 @@ func _page(screen: String, top_margin := 22) -> VBoxContainer:
 
 func _book_page(screen: String, gutter := -1.0) -> VBoxContainer:
 	_clear_terminal_replay()
+	if _screen == "petitions" and is_instance_valid(_screen_root):
+		var scroll := _screen_root.find_child("PetitionScroll", true, false) as ScrollContainer
+		if scroll != null:
+			_petition_scroll_position = scroll.scroll_vertical
 	_screen = screen
 	if is_instance_valid(_screen_root):
 		remove_child(_screen_root)
@@ -500,23 +507,94 @@ func _receipt_summary(receipt: Dictionary) -> String:
 
 func _show_petitions(focus_name := "") -> void:
 	var page := _book_page("petitions")
-	var rows := GuildPetitionViewModel.rows(_definitions, GuildProfile.petitions(_definitions, _guild_profile))
-	if _petition_selected.is_empty() and not rows.is_empty():
-		_petition_selected = str(rows[0].id)
+	var petitions := GuildProfile.petitions(_definitions, _guild_profile)
+	var rows := GuildPetitionViewModel.rows(_definitions, petitions)
+	var filter_options: Array = [{"id": "", "label": "All"}]
+	var seen_heroes: Array = []
+	var specs: Dictionary = _definitions.get("guild_progression", {}).get("petitions", {})
+	var visible_rows: Array = []
+	var selected_visible := false
+	for index in rows.size():
+		var row: Dictionary = rows[index]
+		var petition: Dictionary = petitions[index]
+		var hero_id := str(petition.get("hero_id", ""))
+		for key in ["hero_id", "grant_kind", "recipient_label", "missing_prerequisites",
+				"missing_prerequisite_labels", "recipient_locked", "affordable"]:
+			if petition.has(key):
+				row[key] = petition[key]
+		row["prerequisites"] = specs.get(str(row.id), {}).get("prerequisites", [])
+		row["purchased"] = str(row.id) in _guild_profile.get("purchased_ids", [])
+		if not hero_id.is_empty() and hero_id not in seen_heroes:
+			seen_heroes.append(hero_id)
+			filter_options.append({"id": hero_id, "label": str(petition.get("recipient_label", hero_id))})
+		if _petition_hero_filter.is_empty() or hero_id == _petition_hero_filter:
+			visible_rows.append(row)
+			if str(row.id) == _petition_selected:
+				selected_visible = true
+	if not selected_visible:
+		_petition_selected = str(visible_rows[0].id) if not visible_rows.is_empty() else ""
 	var script = load("res://presentation/guild_petitions_page.gd")
 	if script == null:
 		_show_launch_error("Guild petitions page is missing.")
 		return
 	_petition_page = script.new()
-	_petition_page.back_requested.connect(_show_commissions)
+	_petition_page.back_requested.connect(_back_from_petitions)
 	_petition_page.petition_selected.connect(_select_petition)
 	_petition_page.purchase_requested.connect(_purchase_petition)
+	_petition_page.filter_changed.connect(_filter_petitions)
 	_petition_page.build(_book, page, {
 		"balance": GuildProfile.balance(_guild_profile),
 		"return_summary": _receipt_summary(_guild_profile.get("last_receipt", {})),
-		"selected_id": _petition_selected, "feedback": _guild_feedback, "petitions": rows,
+		"selected_id": _petition_selected, "feedback": _guild_feedback, "petitions": visible_rows,
+		"hero_filter": _petition_hero_filter, "hero_filter_options": filter_options,
 	})
 	_focus_presenter(_petition_page, focus_name if not focus_name.is_empty() else "Petition_" + _petition_selected)
+	var scroll := _petition_page.focus_control("PetitionScroll") as ScrollContainer
+	_restore_petition_scroll(scroll, _screen_root, _petition_scroll_position, _petition_selected)
+
+
+func _restore_petition_scroll(scroll: ScrollContainer, page: Control, position: int, selected_id: String) -> void:
+	if scroll == null:
+		return
+	var opening_position := scroll.scroll_vertical
+	var opening_input := _petition_input_revision
+	var tree := get_tree()
+	# Let the rebuilt register finish layout, but yield to any newer interaction.
+	await tree.process_frame
+	await tree.process_frame
+	if not is_instance_valid(page) or page != _screen_root or _screen != "petitions" \
+			or not is_instance_valid(scroll) or scroll.scroll_vertical != opening_position \
+			or _petition_input_revision != opening_input:
+		return
+	var bar := scroll.get_v_scroll_bar()
+	var selected := scroll.find_child("Petition_" + selected_id, true, false) as Control
+	if selected != null:
+		# Convert the row to content coordinates so restoration and reveal are one write.
+		var top := opening_position + selected.get_global_rect().position.y - scroll.get_global_rect().position.y
+		var bottom := ceili(top + selected.size.y - bar.page)
+		position = clampi(position, mini(bottom, floori(top)), floori(top))
+	scroll.scroll_vertical = clampi(position, 0, maxi(0, int(bar.max_value - bar.page)))
+
+
+func _back_from_petitions() -> void:
+	_show_commissions()
+	var petitions := _screen_root.find_child("Petitions", true, false) as Control
+	if petitions != null:
+		petitions.grab_focus()
+
+
+func _filter_petitions(hero_id: String) -> void:
+	if not hero_id.is_empty():
+		var found := false
+		for petition in GuildProfile.petitions(_definitions, _guild_profile):
+			if str(petition.get("hero_id", "")) == hero_id:
+				found = true
+				break
+		if not found:
+			return
+	_petition_hero_filter = hero_id
+	_guild_feedback = ""
+	_show_petitions("PetitionHeroFilter")
 
 
 func _select_petition(id: String) -> void:
@@ -586,7 +664,7 @@ func _show_recruitment(focus_name := "") -> void:
 		for id in options.get("offense", []):
 			offense.append(_option_row(str(id), str(slots.get("offense", "")) == str(id)))
 		for id in options.get("utility", []):
-			utility.append(_option_row(str(id), str(slots.get("utility", "")) == str(id), false))
+			utility.append(_option_row(str(id), str(slots.get("utility", "")) == str(id)))
 		for option in GuildProfile.order_options(_definitions, _guild_profile, _selected_hero_id, loadout):
 			var missing: Array = option.get("missing_abilities", [])
 			var names := PackedStringArray()
@@ -615,6 +693,7 @@ func _show_recruitment(focus_name := "") -> void:
 	_recruitment_page.recruit_list_requested.connect(_recruit_list)
 	_recruitment_page.reorder_requested.connect(_guild_move_recruit)
 	_recruitment_page.offense_requested.connect(_change_offense)
+	_recruitment_page.utility_requested.connect(_change_utility)
 	_recruitment_page.order_requested.connect(_change_guild_order)
 	_recruitment_page.depart_requested.connect(_start_guild_commission)
 	_recruitment_page.build(_book, page, {
@@ -706,14 +785,31 @@ func _save_loadout_preferences() -> bool:
 
 
 func _change_offense(id: String, ability_id: String) -> void:
-	if id != _selected_hero_id or ability_id not in GuildProfile.slot_options(_definitions, _guild_profile, id).get("offense", []):
+	_change_slot(id, "offense", ability_id)
+
+
+func _change_utility(id: String, ability_id: String) -> void:
+	_change_slot(id, "utility", ability_id)
+
+
+func _change_slot(id: String, slot_id: String, ability_id: String) -> void:
+	if id != _selected_hero_id or id not in _picked_recruits or slot_id not in ["offense", "utility"] \
+			or ability_id not in GuildProfile.slot_options(_definitions, _guild_profile, id).get(slot_id, []):
 		return
-	_loadout_for(id).slots["offense"] = ability_id
-	if _loadout_compatible(id):
+	_loadout_for(id).slots[slot_id] = ability_id
+	var compatible := _loadout_compatible(id)
+	if compatible:
 		_save_loadout_preferences()
 	else:
 		_guild_feedback = "Choose a compatible standing order before saving."
-	_show_recruitment("Order_" + str(_loadout_for(id).get("order_id", "")))
+	var focus_name := "Utility_" + ability_id if slot_id == "utility" and compatible \
+		else "Order_" + str(_loadout_for(id).get("order_id", ""))
+	if not compatible:
+		for option in GuildProfile.order_options(_definitions, _guild_profile, id, _loadout_for(id)):
+			if bool(option.compatible):
+				focus_name = "Order_" + str(option.id)
+				break
+	_show_recruitment(focus_name)
 
 
 func _change_guild_order(id: String, order_id: String) -> void:
@@ -1961,6 +2057,8 @@ func _process(_delta: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if _screen == "petitions" and event.is_pressed():
+		_petition_input_revision += 1
 	if _terminal_replay != null and event.is_pressed() and not event.is_echo() \
 			and (event is InputEventKey or event is InputEventMouseButton or event is InputEventScreenTouch \
 			or event is InputEventJoypadButton):

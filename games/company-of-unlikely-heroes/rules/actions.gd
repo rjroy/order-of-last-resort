@@ -12,6 +12,7 @@ const Statuses = preload("res://rules/statuses.gd")
 const Summons = preload("res://rules/summons.gd")
 const Support = preload("res://rules/support.gd")
 const Upgrades = preload("res://rules/upgrades.gd")
+const BASE_SONGS := ["inspiring_melody", "healing_sonnet"]
 
 
 static func owned_ability(state: Dictionary, actor: Dictionary, id: String) -> Dictionary:
@@ -50,9 +51,10 @@ static func _entity_allowed(state: Dictionary, actor: Dictionary, candidate: Dic
 	if ability.handler in ["healing_potion", "acid", "plain_tonic"]:
 		return Alchemy.can_target(state, actor, candidate, ability)
 	if candidate.id == actor.id:
-		return ability.handler == "heal" and ability.targeting.kind == "automatic" \
-			and ability.params.get("prefer_wounded_self", false) == true \
-			and actor.hp < actor.max_hp and Board.capable(state, actor, "healable")
+		return ability.handler == "heal" and Board.capable(state, actor, "healable") \
+			and ((ability.targeting.kind == "entity" and ability.params.get("allow_self", false)) \
+				or (ability.targeting.kind == "automatic" and ability.params.get("prefer_wounded_self", false) \
+					and actor.hp < actor.max_hp))
 	if not _in_reach(actor, candidate.position, ability.targeting):
 		return false
 	match ability.handler:
@@ -66,11 +68,14 @@ static func _entity_allowed(state: Dictionary, actor: Dictionary, candidate: Dic
 		"hook":
 			return Board.distance(actor.position, candidate.position) > 1 \
 				and Board.capable(state, candidate, "pullable") \
+				and (not ability.params.get("allied_only", false) \
+					or (candidate.has("character_id") and Board.allied(state, actor, candidate))) \
 				and Board.is_vacant(state, candidate.position + _pull_step(actor, candidate))
 		"bonk", "blast", "attack":
 			return Board.capable(state, candidate, "damageable")
 		"heal":
-			return Board.capable(state, candidate, "healable")
+			return Board.capable(state, candidate, "healable") \
+				and (ability.targeting.kind != "entity" or Board.allied(state, actor, candidate))
 		"enemy_heal":
 			return candidate.has("character_id") and candidate.hp < candidate.max_hp \
 				and Board.team(state, candidate) == Board.team(state, actor)
@@ -92,7 +97,8 @@ static func _entity_allowed(state: Dictionary, actor: Dictionary, candidate: Dic
 		"repel":
 			return candidate.has("character_id")
 		"stop_target":
-			return Statuses.accepts(state, candidate, ability.params.status, actor)
+			return (not ability.params.get("hostile_only", false) or Board.hostile(state, actor, candidate)) \
+				and Statuses.accepts(state, candidate, ability.params.status, actor)
 		"perform":
 			if not Board.opponents(state, actor, candidate):
 				return false
@@ -308,7 +314,7 @@ static func execute(state: Dictionary, actor: Dictionary, action: Dictionary, ev
 	var choice := selection(state, actor, ability, target_id, id)
 	var first_event := events.size()
 	if ability.handler == "perform":
-		return Performances.perform(state, actor, ability, id, choice, events)
+		return _perform(state, actor, ability, id, choice, events)
 	if ability.handler == "move" and action.get("retrieve_shield", false) and Shield.can_retrieve(actor):
 		Shield.retrieve(state, actor, events)
 	elif id == "healer_heal" and Upgrades.amount(state, actor, "me_or_you") > 0:
@@ -336,6 +342,27 @@ static func execute(state: Dictionary, actor: Dictionary, action: Dictionary, ev
 	return true
 
 
+static func _perform(state: Dictionary, actor: Dictionary, ability: Dictionary, id: String,
+		choice: Dictionary, events: Array) -> bool:
+	if not Performances.perform(state, actor, ability, id, choice, events):
+		return false
+	if id not in BASE_SONGS or "song_weaving" not in Board.profile(state, actor).get("guild_techniques", []):
+		return true
+	var previous: Dictionary = actor.get("last_base_song", {})
+	# A dry performance still counts. Only the live song writes history.
+	actor["last_base_song"] = {"ability_id": id, "round": state.round}
+	var prior_id: String = previous.get("ability_id", "")
+	if previous.get("round", 0) != state.round - 1 or prior_id == id or prior_id not in BASE_SONGS \
+			or not can_act(state, actor):
+		return true
+	var echo := owned_ability(state, actor, prior_id)
+	if echo.get("handler") == "perform":
+		# The live performance may have changed the legal listeners and committed a draw.
+		var listener := selection(state, actor, echo, "", prior_id)
+		Performances.perform(state, actor, echo, prior_id, listener, events, true)
+	return true
+
+
 static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictionary, ability: Dictionary,
 		choice: Dictionary, events: Array) -> bool:
 	var target := Board.entity(state, choice.id)
@@ -350,7 +377,9 @@ static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictio
 		"nominate":
 			Summons.nominate(state, actor, target, events)
 		"sweep":
-			Board.authored_event(state, events, "wave", "sweep", {"actor": name}, {"unit_id": actor.id})
+			var event_type := "wave" if action.ability_id == "wave" else "sweep"
+			Board.authored_event(state, events, event_type, "sweep",
+				{"actor": name, "ability": ability.label}, {"unit_id": actor.id})
 			var retaliation := Combat.RetaliationBatch.new() if choice.recipients.size() > 1 else null
 			for recipient in choice.recipients:
 				Combat.hurt(state, actor, recipient, int(params.damage), name, "", events, {}, retaliation)
@@ -358,15 +387,21 @@ static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictio
 		"stop_target":
 			if not Statuses.apply(state, target, params.status, actor):
 				return false
-			Board.authored_event(state, events, "status", "stop_target", {"actor": name, "target": target_name},
-				{"unit_id": actor.id, "target_id": target.id, "status_id": params.status})
+			var data := {"unit_id": actor.id, "target_id": target.id, "status_id": params.status}
+			var status := Statuses.definition(state, params.status)
+			if status.handler == "block_voluntary_move":
+				Board.event(events, "status", "%s uses %s. %s's next voluntary movement is blocked." % [
+					name, ability.label, target_name], data)
+			else:
+				Board.authored_event(state, events, "status", "stop_target",
+					{"actor": name, "target": target_name, "ability": ability.label, "movement": "use Move"}, data)
 		"repel":
 			if Movement.blocks_forced(state, target, events):
 				return true
 			target.position = Movement.forced_destination(state, target, choice.destination,
 				-_pull_step(actor, target), events)
 			Board.authored_event(state, events, "repel", "repel",
-				{"actor": name, "target": target_name, "position": target.position},
+				{"actor": name, "target": target_name, "ability": ability.label, "position": target.position},
 				{"unit_id": actor.id, "target_id": target.id, "position": target.position})
 			Shield.retrieve(state, target, events)
 		"push":
@@ -524,7 +559,8 @@ static func _pull(state: Dictionary, actor: Dictionary, target: Dictionary, id: 
 			return
 		target.position = Movement.forced_destination(state, target, choice.destination, _pull_step(actor, target), events)
 		Board.authored_event(state, events, "pull", "hook_pull",
-			{"actor": name, "target": target_name, "from": move_from, "position": target.position},
+			{"actor": name, "target": target_name, "ability": ability.label,
+				"from": move_from, "position": target.position},
 			{"unit_id": actor.id, "target_id": target.id, "from_position": move_from, "position": target.position})
 		Shield.retrieve(state, target, events)
 	else:
@@ -549,7 +585,7 @@ static func _pull(state: Dictionary, actor: Dictionary, target: Dictionary, id: 
 
 
 static func _swap(state: Dictionary, actor: Dictionary, target: Dictionary, events: Array) -> void:
-	if Movement.blocks_voluntary(state, actor, events) or Movement.blocks_forced(state, target, events):
+	if Movement.blocks_voluntary(state, actor, events, target):
 		return
 	var old: Vector2i = actor.position
 	actor.position = target.position

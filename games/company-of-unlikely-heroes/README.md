@@ -35,10 +35,12 @@ At each fork, choose between two field reports using **Take Route A** or **Take 
 
 **Guild pay:** Each road victory earns 1 point; winning the destination earns 5 instead. Collect the total on returning to the guild. A defeat or forfeit earns nothing for that mission but keeps earlier wins. Four roads followed by a lost destination pay 4; the same commission completed pays 9. Practice outings and standalone missions do not pay guild points.
 
-**Guild unlocks:** A new guild starts with the Knight, Healer and Caster. Open the petition ledger from the commission board. Select a petition to preview it; only the purchase button spends points. Both first purchases cost 4:
+**Guild unlocks:** A new guild starts with the Knight, Healer and Caster. Open **Guild petitions** on the commission board to browse or filter the [26-petition register](../../.lore/work/games/company-of-unlikely-heroes/notes/guild-perk-catalog.md). Selecting a petition previews it; only the purchase button spends points. Recruit the Bad Bard or Daft Dodger for 4 points apiece, the Mixologist for 5, or the Friendly Crypter for 6. The party still has three places. For example:
 
-- **Recruit the Bad Bard** adds a fourth recruit to choose from, not a fourth party slot. His songs work immediately, including as standing orders. Song Weaving is a preview of a future unlock.
+- The **Bad Bard** starts with both songs as standing orders. His separate **Song Weaving** petition costs 5 points. Play Melody, then Sonnet on the next round: Sonnet plays first and Melody echoes. Repeat Sonnet and no echo plays. A skipped performance breaks the chain, echoes never start another echo, and laughter immunity still applies.
 - **Teach the Healer: Blast** adds an offense option. It does not replace Bonk until you equip Blast during recruitment. Heal and Support remain available. Pursue and Bonk requires Bonk, and Blast can hit an ally or an obstacle. The Caster keeps his spell.
+
+Use **Edit loadout** during recruitment to choose an offense, utility and compatible starting order. Buying an ability never silently equips it or teaches the donor's standing orders. For example, a Knight equipped with **Rescue Line** can pull an ally toward him instead of guarding. A new Mixologist can throw Acid directly from her first mission; **Throw Samples** teaches her to do it while you command someone else.
 
 Returning clears outing upgrades and refreshes the commission board. Guild points, permanent purchases and preferred loadouts survive. Existing guild profiles retain access to their previous recruits. The profile still lives at `user://company_of_unlikely_heroes/guild_profile_v1.json`; there is no mid-run save.
 

@@ -4,7 +4,7 @@ extends RefCounted
 # Keep the original location so v1 guilds are found and grandfathered.
 const DEFAULT_PATH := "user://company_of_unlikely_heroes/guild_profile_v1.json"
 const MAX_NAME_LENGTH := 80
-const FORMAT_VERSION := 2
+const FORMAT_VERSION := 3
 const FOUNDERS := ["knight", "healer", "wizard"]
 const LEGACY_ROSTER := ["knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard"]
 const MAX_COUNTER := 9223372036854775807
@@ -35,7 +35,7 @@ static func load_profile(path: String) -> Dictionary:
 	var data: Dictionary = json.data
 	var version: Variant = data.get("version")
 	# JSON numbers arrive as floats; Array membership uses strict variant types.
-	if not (version is int or version is float) or (float(version) != 1.0 and float(version) != float(FORMAT_VERSION)):
+	if not (version is int or version is float) or float(version) not in [1.0, 2.0, float(FORMAT_VERSION)]:
 		return {"error": "Unsupported or invalid profile format."}
 	if not data.get("name") is String or not data.get("board_seed") is String:
 		return {"error": "Invalid profile fields."}
@@ -47,8 +47,18 @@ static func load_profile(path: String) -> Dictionary:
 		if data.size() != 3:
 			return {"error": "Unsupported or invalid profile format."}
 		var legacy_id := ("legacy\n%s\n%s" % [guild_name, data.board_seed]).sha256_text()
-		return _new_profile(guild_name, seed_value, legacy_id, LEGACY_ROSTER)
-	return _read_progression(data, seed_value)
+		return _migrate_legacy(_new_profile(guild_name, seed_value, legacy_id, LEGACY_ROSTER))
+	var result := _read_progression(data, seed_value)
+	if float(version) == 2.0 and not result.has("error"):
+		return _migrate_legacy(result)
+	return result
+
+
+static func _migrate_legacy(profile: Dictionary) -> Dictionary:
+	# Existing recruits already had this order, whether or not it was selected.
+	if "alchemist" in profile.recruited_ids and "alchemist_throw_samples" not in profile.purchased_ids:
+		profile.purchased_ids.append("alchemist_throw_samples")
+	return profile
 
 
 ## Creates a profile only when no file already exists. Returns the same shapes

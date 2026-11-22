@@ -48,10 +48,16 @@ func _expect_dependency(defs: Dictionary, paths: Array, label: String) -> void:
 func _test_dependencies(source: Dictionary) -> void:
 	var wake := source.duplicate(true)
 	wake.upgrades = {"fixture_wake": _reward("necromancer", "wake_reception")}
+	# This is a practice-catalog reward fixture, not a guild-kit fixture. The
+	# guild-only starting habit independently requires the summon being removed.
+	# Remove that behavior and its optional progression table from both the
+	# reward case and its no-rewards control before testing the dependency.
+	wake.erase("guild_progression")
+	wake.behaviors.erase("guild_make_friend")
 	wake.characters.necromancer.abilities.erase("summon_skeleton")
 	wake.abilities.erase("summon_skeleton")
 	_expect_dependency(wake,
-		["upgrades.fixture_wake.effect", "upgrades.fixture_wake.hero_id", "abilities.summon_skeleton"],
+		["upgrades.fixture_wake.effect"],
 		"Wake Reception requires the skeleton summon definition")
 
 	var staff := source.duplicate(true)

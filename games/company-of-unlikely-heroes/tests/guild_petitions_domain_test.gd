@@ -103,7 +103,7 @@ func _test_fresh(defs: Dictionary) -> void:
 	for id in ["recruit_bard", "teach_healer_blast", "song_weaving", "invalid_petition"]:
 		profile_store.call("purchase", path, profile, defs, id)
 		_check(profile_store.call("load_profile", path) == before,
-			"Unaffordable, teaser or unknown purchase changes nothing: " + id)
+			"Unaffordable, prerequisite-locked or unknown purchase changes nothing: " + id)
 	var loadout: Dictionary = profile_store.call("default_loadout", defs, profile, "healer")
 	_check(loadout.get("slots", {}).get("offense") == "healer_bonk"
 		and loadout.get("slots", {}).get("utility") == "healer_heal",
@@ -319,7 +319,7 @@ func _test_purchase_path(defs: Dictionary, purchase_id: String) -> void:
 	_check(profile_store.call("load_profile", path) == bought,
 		purchase_id + ": stale and repeat purchases do not charge again")
 	profile_store.call("purchase", path, bought, defs, "song_weaving")
-	_check(profile_store.call("load_profile", path) == bought, "Song Weaving is not purchasable")
+	_check(profile_store.call("load_profile", path) == bought, "Song Weaving remains unaffordable")
 	var roster: Array = profile_store.call("roster", defs, bought)
 	var default_after: Dictionary = profile_store.call("default_loadout", defs, bought, "healer")
 	_check(default_after == default_before, purchase_id + ": purchase does not automatically equip Blast")

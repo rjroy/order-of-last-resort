@@ -1,32 +1,351 @@
 {
   "guild_progression": {
     "kits": {
-      "knight": {"offense": "knight_push", "utility": "knight_aura"},
-      "healer": {"offense": "healer_bonk", "utility": "healer_heal"},
-      "wizard": {"offense": "wizard_blast", "utility": "wizard_pull"},
-      "alchemist": {"offense": "alchemist_acid", "utility": "alchemist_potion"},
-      "rogue": {"offense": "rogue_wasnt_me", "utility": "rogue_confusing_dodge"},
-      "necromancer": {"offense": "summon_skeleton", "utility": "raise_dead"},
-      "bard": {"offense": "healing_sonnet", "utility": "inspiring_melody"}
+      "knight": {
+        "offense": "knight_push",
+        "utility": "knight_aura"
+      },
+      "healer": {
+        "offense": "healer_bonk",
+        "utility": "healer_heal"
+      },
+      "wizard": {
+        "offense": "wizard_blast",
+        "utility": "wizard_pull"
+      },
+      "alchemist": {
+        "offense": "alchemist_acid",
+        "utility": "alchemist_potion"
+      },
+      "rogue": {
+        "offense": "rogue_wasnt_me",
+        "utility": "rogue_confusing_dodge"
+      },
+      "necromancer": {
+        "offense": "summon_skeleton",
+        "utility": "raise_dead"
+      },
+      "bard": {
+        "offense": "healing_sonnet",
+        "utility": "inspiring_melody"
+      }
     },
     "petitions": {
       "recruit_bard": {
         "label": "Recruit the Bad Bard",
-        "description": "Add the Bad Bard as a fourth recruit choice for your three-person company. He brings both songs and their standing orders.",
+        "description": "Recruit with Hold and both musical orders.",
         "cost": 4,
-        "grant": {"kind": "recruit", "hero_id": "bard"}
+        "grant": {
+          "kind": "recruit",
+          "hero_id": "bard"
+        }
+      },
+      "recruit_rogue": {
+        "label": "Recruit the Daft Dodger",
+        "description": "Recruit with Retreat and Pass the Blame.",
+        "cost": 4,
+        "grant": {
+          "kind": "recruit",
+          "hero_id": "rogue"
+        }
+      },
+      "recruit_necromancer": {
+        "label": "Recruit the Friendly Crypter",
+        "description": "Recruit with Hold and Make a Friend.",
+        "cost": 6,
+        "grant": {
+          "kind": "recruit",
+          "hero_id": "necromancer"
+        }
+      },
+      "recruit_alchemist": {
+        "label": "Recruit the Mixologist",
+        "description": "Recruit with both bottles, Follow, Make Rounds and Hold. Throw Samples is separate training.",
+        "cost": 5,
+        "grant": {
+          "kind": "recruit",
+          "hero_id": "alchemist"
+        }
+      },
+      "knight_rescue_line": {
+        "label": "Rescue Line",
+        "description": "Pull a friendly character exactly two tiles away one open tile toward the Knight without recoil.",
+        "cost": 4,
+        "grant": {
+          "kind": "ability",
+          "hero_id": "knight",
+          "slot_id": "utility",
+          "ability_id": "knight_rescue_line"
+        }
+      },
+      "knight_escort_order": {
+        "label": "Stay Close",
+        "description": "Follow the closest other ally and stop adjacent.",
+        "cost": 3,
+        "grant": {
+          "kind": "order",
+          "hero_id": "knight",
+          "order_id": "order_knight_escort",
+          "behavior_id": "guild_knight_escort"
+        }
+      },
+      "knight_learn_bonk": {
+        "label": "Learn Bonk and taunt",
+        "description": "Equip the Healer’s Bonk and taunt instead of Push.",
+        "cost": 4,
+        "grant": {
+          "kind": "ability",
+          "hero_id": "knight",
+          "slot_id": "offense",
+          "ability_id": "healer_bonk"
+        }
       },
       "teach_healer_blast": {
         "label": "Teach the Healer: Blast nearest",
-        "description": "Let the Healer equip Blast in place of Bonk. It hits the nearest damageable target, including a friend or obstacle. The Caster keeps his own Blast.",
+        "description": "Equip the Caster’s Blast instead of Bonk. It can hit allies or obstacles; no Caster order or rewards are included.",
         "cost": 4,
-        "grant": {"kind": "ability", "hero_id": "healer", "slot_id": "offense", "ability_id": "wizard_blast"}
+        "grant": {
+          "kind": "ability",
+          "hero_id": "healer",
+          "slot_id": "offense",
+          "ability_id": "wizard_blast"
+        }
+      },
+      "healer_blast_order": {
+        "label": "Blast on Standing Orders",
+        "description": "Delegate the equipped Blast.",
+        "cost": 3,
+        "grant": {
+          "kind": "order",
+          "hero_id": "healer",
+          "order_id": "order_healer_blast",
+          "behavior_id": "guild_healer_blast"
+        },
+        "prerequisites": [
+          "teach_healer_blast"
+        ]
+      },
+      "healer_field_dressing": {
+        "label": "Field Dressing",
+        "description": "Heal a chosen healable hero, including the Healer, within one tile for 2 HP.",
+        "cost": 4,
+        "grant": {
+          "kind": "ability",
+          "hero_id": "healer",
+          "slot_id": "utility",
+          "ability_id": "healer_field_dressing"
+        }
+      },
+      "healer_triage_order": {
+        "label": "Triage",
+        "description": "Use equipped Field Dressing on the most injured legal patient.",
+        "cost": 3,
+        "grant": {
+          "kind": "order",
+          "hero_id": "healer",
+          "order_id": "order_healer_triage",
+          "behavior_id": "guild_healer_triage"
+        },
+        "prerequisites": [
+          "healer_field_dressing"
+        ]
+      },
+      "wizard_ring_sparks": {
+        "label": "Ring of Sparks",
+        "description": "Deal 2 damage to all adjacent living characters, allies included.",
+        "cost": 5,
+        "grant": {
+          "kind": "ability",
+          "hero_id": "wizard",
+          "slot_id": "offense",
+          "ability_id": "wizard_ring_sparks"
+        }
+      },
+      "wizard_stand_back": {
+        "label": "Stand Back",
+        "description": "Retreat from the nearest opponent.",
+        "cost": 3,
+        "grant": {
+          "kind": "order",
+          "hero_id": "wizard",
+          "order_id": "order_wizard_stand_back",
+          "behavior_id": "retreat"
+        }
+      },
+      "wizard_learn_dodge": {
+        "label": "Learn Confusing Dodge",
+        "description": "Equip the Dodger’s Confusing Dodge instead of Pull.",
+        "cost": 5,
+        "grant": {
+          "kind": "ability",
+          "hero_id": "wizard",
+          "slot_id": "utility",
+          "ability_id": "rogue_confusing_dodge"
+        },
+        "prerequisites": [
+          "recruit_rogue"
+        ]
       },
       "song_weaving": {
         "label": "Song Weaving",
-        "description": "A future Bard technique. Not available in this guild yet.",
-        "prerequisites": ["recruit_bard"],
-        "teaser": true
+        "description": "Switching between base songs on consecutive rounds echoes the previous song once after the current song.",
+        "cost": 5,
+        "grant": {
+          "kind": "effect",
+          "hero_id": "bard",
+          "effect_id": "song_weaving"
+        },
+        "prerequisites": [
+          "recruit_bard"
+        ]
+      },
+      "bard_learn_push": {
+        "label": "Learn Push",
+        "description": "Equip the Knight’s Push instead of Sonnet.",
+        "cost": 4,
+        "grant": {
+          "kind": "ability",
+          "hero_id": "bard",
+          "slot_id": "offense",
+          "ability_id": "knight_push"
+        }
+      },
+      "bard_follow_company": {
+        "label": "Follow the Ensemble",
+        "description": "Follow the closest other ally.",
+        "cost": 3,
+        "grant": {
+          "kind": "order",
+          "hero_id": "bard",
+          "order_id": "order_bard_follow_company",
+          "behavior_id": "guild_bard_follow"
+        }
+      },
+      "rogue_tripwire": {
+        "label": "Tripwire",
+        "description": "Hold the nearest eligible opponent within two tiles against its next voluntary movement. Forced movement still works.",
+        "cost": 4,
+        "grant": {
+          "kind": "ability",
+          "hero_id": "rogue",
+          "slot_id": "utility",
+          "ability_id": "rogue_tripwire"
+        }
+      },
+      "rogue_tripwire_order": {
+        "label": "Mind the Step",
+        "description": "Delegate equipped Tripwire.",
+        "cost": 3,
+        "grant": {
+          "kind": "order",
+          "hero_id": "rogue",
+          "order_id": "order_rogue_tripwire",
+          "behavior_id": "guild_rogue_tripwire"
+        },
+        "prerequisites": [
+          "rogue_tripwire"
+        ]
+      },
+      "rogue_learn_potion": {
+        "label": "Learn Healing Potion",
+        "description": "Equip the Mixologist’s Healing Potion with its forecast weighted reaction.",
+        "cost": 5,
+        "grant": {
+          "kind": "ability",
+          "hero_id": "rogue",
+          "slot_id": "utility",
+          "ability_id": "alchemist_potion"
+        },
+        "prerequisites": [
+          "recruit_alchemist"
+        ]
+      },
+      "necro_grave_bell": {
+        "label": "Grave Bell",
+        "description": "Repel the nearest other character one tile if clear, friend or foe.",
+        "cost": 4,
+        "grant": {
+          "kind": "ability",
+          "hero_id": "necromancer",
+          "slot_id": "utility",
+          "ability_id": "necro_grave_bell"
+        }
+      },
+      "necro_bell_order": {
+        "label": "Keep Your Distance",
+        "description": "Delegate the equipped Grave Bell.",
+        "cost": 3,
+        "grant": {
+          "kind": "order",
+          "hero_id": "necromancer",
+          "order_id": "order_necro_bell",
+          "behavior_id": "guild_necro_bell"
+        },
+        "prerequisites": [
+          "necro_grave_bell"
+        ]
+      },
+      "necro_learn_melody": {
+        "label": "Learn Inspiring Melody",
+        "description": "Equip the Bard’s Inspiring Melody. Laughter immunity applies; Song Weaving is not included.",
+        "cost": 5,
+        "grant": {
+          "kind": "ability",
+          "hero_id": "necromancer",
+          "slot_id": "utility",
+          "ability_id": "inspiring_melody"
+        },
+        "prerequisites": [
+          "recruit_bard"
+        ]
+      },
+      "alchemist_throw_samples": {
+        "label": "Throw Samples",
+        "description": "Delegate the equipped Acid against the nearest hostile in reach.",
+        "cost": 3,
+        "grant": {
+          "kind": "order",
+          "hero_id": "alchemist",
+          "order_id": "order_throw_samples",
+          "behavior_id": "alchemist_throw_samples"
+        }
+      },
+      "alchemist_etching_paste": {
+        "label": "Etching Paste",
+        "description": "Deal 2 acid damage at range 1 with the normal forecast reaction.",
+        "cost": 4,
+        "grant": {
+          "kind": "ability",
+          "hero_id": "alchemist",
+          "slot_id": "offense",
+          "ability_id": "alchemist_etching_paste"
+        }
+      },
+      "alchemist_learn_pull": {
+        "label": "Learn Pull and recoil",
+        "description": "Equip the Caster’s Pull with its full recoil and knockdown.",
+        "cost": 5,
+        "grant": {
+          "kind": "ability",
+          "hero_id": "alchemist",
+          "slot_id": "utility",
+          "ability_id": "wizard_pull"
+        }
+      }
+    },
+    "starting_habits": {
+      "rogue": {
+        "order_retreat": "retreat",
+        "order_pass_the_blame": "guild_pass_blame"
+      },
+      "necromancer": {
+        "order_hold": "hold",
+        "order_make_a_friend": "guild_make_friend"
+      },
+      "alchemist": {
+        "order_follow_ally": "alchemist_follow",
+        "order_make_rounds": "alchemist_make_rounds",
+        "order_hold": "hold"
       }
     }
   }

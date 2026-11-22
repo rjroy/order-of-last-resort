@@ -426,7 +426,7 @@
     },
     "healer_bonk": {
       "label": "Bonk and taunt",
-      "help": "Hurt an adjacent enemy or obstacle. Enemies also turn their attention to the healer.",
+      "help": "Bonk an adjacent enemy or obstacle. Taunts enemies into targeting the user.",
       "handler": "bonk",
       "params": {
         "damage": 2,
@@ -494,7 +494,7 @@
     },
     "wizard_pull": {
       "label": "Pull and recoil",
-      "help": "Draws the target to the wizard’s tile. Recoil hurts and knocks down the wizard.",
+      "help": "Pull a target onto your tile. Recoil hurts and knocks you down.",
       "handler": "pull",
       "params": {
         "recoil_damage": 2,
@@ -737,13 +737,13 @@
       "text": "{actor} raises a {minion} from the {corpse} corpse at {position} ({hp} HP). It first acts next round."
     },
     "sweep": {
-      "text": "{actor} uses Wave, hitting every neighboring character."
+      "text": "{actor} uses {ability}, hitting adjacent characters."
     },
     "stop_target": {
-      "text": "{actor} says \"Don't Go!\" {target} cannot use Move on their next turn."
+      "text": "{actor} uses {ability}. {target} cannot {movement} on their next turn."
     },
     "repel": {
-      "text": "{actor} says hello. {target} backs up to {position}."
+      "text": "{actor} uses {ability}. {target} backs up to {position}."
     },
     "swap": {
       "text": "{actor} swaps places with {target}, arriving at {position}."

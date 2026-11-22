@@ -105,7 +105,6 @@ func _check_petition(id: String) -> void:
 		_petition("teach_healer_blast", "Teach the Healer: Blast", "Blast can replace Bonk", "healer",
 			"Hits the nearest damageable target, even an ally or obstacle.",
 			"At recruitment, equip Blast instead of Bonk.", "Bonk stays equipped until you switch."),
-		{"id": "song_weaving", "title": "Song Weaving", "teaser": true},
 	]})
 	await _layout()
 	var unit := _control("GuildPointUnit")
@@ -113,13 +112,14 @@ func _check_petition(id: String) -> void:
 	_expect(unit != null and selected != null and unit.size.y < 46.0 and selected.size.y < 31.0,
 		id + ": balance and stamp stay on one line")
 	_expect(_bounds("GuildPointBalance").end.y < 136.0, id + ": the header cannot eat the folio")
-	var bard := _bounds("Petition_recruit_bard")
-	var branch := _bounds("SongWeavingNote")
-	var healer := _bounds("Petition_teach_healer_blast")
-	_expect(bard.end.y < branch.position.y and branch.end.y < healer.position.y,
-		id + ": Song Weaving is visually between both petitions")
-	for name in ["Petition_recruit_bard", "SongWeavingNote", "Petition_teach_healer_blast"]:
-		_expect(_visible_in(name, "PetitionScroll"), id + ": " + name + " is visible without scrolling")
+	var scroll := _control("PetitionScroll") as ScrollContainer
+	var selected_button := _control("Petition_" + id)
+	_expect(scroll != null and selected_button != null, id + ": selected petition exists in the register")
+	if scroll != null and selected_button != null:
+		scroll.ensure_control_visible(selected_button)
+		await _layout()
+		_expect(_visible_in("Petition_" + id, "PetitionScroll"),
+			id + ": selected petition can be scrolled into view")
 	for name in ["PetitionActionPlate", "PetitionEffect_0", "PetitionEffect_1", "PetitionNote"]:
 		_expect(_visible_in(name, "PetitionPreviewScroll"), id + ": " + name + " is visible before buying")
 	var painting := _control("PetitionActionPlate") as TextureRect

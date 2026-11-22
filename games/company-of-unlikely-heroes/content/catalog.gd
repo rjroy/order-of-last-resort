@@ -24,7 +24,8 @@ const ABILITY_EVENTS := {"swap_furthest": ["swap"], "swap_ally": ["swap"], "misd
 	"sweep": ["sweep"], "stop_target": ["stop_target"], "repel": ["repel"],
 	"perform": ["performance_dry"], "hook": ["hook_pull"]}
 const STATUS_EXPIRY := {"reflect": "actor_turn_start", "skip_action": "consume_action",
-	"retarget": "actor_turn_end", "misdirect": "consume_attack", "stop_move": "actor_turn_end"}
+	"retarget": "actor_turn_end", "misdirect": "consume_attack", "stop_move": "actor_turn_end",
+	"block_voluntary_move": "consume_move"}
 const REWARD_EFFECTS := ["max_hp", "shield_damage", "dig_in", "shield_throw", "wide_guard",
 	"bonk_damage", "heal_amount", "long_staff", "strong_swing", "me_or_you",
 	"blast_damage", "padded_landing", "demolition_practice", "duck", "braced_casting", "parting_gift", "conductive_personality",
@@ -305,9 +306,10 @@ class Validator:
 		var guild := _dictionary(_defs.get(path), path)
 		if not _errors.is_empty():
 			return _errors
-		_guild_fields(guild, ["kits", "petitions"], path)
+		_guild_fields(guild, ["kits", "petitions", "starting_habits"], path)
 		var kits := _dictionary(guild.get("kits"), path + ".kits")
 		var petitions := _dictionary(guild.get("petitions"), path + ".petitions")
+		var starting := _dictionary(guild.get("starting_habits", {}), path + ".starting_habits")
 		var roster_id: Variant = _record(_defs, "commission_settings").get("roster_adventure")
 		var roster: Variant = _record(_record(_defs, "adventures"), roster_id if roster_id is String else "").get("roster")
 		if not roster is Array:
@@ -335,8 +337,28 @@ class Validator:
 		for hero_id in roster:
 			if not kits.has(hero_id):
 				_error(path + ".kits", "missing ability slots for '%s'" % hero_id)
+		for hero_id in starting:
+			var habit_path := path + ".starting_habits." + str(hero_id)
+			if not kits.has(hero_id):
+				_error(habit_path, "expected a hero with a guild kit")
+				continue
+			var hero := _character_profile(hero_id)
+			var habits := _dictionary(starting[hero_id], habit_path)
+			for order in habits:
+				_ref(order, "orders", habit_path + "." + str(order))
+				_behavior_for_kit(habits[order], hero.get("abilities", []), habit_path + "." + str(order))
+			if not habits.has(hero.get("default_order")):
+				_error(habit_path, "must include the hero's default order")
 		for id in petitions:
 			_check_petition(kits, petitions, id)
+		var benefits := {}
+		for id in petitions:
+			var grant := _record(_record(petitions, id), "grant")
+			if not grant.is_empty():
+				var benefit := JSON.stringify(grant)
+				if benefits.has(benefit):
+					_error(path + ".petitions." + str(id), "duplicates the benefit of '%s'" % benefits[benefit])
+				benefits[benefit] = id
 		if _errors.is_empty():
 			var visited := {}
 			for id in petitions:
@@ -383,10 +405,17 @@ class Validator:
 				_guild_fields(grant, ["kind", "hero_id", "order_id", "behavior_id"], path + ".grant")
 				_ref(grant.get("order_id"), "orders", path + ".grant.order_id")
 				_ref(grant.get("behavior_id"), "behaviors", path + ".grant.behavior_id")
-				if grant.get("order_id") in _character_profile(hero_id).get("habits", {}):
+				var starting: Dictionary = _record(_record(_defs, "guild_progression"), "starting_habits")
+				var habits: Dictionary = _character_profile(hero_id).get("habits", {})
+				if starting.has(hero_id):
+					habits = _record(starting, hero_id)
+				if grant.get("order_id") in habits:
 					_error(path + ".grant.order_id", "already in this hero's base orders")
+			"effect":
+				_guild_fields(grant, ["kind", "hero_id", "effect_id"], path + ".grant")
+				_choice(grant.get("effect_id"), ["song_weaving"], path + ".grant.effect_id")
 			_:
-				_error(path + ".grant.kind", "expected recruit, ability or order")
+				_error(path + ".grant.kind", "expected recruit, ability, order or effect")
 
 	func _check_petition_cycle(petitions: Dictionary, id: String, active: Array, visited: Dictionary) -> void:
 		if id in active:
@@ -484,6 +513,12 @@ class Validator:
 			_check_target_filters(targeting, path + ".targeting")
 		var params := _dictionary(ability.get("params"), path + ".params")
 		var param_path := path + ".params."
+		for flag in ["allied_only", "hostile_only", "allow_self"]:
+			if params.has(flag):
+				_boolean(params[flag], param_path + flag)
+				var expected := {"allied_only": "hook", "hostile_only": "stop_target", "allow_self": "heal"}
+				if handler != expected[flag]:
+					_error(param_path + flag, "not supported by this ability handler")
 		if params.has("damage_ability") and handler != "perform":
 			_error(param_path + "damage_ability", "requires the perform handler")
 		if params.has("prefer_wounded_self"):
@@ -555,8 +590,9 @@ class Validator:
 				_integer(targeting.get("range"), path + ".targeting.range", 1)
 			"stop_target":
 				var status: Variant = params.get("status")
-				if _ref(status, "statuses", param_path + "status") and not is_same(_defs.statuses[status].get("handler"), "stop_move"):
-					_error(param_path + "status", "status must use the stop_move handler")
+				if _ref(status, "statuses", param_path + "status") \
+						and _defs.statuses[status].get("handler") not in ["stop_move", "block_voluntary_move"]:
+					_error(param_path + "status", "status must use a movement-blocking handler")
 			"perform":
 				_check_performance(params, targeting, path)
 			"nominate":
@@ -602,12 +638,17 @@ class Validator:
 		var params := _dictionary(behavior.get("params"), path + ".params")
 		if not _choice(handler, ["use_ability", "pursue", "hold", "rescue", "threat", "escort",
 				"retreat", "greet", "hook_and_seek", "follow_party", "retreat_attack",
-				"finite_healer", "swap_ally", "follow_ally", "most_injured", "nearest_target"], path + ".handler"):
+				"finite_healer", "swap_ally", "follow_ally", "most_injured", "nearest_target",
+				"pass_blame", "make_friend"], path + ".handler"):
 			return
 		path += ".params."
 		if handler in ["use_ability", "pursue", "rescue", "threat", "hook_and_seek",
 				"retreat_attack", "finite_healer", "swap_ally", "nearest_target", "most_injured"]:
 			_check_behavior_ability(handler, params, path + "ability")
+		if handler == "pass_blame":
+			_check_behavior_action(params.get("ability"), "misdirect", "entity", path + "ability")
+		if handler == "make_friend":
+			_check_behavior_action(params.get("ability"), "summon", "cell", path + "ability")
 		if handler in ["pursue", "threat", "escort", "retreat", "greet", "hook_and_seek",
 				"follow_ally", "follow_party", "retreat_attack", "finite_healer", "swap_ally"]:
 			var move: Variant = params.get("move_ability")
@@ -703,7 +744,7 @@ class Validator:
 					_text(params.get("immune_label"), path + ".params.immune_label")
 				if params.has("skip_event"):
 					_ref(params.skip_event, "events", path + ".params.skip_event")
-			"misdirect", "stop_move":
+			"misdirect", "stop_move", "block_voluntary_move":
 				pass
 
 	func _check_profile(data: Dictionary, path: String) -> void:

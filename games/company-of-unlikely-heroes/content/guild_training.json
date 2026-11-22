@@ -1,0 +1,171 @@
+{
+  "abilities": {
+    "knight_rescue_line": {
+      "label": "Rescue Line",
+      "help": "Pull a friendly character exactly two tiles away one open tile toward the Knight, without recoil.",
+      "handler": "hook",
+      "params": {
+        "allied_only": true
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 2,
+        "capabilities": [
+          "pullable"
+        ]
+      }
+    },
+    "healer_field_dressing": {
+      "label": "Field Dressing",
+      "help": "Heal a chosen healable hero, including yourself, within one tile for 2 HP.",
+      "handler": "heal",
+      "params": {
+        "amount": 2,
+        "allow_self": true
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 1,
+        "teams": [
+          "heroes"
+        ],
+        "capabilities": [
+          "healable"
+        ]
+      }
+    },
+    "wizard_ring_sparks": {
+      "label": "Ring of Sparks",
+      "help": "Deal 2 damage to all adjacent living characters, including allies.",
+      "handler": "sweep",
+      "params": {
+        "damage": 2
+      },
+      "targeting": {
+        "kind": "none",
+        "range": 1
+      }
+    },
+    "rogue_tripwire": {
+      "label": "Tripwire",
+      "help": "Hold the nearest eligible opponent within two tiles against its next voluntary movement.",
+      "handler": "stop_target",
+      "params": {
+        "status": "tripwire_tangled",
+        "hostile_only": true
+      },
+      "targeting": {
+        "kind": "automatic",
+        "range": 2
+      }
+    },
+    "necro_grave_bell": {
+      "label": "Grave Bell",
+      "help": "Repel the nearest other character one tile if clear, friend or foe.",
+      "handler": "repel",
+      "params": {},
+      "targeting": {
+        "kind": "automatic"
+      }
+    },
+    "alchemist_etching_paste": {
+      "label": "Etching Paste",
+      "help": "Deal 2 acid damage at range 1 with the forecast acid reaction.",
+      "handler": "acid",
+      "params": {
+        "damage": 2
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 1
+      }
+    }
+  },
+  "orders": {
+    "order_pass_the_blame": {
+      "label": "Pass the Blame"
+    },
+    "order_make_a_friend": {
+      "label": "Make a Friend"
+    },
+    "order_knight_escort": {
+      "label": "Stay Close"
+    },
+    "order_healer_blast": {
+      "label": "Blast on Standing Orders"
+    },
+    "order_healer_triage": {
+      "label": "Triage"
+    },
+    "order_wizard_stand_back": {
+      "label": "Stand Back"
+    },
+    "order_bard_follow_company": {
+      "label": "Follow the Ensemble"
+    },
+    "order_rogue_tripwire": {
+      "label": "Mind the Step"
+    },
+    "order_necro_bell": {
+      "label": "Keep Your Distance"
+    }
+  },
+  "behaviors": {
+    "guild_pass_blame": {
+      "handler": "pass_blame",
+      "params": {
+        "ability": "rogue_wasnt_me"
+      }
+    },
+    "guild_make_friend": {
+      "handler": "make_friend",
+      "params": {
+        "ability": "summon_skeleton"
+      }
+    },
+    "guild_knight_escort": {
+      "handler": "follow_ally",
+      "params": {
+        "move_ability": "move"
+      }
+    },
+    "guild_healer_blast": {
+      "handler": "use_ability",
+      "params": {
+        "ability": "wizard_blast"
+      }
+    },
+    "guild_healer_triage": {
+      "handler": "most_injured",
+      "params": {
+        "ability": "healer_field_dressing"
+      }
+    },
+    "guild_bard_follow": {
+      "handler": "follow_ally",
+      "params": {
+        "move_ability": "move"
+      }
+    },
+    "guild_rogue_tripwire": {
+      "handler": "use_ability",
+      "params": {
+        "ability": "rogue_tripwire"
+      }
+    },
+    "guild_necro_bell": {
+      "handler": "use_ability",
+      "params": {
+        "ability": "necro_grave_bell"
+      }
+    }
+  },
+  "statuses": {
+    "tripwire_tangled": {
+      "label": "Caught by Tripwire",
+      "handler": "block_voluntary_move",
+      "expiry": "consume_move",
+      "params": {}
+    }
+  }
+}

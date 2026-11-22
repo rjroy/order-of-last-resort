@@ -59,7 +59,7 @@ static func administer(state: Dictionary, actor: Dictionary, target: Dictionary,
 	var retaliation: Combat.RetaliationBatch = null
 	if ability.handler == "acid":
 		retaliation = Combat.RetaliationBatch.new()
-		_acid(state, actor, target, int(ability.params.damage), events, retaliation)
+		_acid(state, actor, target, ability, events, retaliation)
 	else:
 		_healing_dose(state, actor, target, ability, events)
 	_react(state, actor, target, reaction, events)
@@ -72,7 +72,7 @@ static func _healing_dose(state: Dictionary, actor: Dictionary, target: Dictiona
 		"%s’s %s" % [Board.display_name(state, actor), ability.label])
 
 
-static func _acid(state: Dictionary, actor: Dictionary, target: Dictionary, damage: int, events: Array,
+static func _acid(state: Dictionary, actor: Dictionary, target: Dictionary, ability: Dictionary, events: Array,
 		retaliation: Combat.RetaliationBatch) -> void:
 	var name := Board.display_name(state, actor)
 	var splash := Upgrades.amount(state, actor, "brittle_glass")
@@ -80,7 +80,8 @@ static func _acid(state: Dictionary, actor: Dictionary, target: Dictionary, dama
 	if splash > 0:
 		neighbors = Board.occupants(state, {"capabilities": ["damageable"]}).filter(func(unit: Dictionary) -> bool:
 			return Board.distance(target.position, unit.position) == 1)
-	Combat.hurt(state, actor, target, damage, name + "’s Acid", "", events, {}, retaliation)
+	Combat.hurt(state, actor, target, int(ability.params.damage), "%s’s %s" % [name, ability.label],
+		"", events, {}, retaliation)
 	for neighbor in neighbors:
 		Combat.hurt(state, actor, neighbor, splash, name + "’s Brittle Glass", "", events, {}, retaliation)
 

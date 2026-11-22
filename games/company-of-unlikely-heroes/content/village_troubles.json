@@ -198,7 +198,7 @@
       "text": "{actor} and another goblin crowd {target}: +{amount} damage."
     },
     "hook_pull": {
-      "text": "{actor} hooks {target} from {from} to {position}."
+      "text": "{actor} uses {ability} to draw {target} from {from} to {position}."
     },
     "follow_party": {
       "text": "{actor} follows {target} to {position}."

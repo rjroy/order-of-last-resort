@@ -159,25 +159,29 @@
   "characters": {
     "knight": {
       "class": "knight",
-      "label": "Knight",
+      "label": "Anxious Knight",
+      "guild_portrait": "knight",
       "cast_key": "knight",
       "cast_art_key": "knight"
     },
     "healer": {
       "class": "healer",
-      "label": "Healer",
+      "label": "Unimpressed Healer",
+      "guild_portrait": "healer",
       "cast_key": "healer",
       "cast_art_key": "healer"
     },
     "wizard": {
       "class": "wizard",
-      "label": "Wizard",
+      "label": "Enthusiastic Caster",
+      "guild_portrait": "wizard",
       "cast_key": "wizard",
       "cast_art_key": "wizard"
     },
     "alchemist": {
       "class": "healer",
-      "label": "Alchemist",
+      "label": "Mixologist",
+      "guild_portrait": "alchemist",
       "description": "A nervous brewer who wards companions and throws volatile mixtures that can hurt anyone nearby. No healing or pull.",
       "abilities": [
         "move",
@@ -193,7 +197,8 @@
     },
     "rogue": {
       "class": "wizard",
-      "label": "Rogue",
+      "label": "Daft Dodger",
+      "guild_portrait": "rogue",
       "cast_key": "rogue",
       "cast_art_key": "wizard",
       "description": "A slippery opportunist who retreats, swaps places, and leaves someone else holding the blame.",
@@ -204,7 +209,8 @@
     },
     "necromancer": {
       "class": "wizard",
-      "label": "Necromancer",
+      "label": "Friendly Crypter",
+      "guild_portrait": "necromancer",
       "cast_key": "necromancer",
       "cast_art_key": "wizard",
       "description": "Raise a defeated opponent as a zombie or call a skeleton onto an open neighboring tile. Both act on their own and can greet allies as well as enemies.",
@@ -215,7 +221,8 @@
     },
     "bard": {
       "class": "wizard",
-      "label": "Bard",
+      "label": "Bad Bard",
+      "guild_portrait": "bard",
       "cast_key": "bard",
       "cast_art_key": "wizard",
       "description": "Pick the tune, not the audience. A melody makes an opponent laugh away their turn; a sonnet hurts one.",

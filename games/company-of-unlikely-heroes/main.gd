@@ -9,6 +9,8 @@ const Adventure = preload("res://adventure.gd")
 const Upgrades = preload("res://rules/upgrades.gd")
 const Commissions = preload("res://commissions.gd")
 const GuildProfile = preload("res://guild_profile.gd")
+const GuildBookPage = preload("res://presentation/guild_book_page.gd")
+const GuildBookArt = preload("res://presentation/guild_book_art.gd")
 const DEFAULT_ADVENTURE := "first_outing"
 const TERMINAL_REPLAY_LIMIT_MS := 3200
 
@@ -20,7 +22,6 @@ const GOLD := Color("#e3b970")
 const MINT := Color("#cae1b6")
 const RUST := Color("#f0b495")
 const DARK_TEXT := Color("#2f281e")
-const RARITY_INK := {"common": MUTED, "uncommon": MINT, "rare": Color("#bccbf5"), "legendary": GOLD}
 
 var _rules = Rules.new()
 var _definitions: Dictionary
@@ -30,6 +31,7 @@ var _run: Dictionary
 var _picked_recruits: Array = []
 var _screen := ""
 var _screen_root: Control
+var _book: GuildBookPage
 var _launch_args: Variant
 var _uses_builtin_catalog := false
 var _profile_path := GuildProfile.DEFAULT_PATH
@@ -247,6 +249,43 @@ func _page(screen: String, top_margin := 22) -> VBoxContainer:
 	return _stack(padding, 13)
 
 
+func _book_page(screen: String, gutter := -1.0) -> VBoxContainer:
+	_clear_terminal_replay()
+	_screen = screen
+	if is_instance_valid(_screen_root):
+		remove_child(_screen_root)
+		_screen_root.queue_free()
+	_book = GuildBookPage.new()
+	_book.name = screen.to_pascal_case() + "Screen"
+	_screen_root = _book
+	add_child(_book)
+	return _book.build(gutter)
+
+
+func _book_heading(page: Control, title: String, detail: String,
+		link_name := "", link_text := "", action := Callable()) -> void:
+	var head := _book.row(page, 20)
+	var copy := _book.stack(head, 3)
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_book.text(copy, title, 45, GuildBookPage.INK, "display")
+	if not detail.is_empty():
+		var context := _book.text(copy, detail, 16, GuildBookPage.SUBTLE)
+		context.max_lines_visible = 2
+		context.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		context.tooltip_text = detail
+	if action.is_valid():
+		var link := _book.button(head, link_name, link_text, "QuietButton")
+		link.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		link.pressed.connect(action)
+	_book.rule(page)
+
+
+func _cover_leaf(parent: Control) -> VBoxContainer:
+	var cover := _book.inset(parent, GuildBookPage.FOREST, GuildBookPage.BRASS, 36, 31)
+	cover.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	return _book.stack(cover, 15)
+
+
 func _open_commission_hub(board_refresh_failed := false) -> void:
 	_practice_from_guild = false
 	_commission = {}
@@ -267,44 +306,61 @@ func _open_commission_hub(board_refresh_failed := false) -> void:
 
 
 func _show_profile_error(message: String) -> void:
-	var page := _page("profile_error", 48)
-	_guild_masthead(page, "Could not open the guild", "The saved profile hasn’t been changed.",
+	var page := _book_page("profile_error")
+	_book_heading(page, "Could not open the guild", "The saved profile hasn’t been changed.",
 		"PracticeOutings", "Practice outings", _open_practice_outings)
-	_wrapped_label(page, message, 17, RUST)
-	_wrapped_label(page, "Check the guild profile file and try again:", 16, MUTED)
-	_wrapped_label(page, ProjectSettings.globalize_path(_profile_path), 15, PAPER)
-	var retry := _primary_button(page, "ReloadGuild", "Reload profile")
+	_book.text(page, message, 17, GuildBookPage.RUST)
+	_book.text(page, "Check the guild profile file and try again:", 16)
+	_book.text(page, ProjectSettings.globalize_path(_profile_path), 15, GuildBookPage.SUBTLE)
+	var retry := _book.button(page, "ReloadGuild", "Reload profile", "ClothButton")
 	retry.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	retry.pressed.connect(_open_commission_hub)
 	retry.grab_focus()
 
 
 func _show_guild_creation(after_missing_profile := false) -> void:
-	var page := _page("guild_creation", 48)
-	_guild_masthead(page, "Name your guild", ProjectSettings.get_setting("application/config/name"),
-		"PracticeOutings", "Practice outings", _open_practice_outings)
-	if after_missing_profile:
-		_wrapped_label(page, "The previous guild profile could not be found. Create a guild to choose another commission.", 16, RUST)
-	var form_panel := _panel(page, 568)
-	form_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	var form := _stack(form_panel, 15)
-	_wrapped_label(form, "Your guild keeps its name between outings. Once it’s founded, choose a commission and recruit your company.", 17, PAPER)
-	_rule(form)
-	_label(form, "Guild name", 15, MUTED)
+	var page := _book_page("guild_creation", 0.5)
+	var leaves := _book.spread(page, 0.5, 54)
+	var cover := _cover_leaf(leaves[0])
+	_book.rule(cover, GuildBookPage.BRASS)
+	_book.text(cover, str(ProjectSettings.get_setting("application/config/name")), 58,
+		GuildBookPage.CREAM, "display")
+	var painting := _destination_plate("wrong_side_of_the_door")
+	if painting != null:
+		var front := _book.plate(cover, painting, Vector2(0, 280))
+		front.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	else:
+		_book.space(cover, 110, true)
+	_book.text(cover, "The guild book", 24, GuildBookPage.CREAM, "italic")
+	_book.rule(cover, GuildBookPage.BRASS)
+	var form := leaves[1]
+	_book.space(form, 88)
+	_book.text(form, "Name your guild", 48, GuildBookPage.INK, "display")
+	_book.text(form, "Once it’s founded, you can take commissions and recruit your company. Your guild keeps its name between outings.", 18)
+	_book.space(form, 14)
+	_book.text(form, "Guild name", 16, GuildBookPage.SUBTLE)
 	var input := LineEdit.new()
 	input.name = "GuildName"
 	input.placeholder_text = "Enter a guild name"
 	input.accessibility_name = "Guild name"
 	input.max_length = GuildProfile.MAX_NAME_LENGTH
-	input.custom_minimum_size.y = 46
+	input.custom_minimum_size.y = 53
 	form.add_child(input)
-	var create := _primary_button(form, "CreateGuild", "Create guild")
+	var create := _book.button(form, "CreateGuild", "Create guild", "ClothButton")
 	create.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	create.disabled = true
-	var feedback := _wrapped_label(form, "", 15, RUST)
+	create.custom_minimum_size.x = 175
+	_book.set_disabled(create, true)
+	var feedback := _book.text(form, "", 15, GuildBookPage.RUST)
 	feedback.hide()
+	if after_missing_profile:
+		_book.text(form, "The previous guild profile could not be found. Create a guild to choose another commission.", 16, GuildBookPage.RUST)
+	_book.space(form, 32, true)
+	_book.rule(form)
+	var practice := _book.button(form, "PracticeOutings", "Practice without a guild", "QuietButton")
+	practice.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	practice.pressed.connect(_open_practice_outings)
 	input.text_changed.connect(func(value: String) -> void:
-		create.disabled = value.strip_edges().is_empty()
+		_book.set_disabled(create, value.strip_edges().is_empty())
 		feedback.hide())
 	input.text_submitted.connect(func(_value: String) -> void:
 		if not create.disabled:
@@ -327,28 +383,51 @@ func _create_guild(guild_name: String, feedback: Label) -> void:
 
 
 func _show_commissions(board_refresh_failed := false) -> void:
-	var page := _page("commissions", 48)
-	_guild_masthead(page, "Commission board", str(_guild_profile.name),
+	var page := _book_page("commissions")
+	_book_heading(page, "Commission board", str(_guild_profile.name),
 		"PracticeOutings", "Practice outings", _open_practice_outings)
 	if board_refresh_failed:
-		_wrapped_label(page, "The board wasn’t refreshed. These commissions are from the current saved guild.", 16, RUST)
-	_wrapped_label(page, "Choose a destination. The mission count includes the final mission.", 17, MUTED)
-	var cards := _row(page, 20)
+		_book.text(page, "The board wasn’t refreshed. These commissions are from the current saved guild.", 16, GuildBookPage.RUST)
+	var cards := _book.row(page, 19)
+	cards.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var offers := Commissions.board(_definitions, int(_guild_profile.board_seed))
+	var first: Button
 	for index in range(offers.size()):
 		var offer: Dictionary = offers[index]
 		var title := _mission_title_for(offer.destination_id)
-		var card := _guild_card(cards, 360)
-		var copy := _guild_card_text(card, "CommissionText_%d" % index)
-		_wrapped_label(copy, title, 32, PAPER, true)
-		_label(copy, "%d missions" % offer.length, 16, GOLD)
-		_rule(copy)
-		_wrapped_label(copy, offer.description, 18, PAPER)
-		var choose := _primary_button(card, "Commission_%d" % index, "Choose " + title)
-		choose.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		var long_job: bool = offer.length == 10
+		var mounted := _book.inset(cards, Color("#e7d5ac") if long_job else GuildBookPage.PALE,
+			GuildBookPage.RULE, 14, 14)
+		mounted.name = "CommissionCard_%d" % index
+		mounted.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		mounted.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		mounted.size_flags_stretch_ratio = 1.12 if long_job else 1.0
+		var card := _book.stack(mounted, 11)
+		var painting := _destination_plate(str(offer.destination_id))
+		if painting != null:
+			_book.plate(card, painting, Vector2(0, 204 if long_job else 182))
+		var region := _book.detail_scroll(card, "CommissionDetails_%d" % index, 243, "Scroll commission details")
+		var details := _book.stack(region, 11)
+		details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var heading := _book.text(details, title, 35, GuildBookPage.INK, "display")
+		heading.custom_minimum_size.y = 82
+		var count := _book.inset(details, GuildBookPage.FOREST if long_job else Color("#e9dbbc"),
+			GuildBookPage.RULE, 10, 5)
+		count.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		_book.text(count, "%d missions" % offer.length, 16,
+			GuildBookPage.CREAM if long_job else GuildBookPage.INK).autowrap_mode = TextServer.AUTOWRAP_OFF
+		var copy := _book.text(details, offer.description, 17)
+		copy.name = "CommissionText_%d" % index
+		_book.rule(card)
+		var choose := _book.button(card, "Commission_%d" % index, "Choose commission", "ClothButton")
 		choose.accessibility_name = "Choose commission: " + title
 		choose.accessibility_description = "%d missions. %s" % [offer.length, offer.description]
 		choose.pressed.connect(_select_commission.bind(offer))
+		if first == null:
+			first = choose
+	_book.text(page, "The mission count includes the final mission.", 15, GuildBookPage.SUBTLE, "italic")
+	if first != null:
+		first.grab_focus()
 
 
 func _select_commission(offer: Dictionary) -> void:
@@ -364,134 +443,114 @@ func _open_practice_outings() -> void:
 	_show_guild()
 
 
-func _guild_masthead(page: VBoxContainer, title: String, subtitle: String,
-		link_name := "", link_text := "", action := Callable()) -> void:
-	var line := _row(page, 18)
-	var titles := _stack(line, 3)
-	titles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_wrapped_label(titles, title, 44, PAPER, true)
-	_wrapped_label(titles, subtitle, 17, GOLD)
-	if action.is_valid():
-		var nav := LinkButton.new()
-		nav.name = link_name
-		nav.text = link_text
-		nav.custom_minimum_size.y = 43
-		nav.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		line.add_child(nav)
-		nav.pressed.connect(action)
-	_rule(page)
-
-
-func _guild_card(parent: Control, height: float) -> VBoxContainer:
-	var panel := _panel(parent, 0)
-	panel.custom_minimum_size.y = height
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.add_theme_stylebox_override("panel", _box(Color("#1d302e"), LINE, 1, 2, 23, 21))
-	return _stack(panel, 13)
-
-
-func _guild_card_text(card: VBoxContainer, node_name: String) -> VBoxContainer:
-	var scroll := _scroll(card)
-	scroll.name = node_name
-	var bar := scroll.get_v_scroll_bar()
-	bar.focus_mode = Control.FOCUS_ALL
-	bar.accessibility_name = "Scroll card text"
-	var copy := _stack(scroll, 13)
-	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	copy.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	return copy
-
-
 func _show_guild(focus_name := "") -> void:
 	_state = {}
 	var previous_scroll := find_child("RecruitScroll", true, false) as ScrollContainer if _screen == "guild" else null
 	var scroll_position := previous_scroll.scroll_vertical if previous_scroll != null else 0
 	var previous_slots := find_child("DeploymentScroll", true, false) as ScrollContainer if _screen == "guild" else null
 	var slot_position := previous_slots.scroll_vertical if previous_slots != null else 0
-	var page := _page("guild", 36)
+	var page := _book_page("guild", 0.64)
 	if _commission.is_empty():
 		_build_practice_itinerary(page)
 	else:
-		_guild_masthead(page, "Choose your company",
+		_book_heading(page, "Choose your company",
 			"%s  ·  %s  ·  %d missions" % [
 				_guild_profile.name, _mission_title_for(_commission.destination_id), _commission.length],
 			"BackToCommissions", "Commission board", _open_commission_hub)
-	var columns := _row(page, 24)
-	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var roster := _stack(columns, 10)
-	roster.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_label(roster, "Choose your company" if _commission.is_empty() else "Available recruits", 30, PAPER, true)
-	_wrapped_label(roster, "Take %d distinct recruits. Each round, you can command one hero; the others follow standing orders." % _adventure.party_size, 15, MUTED)
-	var scroll := _scroll(roster)
-	scroll.name = "RecruitScroll"
-	var recruits := _stack(scroll, 10)
+	var leaves := _book.spread(page, 0.64, 42)
+	var roster := leaves[0]
+	_book.text(roster, "Choose your company" if _commission.is_empty() else "Available recruits",
+		28, GuildBookPage.INK, "display")
+	_book.text(roster, "Take %d recruits. Each round, you command one hero; the others follow standing orders." % _adventure.party_size,
+		15, GuildBookPage.SUBTLE)
+	var scroll := _book.scroll(roster, "RecruitScroll")
+	scroll.follow_focus = false
+	var recruits := GridContainer.new()
+	recruits.columns = 2
+	recruits.add_theme_constant_override("h_separation", 13)
+	recruits.add_theme_constant_override("v_separation", 11)
+	scroll.add_child(recruits)
 	recruits.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for recruit_id in _adventure.roster:
 		_build_recruit(recruits, recruit_id)
-	var marching_panel := _panel(columns, 393)
-	var scroll_slots: bool = _adventure.party_size > 3
-	marching_panel.size_flags_vertical = Control.SIZE_FILL if scroll_slots else Control.SIZE_SHRINK_BEGIN
-	var marching := _stack(marching_panel, 12)
-	_label(marching, "Deployment order", 26, PAPER, true)
-	_wrapped_label(marching, "The top hero acts first. This order places your party and sets who acts first in each mission.", 14, MUTED)
-	var count := _label(marching, "%d / %d selected" % [_picked_recruits.size(), _adventure.party_size], 15, GOLD)
+	var marching := leaves[1]
+	_book.text(marching, "Deployment order", 30, GuildBookPage.INK, "display")
+	_book.text(marching, "The top hero acts first. This order also sets where your party starts.", 15, GuildBookPage.SUBTLE)
+	var count := _book.text(marching, "%d of %d selected" % [_picked_recruits.size(), _adventure.party_size],
+		15, GuildBookPage.FOREST)
 	count.name = "PartyCount"
-	_rule(marching)
-	var slots := marching
-	var deployment_scroll: ScrollContainer
-	if scroll_slots:
-		deployment_scroll = _scroll(marching)
-		deployment_scroll.name = "DeploymentScroll"
-		slots = _stack(deployment_scroll, 12)
-		slots.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_book.rule(marching)
+	var deployment_scroll := _book.scroll(marching, "DeploymentScroll")
+	var slots := _book.stack(deployment_scroll, 8)
+	slots.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for slot in range(_adventure.party_size):
 		_build_party_slot(slots, slot)
-	var departure := "Read field reports" if not _commission.is_empty() else "Depart for " + _mission_title_for(_adventure.missions[0])
-	var start := _primary_button(marching, "StartAdventure", departure)
-	start.disabled = _picked_recruits.size() != _adventure.party_size
+	if not _commission.is_empty() and _adventure.party_size <= 3:
+		var landscape := _destination_plate(str(_commission.destination_id))
+		if landscape != null:
+			_book.plate(marching, landscape, Vector2(0, 130))
+			_book.text(marching, _mission_title_for(_commission.destination_id), 17,
+				GuildBookPage.SUBTLE, "italic")
+	_book.rule(marching)
+	var departure := "Read field reports" if not _commission.is_empty() else "Depart on practice outing"
+	var start := _book.button(marching, "StartAdventure", departure, "ClothButton")
+	start.accessibility_description = "Depart for " + _mission_title_for(_adventure.missions[0]) if _commission.is_empty() else ""
+	_book.set_disabled(start, _picked_recruits.size() != _adventure.party_size)
 	start.pressed.connect(_start_adventure)
-	var focus: Button
+	var focus: Control
 	if not focus_name.is_empty():
-		focus = find_child(focus_name, true, false) as Button
-		if focus != null and focus.disabled and focus_name.begins_with("Party"):
+		focus = find_child(focus_name, true, false) as Control
+		if focus is BaseButton and focus.disabled and focus_name.begins_with("Party"):
 			var opposite := focus_name.replace("Earlier_", "Later_") if "Earlier_" in focus_name else focus_name.replace("Later_", "Earlier_")
 			focus = find_child(opposite, true, false) as Button
-		if focus != null and not focus.disabled:
+		if focus is BaseButton and not focus.disabled:
 			focus.grab_focus()
-	scroll.set_deferred("scroll_vertical", scroll_position)
-	if deployment_scroll != null:
-		_restore_deployment_scroll.call_deferred(deployment_scroll, slot_position, focus)
+	else:
+		var first_action := "Recruit_" + str(_adventure.roster[0]) if not _commission.is_empty() else "AdventureSelect"
+		focus = find_child(first_action, true, false) as Control
+		if focus != null:
+			focus.grab_focus()
+	_restore_book_scroll.call_deferred(scroll, scroll_position, focus)
+	_restore_book_scroll.call_deferred(deployment_scroll, slot_position, focus)
 
 
-func _restore_deployment_scroll(scroll: ScrollContainer, position: int, focus: Button) -> void:
+func _restore_book_scroll(scroll: ScrollContainer, position: int, focus: Control) -> void:
 	if not is_instance_valid(scroll) or not scroll.is_inside_tree():
 		return
 	scroll.scroll_vertical = position
-	if is_instance_valid(focus) and focus.has_focus() and scroll.is_ancestor_of(focus):
+	if scroll.follow_focus and is_instance_valid(focus) and focus.has_focus() and scroll.is_ancestor_of(focus):
 		scroll.ensure_control_visible(focus)
 
 
 func _build_practice_itinerary(page: VBoxContainer) -> void:
+	var link := Callable()
 	if _practice_from_guild:
-		_guild_masthead(page, "Practice outings", ProjectSettings.get_setting("application/config/name"),
-			"BackToCommissions", "Back to guild", _open_commission_hub)
-	else:
-		_label(page, ProjectSettings.get_setting("application/config/name"), 42, PAPER, true)
-	var itinerary := _row(page, 24)
-	var selection := _stack(itinerary, 4)
-	selection.custom_minimum_size.x = 294
-	_label(selection, "Adventure", 13, MUTED)
+		link = _open_commission_hub
+	_book_heading(page, "Practice outings", str(ProjectSettings.get_setting("application/config/name")),
+		"BackToCommissions", "Back to guild", link)
+	var itinerary := _book.row(page, 21)
+	var destination: String = _adventure.missions.back()
+	var painting := _destination_plate(destination)
+	if painting != null:
+		_book.plate(itinerary, painting, Vector2(250, 106))
+	var selection := _book.stack(itinerary, 5)
+	selection.custom_minimum_size.x = 310
+	_book.text(selection, "Adventure", 15, GuildBookPage.SUBTLE)
 	var adventure_select := _picker(selection, "AdventureSelect")
+	adventure_select.custom_minimum_size.y = 42
+	adventure_select.accessibility_name = "Practice adventure"
 	for id in _definitions.get("adventures", {}):
 		_add_choice(adventure_select, _definitions.adventures[id].label, id)
 	_pick(adventure_select, _adventure_id)
 	adventure_select.tooltip_text = _adventure.label
 	adventure_select.item_selected.connect(_select_adventure.bind(adventure_select))
-	var route := _stack(itinerary, 4)
+	var route := _book.stack(itinerary, 4)
 	route.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_label(route, "%d missions" % _adventure.missions.size() if _adventure.missions.size() != 1 else "1 mission", 13, MUTED)
-	_wrapped_label(route, _route_titles(), 15, PAPER)
-	_rule(page)
+	_book.text(route, _mission_title_for(destination), 25, GuildBookPage.INK, "display")
+	_book.text(route, "%d missions" % _adventure.missions.size() if _adventure.missions.size() != 1 else "1 mission",
+		15, GuildBookPage.FOREST)
+	_book.text(route, _route_titles(), 14, GuildBookPage.SUBTLE)
+	_book.rule(page)
 
 
 func _select_adventure(index: int, selector: OptionButton) -> void:
@@ -505,48 +564,86 @@ func _select_adventure(index: int, selector: OptionButton) -> void:
 	_show_guild("AdventureSelect")
 
 
-func _build_recruit(parent: VBoxContainer, id: String) -> void:
+func _build_recruit(parent: GridContainer, id: String) -> void:
 	var profile := Catalog.profile(_definitions, id)
 	var picked := id in _picked_recruits
-	var entry := _stack(_panel(parent, 0, GOLD if picked else LINE), 6)
-	var header := _row(entry, 8)
-	var title := _label(header, profile.label, 21, PAPER, true)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var hp := _label(header, "%d HP" % profile.max_hp, 14, MINT)
-	hp.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var toggle := _button(header, "Recruit_" + id, "Remove" if picked else "Recruit")
-	toggle.set_meta("recruit_id", id)
-	toggle.custom_minimum_size.x = 95
-	toggle.tooltip_text = ("Remove %s from the party" if picked else "Recruit %s") % profile.label
-	toggle.disabled = not picked and _picked_recruits.size() == _adventure.party_size
-	toggle.pressed.connect(_toggle_recruit.bind(id))
+	var sheet := _book.inset(parent, Color("#dee0c5") if picked else GuildBookPage.PALE,
+		Color("#7d8d6b") if picked else GuildBookPage.RULE, 8, 8)
+	sheet.name = "RecruitCard_" + id
+	sheet.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var entry := _book.row(sheet, 10)
+	var portrait := GuildBookArt.class_portrait(_portrait_identity(id))
+	if portrait != null:
+		var photo := _book.plate(entry, portrait, Vector2(112, 116), "portrait")
+		photo.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	var copy := _book.stack(entry, 4)
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_book.text(copy, profile.label, 23, GuildBookPage.INK, "display")
+	var class_text := _portrait_subtitle(id, str(profile.label))
+	var stats := "%d HP" % profile.max_hp
+	if not class_text.is_empty():
+		stats = class_text + "  ·  " + stats
+	_book.text(copy, stats, 13, GuildBookPage.FOREST)
 	var abilities: PackedStringArray = []
 	for ability_id in profile.abilities:
 		abilities.append(_definitions.abilities[ability_id].label)
-	_wrapped_label(entry, "Actions: " + ", ".join(abilities), 14, PAPER)
+	_book.text(copy, ", ".join(abilities), 13)
 	var order: Dictionary = _definitions.orders.get(profile.get("default_order", ""), {})
-	_wrapped_label(entry, "Default order: " + str(order.get("label", "None")), 13, MUTED)
+	_book.text(copy, "Order: " + str(order.get("label", "None")), 13, GuildBookPage.SUBTLE)
+	var toggle := _book.button(copy, "Recruit_" + id, "Remove" if picked else "Recruit",
+		"Button" if picked else "ClothButton")
+	toggle.custom_minimum_size.y = 34
+	toggle.set_meta("recruit_id", id)
+	toggle.custom_minimum_size.x = 95
+	toggle.tooltip_text = ("Remove %s from the party" if picked else "Recruit %s") % profile.label
+	toggle.accessibility_name = toggle.tooltip_text
+	_book.set_disabled(toggle, not picked and _picked_recruits.size() == _adventure.party_size)
+	toggle.pressed.connect(_toggle_recruit.bind(id))
+	toggle.focus_entered.connect(_keep_recruit_card_visible.bind(sheet, toggle))
 	var description: String = profile.get("description", "")
 	if not description.is_empty():
 		toggle.tooltip_text += "\n" + description
+		toggle.accessibility_description = description
+
+
+func _keep_recruit_card_visible(card: Control, toggle: Button) -> void:
+	# On a page rebuild, wait for the grid to be sized and the scroll position restored.
+	await get_tree().process_frame
+	if not is_instance_valid(card) or not is_instance_valid(toggle) or not toggle.has_focus():
+		return
+	var scroll := card.get_parent().get_parent() as ScrollContainer
+	var pane := scroll.get_global_rect()
+	var sheet := card.get_global_rect()
+	if sheet.position.y < pane.position.y:
+		scroll.scroll_vertical += floori(sheet.position.y - pane.position.y)
+	elif sheet.end.y > pane.end.y:
+		scroll.scroll_vertical += ceili(sheet.end.y - pane.end.y)
 
 
 func _build_party_slot(parent: VBoxContainer, slot: int) -> void:
-	var line := _row(parent, 8)
-	_label(line, "%d" % (slot + 1), 15, GOLD).custom_minimum_size.x = 19
+	var line := _book.row(parent, 6)
+	var number := _book.text(line, "%02d" % (slot + 1), 24, GuildBookPage.RUST, "display")
+	number.custom_minimum_size.x = 29
 	var id: String = _picked_recruits[slot] if slot < _picked_recruits.size() else ""
-	var name_text: String = "Open place" if id.is_empty() else Catalog.profile(_definitions, id).label
-	var label := _label(line, name_text, 17, MUTED if id.is_empty() else PAPER)
+	var profile := Catalog.profile(_definitions, id) if not id.is_empty() else {}
+	var name_text: String = profile.get("label", "Open place")
+	var portrait := GuildBookArt.class_portrait(_portrait_identity(id))
+	if portrait != null:
+		_book.plate(line, portrait, Vector2(39, 39), "portrait")
+	var label := _book.text(line, name_text, 19, GuildBookPage.SUBTLE if id.is_empty() else GuildBookPage.INK, "display")
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	line.custom_minimum_size.y = 34
+	line.custom_minimum_size.y = 49
+	_book.rule(parent)
 	if id.is_empty():
 		return
 	for delta in [-1, 1]:
 		var direction := "Earlier" if delta < 0 else "Later"
-		var button := _button(line, "Party%s_%s" % [direction, id], direction)
+		var button := _book.button(line, "Party%s_%s" % [direction, id], direction)
+		button.add_theme_font_size_override("font_size", 13)
+		button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		button.tooltip_text = "%s goes %s" % [name_text, direction.to_lower()]
-		button.disabled = slot + delta < 0 or slot + delta >= _picked_recruits.size()
+		button.accessibility_name = button.tooltip_text
+		_book.set_disabled(button, slot + delta < 0 or slot + delta >= _picked_recruits.size())
 		button.pressed.connect(_move_recruit.bind(id, delta, str(button.name)))
 
 
@@ -579,6 +676,24 @@ func _mission_title_for(mission_id: String) -> String:
 	return _definitions.missions[mission_id].title
 
 
+func _destination_plate(mission_id: String) -> Texture2D:
+	return GuildBookArt.destination(mission_id) if _uses_builtin_catalog else null
+
+
+func _report_plate(immediate_id: String) -> Texture2D:
+	return GuildBookArt.report(immediate_id) if _uses_builtin_catalog else null
+
+
+func _portrait_identity(character_id: String) -> String:
+	# This is a declaration by the character, not an inherited rules class.
+	return str(_definitions.characters.get(character_id, {}).get("guild_portrait", ""))
+
+
+func _portrait_subtitle(character_id: String, character_label: String) -> String:
+	var class_label := GuildBookArt.class_label(_portrait_identity(character_id))
+	return "" if class_label == character_label else class_label
+
+
 func _start_adventure() -> void:
 	if not _commission.is_empty():
 		_run = Adventure.start_commission(_definitions, _commission, _picked_recruits)
@@ -591,35 +706,49 @@ func _start_adventure() -> void:
 
 
 func _show_routes() -> void:
-	var page := _page("routes", 48)
+	var page := _book_page("routes", 0.5)
 	var title := _mission_title_for(_run.destination_id)
 	var next := int(_run.mission_index) + 1
 	var total := Adventure.mission_count(_run)
 	var penultimate := next == total - 1
-	_guild_masthead(page, "Field reports", "%s  ·  Mission %d of %d" % [title, next, total])
-	_wrapped_label(page, "Choose where to go next. Both roads lead to your destination." if penultimate
-		else "Choose your next mission. Each report includes a clue about what may follow.", 17, MUTED)
-	var cards := _row(page, 20)
+	_book_heading(page, "Field reports", "%s  ·  Mission %d of %d" % [title, next, total])
+	var cards := _book.row(page, 46)
+	cards.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var first: Button
 	for index in range(_run.reports.size()):
 		var report: Dictionary = _run.reports[index]
-		var card := _guild_card(cards, 416)
-		var copy := _guild_card_text(card, "RouteText_%d" % index)
+		var card := _book.stack(cards, 9)
+		card.name = "RouteCard_%d" % index
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var route_name := "Route A" if index == 0 else "Route B"
-		_label(copy, route_name, 29, PAPER, true)
-		_rule(copy)
-		_label(copy, "Immediate mission", 15, GOLD)
-		_wrapped_label(copy, report.description, 18, PAPER)
-		_rule(copy)
-		_label(copy, "Known destination" if penultimate else "Farther ahead", 15, GOLD)
-		_wrapped_label(copy, report.hint_text, 17, PAPER)
-		var choice := "Take %s to %s" % [route_name, title] if penultimate else "Take " + route_name
-		var choose := _primary_button(card, "Route_%d" % index, choice)
-		choose.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		_book.text(card, route_name, 34, GuildBookPage.RUST, "italic")
+		var sketch := _report_plate(str(report.mission_id))
+		if sketch != null:
+			var drawing := _book.plate(card, sketch, Vector2(375, 250), "sketch")
+			drawing.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		var region := _book.detail_scroll(card, "RouteDetails_%d" % index, 154, "Scroll " + route_name + " report")
+		var copy := _book.stack(region, 5)
+		copy.name = "RouteText_%d" % index
+		copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_book.text(copy, "Immediate mission", 15, GuildBookPage.FOREST)
+		var immediate := _book.text(copy, report.description, 17)
+		immediate.custom_minimum_size.y = 51
+		_book.rule(copy)
+		var clue: Dictionary = _definitions.get("mission_kinds", {}).get(report.get("hint_kind", ""), {})
+		var farther := "Known destination" if penultimate else "Farther ahead"
+		if not penultimate and not clue.is_empty():
+			farther += "  ·  " + str(clue.get("label", ""))
+		_book.text(copy, farther, 15, GuildBookPage.FOREST)
+		var hint := _book.text(copy, report.hint_text, 17)
+		hint.custom_minimum_size.y = 53
+		var choose := _book.button(card, "Route_%d" % index, "Take " + route_name, "ClothButton")
 		choose.accessibility_description = "Next: %s. Farther ahead: %s" % [report.description, report.hint_text]
 		choose.pressed.connect(_choose_route.bind(str(report.mission_id)))
 		if index == 0:
 			first = choose
+	_book.rule(page)
+	_book.text(page, "Both roads lead to your destination." if penultimate
+		else "The clue describes what may follow, not the exact mission.", 15, GuildBookPage.SUBTLE, "italic")
 	if first != null:
 		first.grab_focus()
 
@@ -654,90 +783,119 @@ func _show_debrief() -> void:
 	if pending or not chosen.is_empty():
 		_show_reward_debrief(next_title, pending, chosen)
 		return
-	var page := _page("debrief", 44)
-	_label(page, "%s cleared" % _mission_title_for(result.mission_id), 44, PAPER, true)
-	_wrapped_label(page, "Review the party before leaving for %s. You decide when to continue." % next_title, 16, MUTED)
-	_rule(page)
-	var panel := _stack(_panel(page, 0), 12)
-	_build_carry_report(panel)
-	_add_continue(panel, next_title).grab_focus()
+	var page := _book_page("debrief", 0.46)
+	var leaves := _book.spread(page, 0.46, 44)
+	var left := leaves[0]
+	var right := leaves[1]
+	_book.text(left, "Mission cleared", 44, GuildBookPage.INK, "display")
+	_book.text(left, _mission_title_for(result.mission_id), 28, GuildBookPage.RUST, "italic")
+	_book.rule(left)
+	_book.text(left, str(result.get("text", "")), 17)
+	if not next_title.is_empty():
+		_book.space(left, 12)
+		_book.text(left, "Next: " + next_title, 24, GuildBookPage.INK, "display")
+		var painting := _destination_plate(_next_visible_mission())
+		if painting != null:
+			_book.plate(left, painting, Vector2(0, 253))
+	_book.space(left, 12, true)
+	_add_continue(left, next_title).grab_focus()
+	_build_carry_report(right)
 
 
 func _show_reward_debrief(next_title: String, pending: bool, chosen: Dictionary) -> void:
-	var page := _page("debrief", 38)
-	_wrapped_label(page, "%s cleared" % _mission_title_for(_run.last_result.mission_id), 44, PAPER, true)
-	if not next_title.is_empty():
-		_wrapped_label(page, "Next mission: " + next_title, 16, MUTED)
-	_rule(page)
-	var columns := _row(page, 24)
-	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var rewards := _stack(columns, 10)
-	rewards.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_label(rewards, "Choose one reward" if pending else "Reward claimed", 29, PAPER, true)
-	_wrapped_label(rewards, "The chosen hero keeps their upgrade until you return to the guild." if pending \
-		else "This upgrade is ready for the next mission and stays with the hero for the outing.", 16, MUTED)
-	var list := _stack(_scroll(rewards), 0)
-	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if not pending:
+		_show_claimed_debrief(next_title, chosen)
+		return
+	var page := _book_page("debrief")
+	_book_heading(page, "Choose one reward",
+		"%s cleared. The chosen hero keeps the upgrade until the outing ends." % _mission_title_for(_run.last_result.mission_id))
+	var displays := _book.scroll(page, "RewardScroll")
+	var cards := GridContainer.new()
+	cards.columns = 3
+	cards.add_theme_constant_override("h_separation", 16)
+	cards.add_theme_constant_override("v_separation", 16)
+	cards.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	displays.add_child(cards)
 	var first_offer: Button
-	var offers: Array = _run.reward_offers if pending else [chosen]
-	for offer in offers:
-		var button := _build_reward_entry(list, offer, pending)
+	for offer in _run.reward_offers:
+		var button := _build_reward_entry(cards, offer, true)
 		if first_offer == null:
 			first_offer = button
-	_rule(list)
-	var carry := _scroll(columns)
-	carry.custom_minimum_size.x = 376
-	var company := _panel(carry, 0)
+	var folio := _book.row(page, 17)
+	var carry_scroll := _book.scroll(folio, "PendingCarryScroll")
+	carry_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	carry_scroll.custom_minimum_size.y = 111
+	var company := _book.stack(carry_scroll, 6)
 	company.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var company_report := _stack(company, 12)
-	_build_carry_report(company_report)
+	_build_carry_report(company, true)
 	var scout_note: String = _run.get("scout_note", "")
-	if pending and not scout_note.is_empty():
-		_rule(company_report)
-		_label(company_report, "Your scout’s note", 22, PAPER, true)
-		_wrapped_label(company_report, scout_note, 16, PAPER)
-	_rule(page)
-	var footer := _row(page, 16)
-	var reminder := _wrapped_label(footer, "Choose a reward before continuing." if pending \
-		else "Your company can now read the next field reports." if next_title.is_empty() \
-		else "Your company can now depart.", 15, MUTED)
+	if not scout_note.is_empty():
+		var note := _book.stack(folio, 5)
+		note.custom_minimum_size.x = 335
+		note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		note.size_flags_stretch_ratio = 0.46
+		_book.text(note, "Your scout’s note", 22, GuildBookPage.INK, "display")
+		_book.text(note, scout_note, 15)
+	_book.rule(page)
+	var footer := _book.row(page, 16)
+	var reminder := _book.text(footer, "Choose a reward before continuing.", 15, GuildBookPage.SUBTLE)
 	reminder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	reminder.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var advance := _add_continue(footer, next_title)
-	if pending and first_offer != null:
+	_add_continue(footer, next_title)
+	if first_offer != null:
 		first_offer.grab_focus()
-	elif not advance.disabled:
-		advance.grab_focus()
 
 
-func _build_reward_entry(parent: VBoxContainer, offer: Dictionary, pending: bool) -> Button:
+func _show_claimed_debrief(next_title: String, chosen: Dictionary) -> void:
+	var page := _book_page("debrief", 0.47)
+	_book_heading(page, "Reward claimed", _mission_title_for(_run.last_result.mission_id) + " cleared")
+	var leaves := _book.spread(page, 0.47, 44)
+	_build_reward_entry(leaves[0], chosen, false)
+	_build_carry_report(leaves[1])
+	_book.space(leaves[1], 8, true)
+	if not next_title.is_empty():
+		_book.text(leaves[1], "Next: " + next_title, 21, GuildBookPage.RUST, "italic")
+	_add_continue(leaves[1], next_title).grab_focus()
+
+
+func _build_reward_entry(parent: Control, offer: Dictionary, pending: bool) -> Button:
 	var hero_id: String = offer.hero_id
 	var upgrade_id: String = offer.upgrade_id
 	var upgrade: Dictionary = _definitions.upgrades[upgrade_id]
 	var hero := Catalog.profile(_definitions, hero_id)
 	var rarity: String = upgrade.rarity.capitalize()
 	var owned := int(_run.upgrades_by_id.get(hero_id, {}).get(upgrade_id, 0))
-	var progress := "%d of %d acquired" % [owned, upgrade.cap]
-	if pending:
-		progress += "  ·  %d of %d if chosen" % [owned + 1, upgrade.cap]
-	_rule(parent)
-	var entry := _stack(_panel(parent, 0, Color.TRANSPARENT if pending else Color("#68866a")), 5)
-	var line := _row(entry, 16)
-	var ledger := _stack(line, 4)
-	ledger.custom_minimum_size.x = 156
-	_wrapped_label(ledger, hero.label, 21, Color.from_string(hero.get("color", ""), PAPER), true)
-	_label(ledger, rarity, 14, RARITY_INK.get(upgrade.rarity, MUTED))
-	var effect := _stack(line, 3)
-	effect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_wrapped_label(effect, upgrade.label, 23, PAPER, true)
-	_wrapped_label(effect, upgrade.description, 15, PAPER)
-	_wrapped_label(effect, progress, 14, MUTED)
+	var progress := "%d of %d acquired  ·  %d remaining" % [owned, upgrade.cap, int(upgrade.cap) - owned]
+	var mount := _book.inset(parent, GuildBookPage.PALE, GuildBookPage.RULE, 12, 10)
+	mount.name = "RewardCard_" + hero_id
+	mount.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mount.size_flags_vertical = Control.SIZE_SHRINK_BEGIN if not pending else Control.SIZE_FILL
+	var entry := _book.stack(mount, 6)
+	var upgrade_art := GuildBookArt.upgrade(upgrade_id) if _uses_builtin_catalog else null
+	if upgrade_art != null:
+		var art_height := 154 if pending else 242
+		var sketch := _book.plate(entry, upgrade_art, Vector2(art_height * 318.0 / 154.0, art_height))
+		sketch.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var recipient := _book.row(entry, 8)
+	var portrait := GuildBookArt.class_portrait(_portrait_identity(hero_id))
+	if portrait != null:
+		_book.plate(recipient, portrait, Vector2(44, 44), "portrait")
+	var identity := _book.stack(recipient, 0)
+	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_book.text(identity, hero.label, 20, GuildBookPage.INK, "display")
+	var class_text := _portrait_subtitle(hero_id, str(hero.label))
+	if not class_text.is_empty():
+		_book.text(identity, class_text, 13, GuildBookPage.SUBTLE)
+	_book.text(identity, rarity, 13, GuildBookPage.RARITY.get(upgrade.rarity, GuildBookPage.SUBTLE))
+	_book.rule(entry)
+	_book.text(entry, upgrade.label, 28, GuildBookPage.INK, "display")
+	_book.text(entry, upgrade.description, 16)
+	_book.space(entry, 3, true)
+	_book.text(entry, progress, 13, GuildBookPage.SUBTLE)
 	if not pending:
-		_label(line, "Awarded", 15, MINT).size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		_book.text(entry, "Awarded for this outing", 15, GuildBookPage.FOREST, "italic")
 		return null
-	var button := _button(line, "Reward_" + hero_id, "Take reward")
-	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	button.custom_minimum_size = Vector2(112, 44)
+	var button := _book.button(entry, "Reward_" + hero_id, "Take reward", "ClothButton")
 	button.accessibility_name = "Award %s to %s" % [upgrade.label, hero.label]
 	button.accessibility_description = "%s. %s. %s. This is your one reward for the mission." % [
 		rarity, upgrade.description, progress]
@@ -757,18 +915,15 @@ func _claim_reward(hero_id: String, upgrade_id: String) -> void:
 
 
 func _add_continue(parent: Control, next_title: String) -> Button:
-	var caption := "Continue"
-	if not next_title.is_empty():
-		caption = "Continue to " + next_title
-	elif _run.phase == "route":
+	var caption := "Continue to next mission"
+	if next_title.is_empty() and _run.phase == "route":
 		caption = "Read field reports"
-	var advance := _primary_button(parent, "ContinueAdventure", caption)
+	var advance := _book.button(parent, "ContinueAdventure", caption, "ClothButton")
 	advance.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	advance.disabled = _run.phase not in ["ready", "route"]
+	advance.accessibility_name = "Continue to " + next_title if not next_title.is_empty() else caption
+	_book.set_disabled(advance, _run.phase not in ["ready", "route"])
 	if advance.disabled:
 		advance.accessibility_description = "Choose one reward first."
-		advance.add_theme_stylebox_override("disabled", _box(Color("#202d2a"), LINE))
-		advance.add_theme_color_override("font_disabled_color", MUTED)
 	advance.pressed.connect(_continue_after_debrief)
 	return advance
 
@@ -780,11 +935,10 @@ func _continue_after_debrief() -> void:
 		_begin_mission()
 
 
-func _build_carry_report(panel: VBoxContainer) -> void:
-	_label(panel, "What carries forward", 26, PAPER, true)
-	var report := _label(panel, "", 16, PAPER)
+func _build_carry_report(panel: VBoxContainer, compact := false) -> void:
+	_book.text(panel, "What carries forward", 22 if compact else 33, GuildBookPage.INK, "display")
+	var report := _book.text(panel, "", 14 if compact else 17)
 	report.name = "CarryReport"
-	report.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var lines: PackedStringArray = []
 	for id in _run.party:
 		var before: Dictionary = _run.last_result.heroes_by_id[id]
@@ -798,32 +952,65 @@ func _build_carry_report(panel: VBoxContainer) -> void:
 		elif before.knocked_down:
 			recovery = "  ·  Recovered from knockdown"
 		var order: Dictionary = _definitions.orders.get(after.order, {})
-		lines.append("%s   %d/%d HP → %d/%d HP%s%s\nStanding order: %s" % [
-			before.label, before.hp, before.max_hp, next_hp, max_hp,
-			wounds, recovery, order.get("label", "None")])
-	report.text = "\n\n".join(lines)
+		var name_text: String = before.label
+		var class_text := _portrait_subtitle(str(id), name_text)
+		if not class_text.is_empty():
+			name_text += " (%s)" % class_text
+		var line := "%s   %d/%d HP → %d/%d HP%s%s" % [
+			name_text, before.hp, before.max_hp, next_hp, max_hp,
+			wounds, recovery]
+		line += "  ·  Order: %s" % order.get("label", "None") if compact \
+			else "\nStanding order: %s" % order.get("label", "None")
+		lines.append(line)
+	report.text = ("\n" if compact else "\n\n").join(lines)
+
+
+func _next_visible_mission() -> String:
+	return str(_run.mission_ids[_run.mission_index]) if _commission.is_empty() else str(_run.destination_id)
 
 
 func _show_result() -> void:
 	var result: Dictionary = _run.last_result
-	var page := _page("result", 44)
+	var page := _book_page("result", 0.55)
 	var success: bool = result.outcome == "victory"
 	var outing := "Adventure" if _commission.is_empty() else "Commission"
-	var outcome := _label(page, "%s %s" % [outing, "complete" if success else "failed"], 44, MINT if success else RUST, true)
+	var leaves := _book.spread(page, 0.55, 45)
+	var front := _book.inset(leaves[0], GuildBookPage.FOREST if success else Color("#583c32"),
+		GuildBookPage.BRASS, 31, 28)
+	front.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var closing := _book.stack(front, 17)
+	_book.rule(closing, GuildBookPage.BRASS)
+	var outcome := _book.text(closing, "%s %s" % [outing, "complete" if success else "failed"],
+		52, GuildBookPage.CREAM, "display")
 	outcome.name = "RunOutcome"
 	outcome.set_meta("outcome", result.outcome)
-	_label(page, _mission_title_for(result.mission_id), 22, PAPER, true)
-	if not result.text.is_empty():
-		_wrapped_label(page, result.text, 16, PAPER)
-	_rule(page)
-	if _commission.is_empty():
-		_wrapped_label(page, "Return to the guild to recruit a fresh party.", 16, MUTED)
+	_book.text(closing, _mission_title_for(result.mission_id), 28, GuildBookPage.CREAM, "italic")
+	var painting := _destination_plate(str(result.mission_id))
+	var image := painting if painting != null else _report_plate(str(result.mission_id))
+	if image != null:
+		var plate := _book.plate(closing, image, Vector2(0, 292),
+			"study" if painting == null else "crop")
+		plate.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	else:
-		_wrapped_label(page, "Return to %s for a fresh commission board." % _guild_profile.name, 16, MUTED)
-	var return_button := _primary_button(page, "ReturnToGuild", "Return to guild")
+		_book.space(closing, 90, true)
+	_book.rule(closing, GuildBookPage.BRASS)
+	var account := leaves[1]
+	_book.space(account, 87)
+	_book.text(account, "Back at the guild", 41, GuildBookPage.INK, "display")
+	_book.rule(account)
+	if not result.text.is_empty():
+		_book.text(account, result.text, 19)
+	_book.space(account, 7)
+	if _commission.is_empty():
+		_book.text(account, "Return to the guild to recruit a fresh party.", 17, GuildBookPage.SUBTLE)
+	else:
+		_book.text(account, "Return to %s for a fresh commission board." % _guild_profile.name, 17, GuildBookPage.SUBTLE)
+	_book.space(account, 10)
+	var return_button := _book.button(account, "ReturnToGuild", "Return to guild", "ClothButton")
 	return_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	return_button.pressed.connect(_return_to_guild)
 	return_button.grab_focus()
+	_book.space(account, 12, true)
 
 
 func _return_to_guild() -> void:

@@ -3,11 +3,11 @@
   "upgrades": {
     "knight_hp_1": {
       "hero_id": "knight", "rarity": "common", "cap": 5, "effect": "max_hp", "amount": 1,
-      "label": "+1 HP", "description": "The Knight gains 1 maximum HP and 1 current HP when next deployed."
+      "label": "+1 HP", "description": "The Anxious Knight gains 1 maximum HP and 1 current HP when next deployed."
     },
     "knight_hp_2": {
       "hero_id": "knight", "rarity": "uncommon", "cap": 2, "effect": "max_hp", "amount": 2,
-      "label": "+2 HP", "description": "The Knight gains 2 maximum HP and 2 current HP when next deployed."
+      "label": "+2 HP", "description": "The Anxious Knight gains 2 maximum HP and 2 current HP when next deployed."
     },
     "knight_shield_damage_1": {
       "hero_id": "knight", "rarity": "uncommon", "cap": 3, "effect": "shield_damage", "amount": 1,
@@ -15,11 +15,11 @@
     },
     "knight_hp_5": {
       "hero_id": "knight", "rarity": "rare", "cap": 1, "effect": "max_hp", "amount": 5,
-      "label": "+5 HP", "description": "The Knight gains 5 maximum HP and 5 current HP when next deployed."
+      "label": "+5 HP", "description": "The Anxious Knight gains 5 maximum HP and 5 current HP when next deployed."
     },
     "knight_dig_in": {
       "hero_id": "knight", "rarity": "rare", "cap": 1, "effect": "dig_in", "amount": 1,
-      "label": "Dig In", "description": "While guarding, reverse an enemy pull against the Knight and pull the enemy instead."
+      "label": "Dig In", "description": "While guarding, reverse an enemy pull against the Anxious Knight and pull the enemy instead."
     },
     "knight_shield_throw": {
       "hero_id": "knight", "rarity": "rare", "cap": 1, "effect": "shield_throw", "amount": 1,
@@ -36,7 +36,7 @@
     },
     "healer_hp_1": {
       "hero_id": "healer", "rarity": "common", "cap": 3, "effect": "max_hp", "amount": 1,
-      "label": "+1 HP", "description": "The Healer gains 1 maximum HP and 1 current HP when next deployed."
+      "label": "+1 HP", "description": "The Unimpressed Healer gains 1 maximum HP and 1 current HP when next deployed."
     },
     "healer_bonk_damage_1": {
       "hero_id": "healer", "rarity": "common", "cap": 2, "effect": "bonk_damage", "amount": 1,
@@ -44,7 +44,7 @@
     },
     "healer_hp_2": {
       "hero_id": "healer", "rarity": "uncommon", "cap": 1, "effect": "max_hp", "amount": 2,
-      "label": "+2 HP", "description": "The Healer gains 2 maximum HP and 2 current HP when next deployed."
+      "label": "+2 HP", "description": "The Unimpressed Healer gains 2 maximum HP and 2 current HP when next deployed."
     },
     "healer_heal_1": {
       "hero_id": "healer", "rarity": "uncommon", "cap": 2, "effect": "heal_amount", "amount": 1,
@@ -68,11 +68,11 @@
     },
     "healer_me_or_you": {
       "hero_id": "healer", "rarity": "legendary", "cap": 1, "effect": "me_or_you", "amount": 1,
-      "label": "Me or You", "description": "If hurt, the Healer receives the full heal. Otherwise split it evenly among the other living deployed heroes, including those at full HP. Extra points go in party order; unused healing is lost."
+      "label": "Me or You", "description": "If hurt, the Unimpressed Healer receives the full heal. Otherwise split it evenly among the other living deployed heroes, including those at full HP. Extra points go in party order; unused healing is lost."
     },
     "wizard_spare_robes": {
       "hero_id": "wizard", "rarity": "common", "cap": 3, "effect": "max_hp", "amount": 1,
-      "label": "Spare Robes", "description": "The Wizard gains 1 maximum HP and 1 current HP when next deployed."
+      "label": "Spare Robes", "description": "The Enthusiastic Caster gains 1 maximum HP and 1 current HP when next deployed."
     },
     "wizard_more_powder": {
       "hero_id": "wizard", "rarity": "common", "cap": 2, "effect": "blast_damage", "amount": 1,
@@ -80,7 +80,7 @@
     },
     "wizard_padded_landing": {
       "hero_id": "wizard", "rarity": "uncommon", "cap": 2, "effect": "padded_landing", "amount": 1,
-      "label": "Padded Landing", "description": "Pull recoil deals 1 less damage, to a minimum of zero. The Wizard still falls over."
+      "label": "Padded Landing", "description": "Pull recoil deals 1 less damage, to a minimum of zero. The Enthusiastic Caster still falls over."
     },
     "wizard_demolition_practice": {
       "hero_id": "wizard", "rarity": "uncommon", "cap": 2, "effect": "demolition_practice", "amount": 2,
@@ -92,7 +92,7 @@
     },
     "wizard_braced_casting": {
       "hero_id": "wizard", "rarity": "rare", "cap": 1, "effect": "braced_casting", "amount": 1,
-      "label": "Braced Casting", "description": "The Wizard stays standing if Pull recoil ends against the board edge or impassable terrain directly behind them."
+      "label": "Braced Casting", "description": "The Enthusiastic Caster stays standing if Pull recoil ends against the board edge or impassable terrain directly behind them."
     },
     "wizard_parting_gift": {
       "hero_id": "wizard", "rarity": "rare", "cap": 1, "effect": "parting_gift", "amount": 1,
@@ -100,11 +100,11 @@
     },
     "wizard_conductive_personality": {
       "hero_id": "wizard", "rarity": "legendary", "cap": 1, "effect": "conductive_personality", "amount": 1,
-      "label": "Conductive Personality", "description": "Blast jumps to the nearest other damageable target, even the Wizard, for half damage rounded up. The bolt has no other effects."
+      "label": "Conductive Personality", "description": "Blast jumps to the nearest other damageable target, even the Enthusiastic Caster, for half damage rounded up. The bolt has no other effects."
     },
     "rogue_thick_coat": {
       "hero_id": "rogue", "rarity": "common", "cap": 2, "effect": "max_hp", "amount": 1,
-      "label": "Thick Coat", "description": "The Rogue gains 1 maximum HP and 1 current HP when next deployed."
+      "label": "Thick Coat", "description": "The Daft Dodger gains 1 maximum HP and 1 current HP when next deployed."
     },
     "rogue_cheap_shot": {
       "hero_id": "rogue", "rarity": "common", "cap": 2, "effect": "cheap_shot", "amount": 1,
@@ -116,7 +116,7 @@
     },
     "rogue_borrowed_courage": {
       "hero_id": "rogue", "rarity": "uncommon", "cap": 2, "effect": "borrowed_courage", "amount": 1,
-      "label": "Borrowed Courage", "description": "After swapping with an ally, reduce the next hit on that ally before the Rogue's next turn by 1."
+      "label": "Borrowed Courage", "description": "After swapping with an ally, reduce the next hit on that ally before the Daft Dodger's next turn by 1."
     },
     "rogue_pass_the_buck": {
       "hero_id": "rogue", "rarity": "rare", "cap": 1, "effect": "pass_the_buck", "amount": 1,
@@ -128,15 +128,15 @@
     },
     "rogue_long_finger": {
       "hero_id": "rogue", "rarity": "rare", "cap": 1, "effect": "long_finger", "amount": 1,
-      "label": "Long Finger", "description": "A marked attacker without an adjacent alternate victim can blame someone two tiles away. The Rogue still cannot choose the victim."
+      "label": "Long Finger", "description": "A marked attacker without an adjacent alternate victim can blame someone two tiles away. The Daft Dodger still cannot choose the victim."
     },
     "rogue_body_double": {
       "hero_id": "rogue", "rarity": "legendary", "cap": 1, "effect": "body_double", "amount": 1,
-      "label": "Body Double", "description": "After Dodge, the first attack aimed at the Rogue before their next turn hits their living swap partner instead, friend or foe."
+      "label": "Body Double", "description": "After Dodge, the first attack aimed at the Daft Dodger before their next turn hits their living swap partner instead, friend or foe."
     },
     "bard_road_legs": {
       "hero_id": "bard", "rarity": "common", "cap": 2, "effect": "max_hp", "amount": 1,
-      "label": "Road Legs", "description": "The Bard gains 1 maximum HP and 1 current HP when next deployed."
+      "label": "Road Legs", "description": "The Bad Bard gains 1 maximum HP and 1 current HP when next deployed."
     },
     "bard_sharper_notes": {
       "hero_id": "bard", "rarity": "common", "cap": 2, "effect": "sonnet_damage", "amount": 1,
@@ -144,7 +144,7 @@
     },
     "bard_buskers_hat": {
       "hero_id": "bard", "rarity": "uncommon", "cap": 2, "effect": "buskers_hat", "amount": 1,
-      "label": "Busker's Hat", "description": "If Melody has no eligible listener, heal the Bard for 1. This still uses the action."
+      "label": "Busker's Hat", "description": "If Melody has no eligible listener, heal the Bad Bard for 1. This still uses the action."
     },
     "bard_front_row_seats": {
       "hero_id": "bard", "rarity": "uncommon", "cap": 1, "effect": "front_row_seats", "amount": 1,
@@ -156,7 +156,7 @@
     },
     "bard_heckler": {
       "hero_id": "bard", "rarity": "rare", "cap": 1, "effect": "heckler", "amount": 1,
-      "label": "Heckler", "description": "An opponent who survives Sonnet directs their next attack at the Bard if the Bard is a legal target."
+      "label": "Heckler", "description": "An opponent who survives Sonnet directs their next attack at the Bad Bard if the Bad Bard is a legal target."
     },
     "bard_house_lights": {
       "hero_id": "bard", "rarity": "legendary", "cap": 1, "effect": "house_lights", "amount": 1,

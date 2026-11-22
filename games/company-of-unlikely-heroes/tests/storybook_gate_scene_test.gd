@@ -42,6 +42,13 @@ func _run() -> void:
 		_check(false, "Opening Knight has two legal moves for replacement")
 		_finish()
 		return
+	# Keep the native window's incidental pointer position from opening a
+	# tooltip that consumes Escape before the keyboard test reaches battle.
+	var motion := InputEventMouseMotion.new()
+	motion.position = Vector2(-1, -1)
+	motion.global_position = motion.position
+	root.push_input(motion, true)
+	await process_frame
 	await _keyboard_move(board, knight, targets[0], before)
 	await _full_hero_actions(board, before)
 	await _unavailable_bonk(board, before)

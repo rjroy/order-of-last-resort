@@ -1,0 +1,54 @@
+{
+  "sources": {
+    "../study/connected-study.png": {
+      "job": "image_201b75d78001YK7EeoaVkFpaln",
+      "sha256": "e4958fa9548052f79b61126ace6ba9660cca67765e4cb76fd2ae70ef3b4fd3c5"
+    },
+    "sheet-a.png": {
+      "job": "image_201ba1e66001qww6Qk2N3KBuCL",
+      "sha256": "5ee822a6c8e6e15bae024346035bae1e8eb17097ce8061da52f6b93a32c40a59"
+    },
+    "sheet-b.png": {
+      "job": "image_201ba1e6b001FhNIdWjcJRbT7J",
+      "sha256": "aead1df57013bec05a71d6488551eec74c140bbab1a4bee6dfbe202c9fad87d7"
+    },
+    "sheet-c.png": {
+      "job": "image_201ba1e7b001oavsMNDtNXAUdu",
+      "sha256": "dde1a717972eadff00b2c47ed6f2ff70e2588f966b21e5568d27c9979b5900db"
+    },
+    "sheet-d.png": {
+      "job": "image_201ba1e8d0010NMR1xpF2NzNHl",
+      "sha256": "4b6313fd00c21e0164ae9eeeea9af63968619e332bdc7d1a1a9bdf1513832dde"
+    },
+    "sheet-e.png": {
+      "job": "image_201ba1e90001e5cT300uNnL0vp",
+      "sha256": "691657e11ae9158d29031ee16da9d0ae0ec75f01ca145c1d570372f6a13e6d83"
+    },
+    "sheet-corrections.png": {
+      "job": "image_201bb0c12001NywLIdtINwPJOO",
+      "sha256": "00d72031052fc0641381a248418ed5a5e8bf37a3102db725e748f0b0adf12835"
+    }
+  },
+  "cuts": {
+    "bridge_patrol": ["sheet-a.png", 0, 0, 768, 512],
+    "goblin_mob": ["sheet-a.png", 768, 0, 768, 512],
+    "shield_wall": ["sheet-a.png", 0, 512, 768, 512],
+    "explosive_situation": ["sheet-a.png", 768, 512, 768, 512],
+    "harpoon_squad": ["sheet-corrections.png", 0, 0, 768, 512],
+    "cowardly_captain": ["sheet-b.png", 768, 0, 768, 512],
+    "unfortunate_healer": ["sheet-b.png", 0, 512, 768, 512],
+    "duelists": ["sheet-b.png", 768, 512, 768, 512],
+    "odd_couple": ["sheet-c.png", 0, 0, 768, 512],
+    "mirror_company": ["sheet-c.png", 768, 0, 768, 512],
+    "last_one_standing": ["sheet-c.png", 0, 512, 768, 512],
+    "hold_the_line": ["sheet-c.png", 768, 512, 768, 512],
+    "company_rescue": ["sheet-corrections.png", 0, 512, 768, 512],
+    "unwelcome_guest": ["sheet-corrections.png", 768, 0, 768, 512],
+    "wrong_side_of_the_door": ["sheet-d.png", 0, 512, 768, 512],
+    "great_sheep_escape": ["sheet-e.png", 0, 0, 768, 512],
+    "dont_wake_the_giant": ["sheet-e.png", 768, 0, 768, 512],
+    "unfortunate_ritual": ["sheet-e.png", 0, 512, 768, 512],
+    "last_wagon": ["sheet-e.png", 768, 512, 768, 512],
+    "bridge_is_out": ["../study/connected-study.png", 10, 518, 750, 497]
+  }
+}

@@ -101,7 +101,8 @@ func _run() -> void:
 		await _press("ForecastDetails")
 		_check(scene.battle_snapshot().get("round") == round_before.get("round"), "Preview does not advance")
 		var summary := scene.get("_storybook_page").get("_summary") as Label
-		_check(summary != null and summary.is_visible_in_tree() and "wizard" in summary.text.to_lower(),
+		_check(summary != null and summary.is_visible_in_tree()
+			and driver.rules.display_name(round_before, "wizard") in summary.text,
 			"HUD identifies the commanded hero")
 		await _press("Commit")
 		_check(scene.current_screen() == "battle", "Opening combat remains active after one round")
@@ -110,7 +111,8 @@ func _run() -> void:
 				"Commit advances the round")
 			if await _choose_first_ability("knight"):
 				summary = scene.get("_storybook_page").get("_summary") as Label
-				_check(summary != null and summary.is_visible_in_tree() and "knight" in summary.text.to_lower(),
+				_check(summary != null and summary.is_visible_in_tree()
+					and driver.rules.display_name(scene.battle_snapshot(), "knight") in summary.text,
 					"A different hero can be commanded next round")
 	await _exercise_transition_fixture()
 	await _exercise_bard_guild()
@@ -192,7 +194,8 @@ func _exercise_transition_fixture() -> void:
 	_check(scene.current_screen() == "debrief", "Committed fixture victory opens debrief")
 	if scene.current_screen() == "debrief":
 		var report := _node("CarryReport")
-		_check(report != null and "Wizard   4/6 HP → 4/6 HP  ·  Wounded" in str(report.text),
+		var wizard_label: String = defs.characters.wizard.label
+		_check(report != null and (wizard_label + "   4/6 HP → 4/6 HP  ·  Wounded") in str(report.text),
 			"Debrief reports the wizard's recoil wound and carry")
 		await process_frame
 		_check(scene.current_screen() == "debrief", "Debrief waits for explicit continuation")
@@ -239,7 +242,7 @@ func _exercise_transition_fixture() -> void:
 					var text := ""
 					for label in dialog.find_children("*", "Label", true, false):
 						text += str(label.text) + "\n"
-					_check(upgrade.label in text and upgrade.description in text and "Knight" in text,
+					_check(upgrade.label in text and upgrade.description in text and defs.characters.knight.label in text,
 						"Loadout displays the claimed hero, reward and description")
 					dialog.hide()
 			var wizard_hp := -1

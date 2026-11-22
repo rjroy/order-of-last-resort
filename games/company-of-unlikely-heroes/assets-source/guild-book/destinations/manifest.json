@@ -1,0 +1,163 @@
+{
+  "version": 1,
+  "status": "candidate",
+  "date": "2026-11-21",
+  "generator": "OpenCode experimental_image_generate",
+  "model": "openai/gpt-image-2",
+  "texture": "960x500, 8-bit opaque sRGB PNG",
+  "masters": {
+    "study": {
+      "file": "../study/connected-study.png",
+      "job": "image_201b75d78001YK7EeoaVkFpaln",
+      "brief": "Connected illustration study. The upper-left bridge vista is reused for the failing gorge crossing.",
+      "references": [
+        "../study/README.md"
+      ],
+      "pixels": "1536x1024",
+      "sha256": "e4958fa9548052f79b61126ace6ba9660cca67765e4cb76fd2ae70ef3b4fd3c5"
+    },
+    "river-and-square": {
+      "file": "native/river-and-square.png",
+      "job": "image_201b9b1a00018Te5nTWhTuypLQ",
+      "brief": "Pair: low ferry river above, shuttered square and crooked well below. Only the lower panel ships; the upper panel is the correction input.",
+      "references": [
+        "../study/connected-study.png#top-left",
+        "assets/boards/bridge.png",
+        "assets/boards/village_square.png"
+      ],
+      "pixels": "1254x1254",
+      "sha256": "73df459e965209f35f724e5fb4125c1e04d21ab5dcac3cae47b80e186245f78f"
+    },
+    "gate-and-line": {
+      "file": "native/gate-and-line.png",
+      "job": "image_201b9ddcc001QUkBTFdmtaSbrh",
+      "brief": "Pair: closed iron-barred gate in amber ruin above; low breastwork and lantern on a slate dusk ridge below.",
+      "references": [
+        "../study/connected-study.png#top-left",
+        "assets-source/storybook-gate/gate-scenery-native.png",
+        "assets/boards/frontier_line_board.png"
+      ],
+      "pixels": "1254x1254",
+      "sha256": "40cd45af6d88b7f95cda192d4dc6fdcb38c3d273ed3b9e2954d5b3faac4fda1d"
+    },
+    "pasture-and-ravine": {
+      "file": "native/pasture-and-ravine.png",
+      "job": "image_201ba0631001bC7qf7frrarOK1",
+      "brief": "Pair: green sheepfold and ash tree above; slate ravine with massive rock overhang and indistinct resting silhouette below.",
+      "references": [
+        "../study/connected-study.png#top-left",
+        "assets/boards/frontier_sheep_board.png",
+        "assets/boards/frontier_treasure_board.png"
+      ],
+      "pixels": "1254x1254",
+      "sha256": "9068508ec327146e5fc7839162b28d43fbdb5137941a14219d2c9411e8ed2c03"
+    },
+    "moor-and-road": {
+      "file": "native/moor-and-road.png",
+      "job": "image_201ba2e1b001TG6622L3IQr57D",
+      "brief": "Pair: fog and low lichen-covered moor stones above; rutted village road and canvas supply wagon below.",
+      "references": [
+        "../study/connected-study.png#top-left",
+        "assets/boards/frontier_ritual_board.png",
+        "assets/boards/frontier_wagon_board.png"
+      ],
+      "pixels": "1254x1254",
+      "sha256": "ccf573149c9cabbf737779725d5f58efca34b9ee95809c3c1181a6bdbf096e56"
+    },
+    "perch-and-fair": {
+      "file": "native/perch-and-fair.png",
+      "job": "image_201ba5e5b00117pYmM9WgsIR2e",
+      "brief": "Pair: border watch perch above, fairground-edge pennants below. Both seen from an autumn field.",
+      "references": [
+        "../study/connected-study.png#top-left",
+        "assets-source/storybook-field/frontier-field-native.png"
+      ],
+      "pixels": "1254x1254",
+      "sha256": "b235b7aafc82acc55e7b7fe05c8f9f8d2ee37257d41d15ec47410492b6b616f8"
+    },
+    "mirror": {
+      "file": "native/mirror.png",
+      "job": "image_201ba8433001Q3QQsCGhOOR4b7",
+      "brief": "Empty autumn clearing with paired weathered slate waystones, grasses and haze.",
+      "references": [
+        "../study/connected-study.png#top-left",
+        "assets-source/storybook-field/frontier-field-native.png"
+      ],
+      "pixels": "1774x887",
+      "sha256": "908f2864fc031edcf689b3ddfdf17eead4bf424e4614dc48928c06aa95e7849b"
+    },
+    "ferryman-crossing-correction": {
+      "file": "native/ferryman-crossing-correction.png",
+      "job": "image_201bacefa001joIMzvIvOw816D",
+      "brief": "Targeted correction. Low plank bridge visibly joins both banks; a wooden ferry is moored beside it.",
+      "references": [
+        "native/river-and-square.png",
+        "assets/boards/bridge.png"
+      ],
+      "pixels": "1774x887",
+      "sha256": "494c727b6a8537a19be60f501e6f66906edf8173e0505f37faacf80d945c091a"
+    }
+  },
+  "destinations": {
+    "bridge_is_out": {
+      "master": "study",
+      "rectangle": "750x391+10+63",
+      "sha256": "3018cb69141a2de7ab743c4c6973456e59885d3568d20708e746a79a8b50af0f"
+    },
+    "company_rescue": {
+      "master": "ferryman-crossing-correction",
+      "rectangle": "1703x887+65+0",
+      "sha256": "466e57f99ccfda8da7926cb5cd67a67d008635ab74d7bae271d06d4553053c2c"
+    },
+    "cowardly_captain": {
+      "master": "perch-and-fair",
+      "rectangle": "1200x625+27+1",
+      "sha256": "2dc86bf8361d60721c5e2f9e81b1c55dcdc4c932b50209f06430193d2709c2de"
+    },
+    "dont_wake_the_giant": {
+      "master": "pasture-and-ravine",
+      "rectangle": "1200x625+27+628",
+      "sha256": "b8c92d87681676512da9fc657212baf5364b5a0b752f1a2d175862db5396ea70"
+    },
+    "great_sheep_escape": {
+      "master": "pasture-and-ravine",
+      "rectangle": "1200x625+27+1",
+      "sha256": "89778470babfb2330376a895344895e6ae5745f94ac784ef0bc7600ca8cb296b"
+    },
+    "hold_the_line": {
+      "master": "gate-and-line",
+      "rectangle": "1200x625+27+628",
+      "sha256": "ee44fa44acd00c1b9fa49c795886336572d7c3133eb02ec19a2b228cc7684dfd"
+    },
+    "last_wagon": {
+      "master": "moor-and-road",
+      "rectangle": "1200x625+27+628",
+      "sha256": "aedd125eaa06f0b4cd4f4770580798eaad24f0fd581e96ed1cfa821ec6bdba7d"
+    },
+    "mirror_company": {
+      "master": "mirror",
+      "rectangle": "1703x887+35+0",
+      "sha256": "ce543eea14291e0e60d72514337347897a0e224978e5c9fb786cc5f6404ee816"
+    },
+    "odd_couple": {
+      "master": "perch-and-fair",
+      "rectangle": "1200x625+27+628",
+      "sha256": "479eb10d438cb4b0128defc9409f713ac776e78e860f3b5fce3937d415687f03"
+    },
+    "unfortunate_ritual": {
+      "master": "moor-and-road",
+      "rectangle": "1200x625+27+1",
+      "sha256": "9d62401393d909993258bbd8ae4b2334eab89d0a2283286d0266fddbfef5f987"
+    },
+    "unwelcome_guest": {
+      "master": "river-and-square",
+      "rectangle": "1200x625+52+628",
+      "sha256": "a35f12e94ae0d6adbe1be1b86cb707e7b56f2e6b3f9c8e9bc407bc352fdd337b"
+    },
+    "wrong_side_of_the_door": {
+      "master": "gate-and-line",
+      "rectangle": "1200x625+27+1",
+      "sha256": "5f0d3f9272a5da65c5915e0a5c201dac11514e518e10164507cd50f826d69c4d"
+    }
+  }
+}

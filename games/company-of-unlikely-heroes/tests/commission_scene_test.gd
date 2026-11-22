@@ -53,20 +53,26 @@ func _run() -> void:
 	_check(store.load_profile(profile_path).get("board_seed") == BOARD_SEED, "Reload retains the controlled board seed")
 	_check(_node("Route_0") == null and _node("Route_1") == null,
 		"Commission board does not reveal route reports")
-	var board_text: Array = []
+	var board_offers: Array = []
+	var board_titles: Array[String] = []
 	for i in 3:
 		var commission := _node("Commission_%d" % i) as BaseButton
 		_check(commission != null and commission.is_visible_in_tree() and not commission.disabled,
 			"Commission %d is visible and selectable" % i)
 		if commission != null:
-			board_text.append(commission.text)
+			var offer := _commission_snapshot(i)
+			var title := commission.accessibility_name.trim_prefix("Choose commission: ")
+			_check(not title.is_empty() and title != commission.accessibility_name
+				and title in offer.get("labels", []), "Commission %d shows its destination title" % i)
+			_check(title not in board_titles, "Commission %d has a distinct destination" % i)
+			board_titles.append(title)
+			board_offers.append(offer)
 	_check(_node("Commission_3") == null, "Commission board offers exactly three commissions")
 	var run: Dictionary = scene.get("_run")
 	_check(run.get("reports", []).is_empty(), "No route reports appear before accepting a commission")
 	await _launch_normal()
-	for i in board_text.size():
-		var commission := _node("Commission_%d" % i) as BaseButton
-		_check(commission != null and commission.text == board_text[i], "Reload preserves commission %d" % i)
+	for i in board_offers.size():
+		_check(_commission_snapshot(i) == board_offers[i], "Reload preserves commission %d" % i)
 	await _press("Commission_0")
 	_check(scene.current_screen() == "guild", "Accepting a commission opens recruitment")
 	run = scene.get("_run")
@@ -83,6 +89,10 @@ func _run() -> void:
 		_cleanup()
 		return
 	run = scene.get("_run")
+	# Keep reward choices reproducible without changing the commission route.
+	var reward_rng := RandomNumberGenerator.new()
+	reward_rng.seed = 12345
+	run.reward_rng_state = reward_rng.state
 	var reports: Array = run.get("reports", [])
 	_check(run.get("phase") == "route" and reports.size() == 2, "Exactly two route reports are offered")
 	for report in reports:
@@ -175,6 +185,19 @@ func _run() -> void:
 	else:
 		_check(false, "Outing reaches an actual terminal result before returning")
 	_cleanup()
+
+
+func _commission_snapshot(index: int) -> Dictionary:
+	var card := _node("CommissionCard_%d" % index)
+	var button := _node("Commission_%d" % index) as BaseButton
+	if card == null or button == null:
+		return {}
+	var labels: Array[String] = []
+	for node in card.find_children("*", "Label", true, false):
+		if node.is_visible_in_tree():
+			labels.append(str(node.text))
+	return {"title": button.accessibility_name, "description": button.accessibility_description,
+		"labels": labels}
 
 
 func _visible_text() -> String:

@@ -1,0 +1,28 @@
+{
+  "size": [636, 308],
+  "sheets": {
+    "kh-gear-native.png": "158b74dca39b1175e674fbca13c82a71d3a81176f63e8de754fbe36b6cb05326",
+    "kh-action-native.png": "6cbd0e1a6b881444eedb94409009fdfbdb17862adf351bd9b5c22a7172614079",
+    "kh-heal-native.png": "e8e70bd2a51628d96814e42e56e511b95b4bb1e95530f1fbc79951b4a6080086",
+    "../study/connected-study.png": "e4958fa9548052f79b61126ace6ba9660cca67765e4cb76fd2ae70ef3b4fd3c5"
+  },
+  "crops": {
+    "knight_hp_1": ["kh-gear-native.png", 0, 4, 724, 354],
+    "knight_hp_2": ["kh-gear-native.png", 724, 4, 724, 354],
+    "knight_hp_5": ["kh-gear-native.png", 0, 365, 724, 354],
+    "knight_shield_damage_1": ["kh-action-native.png", 0, 0, 724, 353],
+    "knight_shield_damage_3": ["kh-action-native.png", 724, 0, 724, 353],
+    "knight_dig_in": ["kh-action-native.png", 0, 357, 724, 357],
+    "knight_shield_throw": ["../study/connected-study.png", 776, 546, 750, 363],
+    "knight_wide_guard": ["kh-action-native.png", 724, 350, 724, 371],
+    "healer_hp_1": ["kh-gear-native.png", 724, 365, 724, 354],
+    "healer_hp_2": ["kh-gear-native.png", 0, 726, 724, 354],
+    "healer_bonk_damage_1": ["kh-action-native.png", 0, 730, 724, 352],
+    "healer_bonk_damage_2": ["kh-action-native.png", 724, 730, 724, 352],
+    "healer_heal_1": ["kh-heal-native.png", 0, 14, 887, 429],
+    "healer_heal_2": ["kh-heal-native.png", 887, 14, 887, 429],
+    "healer_long_staff": ["kh-gear-native.png", 690, 716, 758, 369],
+    "healer_strong_swing": ["kh-heal-native.png", 0, 437, 887, 429],
+    "healer_me_or_you": ["kh-heal-native.png", 887, 437, 887, 429]
+  }
+}

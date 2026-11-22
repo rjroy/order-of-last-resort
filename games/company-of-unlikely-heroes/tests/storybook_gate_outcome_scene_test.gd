@@ -157,7 +157,7 @@ func _round(step: Array, inspect_opening_knight := false) -> bool:
 			await _key(KEY_RIGHT)
 			await _key(KEY_LEFT)
 			var inspection: String = scene.get("_storybook_inspection")
-			_check("A2" in inspection and "Knight" in inspection and "HP" in inspection,
+			_check("A2" in inspection and rules.display_name(before, "knight") in inspection and "HP" in inspection,
 				"Focused A2 inspection identifies Knight before commitment")
 	var plan: Dictionary = scene.get("_plan").duplicate(true)
 	var expected: Dictionary = rules.commit_round(scene.get("_planned_state"), plan)
@@ -167,7 +167,7 @@ func _round(step: Array, inspect_opening_knight := false) -> bool:
 	_check(scene.battle_snapshot() == expected, "Route commit matches its forecast")
 	if inspect_opening_knight:
 		var inspection: String = scene.get("_storybook_inspection")
-		_check(not ("A2" in inspection and "Knight" in inspection and "HP" in inspection),
+		_check(not ("A2" in inspection and rules.display_name(before, "knight") in inspection and "HP" in inspection),
 			"After Knight moves, A2 inspection does not claim Knight still occupies it")
 	if not step.is_empty() and _unit(scene.battle_snapshot(), step[0]).get("position") != step[1]:
 		_check(false, "Route actor reaches destination: " + str(step))

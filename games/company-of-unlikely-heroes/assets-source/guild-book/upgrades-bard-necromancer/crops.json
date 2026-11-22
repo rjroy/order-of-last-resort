@@ -1,0 +1,20 @@
+{
+  "size": [318, 154],
+  "crops": {
+    "bard_road_legs": ["bard-objects.png", 0, 0, 887, 430],
+    "bard_sharper_notes": ["bard-objects.png", 887, 8, 887, 430],
+    "bard_buskers_hat": ["bard-objects.png", 0, 451, 887, 430],
+    "bard_front_row_seats": ["bard-objects.png", 887, 451, 887, 430],
+    "bard_laughing_fit": ["bard-actions.png", 0, 1, 887, 430],
+    "bard_heckler": ["bard-actions.png", 887, 5, 887, 430],
+    "bard_house_lights": ["bard-actions.png", 0, 443, 887, 430],
+    "necromancer_spare_ribs": ["undead-objects.png", 0, 0, 887, 430],
+    "necromancer_good_soil": ["undead-objects.png", 873, 0, 901, 436],
+    "necromancer_heavy_bouquet": ["undead-objects.png", 0, 445, 912, 442],
+    "necromancer_broad_wave": ["undead-objects.png", 887, 452, 887, 430],
+    "necromancer_long_stemmed": ["undead-actions.png", 0, 8, 887, 430],
+    "necromancer_warm_welcome": ["undead-actions.png", 887, 8, 887, 430],
+    "necromancer_say_hello_to_that_one": ["undead-actions.png", 0, 451, 887, 430],
+    "necromancer_wake_reception": ["undead-actions.png", 887, 445, 887, 430]
+  }
+}

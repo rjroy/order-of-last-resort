@@ -1,0 +1,46 @@
+# Barnaby’s Order of Last Resort: non-hero battle cast
+
+**Inventory baseline:** `629a36a`. Across 20 playable missions the stock bundle places 26 distinct non-party character IDs: **25 living characters and one moving objective, the Supply Wagon**. Two additional non-hero IDs, Skeleton and Zombie, enter through summons and already have approved models and working battle animations. Seven recruitable heroes are out of scope. This is an art inventory, not a change to mission design or approval of a concept. Beads tracks production status; the character ID, not the displayed label or placement name, is the join key. Epic: mind-garage-xmy.
+
+## Production standard
+
+Prefer a distinct silhouette, posture, kit and characteristic motion per identity. Shared rigs, cameras and bake tooling are welcome; palette swaps alone are not a substitute for an identifiable character. Repeated placements of the same character can share a model. Use the existing Crooked Storybook Fantasy direction. Follow concept → approval → editable rig and poses → approval → baked sprites and actual Godot mission integration. Preserve older props or authored custom art where needed. Show the final result on the board at tactical size, rather than signing off from Blender alone.
+
+| Character and runtime ID | Stock mission IDs (includes reserves) | What needs to read on the board | Bead |
+|---|---|---|---|
+| Harpooner (`harpooner`) | `bridge_patrol`, `company_rescue`, `harpoon_squad`, `explosive_situation` | Long reach and a deliberate aiming stance. Distinguish the close strike from the ranged harpoon; it hits rather than reeling a target in. | mind-garage-xmy.1 |
+| Ferryman (`ferryman`) | `company_rescue` | Give the rescued civilian a working boatman’s silhouette; show cautious travel and a relieved arrival at the safe bank, without suggesting an attack. | mind-garage-xmy.2 |
+| Goblin (`goblin`) | `goblin_mob`, `wrong_side_of_the_door`, `hold_the_line`, `bridge_is_out`, `dont_wake_the_giant`, `unfortunate_ritual` | A small, quick jabber whose attack reads even in a crowd of five. Use one unmistakable silhouette for mob, guard and raider placements. | mind-garage-xmy.3 |
+| Hookhand (`hookhand`) | `harpoon_squad`, `unfortunate_ritual` | Plant the feet and reel the victim one step closer. Keep the hook and hauling pose visibly different from the Harpooner’s damaging thrust. | mind-garage-xmy.4 |
+| Bruiser (`bruiser`) | `harpoon_squad`, `unfortunate_healer`, `hold_the_line` | A close-range enforcer with a heavy windup and follow-through. Read as muscle beside Hookhand without mistaking him for the Ogre. | mind-garage-xmy.5 |
+| Village Troll (`village_troll`) | `unwelcome_guest` | A curious follower rather than a boss attacker: lumber toward the nearest hero, stop beside them, and read clearly when lured or displaced out alive. | mind-garage-xmy.6 |
+| Shieldbearer (`shieldbearer`) | `shield_wall` | A broad planted shield and bracing stance communicate protection of the adjacent Archer. Show bash and guard without hiding the unit behind it. | mind-garage-xmy.7 |
+| Archer (`archer`) | `shield_wall`, `hold_the_line` | Show the bow silhouette, draw, release and recovery, legible behind shields and when arriving from reserve. | mind-garage-xmy.8 |
+| Captain (`captain`) | `cowardly_captain` | A would-be commander who signals authority near Grunts, then backs away from danger. Keep retreat distinct from a normal advance. | mind-garage-xmy.9 |
+| Grunt (`grunt`) | `cowardly_captain` | A rank-and-file fighter with a compact melee strike and a response to the Captain’s presence. Distinguish from Captain and Wagon Raider. | mind-garage-xmy.10 |
+| Bomber (`bomber`) | `explosive_situation` | Give the volatile payload a recognizable silhouette. Convey strike and on-defeat detonation clearly when one Bomber sets off another. | mind-garage-xmy.11 |
+| Enemy Healer (`enemy_healer`) | `unfortunate_healer` | A field medic to the Bruisers: distinguish limited ally healing from a close bonk. Neither the player Healer nor the Mirror Company medic in different colors. | mind-garage-xmy.12 |
+| Duelist (`duelist`) | `duelists` | A narrow fencing silhouette; separate deliberate attack from the quick retaliation triggered by an adjacent attacker. | mind-garage-xmy.13 |
+| Ogre (`ogre`) | `odd_couple` | A massive, deliberate hitter; weight and impact must read beside the smaller Trickster, including on the receiving end of a swap. | mind-garage-xmy.14 |
+| Trickster (`trickster`) | `odd_couple` | A nimble partner to the Ogre. Contrast the melee feint and position-swap tell; the pair must remain identifiable after changing places. | mind-garage-xmy.15 |
+| Rival Knight (`rival_knight`) | `mirror_company` | Design a member of the rival company, not a recolored Anxious Knight. Communicate a committed shield push and its direction. | mind-garage-xmy.16 |
+| Rival Wizard (`rival_wizard`) | `mirror_company` | Keep the rival-company resemblance without cloning the Enthusiastic Caster. Show the automatic blast aimed at the actual nearest target. | mind-garage-xmy.17 |
+| Rival Healer (`rival_healer`) | `mirror_company` | A distinct rival-company medic, recognizable beside both other rivals. Differentiate ally healing and a bonk from the Enemy Healer and player Healer. | mind-garage-xmy.18 |
+| Fierce Bandit (`bandit_damage`) | `last_one_standing` | Fierce sibling: an aggressive silhouette with a stronger melee follow-through as bandits fall. Read apart from both siblings without relying on color. | mind-garage-xmy.19 |
+| Guard Bandit (`bandit_guard`) | `last_one_standing` | Guard sibling: a defensive silhouette and readable bracing response when a sibling falls. Separate from the shield-wall specialist. | mind-garage-xmy.20 |
+| Swift Bandit (`bandit_swift`) | `last_one_standing` | Swift sibling: a light silhouette and quick footwork that make the extra movement after a sibling falls apparent. | mind-garage-xmy.21 |
+| War Drummer (`frontier_war_drummer`) | `hold_the_line` | A recognizable drummer on reserve arrival. Show a deliberate drumbeat delivering its pulse, not a generic melee swing. | mind-garage-xmy.22 |
+| Sheep (`frontier_sheep`) | `great_sheep_escape` | A quadruped with a flock-readable startle, flee and settle in the pen. All three placements share this identity; do not reuse the Ferryman figure. | mind-garage-xmy.23 |
+| Opposing Shepherd (`frontier_shepherd`) | `great_sheep_escape` | A working shepherd whose wave scatters sheep without harming them. Give the wave a clear silhouette distinct from a weapon strike. | mind-garage-xmy.24 |
+| Wagon Raider (`frontier_wagon_raider`) | `last_wagon` | A raider focused on intercepting and striking the wagon. Make the silhouette and action distinct from the road Harpooner and Goblin raiders. | mind-garage-xmy.25 |
+| Supply Wagon (`frontier_wagon`) | `last_wagon` | An animated escort asset, not a humanoid. Wheels, load and body should read during advance, enemy stall and destruction; no invented driver or new mechanic. | mind-garage-xmy.26 |
+
+## Already delivered and scope boundaries
+
+- **Skeleton (`skeleton`)**: Ready, Wave, Don’t Go. **Zombie (`zombie`)**: Ready, Say Hello, Offer Flower and detached gift. Existing beads `mind-garage-ddd.10`, `.11`, and shared integration `.12` are closed. The current cast manifest and summon cue wiring supersede older model notes that stopped at pose approval. Do not commission replacements.
+- Road patrol `raider_one`/`raider_two` are Harpooners. `gate_guard`, `bridge_raider`, `ritual_raider`, and `treasure_guard` are Goblin placements. `reserve_archer` and `reserve_drummer` are the Archer and War Drummer, not additional identities. The rival trio, the two non-player healer roles, and all three bandit siblings each warrant separate designs despite shared mechanics or placeholder art.
+- The Supply Wagon has a character ID, HP, movement, and destruction; give it its own animated-object bead. Crates, ritual circles, gate, treasure and terrain do not have character performances. The sleeping giant is the premise/noise condition of `dont_wake_the_giant`, not a spawned actor. Friendly reinforcements and villagers mentioned in outcomes are likewise not additional fielded roles. Guild portraits, mission paintings and report sketches alone are not battle characters.
+
+## How to recheck coverage
+
+From `games/company-of-unlikely-heroes/content/catalog.json`, merge the listed parts; follow `missions[*].encounter` to every `encounters[*].placements[*].character`, including placements held in reserve. Resolve each character against its own record and class defaults. Check summon ability definitions separately and compare `cast_key` against `games/company-of-unlikely-heroes/assets/cast/manifest.json`. Character definitions come from `common.json`, `village_troubles.json`, `frontier_combats.json` and `frontier_objectives.json`; `first_outing.json` provides opening placements. Recheck this list when a new mission introduces a new identity.

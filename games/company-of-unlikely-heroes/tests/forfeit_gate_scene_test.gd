@@ -217,6 +217,34 @@ func _open_order_popup_accessibility() -> void:
 			and picker.selected >= 0 and picker.get_item_text(picker.selected) == guard
 			and scene.battle_snapshot() == before and scene.get("_planned_state") == queued,
 			"Cancel preserves orders leaf, queued command and authoritative Guard selection")
+		picker = scene.find_child("KnightOrder", true, false) as OptionButton
+		if picker != null and picker.is_visible_in_tree() and not picker.disabled:
+			picker.grab_focus()
+			await _key(KEY_SPACE)
+			var reopened := picker.get_popup()
+			_check(reopened.visible, "Knight order picker deliberately reopens after Cancel")
+			if reopened.visible:
+				var fresh_index := -1
+				for index in picker.item_count:
+					if picker.get_item_text(index) == advance and not picker.is_item_disabled(index):
+						fresh_index = index
+				for _attempt in picker.item_count:
+					if reopened.get_focused_item() == fresh_index:
+						break
+					await _key(KEY_DOWN)
+				if fresh_index >= 0 and reopened.get_focused_item() == fresh_index:
+					await _key(KEY_ENTER)
+					var expected_battle: Dictionary = rules.set_order(before, "knight", "order_advance")
+					var expected_queue: Dictionary = rules.set_order(queued, "knight", "order_advance")
+					_check(not reopened.visible and intents == [["knight", "order_advance"]]
+						and scene.battle_snapshot() == expected_battle
+						and scene.get("_planned_state") == expected_queue,
+						"Fresh Advance choice applies after Cancel without changing queued Pull")
+				else:
+					_check(false, "Reopened Knight picker offers Advance to keyboard navigation")
+					await _key(KEY_ESCAPE)
+		else:
+			_check(false, "Knight order picker remains available after Cancel")
 	page.disconnect("order_selected", record)
 
 

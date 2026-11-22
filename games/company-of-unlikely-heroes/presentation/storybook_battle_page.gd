@@ -91,6 +91,7 @@ var _order_rows: Array = []
 var _order_widgets: Dictionary = {}
 var _expanded := ""
 var _popup_epoch := 0
+var _dismissed_order_pickers: Array[OptionButton] = []
 var _display: SystemFont
 var _built := false
 
@@ -400,6 +401,7 @@ func _open_forfeit_confirmation() -> void:
 	_forfeit_modal.accessibility_description = _forfeit_copy.text
 	_forfeit_cancel.accessibility_description = _forfeit_copy.text
 	_popup_epoch += 1
+	_dismissed_order_pickers.clear()
 	_forfeit_modal.show()
 	_surface_root.set_inert(true)
 	_dismiss_battle_popups()
@@ -415,6 +417,7 @@ func _cancel_forfeit() -> void:
 	if not is_forfeit_confirmation_open():
 		return
 	_close_forfeit_confirmation()
+	_reexpose_dismissed_order_pickers()
 	if _forfeit.is_visible_in_tree():
 		_forfeit.grab_focus()
 
@@ -439,7 +442,24 @@ func _dismiss_battle_popups() -> void:
 	_actions.get_popup().hide()
 	_targets.get_popup().hide()
 	for widgets: Dictionary in _order_widgets.values():
-		widgets.picker.get_popup().hide()
+		var picker: OptionButton = widgets.picker
+		var popup := picker.get_popup()
+		if popup.visible:
+			_dismissed_order_pickers.append(picker)
+			popup.hide()
+
+
+func _reexpose_dismissed_order_pickers() -> void:
+	for picker in _dismissed_order_pickers:
+		if not is_instance_valid(picker) or not picker.is_visible_in_tree():
+			continue
+		# Closing an open popup under the inert surface can leave its picker
+		# defunct to AT-SPI. Re-enter the tree to publish fresh accessibility
+		# elements without changing the picker, popup epoch, or standing order.
+		var row := picker.get_parent()
+		row.remove_child(picker)
+		row.add_child(picker)
+	_dismissed_order_pickers.clear()
 
 
 func _battle_popup_visibility_changed(popup: PopupMenu) -> void:

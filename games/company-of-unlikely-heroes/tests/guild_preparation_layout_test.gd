@@ -74,6 +74,24 @@ func _check_deployment(count: int) -> void:
 			and earlier != null and earlier.disabled == (index == 0)
 			and later != null and later.disabled == (index == count - 1),
 			scenario + ": filled slot %d preserves focus and valid reordering" % (index + 1))
+		if edit != null:
+			_expect(edit.is_visible_in_tree() and not edit.disabled
+				and "edit loadout" in edit.text.to_lower(),
+				scenario + ": " + id + " has a visibly labeled loadout action")
+			var titles := edit.get_parent().find_children("*", "Label", true, false)
+			var separate_title := false
+			for title: Label in titles:
+				if title.text == party[index].name and title.is_visible_in_tree():
+					separate_title = true
+					_expect(not title.get_global_rect().intersects(edit.get_global_rect()),
+						scenario + ": title and loadout action do not overlap")
+			_expect(separate_title, scenario + ": " + id + " has a separate plain class title")
+			_expect(_visible_in(edit.name, "DeploymentScroll"),
+				scenario + ": loadout action is unclipped")
+			for other in [earlier, later]:
+				if other != null:
+					_expect(not edit.get_global_rect().intersects(other.get_global_rect()),
+						scenario + ": loadout and reorder actions do not overlap")
 
 
 func _check_petition(id: String) -> void:

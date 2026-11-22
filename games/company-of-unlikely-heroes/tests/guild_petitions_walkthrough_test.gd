@@ -40,6 +40,12 @@ func _run() -> void:
 			_check(false, purchase_id + ": return persisted four points")
 			continue
 		await _launch_normal()
+		for board_size in [Vector2i(1280, 820), Vector2i(960, 615)]:
+			viewport.size = board_size
+			await _launch_normal()
+			await _check_petitions_entry("funded")
+		viewport.size = VIEWPORT_SIZE
+		await _launch_normal()
 		await _press("Petitions")
 		await _capture(purchase_id + "_credited_petitions")
 		await _press("Petition_" + purchase_id)

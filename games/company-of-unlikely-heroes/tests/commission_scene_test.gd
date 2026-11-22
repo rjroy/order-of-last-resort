@@ -58,6 +58,12 @@ func _run() -> void:
 	_check(scene.current_screen() == "commissions", "Reloading the saved guild opens its board")
 	_check(store.load_profile(profile_path).get("name") == GUILD_NAME, "Reload retains the guild name")
 	_check(store.load_profile(profile_path).get("board_seed") == BOARD_SEED, "Reload retains the controlled board seed")
+	for board_size in [Vector2i(1280, 820), Vector2i(960, 615)]:
+		viewport.size = board_size
+		await _launch_normal()
+		await _check_petitions_entry("zero points")
+	viewport.size = VIEWPORT_SIZE
+	await _launch_normal()
 	_check(_node("Route_0") == null and _node("Route_1") == null,
 		"Commission board does not reveal route reports")
 	var board_offers: Array = []
@@ -94,6 +100,27 @@ func _run() -> void:
 		_check(_node("Recruit_" + id) == null, "Locked recruit is absent from fresh guild: " + id)
 	for id in ["knight", "healer", "wizard"]:
 		await _press("Recruit_" + id)
+	for id in ["knight", "healer", "wizard"]:
+		var edit := _node("EditHero_" + id) as Button
+		_check(edit != null and edit.is_visible_in_tree() and not edit.disabled
+			and "edit loadout" in edit.text.to_lower(),
+			id + " has a visible labeled loadout button")
+		if edit == null or edit.disabled:
+			continue
+		edit.grab_focus()
+		_check(viewport.gui_get_focus_owner() == edit, id + " loadout button accepts keyboard focus")
+		for down in [true, false]:
+			var action := InputEventAction.new()
+			action.action = "ui_accept"
+			action.pressed = down
+			viewport.push_input(action, true)
+			await process_frame
+		var hero := _node("LoadoutHero") as Label
+		var expected: Dictionary = scene.call("_hero_row", id)
+		_check(hero != null and hero.text == expected.name,
+			"Keyboard activation opens the selected " + id + " loadout")
+		if hero != null:
+			await _press("RecruitList")
 	await _press("EditHero_healer")
 	var recruit_list := _node("RecruitList") as BaseButton
 	_check(recruit_list != null and recruit_list.is_visible_in_tree() and not recruit_list.disabled
@@ -206,6 +233,69 @@ func _run() -> void:
 	else:
 		_check(false, "Outing reaches an actual terminal result before returning")
 	_cleanup()
+
+
+func _check_petitions_entry(scenario: String) -> void:
+	for tick in 3:
+		await process_frame
+	var button := _node("Petitions") as Button
+	var context := "%s at %s" % [scenario, viewport.size]
+	for index in 3:
+		var choose := _node("Commission_%d" % index) as Button
+		_check(choose != null and choose.is_visible_in_tree() and not choose.disabled
+			and choose.text == "Choose commission",
+			context + ": commission %d has a visible enabled Choose commission button" % index)
+		if choose != null:
+			var choose_bounds := choose.get_global_rect()
+			_check(choose_bounds.has_area()
+				and Rect2(Vector2.ZERO, Vector2(viewport.size)).encloses(choose_bounds),
+				context + ": commission %d button fits the viewport" % index)
+			var parent := choose.get_parent()
+			while parent != null and parent != viewport:
+				if parent is Control and parent.clip_contents:
+					_check(parent.get_global_rect().encloses(choose_bounds),
+						context + ": commission %d button is not clipped" % index)
+				parent = parent.get_parent()
+	_check(button != null and button.is_visible_in_tree() and not button.disabled
+		and "guild petitions" in button.text.to_lower(),
+		context + ": board has a visible actionable Guild petitions button")
+	if button == null:
+		return
+	_check(button.theme_type_variation != "QuietButton",
+		context + ": petitions entry is presented as an action, not quiet text")
+	var bounds := button.get_global_rect()
+	_check(bounds.has_area() and Rect2(Vector2.ZERO, Vector2(viewport.size)).encloses(bounds),
+		context + ": petitions button fits the viewport")
+	var ancestor := button.get_parent()
+	while ancestor != null and ancestor != viewport:
+		if ancestor is Control and ancestor.clip_contents:
+			_check(ancestor.get_global_rect().encloses(bounds), context + ": petitions button is not clipped")
+		ancestor = ancestor.get_parent()
+	for name in ["PracticeOutings", "CommissionCard_0", "CommissionCard_1", "CommissionCard_2"]:
+		var other := _node(name) as Control
+		if other != null and other.is_visible_in_tree():
+			_check(not bounds.intersects(other.get_global_rect()),
+				context + ": petitions does not overlap " + name)
+	if viewport.get_parent() is SubViewportContainer:
+		await _practice_window_click(button)
+	else:
+		var point := bounds.get_center()
+		var motion := InputEventMouseMotion.new()
+		motion.position = point
+		motion.global_position = point
+		viewport.push_input(motion, true)
+		await process_frame
+		for down in [true, false]:
+			var event := InputEventMouseButton.new()
+			event.button_index = MOUSE_BUTTON_LEFT
+			event.pressed = down
+			event.position = point
+			event.global_position = point
+			event.button_mask = MOUSE_BUTTON_MASK_LEFT if down else 0
+			viewport.push_input(event, true)
+			await process_frame
+	_check(_node("Petition_recruit_bard") != null,
+		context + ": clicking the actual board entry opens petitions")
 
 
 func _test_practice_after_commission_back() -> bool:

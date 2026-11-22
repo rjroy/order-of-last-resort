@@ -401,21 +401,28 @@ func _create_guild(guild_name: String, feedback: Label) -> void:
 
 func _show_commissions(board_refresh_failed := false) -> void:
 	var page := _book_page("commissions")
+	var compact := _uses_builtin_catalog and _book.get_viewport_rect().size.x < 1100
+	if _uses_builtin_catalog:
+		page.add_theme_constant_override("separation", 11 if compact else 12)
 	_book_heading(page, "Commission board", str(_guild_profile.name),
 		"PracticeOutings", "Practice outings", _open_practice_outings)
 	if board_refresh_failed:
 		_book.text(page, "The board wasn’t refreshed. These commissions are from the current saved guild.", 16, GuildBookPage.RUST)
 	if _uses_builtin_catalog:
-		var ledger := _book.row(page, 16)
-		var account := _book.stack(ledger, 2)
-		account.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_book.text(account, "Guild points: %d" % GuildProfile.balance(_guild_profile), 17, GuildBookPage.FOREST)
-		var summary := _receipt_summary(_guild_profile.get("last_receipt", {}))
-		if not summary.is_empty():
-			_book.text(account, summary, 15, GuildBookPage.SUBTLE)
-		var petitions := _book.button(ledger, "Petitions", "Guild petitions", "QuietButton")
+		var ledger := _book.row(page, 24)
+		var account := _book.row(ledger, 12)
+		var balance := _book.text(account, "Guild points: %d" % GuildProfile.balance(_guild_profile),
+			17, GuildBookPage.FOREST)
+		balance.autowrap_mode = TextServer.AUTOWRAP_OFF
+		balance.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var petitions := _book.button(account, "Petitions", "Guild petitions")
 		petitions.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		petitions.pressed.connect(_show_petitions)
+		var summary := _receipt_summary(_guild_profile.get("last_receipt", {}))
+		if not summary.is_empty():
+			var receipt := _book.text(ledger, summary, 15, GuildBookPage.SUBTLE)
+			receipt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			receipt.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var cards := _book.row(page, 19)
 	cards.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var offers := Commissions.board(_definitions, int(_guild_profile.board_seed))
@@ -425,20 +432,22 @@ func _show_commissions(board_refresh_failed := false) -> void:
 		var title := _mission_title_for(offer.destination_id)
 		var long_job: bool = offer.length == 10
 		var mounted := _book.inset(cards, Color("#e7d5ac") if long_job else GuildBookPage.PALE,
-			GuildBookPage.RULE, 14, 14)
+			GuildBookPage.RULE, 10 if compact else 14, 10 if compact else 14)
 		mounted.name = "CommissionCard_%d" % index
 		mounted.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		mounted.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		mounted.size_flags_stretch_ratio = 1.12 if long_job else 1.0
-		var card := _book.stack(mounted, 11)
+		var card := _book.stack(mounted, 8 if compact else 11)
 		var painting := _destination_plate(str(offer.destination_id))
 		if painting != null:
-			_book.plate(card, painting, Vector2(0, 204 if long_job else 182))
-		var region := _book.detail_scroll(card, "CommissionDetails_%d" % index, 243, "Scroll commission details")
-		var details := _book.stack(region, 11)
+			var painting_height := (115 if long_job else 105) if compact else (204 if long_job else 182)
+			_book.plate(card, painting, Vector2(0, painting_height))
+		var region := _book.detail_scroll(card, "CommissionDetails_%d" % index, 132 if compact else 243,
+			"Scroll commission details")
+		var details := _book.stack(region, 8 if compact else 11)
 		details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var heading := _book.text(details, title, 35, GuildBookPage.INK, "display")
-		heading.custom_minimum_size.y = 82
+		var heading := _book.text(details, title, 30 if compact else 35, GuildBookPage.INK, "display")
+		heading.custom_minimum_size.y = 62 if compact else 82
 		var count := _book.inset(details, GuildBookPage.FOREST if long_job else Color("#e9dbbc"),
 			GuildBookPage.RULE, 10, 5)
 		count.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN

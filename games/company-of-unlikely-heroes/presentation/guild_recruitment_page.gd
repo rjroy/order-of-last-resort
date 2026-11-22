@@ -37,7 +37,7 @@ func focus_control(name: String) -> Control:
 func _build_deployment(parent: VBoxContainer, model: Dictionary, party: Array) -> void:
 	var compact := _book.get_viewport_rect().size.x < 1100
 	if compact:
-		parent.add_theme_constant_override("separation", 9)
+		parent.add_theme_constant_override("separation", 6)
 	var back := Prep.back(_book, parent)
 	back.pressed.connect(func() -> void: back_requested.emit())
 	Prep.text(_book, parent, "Choose your company", 34 if compact else 42)
@@ -51,22 +51,22 @@ func _build_deployment(parent: VBoxContainer, model: Dictionary, party: Array) -
 	Prep.text(_book, parent, "%d of %d selected" % [party.size(), party_size], 21, Prep.FOREST).name = "PartyCount"
 	_book.rule(parent, Prep.RULE)
 	var scroll := _book.scroll(parent, "DeploymentScroll")
-	var list := _book.stack(scroll, 6)
+	var list := _book.stack(scroll, 5 if compact else 6)
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for index in party_size:
-		_build_slot(list, party[index] if index < party.size() else {}, index, party.size())
+		_build_slot(list, party[index] if index < party.size() else {}, index, party.size(), compact)
 
 
-func _build_slot(parent: Control, hero: Dictionary, index: int, filled: int) -> void:
+func _build_slot(parent: Control, hero: Dictionary, index: int, filled: int, compact: bool) -> void:
 	var id := str(hero.get("id", ""))
 	var selected := not id.is_empty() and id == _editing_id
 	var fill := Color("#f6dfb5") if selected else Color.TRANSPARENT
 	var mounted := Prep.mount(parent, selected, false, false, fill, 10, 5)
-	var row := _book.row(mounted, 11)
-	var portrait_side := 121.0 if _book.get_viewport_rect().size.x >= 1100 else 83.0
+	var row := _book.row(mounted, 9 if compact else 11)
+	var portrait_side := 83.0 if compact else 121.0
 	row.custom_minimum_size.y = portrait_side if not id.is_empty() else 44
-	var number := Prep.line(_book, row, "%02d" % (index + 1), 31, GuildBookPage.RUST)
-	number.custom_minimum_size.x = 44
+	var number := Prep.line(_book, row, "%02d" % (index + 1), 27 if compact else 31, GuildBookPage.RUST)
+	number.custom_minimum_size.x = 34 if compact else 44
 	number.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	if id.is_empty():
 		var place := Prep.line(_book, row, "Open place", 23, Prep.QUIET, "italic")
@@ -75,32 +75,34 @@ func _build_slot(parent: Control, hero: Dictionary, index: int, filled: int) -> 
 		_book.rule(parent, Prep.RULE)
 		return
 	Prep.picture(_book, row, hero.get("portrait") as Texture2D, portrait_side)
-	var copy := _book.stack(row, 3)
+	var copy := _book.stack(row, 2 if compact else 3)
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	copy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var title := str(hero.get("name", ""))
-	var edit := _book.button(copy, "EditHero_" + id, title, "QuietButton")
-	edit.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	edit.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	edit.add_theme_font_size_override("font_size", 26)
-	edit.add_theme_font_override("font", Prep.serif())
-	edit.add_theme_color_override("font_color", Prep.INK)
-	edit.add_theme_constant_override("outline_size", 0)
-	edit.custom_minimum_size.y = 39
+	Prep.text(_book, copy, title, 22 if compact else 26)
+	var edit := _book.button(copy, "EditHero_" + id, "Edit loadout")
+	edit.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	edit.custom_minimum_size.y = 32 if compact else 35
 	edit.accessibility_name = "Edit loadout: " + title
 	edit.tooltip_text = edit.accessibility_name
-	edit.pressed.connect(func() -> void: hero_edit_requested.emit(id))
 	if selected:
-		Prep.text(_book, copy, "Editing loadout", 18, Prep.GOLD, "italic")
 		edit.accessibility_description = "Editing loadout"
+	edit.pressed.connect(func() -> void: hero_edit_requested.emit(id))
 	var tools := _book.row(copy, 6)
 	for delta in [-1, 1]:
 		var direction := "Earlier" if delta == -1 else "Later"
 		var button := Prep.small_button(_book, tools, "Party%s_%s" % [direction, id], direction)
+		if compact:
+			button.custom_minimum_size.y = 32
 		button.accessibility_name = "Move %s %s" % [title, direction.to_lower()]
 		button.tooltip_text = button.accessibility_name
 		_book.set_disabled(button, index + delta < 0 or index + delta >= filled)
 		button.pressed.connect(func() -> void: reorder_requested.emit(id, delta))
+	if selected:
+		var state := Prep.text(_book, tools, "Editing" if compact else "Editing loadout",
+			16 if compact else 18, Prep.GOLD, "italic")
+		state.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		state.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_book.rule(parent, Prep.RULE)
 
 
@@ -131,9 +133,9 @@ func _build_recruits(parent: VBoxContainer, model: Dictionary, party: Array) -> 
 	Prep.text(_book, parent, "Available recruits", 35)
 	var party_size := int(model.get("party_size", 0))
 	var full := party.size() >= party_size
-	var guidance := "Choose %d heroes. Select a deployed hero to edit their loadout." % party_size
+	var guidance := "Choose %d heroes. Use Edit loadout to change a deployed hero’s gear or orders." % party_size
 	if full:
-		guidance = "Remove a hero to make room for another. Select a deployed hero to edit their loadout."
+		guidance = "Remove a hero to make room for another. Use Edit loadout to change gear or orders."
 	Prep.text(_book, parent, guidance, 18, Prep.QUIET)
 	_book.rule(parent, Prep.RULE)
 	var scroll := _book.scroll(parent, "RecruitScroll")

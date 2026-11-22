@@ -16,8 +16,8 @@ node_modules
 /dist
 /out
 
-# Borrowed Turns Godot editor cache
-/games/borrowed-turns/.godot/
+# Godot editor and imported-resource cache (keep .uid and .import sidecars)
+.godot/
 
 # python
 __pycache__/

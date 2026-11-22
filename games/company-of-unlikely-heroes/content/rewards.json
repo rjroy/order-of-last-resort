@@ -195,9 +195,47 @@
     "necromancer_wake_reception": {
       "hero_id": "necromancer", "rarity": "legendary", "cap": 1, "effect": "wake_reception", "amount": 1,
       "label": "Wake Reception", "description": "Once per mission, a fallen raised zombie becomes a skeleton if the skeleton slot is empty. It uses the current skeleton starting HP and first acts next round."
+    },
+    "alchemist_padded_apron": {
+      "hero_id": "alchemist", "rarity": "common", "cap": 2, "effect": "max_hp", "amount": 1,
+      "label": "Padded Apron", "description": "Gain 1 maximum HP without changing how much HP is missing."
+    },
+    "alchemist_stronger_dose": {
+      "hero_id": "alchemist", "rarity": "common", "cap": 2, "effect": "stronger_dose", "amount": 1,
+      "label": "Stronger Dose", "description": "Healing Potion restores 1 more HP."
+    },
+    "alchemist_concentrate": {
+      "hero_id": "alchemist", "rarity": "uncommon", "cap": 2, "effect": "concentrate", "amount": 1,
+      "label": "Concentrate", "description": "Acid deals 1 more damage to its target."
+    },
+    "alchemist_long_ladle": {
+      "hero_id": "alchemist", "rarity": "uncommon", "cap": 1, "effect": "long_ladle", "amount": 1,
+      "label": "Long Ladle", "description": "Healing Potion reaches one tile farther. Follow still stops beside the nearest ally."
+    },
+    "alchemist_spare_vial": {
+      "hero_id": "alchemist", "rarity": "rare", "cap": 1, "effect": "spare_vial", "amount": 1,
+      "label": "Spare Vial", "description": "Gain Plain Tonic: a range-1 heal for 1 with no reaction. Potion upgrades do not affect it.",
+      "ability": "alchemist_plain_tonic"
+    },
+    "alchemist_brittle_glass": {
+      "hero_id": "alchemist", "rarity": "rare", "cap": 1, "effect": "brittle_glass", "amount": 1,
+      "label": "Brittle Glass", "description": "Acid splashes 1 damage onto adjacent characters, friends included. Only its chosen target gets a reaction."
+    },
+    "alchemist_keep_the_culture": {
+      "hero_id": "alchemist", "rarity": "legendary", "cap": 1, "effect": "keep_the_culture", "amount": 1,
+      "label": "Keep the Culture", "description": "Bottle the last potion or Acid reaction. Repeat Batch uses that recipe and reaction on another legal recipient, then empties the bottle. Bottles do not carry between missions.",
+      "ability": "alchemist_repeat_batch"
     }
   },
   "abilities": {
+    "alchemist_plain_tonic": {
+      "label": "Plain Tonic", "help": "Heal yourself or a friendly character within one tile for 1 HP, without a reaction.",
+      "handler": "plain_tonic", "params": {"amount": 1}, "targeting": {"kind": "entity", "range": 1}
+    },
+    "alchemist_repeat_batch": {
+      "label": "Repeat Batch", "help": "Repeat the bottled recipe and exact reaction on another legal recipient; empties the bottle.",
+      "handler": "repeat_batch", "params": {}, "targeting": {"kind": "entity"}
+    },
     "knight_shield_throw": {
       "label": "Shield Throw",
       "help": "Deal 3 damage to an enemy or obstacle up to three tiles away. Advance heads toward the thrown shield; retrieve it to guard or throw again.",

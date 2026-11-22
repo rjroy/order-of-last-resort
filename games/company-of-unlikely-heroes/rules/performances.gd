@@ -23,11 +23,18 @@ static func perform(state: Dictionary, actor: Dictionary, ability: Dictionary, a
 		var listener := Board.entity(state, choice.id)
 		var params: Dictionary = ability.params
 		if params.has("status"):
-			if not Statuses.apply(state, listener, params.status, actor):
+			var application := Statuses.apply_result(state, listener, params.status, actor, events)
+			if application == Statuses.Application.REJECTED:
 				return false
 			copy["target"] = choice.label
-			data.merge({"target_id": listener.id, "target_label": choice.label, "status_id": params.status})
-			Board.authored_event(state, events, "performance", params.listener_event, copy, data)
+			data.merge({"target_id": listener.id, "target_label": choice.label})
+			if application == Statuses.Application.APPLIED:
+				data["status_id"] = params.status
+				Board.authored_event(state, events, "performance", params.listener_event, copy, data)
+			else:
+				data["resisted_status_id"] = params.status
+				Board.event(events, "performance", "%s performs %s. %s resists the knockdown." % [
+					name, ability.label, choice.label], data)
 		else:
 			_sonnet(state, actor, ability, ability_id, listener, events)
 		state.rng_state = choice.rng_seed

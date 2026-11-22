@@ -186,7 +186,7 @@ func _exercise_transition_fixture() -> void:
 		_check(foe_set, "Stock patrol supplies a foe for the transition fixture")
 		scene.set("_state", state)
 		scene.set("_planned_state", state.duplicate(true))
-		_check(await driver.order("alchemist", "order_blast"), driver.error)
+		_check(await driver.order("alchemist", "order_throw_samples"), driver.error)
 		if await driver.command("wizard", "wizard_pull", "knight"):
 			await _press("Commit")
 		else:
@@ -201,12 +201,12 @@ func _exercise_transition_fixture() -> void:
 		_check(scene.current_screen() == "debrief", "Debrief waits for explicit continuation")
 		var reward := _node("Reward_knight") as BaseButton
 		_check(reward != null and reward.is_visible_in_tree(), "Knight has a visible reward offer")
-		_check(_node("Reward_wizard") != null and _node("Reward_alchemist") == null,
-			"Only eligible heroes have reward offers")
+		_check(_node("Reward_wizard") != null and _node("Reward_alchemist") != null,
+			"All three eligible heroes have reward offers")
 		var continue_button := _node("ContinueAdventure") as BaseButton
 		_check(continue_button != null and continue_button.disabled, "Continuation requires one reward")
 		var offered_run: Dictionary = scene.get("_run")
-		_check(offered_run.get("phase") == "reward" and offered_run.get("reward_offers", []).size() == 2,
+		_check(offered_run.get("phase") == "reward" and offered_run.get("reward_offers", []).size() == 3,
 			"Debrief offers one choice per eligible hero")
 		# A disabled continuation cannot bypass the choice through its public handler.
 		if continue_button != null:
@@ -215,7 +215,8 @@ func _exercise_transition_fixture() -> void:
 			await _press("Reward_knight")
 			var chosen_run: Dictionary = scene.get("_run")
 			_check(chosen_run.get("phase") == "ready", "Selecting one reward completes the choice")
-			_check(_node("Reward_knight") == null and _node("Reward_wizard") == null,
+			_check(_node("Reward_knight") == null and _node("Reward_wizard") == null
+				and _node("Reward_alchemist") == null,
 				"Claimed debrief exposes no second reward button")
 			var counts: Dictionary = chosen_run.get("upgrades_by_id", {})
 			var count := 0

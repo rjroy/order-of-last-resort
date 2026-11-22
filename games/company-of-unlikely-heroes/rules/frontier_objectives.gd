@@ -1,9 +1,20 @@
 extends RefCounted
 
 const Board = preload("res://rules/board.gd")
+const Movement = preload("res://rules/movement.gd")
 const RitualCapacity = preload("res://rules/ritual_capacity.gd")
+const Statuses = preload("res://rules/statuses.gd")
 const Summons = preload("res://rules/summons.gd")
 const FLEE_STEPS := [Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT, Vector2i.UP]
+
+
+static func controls_movement(state: Dictionary, id: String) -> bool:
+	match state.objective.handler:
+		"herd_sheep":
+			return id in state.objective.subjects
+		"wagon":
+			return id == state.objective.subject
+	return false
 
 
 ## Objective effects run once after the initiative pass and before outcomes.
@@ -74,7 +85,7 @@ static func report_gate_change(state: Dictionary, actor: Dictionary, was_open: b
 	var gate: Vector2i = state.objective.gate
 	Board.event(events, "pressure_gate", "The gate at %s %s." % [
 		Board.coordinate(gate), "opens: the plate is occupied" if opened else "closes: the plate is empty"],
-		{"unit_id": actor.id, "position": gate, "open": opened})
+		{"unit_id": actor.get("id", ""), "position": gate, "open": opened})
 
 
 static func add_noise(state: Dictionary, actor: Dictionary, handler: String, events: Array) -> void:
@@ -218,7 +229,7 @@ static func _flee_sheep(state: Dictionary, events: Array) -> void:
 		return Board.alive(unit) and unit.id not in objective.subjects)
 	for id in objective.subjects:
 		var sheep := Board.entity(state, id)
-		if not Board.alive(sheep) or sheep.position in objective.pen:
+		if not Board.alive(sheep) or _skip_objective_movement(state, sheep, events) or sheep.position in objective.pen:
 			continue
 		var threat := Board.nearest(sheep, threats)
 		if threat.is_empty() or Board.distance(sheep.position, threat.position) > 2:
@@ -235,6 +246,13 @@ static func _flee_sheep(state: Dictionary, events: Array) -> void:
 		if sidestepping:
 			best = _sheep_sidestep(state, sheep.position, objective.pen)
 		if best != sheep.position:
+			if sidestepping:
+				if Movement.blocks_voluntary(state, sheep, events):
+					continue
+			else:
+				if Movement.blocks_forced(state, sheep, events):
+					continue
+				best = Movement.forced_destination(state, sheep, best, best - sheep.position, events)
 			sheep.position = best
 			var sheep_name := Board.display_name(state, sheep)
 			var cell_name := Board.coordinate(best)
@@ -323,7 +341,7 @@ static func _enemy_adjacent(state: Dictionary, wagon: Dictionary) -> bool:
 static func _advance_wagon(state: Dictionary, events: Array) -> void:
 	var objective: Dictionary = state.objective
 	var wagon := Board.entity(state, objective.subject)
-	if not Board.alive(wagon) or wagon.position == objective.destination:
+	if not Board.alive(wagon) or _skip_objective_movement(state, wagon, events) or wagon.position == objective.destination:
 		return
 	var data := {"unit_id": wagon.id, "position": wagon.position}
 	if _enemy_adjacent(state, wagon):
@@ -333,6 +351,12 @@ static func _advance_wagon(state: Dictionary, events: Array) -> void:
 	if step == wagon.position:
 		Board.event(events, "wait", "The wagon's route is blocked.", data)
 		return
+	if Movement.blocks_voluntary(state, wagon, events):
+		return
 	wagon.position = step
 	data.position = step
 	Board.event(events, "move", "The wagon advances to %s." % Board.coordinate(step), data)
+
+
+static func _skip_objective_movement(state: Dictionary, unit: Dictionary, events: Array) -> bool:
+	return Statuses.consume_objective_skip(state, unit, events) or Statuses.knocked_down(state, unit)

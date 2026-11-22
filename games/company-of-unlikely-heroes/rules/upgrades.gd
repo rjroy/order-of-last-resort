@@ -67,6 +67,11 @@ static func ability(state: Dictionary, actor: Dictionary, id: String) -> Diction
 			var owner := _summoner(state, actor)
 			mods = {"damage": amount(state, owner, "heavy_bouquet")}
 			reach = amount(state, owner, "long_stemmed")
+		"alchemist_potion":
+			mods = {"amount": amount(state, actor, "stronger_dose")}
+			reach = amount(state, actor, "long_ladle")
+		"alchemist_acid":
+			mods = {"damage": amount(state, actor, "concentrate")}
 	for key in mods.keys():
 		if mods[key] == 0 or (not params.has(key) and not (key == "damage" and reference_params.has("damage"))):
 			mods.erase(key)
@@ -81,6 +86,12 @@ static func ability(state: Dictionary, actor: Dictionary, id: String) -> Diction
 		result.params[key] = maxi(0, int(result.params[key]) + mods[key])
 	if reach > 0:
 		result.targeting.range = int(base.targeting.range) + reach
+	if id == "alchemist_potion":
+		result.help = "Restore %d HP to yourself or a friendly character within %d tile(s), then apply the forecast reaction." % [
+			int(result.params.amount), int(result.targeting.range)]
+	elif id == "alchemist_acid":
+		result.help = "Deal %d damage to a hostile character within %d tiles, then apply the forecast reaction." % [
+			int(result.params.damage), int(result.targeting.range)]
 	return result
 
 

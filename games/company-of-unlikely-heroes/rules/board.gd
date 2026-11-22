@@ -39,6 +39,23 @@ static func opponents(state: Dictionary, first: Dictionary, second: Dictionary) 
 	return second.has("character_id") and team(state, second) not in ["", "civilian", team(state, first)]
 
 
+## Civilians are friendly to the company without being deployed heroes.
+static func _allegiance(state: Dictionary, unit: Dictionary) -> String:
+	var side := team(state, unit)
+	return "heroes" if side == "civilian" else side
+
+
+static func allied(state: Dictionary, first: Dictionary, second: Dictionary) -> bool:
+	var a := _allegiance(state, first)
+	return not a.is_empty() and a == _allegiance(state, second)
+
+
+static func hostile(state: Dictionary, first: Dictionary, second: Dictionary) -> bool:
+	var a := _allegiance(state, first)
+	var b := _allegiance(state, second)
+	return not a.is_empty() and not b.is_empty() and a != b
+
+
 static func display_name(state: Dictionary, subject: Dictionary) -> String:
 	var name: String = _base_profile(state, subject).get("label", subject.get("id", ""))
 	for other in state.units + state.obstacles:
@@ -185,11 +202,11 @@ static func _qualifies(state: Dictionary, subject: Dictionary, filters: Dictiona
 
 
 # Strict comparison preserves the supplied candidate order on ties.
-static func nearest(origin: Dictionary, candidates: Array) -> Dictionary:
+static func nearest(origin: Dictionary, candidates: Array, include_self := false) -> Dictionary:
 	var best: Dictionary = {}
 	var best_distance := 2147483647
 	for candidate in candidates:
-		if candidate.id == origin.id:
+		if not include_self and candidate.id == origin.id:
 			continue
 		var reach := distance(origin.position, candidate.position)
 		if reach < best_distance:

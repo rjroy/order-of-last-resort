@@ -7,6 +7,8 @@ const GRAPHITE := Color("#44392e")
 const PAPER := Color("#f5dfaa")
 const DARK := Color("#2b1e17")
 const GOLD := Color("#f5c779")
+const REACTION_SECONDS := 1.45
+const REACTION_FADE_SECONDS := 0.25
 const STAMP_SHADER := """
 shader_type canvas_item;
 render_mode unshaded;
@@ -21,6 +23,8 @@ void fragment() {
 
 var _board: BridgeArt
 var _cues: Dictionary = {}
+var _committed_reactions: Array = []
+var _reaction_time_left := 0.0
 var _stamp := Node2D.new()
 var _prop_layer := Node2D.new()
 var _props: Dictionary = {}
@@ -31,6 +35,7 @@ var _cast := CastSprites.new()
 func mount(board: Control) -> void:
 	_board = board as BridgeArt
 	assert(_board != null, "Storybook ink requires the live BridgeArt board.")
+	set_process(false)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	focus_mode = Control.FOCUS_NONE
 	z_index = 3
@@ -58,6 +63,25 @@ func render(cues: Dictionary) -> void:
 	_cues = cues.duplicate(true)
 	_sync_gate_art()
 	_redraw()
+
+
+func play_committed_reactions(reactions: Array) -> void:
+	_committed_reactions = reactions.duplicate(true)
+	_reaction_time_left = REACTION_SECONDS if has_committed_reactions() else 0.0
+	set_process(has_committed_reactions())
+	queue_redraw()
+
+
+func has_committed_reactions() -> bool:
+	return not _committed_reactions.is_empty()
+
+
+func _process(delta: float) -> void:
+	_reaction_time_left -= delta
+	if _reaction_time_left <= 0.0:
+		play_committed_reactions([])
+	else:
+		queue_redraw()
 
 
 func set_scene_props(props: Dictionary) -> void:
@@ -131,9 +155,107 @@ func _draw() -> void:
 	var gate: Dictionary = _cues.get("gate", {})
 	if gate.get("cell") is Vector2i:
 		_gate(_board.cell_center(gate.cell), step, gate.get("opens", false))
+	for reaction: Dictionary in _cues.get("alchemy", []):
+		_forecast_alchemy_mark(reaction, step)
+	for reaction: Dictionary in _committed_reactions:
+		_committed_alchemy_mark(reaction, step)
 	if context_cell is Vector2i and not context_text.is_empty():
 		var target := _board.cell_center(context_cell)
 		_tag(context_text, target + Vector2(0.0, -step.y * 0.67), true)
+
+
+func _forecast_alchemy_mark(reaction: Dictionary, step: Vector2) -> void:
+	var center := _board.cell_center(reaction.position) + step * Vector2(0.24, -0.27)
+	var radius := clampf(step.y * 0.19, 9.0, 15.0)
+	var color := _reaction_color(reaction.category)
+	draw_circle(center, radius, Color(DARK, 0.88), true, -1.0, true)
+	for index in 8:
+		var start := float(index) / 8.0 * TAU
+		draw_arc(center, radius, start, start + TAU * 0.075, 5, color, 1.5, true)
+	_reaction_symbol(reaction, center, radius * 0.59, color, DARK, 0.0)
+
+
+func _committed_alchemy_mark(reaction: Dictionary, step: Vector2) -> void:
+	var age := REACTION_SECONDS - _reaction_time_left
+	var opacity := minf(1.0, _reaction_time_left / REACTION_FADE_SECONDS)
+	var cell := _board.cell_center(reaction.position)
+	var center := cell + step * Vector2(0.24, 0.03)
+	var radius := clampf(step.y * 0.245, 12.0, 20.0) * (1.0 + 0.12 * exp(-age * 12.0))
+	var pigment := Color(_reaction_color(reaction.category), opacity)
+	var outline := Color(DARK, opacity)
+	# The resolved seal uses solid paper, dark ink, and short impact strokes.
+	# Forecasts are higher on the figure, dark, and dashed even on this same tile.
+	draw_circle(center, radius + 2.0, outline, true, -1.0, true)
+	draw_circle(center, radius, pigment, true, -1.0, true)
+	draw_arc(center, radius * 0.84, 0.0, TAU, 32, Color(DARK, opacity * 0.32), 1.0, true)
+	_reaction_symbol(reaction, center, radius * 0.59, outline, pigment, age)
+	for angle: float in [-2.65, -2.14, 2.18]:
+		var ray := Vector2.from_angle(angle)
+		var start := center + ray * (radius + 4.0)
+		var finish := start + ray * (4.0 + 4.0 * exp(-age * 8.0))
+		draw_line(start, finish, outline, 4.0, true)
+		draw_line(start, finish, pigment, 2.0, true)
+
+
+func _reaction_color(category: String) -> Color:
+	match category:
+		"beneficial": return Color("#acd499")
+		"harmful": return Color("#eca397")
+		_: return Color("#e1bceb")
+
+
+func _reaction_symbol(reaction: Dictionary, center: Vector2, unit: float,
+		ink: Color, ground: Color, age: float) -> void:
+	var stroke := maxf(1.2, unit * 0.19)
+	if reaction.category == "beneficial":
+		draw_line(center - Vector2(unit, 0), center + Vector2(unit, 0), ink, stroke, true)
+		draw_line(center - Vector2(0, unit), center + Vector2(0, unit), ink, stroke, true)
+		return
+	if reaction.category == "harmful":
+		draw_line(center - Vector2(0, unit), center + Vector2(0, unit * 0.29), ink, stroke, true)
+		draw_circle(center + Vector2(0, unit * 0.82), stroke * 0.65, ink, true, -1.0, true)
+		return
+	match str(reaction.reaction_id):
+		"upward_rain":
+			for index in 3:
+				var x := float(index - 1) * 0.68
+				var lift := sin(age * 10.0 + float(index) * 2.0) * 0.18
+				var tip := center + Vector2(x + 0.10, -0.60 + lift) * unit
+				draw_line(tip, tip + Vector2(-0.25, 1.35) * unit, ink, stroke, true)
+				draw_polyline(PackedVector2Array([tip + Vector2(-0.29, 0.29) * unit, tip,
+					tip + Vector2(0.18, 0.36) * unit]), ink, stroke, true)
+		"cork_moon":
+			var crescent := PackedVector2Array()
+			for index in 13:
+				var theta := lerpf(0.98, TAU - 0.98, float(index) / 12.0)
+				crescent.append(center + Vector2.from_angle(theta) * unit * 0.94)
+			var top := crescent[-1]
+			var bottom := crescent[0]
+			var hollow := center + Vector2(-0.95, 0) * unit
+			for index in range(1, 12):
+				var t := float(index) / 12.0
+				crescent.append(top.lerp(hollow, t).lerp(hollow.lerp(bottom, t), t))
+			draw_colored_polygon(crescent, ink)
+			var satellite := center + Vector2(0.72, -0.16 + 0.23 * sin(age * 4.0)) * unit
+			draw_circle(satellite, unit * 0.21, ink, true, -1.0, true)
+		"fine_bubbles":
+			for index in 3:
+				var origin: Vector2 = [Vector2(-0.52, 0.40), Vector2(0.49, 0.25), Vector2(0.0, -0.58)][index]
+				var radius: float = [0.45, 0.33, 0.38][index]
+				origin.y += 0.11 * sin(age * 8.0 + float(index) * 2.0)
+				draw_arc(center + origin * unit, unit * radius, 0.0, TAU, 18, ink, stroke * 0.84, true)
+		"spectral_napkin":
+			var wave := sin(age * 8.0) * 0.13
+			var corners := PackedVector2Array([Vector2(-0.94, -0.39), Vector2(0.12, -0.91),
+				Vector2(0.96, -0.34 + wave), Vector2(0.67, 0.33), Vector2(0.48, 0.82 + wave),
+				Vector2(0.13, 0.68), Vector2(-0.13, 0.99), Vector2(-0.90, 0.39)])
+			for index in corners.size():
+				corners[index] = center + corners[index] * unit
+			draw_colored_polygon(corners, ink)
+			draw_polyline(PackedVector2Array([corners[1], center + Vector2(0.04, 0.24) * unit,
+				corners[7]]), ground, stroke * 0.7, true)
+		_:
+			draw_circle(center, unit * 0.36, ink, true, -1.0, true)
 
 
 func _coordinates(step: Vector2) -> void:

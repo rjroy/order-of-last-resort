@@ -291,6 +291,25 @@ func _test_controlled_carry_and_reset(reward_seed: int, force_hp := false) -> vo
 
 
 func _test_authored_patrol_route() -> void:
+	# These recorded routes exercise adventure transitions with the former mix-in.
+	# Freeze its kit in this fixture instead of requiring the current Alchemist
+	# to retain an obsolete action or standing order.
+	var current_defs := defs
+	defs = defs.duplicate(true)
+	defs.characters.alchemist = {
+		"class": "healer", "label": "Mixologist", "guild_portrait": "alchemist",
+		"description": "Fixture brewer with a volatile throw and a ward.",
+		"abilities": ["move", "alchemist_splash", "knight_aura"],
+		"habits": {"order_guard": "guard", "order_blast": "alchemist_blast"},
+		"default_order": "order_guard", "color": "#a5c77c"}
+	defs.abilities.alchemist_splash = {
+		"label": "Volatile splash", "help": "Hit the nearest unit or obstacle.",
+		"handler": "blast", "params": {"damage": 3, "status": "knockdown"},
+		"targeting": {"kind": "automatic", "objects": true, "capabilities": ["damageable"]}}
+	defs.behaviors.alchemist_blast = {"handler": "use_ability", "params": {"ability": "alchemist_splash"}}
+	for id in defs.get("upgrades", {}).keys():
+		if defs.upgrades[id].get("hero_id") == "alchemist":
+			defs.upgrades.erase(id)
 	var routes := [
 		{
 			"party": ["knight", "healer", "wizard"],
@@ -370,6 +389,7 @@ func _test_authored_patrol_route() -> void:
 		_check(finished.get("phase") == "finished" and finished.get("outcome") == "victory",
 			label + ": both real mission victories finish the adventure")
 		_check_reset(finished, picks, label + " victory")
+	defs = current_defs
 
 
 func _test_authored_defeat() -> void:

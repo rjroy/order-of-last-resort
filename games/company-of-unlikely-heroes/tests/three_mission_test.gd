@@ -635,6 +635,9 @@ func _test_troll_routes(square: Dictionary) -> void:
 	_check(pushed, "A legal Knight push can drive the living troll out and win")
 
 	var lure_state := _open("unwelcome_guest", ["healer", "bard", "alchemist"])
+	lure_state = rules.set_order(lure_state, "alchemist", "order_hold")
+	_check(lure_state.get("orders", {}).get("alchemist") == "order_hold",
+		"Non-luring Alchemist holds position for the lure route")
 	var lure_steps := [{"actor": "bard", "target": "4,2"}, {"actor": "healer", "target": "0,3"}]
 	var lured := false
 	for step in lure_steps:

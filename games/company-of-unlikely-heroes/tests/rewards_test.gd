@@ -16,6 +16,7 @@ const POOLS := {
 	"rogue": [["Thick Coat", "common", 2], ["Cheap Shot", "common", 2], ["Exit Strategy", "uncommon", 1], ["Borrowed Courage", "uncommon", 2], ["Pass the Buck", "rare", 1], ["Pocket Sand", "rare", 1], ["Long Finger", "rare", 1], ["Body Double", "legendary", 1]],
 	"bard": [["Road Legs", "common", 2], ["Sharper Notes", "common", 2], ["Busker's Hat", "uncommon", 2], ["Front Row Seats", "uncommon", 1], ["Laughing Fit", "rare", 1], ["Heckler", "rare", 1], ["House Lights", "legendary", 1]],
 	"necromancer": [["Spare Ribs", "common", 3], ["Good Soil", "common", 2], ["Heavy Bouquet", "uncommon", 2], ["Broad Wave", "uncommon", 1], ["Long-Stemmed", "rare", 1], ["Warm Welcome", "rare", 1], ["Say Hello to That One", "rare", 1], ["Wake Reception", "legendary", 1]],
+	"alchemist": [["Padded Apron", "common", 2], ["Stronger Dose", "common", 2], ["Concentrate", "uncommon", 2], ["Long Ladle", "uncommon", 1], ["Spare Vial", "rare", 1], ["Brittle Glass", "rare", 1], ["Keep the Culture", "legendary", 1]],
 }
 
 
@@ -25,6 +26,7 @@ func _initialize() -> void:
 	_test_offers()
 	_test_caps_and_rarities()
 	_test_terminal_boundaries()
+	_test_alchemist_acquisition()
 	if failures.is_empty():
 		print("PASS: reward content and outing")
 	else:
@@ -40,7 +42,7 @@ func _check(ok: bool, message: String) -> void:
 
 func _test_content() -> void:
 	var upgrades: Dictionary = defs.get("upgrades", {})
-	_check(upgrades.size() == 48, "Six shipped hero pools contain exactly 48 entries")
+	_check(upgrades.size() == 55, "Seven shipped hero pools contain exactly 55 entries")
 	for hero in POOLS:
 		var remaining: Array = POOLS[hero].duplicate(true)
 		for id in upgrades:
@@ -53,7 +55,7 @@ func _test_content() -> void:
 			_check(not str(entry.get("description", "")).strip_edges().is_empty(), str(id) + " describes its effect")
 		_check(remaining.is_empty(), "%s missing entries: %s" % [hero, remaining])
 	for entry in upgrades.values():
-		_check(entry.get("hero_id") in POOLS, "Only six shipped heroes have rewards")
+		_check(entry.get("hero_id") in POOLS, "Only the seven shipped heroes have rewards")
 
 
 func _victory(run: Dictionary) -> Dictionary:
@@ -83,12 +85,12 @@ func _test_offers() -> void:
 	var settled := _victory(run)
 	var offers: Array = settled.get("reward_offers", [])
 	_check(settled.get("phase") == "reward", "Nonfinal victory waits for a reward")
-	_check(offers.size() == 2, "Each eligible deployed hero gets one offer; Alchemist is skipped")
+	_check(offers.size() == 3, "Each deployed hero including Alchemist gets one offer")
 	var seen: Array = []
 	for offer in offers:
 		var hero: String = offer.get("hero_id", "")
 		var id: String = offer.get("upgrade_id", "")
-		_check(hero in ["knight", "healer"] and hero not in seen, "Offer belongs to a distinct eligible hero")
+		_check(hero in party and hero not in seen, "Offer belongs to a distinct eligible hero")
 		seen.append(hero)
 		_check(defs.get("upgrades", {}).get(id, {}).get("hero_id") == hero, "Offer belongs to its hero's pool")
 	var again := _victory(adventure.call("start_adventure", defs, "village_troubles", party, 12345))
@@ -100,7 +102,7 @@ func _test_offers() -> void:
 		return
 	var offer: Dictionary = offers[0]
 	var before := settled.duplicate(true)
-	_check(adventure.call("choose_reward", settled, "alchemist", offer.upgrade_id) == settled,
+	_check(adventure.call("choose_reward", settled, "rogue", offer.upgrade_id) == settled,
 		"Unadvertised hero cannot claim an offer")
 	_check(adventure.call("choose_reward", settled, offer.hero_id, "not_an_upgrade") == settled,
 		"An unknown reward cannot be chosen")
@@ -141,7 +143,7 @@ func _test_caps_and_rarities() -> void:
 	for id in upgrades:
 		var entry: Dictionary = upgrades[id]
 		var hero: String = entry.hero_id
-		if hero not in ["knight", "healer"]:
+		if hero not in ["knight", "healer", "alchemist"]:
 			continue
 		if not spent.has(hero):
 			spent[hero] = {}
@@ -237,6 +239,48 @@ func _test_terminal_boundaries() -> void:
 	var direct: Dictionary = rules.open_mission(defs, "goblin_mob", party)
 	_check(not direct.is_empty() and direct.get("reward_offers", []).is_empty(),
 		"Standalone mission opens without outing rewards")
+
+
+func _test_alchemist_acquisition() -> void:
+	var party := ["knight", "healer", "alchemist"]
+	var run: Dictionary = adventure.call("start_adventure", defs, "first_outing", party, 42)
+	var settled := _victory(run)
+	var offer := {}
+	for candidate in settled.get("reward_offers", []):
+		if candidate.get("hero_id") == "alchemist":
+			offer = candidate
+			break
+	_check(not offer.is_empty(), "Alchemist receives a real reward offer after victory")
+	if offer.is_empty():
+		return
+	var chosen: Dictionary = adventure.call("choose_reward", settled, "alchemist", offer.upgrade_id)
+	_check(chosen.get("upgrades_by_id", {}).get("alchemist", {}).get(offer.upgrade_id) == 1,
+		"Choosing Alchemist's offered upgrade records one acquisition")
+	var deployed: Dictionary = adventure.call("begin_mission", chosen)
+	var board: Dictionary = deployed.get("mission", {}).duplicate(true)
+	var brewer := {}
+	for unit in board.get("units", []):
+		if unit.get("id") == "alchemist":
+			brewer = unit
+	_check(brewer.get("upgrades", {}).get(offer.upgrade_id) == 1,
+		"Alchemist's acquired upgrade carries into the next mission")
+	if board.is_empty():
+		return
+	for outcome in ["victory", "defeat"]:
+		var terminal_board := board.duplicate(true)
+		for unit in terminal_board.units:
+			if outcome == "defeat" and unit.id in party:
+				unit.hp = 0
+			elif outcome == "victory" and rules.entity_profile(terminal_board, unit.id).get("team") == "enemies":
+				unit.hp = 0
+			if outcome == "victory" and unit.id == terminal_board.objective.get("subject"):
+				unit.position = terminal_board.objective.destination
+		var terminal: Dictionary = rules.commit_round(terminal_board, rules.preview_round(terminal_board))
+		_check(terminal.get("outcome") == outcome, "Alchemist reset fixture reaches " + outcome)
+		if terminal.get("outcome") != outcome:
+			continue
+		var finished: Dictionary = adventure.call("settle_mission", deployed, terminal)
+		_check_reset(finished, party, "Alchemist reward " + outcome)
 
 
 func _check_reset(finished: Dictionary, party: Array, label: String) -> void:

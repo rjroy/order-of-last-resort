@@ -23,6 +23,7 @@ func _initialize() -> void:
 		_test_sonnet()
 		_test_sonnet_random()
 		_test_overrides()
+		_test_knockdown_performance_protection()
 	if failures.is_empty():
 		print("PASS: Bard integration")
 	else:
@@ -271,3 +272,58 @@ func _test_overrides() -> void:
 			_check("enemy_a" in _event_units(resumed, "recover"), "Melody resumes after movement")
 		else:
 			_check(_unit_at(resumed.result, "enemy_a").get("hp") == 18, "Sonnet resumes after movement")
+
+
+func _test_knockdown_performance_protection() -> void:
+	# Exercise the authored performance handler with a test-owned knockdown
+	# status rather than changing the shipped Melody's laughter mechanic.
+	var original := defs
+	defs = defs.duplicate(true)
+	defs.abilities["fixture_knockdown_song"] = defs.abilities.inspiring_melody.duplicate(true)
+	defs.abilities.fixture_knockdown_song.params.status = "knockdown"
+	defs.characters.bard.abilities = catalog.profile(defs, "bard").abilities.duplicate()
+	defs.characters.bard.abilities.append("fixture_knockdown_song")
+	var errors: PackedStringArray = catalog.validate(defs)
+	_check(errors.is_empty(), "Knockdown performance fixture validates: " + str(errors))
+	if not errors.is_empty():
+		defs = original
+		return
+	var state := _state()
+	defs = original
+	_check(not state.is_empty() and not _unit_at(state, "enemy_a").is_empty(),
+		"Knockdown performance fixture deploys")
+	if state.is_empty() or _unit_at(state, "enemy_a").is_empty():
+		return
+	state.rng_state = 12345
+	_unit_at(state, "enemy_a")["alchemy_statuses"] = {"stiff_upper_lip": {
+		"source_id": "enemy_a", "expires_after_round": state.round + 1}}
+	var before := state.duplicate(true)
+	var plan: Dictionary = rules.preview(state, "bard", "fixture_knockdown_song")
+	_check(plan.get("valid", false) and state == before
+		and plan == rules.preview(state, "bard", "fixture_knockdown_song"),
+		"Protected knockdown performance is a valid, pure, repeatable action")
+	if not plan.get("valid", false):
+		return
+	var protected: Dictionary = rules.apply_plan(state, plan)
+	_check(protected == plan.get("result") and protected.rng_state != before.rng_state,
+		"Protected performance commits its forecast and advances listener RNG")
+	var target := _unit_at(protected, "enemy_a")
+	_check(not target.get("alchemy_statuses", {}).has("stiff_upper_lip")
+		and not target.statuses.has("knockdown"),
+		"Stiff Upper Lip is consumed and prevents this knockdown")
+	var consumed := 0
+	var invalid := false
+	for event in plan.get("events", []):
+		if event.get("status_id") == "stiff_upper_lip" and event.get("consumed", false) \
+				and event.get("target_id") == "enemy_a":
+			consumed += 1
+		if event.get("type") == "invalid":
+			invalid = true
+	_check(consumed == 1 and not invalid,
+		"Performance propagates exactly one protection-consumed event and no invalid action")
+	var second: Dictionary = rules.preview(protected, "bard", "fixture_knockdown_song")
+	_check(second.get("valid", false), "A second knockdown performance is valid")
+	if second.get("valid", false):
+		var next: Dictionary = rules.apply_plan(protected, second)
+		_check(next == second.get("result") and _unit_at(next, "enemy_a").statuses.has("knockdown"),
+			"Consumed protection does not prevent the next knockdown")

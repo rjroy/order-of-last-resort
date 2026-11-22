@@ -18,6 +18,7 @@ const ABILITY_TARGETING := {
 	"swap_furthest": ["automatic"], "swap_ally": ["automatic"], "misdirect": ["entity"],
 	"summon": ["cell", "entity"], "sweep": ["none"], "repel": ["automatic"], "stop_target": ["automatic"],
 	"perform": ["automatic"], "hook": ["entity", "automatic"], "nominate": ["entity"],
+	"healing_potion": ["entity"], "acid": ["entity"], "plain_tonic": ["entity"], "repeat_batch": ["entity"],
 }
 const ABILITY_EVENTS := {"swap_furthest": ["swap"], "swap_ally": ["swap"], "misdirect": ["misdirect_mark"],
 	"sweep": ["sweep"], "stop_target": ["stop_target"], "repel": ["repel"],
@@ -30,13 +31,16 @@ const REWARD_EFFECTS := ["max_hp", "shield_damage", "dig_in", "shield_throw", "w
 	"cheap_shot", "exit_strategy", "borrowed_courage", "pass_the_buck", "pocket_sand", "long_finger", "body_double",
 	"sonnet_damage", "buskers_hat", "front_row_seats", "laughing_fit", "heckler", "house_lights",
 	"spare_ribs", "good_soil", "heavy_bouquet", "broad_wave", "long_stemmed", "warm_welcome",
-	"say_hello_to_that_one", "wake_reception"]
+	"say_hello_to_that_one", "wake_reception", "stronger_dose", "concentrate", "long_ladle",
+	"spare_vial", "brittle_glass", "keep_the_culture"]
 const REWARD_FIELDS := ["hero_id", "rarity", "cap", "label", "description", "effect", "amount",
 	"ability", "order", "behavior"]
 const REWARD_GRANTS := {
 	"shield_throw": {"ability": "knight_shield_throw", "handler": "attack", "kind": "entity"},
 	"house_lights": {"ability": "bard_take_the_stage", "handler": "perform", "kind": "automatic"},
-	"say_hello_to_that_one": {"ability": "necromancer_say_hello_to_that_one", "handler": "nominate", "kind": "entity"}
+	"say_hello_to_that_one": {"ability": "necromancer_say_hello_to_that_one", "handler": "nominate", "kind": "entity"},
+	"spare_vial": {"ability": "alchemist_plain_tonic", "handler": "plain_tonic", "kind": "entity"},
+	"keep_the_culture": {"ability": "alchemist_repeat_batch", "handler": "repeat_batch", "kind": "entity"},
 }
 
 
@@ -138,7 +142,7 @@ static func profile(defs: Dictionary, character_id: String) -> Dictionary:
 	return defaults.merged(character, true)
 
 
-static func build(defs: Dictionary, mission_id: String, chosen_ids: Array = []) -> Dictionary:
+static func build(defs: Dictionary, mission_id: String, chosen_ids: Array = [], fallback_dose_seed := 1) -> Dictionary:
 	if not _report_errors("Catalog", validate(defs)):
 		return {}
 	if not defs.missions.has(mission_id):
@@ -204,7 +208,7 @@ static func build(defs: Dictionary, mission_id: String, chosen_ids: Array = []) 
 		"width": int(board.width), "height": int(board.height), "default_tile": board.default_tile,
 		"units": units, "obstacles": obstacles, "terrain": terrain,
 		"round": 1, "orders": orders, "overrides": {}, "outcome": "ongoing",
-		"rng_state": int(encounter.get("seed", 1))}
+		"rng_state": int(encounter.get("seed", 1)), "dose_seed": int(encounter.get("seed", fallback_dose_seed))}
 
 
 static func _report_errors(source: String, errors: PackedStringArray) -> bool:
@@ -385,6 +389,16 @@ class Validator:
 				_ref(params.get("status"), "statuses", param_path + "status")
 			"heal":
 				_integer(params.get("amount"), param_path + "amount")
+			"healing_potion", "plain_tonic", "acid":
+				var field := "damage" if handler == "acid" else "amount"
+				_integer(params.get(field), param_path + field, 1)
+				_integer(targeting.get("range"), path + ".targeting.range", 1)
+				if is_same(targeting.get("objects"), true):
+					_error(path + ".targeting.objects", "doses only target living characters")
+			"repeat_batch":
+				for field in ["range", "teams", "objects", "capabilities"]:
+					if targeting.has(field):
+						_error(path + ".targeting." + field, "repeat_batch takes its targeting from the bottled recipe")
 			"enemy_heal":
 				_integer(params.get("amount"), param_path + "amount", 1)
 				_integer(params.get("charges"), param_path + "charges", 1)
@@ -471,14 +485,14 @@ class Validator:
 		var params := _dictionary(behavior.get("params"), path + ".params")
 		if not _choice(handler, ["use_ability", "pursue", "hold", "rescue", "threat", "escort",
 				"retreat", "greet", "hook_and_seek", "follow_party", "retreat_attack",
-				"finite_healer", "swap_ally"], path + ".handler"):
+				"finite_healer", "swap_ally", "follow_ally", "most_injured", "nearest_target"], path + ".handler"):
 			return
 		path += ".params."
 		if handler in ["use_ability", "pursue", "rescue", "threat", "hook_and_seek",
-				"retreat_attack", "finite_healer", "swap_ally"]:
+				"retreat_attack", "finite_healer", "swap_ally", "nearest_target", "most_injured"]:
 			_check_behavior_ability(handler, params, path + "ability")
 		if handler in ["pursue", "threat", "escort", "retreat", "greet", "hook_and_seek",
-				"follow_party", "retreat_attack", "finite_healer", "swap_ally"]:
+				"follow_ally", "follow_party", "retreat_attack", "finite_healer", "swap_ally"]:
 			var move: Variant = params.get("move_ability")
 			if _ref(move, "abilities", path + "move_ability") and not is_same(_defs.abilities[move].get("handler"), "move"):
 				_error(path + "move_ability", "ability must use the move handler")
@@ -494,8 +508,8 @@ class Validator:
 			var swap := _check_behavior_action(params.get("swap_ability"), "swap_ally", "automatic", path + "swap_ability")
 			if valid_ally and not swap.is_empty() and not is_same(_record(swap, "params").get("character"), ally):
 				_error(path + "swap_ability", "ability must target the behavior's ally '%s'" % ally)
-		if handler == "follow_party":
-			_ref("follow_party", "events", "events.follow_party")
+		if handler in ["follow_party", "follow_ally"]:
+			_ref(handler, "events", "events." + handler)
 		if handler == "greet":
 			_integer(params.get("greeting_range"), path + "greeting_range", 1)
 			var greetings := _id_list(params.get("greetings"), path + "greetings", "abilities")
@@ -529,6 +543,8 @@ class Validator:
 			_error(path, "%s requires entity targeting" % handler)
 		if handler == "rescue" and not is_same(ability.get("handler"), "pull"):
 			_error(path, "rescue requires an ability with the pull handler")
+		if handler == "most_injured" and ability.get("handler") not in ["heal", "healing_potion", "plain_tonic"]:
+			_error(path, "most_injured requires a healing ability")
 		if handler == "hook_and_seek" and not is_same(ability.get("handler"), "hook"):
 			_error(path, "hook_and_seek requires an ability with the hook handler")
 		if handler == "threat" and ability.get("handler") not in ["attack", "bonk", "blast", "push"]:
@@ -1244,6 +1260,13 @@ class Validator:
 			"spare_ribs", "good_soil", "broad_wave", "heavy_bouquet", "long_stemmed", "warm_welcome", \
 			"say_hello_to_that_one", "wake_reception":
 				_check_summon_reward(effect, hero, path)
+			"stronger_dose", "long_ladle", "spare_vial", "keep_the_culture", "concentrate", "brittle_glass":
+				if effect not in ["concentrate", "brittle_glass"]:
+					_require_reward(not _kit_ability(hero, "alchemist_potion", ["healing_potion"]).is_empty(),
+						path, "alchemist_potion in the hero's ability kit")
+				if effect in ["concentrate", "brittle_glass", "keep_the_culture"]:
+					_require_reward(not _kit_ability(hero, "alchemist_acid", ["acid"]).is_empty(),
+						path, "alchemist_acid in the hero's ability kit")
 
 	func _check_summon_reward(effect: String, hero: Dictionary, path: String) -> void:
 		var skeletons := _kit_summons(hero, "cell", "skeleton")

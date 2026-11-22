@@ -3,6 +3,12 @@ extends RefCounted
 const MODULUS := 2147483647
 
 
+## Stable across previews and independent of any reward or route draws.
+static func mission_dose_seed(outing_seed: int, mission_index: int, mission_id: String) -> int:
+	var key := "alchemy:%d:%d:%s" % [outing_seed, mission_index, mission_id]
+	return 1 + key.sha256_text().left(8).hex_to_int() % (MODULUS - 1)
+
+
 static func step(seed_value: int) -> int:
 	return (seed_value * 48271) % MODULUS
 

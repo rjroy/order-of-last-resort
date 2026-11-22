@@ -105,6 +105,22 @@
       "art_key": "wizard",
       "color": "#d9b3ce"
     },
+    "alchemist": {
+      "team": "heroes",
+      "max_hp": 7,
+      "capabilities": ["blocks_movement", "mobile", "pushable", "pullable", "damageable", "healable", "protectable", "commandable", "recoverable"],
+      "abilities": ["move", "alchemist_potion", "alchemist_acid"],
+      "habits": {
+        "order_follow_ally": "alchemist_follow",
+        "order_make_rounds": "alchemist_make_rounds",
+        "order_throw_samples": "alchemist_throw_samples",
+        "order_hold": "hold"
+      },
+      "default_order": "order_follow_ally",
+      "behavior": "alchemist_follow",
+      "art_key": "healer",
+      "color": "#a5c77c"
+    },
     "undead": {
       "team": "heroes",
       "max_hp": 1,
@@ -179,21 +195,10 @@
       "cast_art_key": "wizard"
     },
     "alchemist": {
-      "class": "healer",
+      "class": "alchemist",
       "label": "Mixologist",
       "guild_portrait": "alchemist",
-      "description": "A nervous brewer who wards companions and throws volatile mixtures that can hurt anyone nearby. No healing or pull.",
-      "abilities": [
-        "move",
-        "alchemist_splash",
-        "knight_aura"
-      ],
-      "habits": {
-        "order_guard": "guard",
-        "order_blast": "alchemist_blast"
-      },
-      "default_order": "order_guard",
-      "color": "#a5c77c"
+      "description": "Follow the nearest ally, choose whom to heal with a potion, or throw Acid at a foe. Read the forecast for the exact reaction before committing."
     },
     "rogue": {
       "class": "wizard",
@@ -472,12 +477,19 @@
         ]
       }
     },
-    "alchemist_splash": {
-      "label": "Volatile splash",
-      "help": "A nervous throw hits and knocks down the nearest unit, friend or foe, for 3 damage. Obstacles can take the hit.",
-      "handler": "blast",
-      "params": {"damage": 3, "status": "knockdown"},
-      "targeting": {"kind": "automatic", "objects": true, "capabilities": ["damageable"]}
+    "alchemist_potion": {
+      "label": "Healing Potion",
+      "help": "Heal yourself or a friendly character within reach. The forecast shows the exact reaction (70% beneficial, 20% harmful, 10% cosmetic).",
+      "handler": "healing_potion",
+      "params": {"amount": 1},
+      "targeting": {"kind": "entity", "range": 1}
+    },
+    "alchemist_acid": {
+      "label": "Acid",
+      "help": "Damage a hostile character within reach. The forecast shows the exact reaction (70% harmful, 20% beneficial, 10% cosmetic).",
+      "handler": "acid",
+      "params": {"damage": 1},
+      "targeting": {"kind": "entity", "range": 3}
     },
     "wizard_pull": {
       "label": "Pull and recoil",
@@ -533,6 +545,9 @@
     "order_hold": {
       "label": "Hold"
     },
+    "order_follow_ally": {"label": "Follow closest ally"},
+    "order_make_rounds": {"label": "Make Rounds (Healing Potion)"},
+    "order_throw_samples": {"label": "Throw Samples (Acid)"},
     "order_inspiring_melody": {
       "label": "Inspiring Melody"
     },
@@ -623,9 +638,17 @@
         "ability": "wizard_blast"
       }
     },
-    "alchemist_blast": {
-      "handler": "use_ability",
-      "params": {"ability": "alchemist_splash"}
+    "alchemist_follow": {
+      "handler": "follow_ally",
+      "params": {"move_ability": "move"}
+    },
+    "alchemist_make_rounds": {
+      "handler": "most_injured",
+      "params": {"ability": "alchemist_potion"}
+    },
+    "alchemist_throw_samples": {
+      "handler": "nearest_target",
+      "params": {"ability": "alchemist_acid"}
     },
     "rescue": {
       "handler": "rescue",
@@ -702,6 +725,7 @@
     }
   },
   "events": {
+    "follow_ally": {"text": "{actor} follows {target} to {position}."},
     "performance_dry": {
       "text": "{actor} sings {ability}, but there is no eligible listener."
     },

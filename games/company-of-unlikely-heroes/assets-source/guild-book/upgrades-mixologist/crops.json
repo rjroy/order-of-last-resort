@@ -1,0 +1,14 @@
+{
+  "source": "mixologist-native.png",
+  "sha256": "438ad21c04cf4304def35d9c16245ed8050a3b87507ce5368c4cf3a5a92bbcc6",
+  "size": [318, 154],
+  "crops": {
+    "alchemist_padded_apron": [0, 5, 627, 304],
+    "alchemist_stronger_dose": [627, 5, 627, 304],
+    "alchemist_concentrate": [0, 315, 627, 304],
+    "alchemist_long_ladle": [627, 315, 627, 304],
+    "alchemist_spare_vial": [0, 629, 627, 304],
+    "alchemist_brittle_glass": [627, 629, 627, 304],
+    "alchemist_keep_the_culture": [0, 936, 627, 304]
+  }
+}

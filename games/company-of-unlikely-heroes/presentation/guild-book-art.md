@@ -10,11 +10,11 @@ approved; the presence of a file is not evidence of approval.
 
 `classes/`: `bard`, `wizard`, `healer`, `rogue`, `knight`, `necromancer`,
 `alchemist`, `blacksmith`. A portrait identity is a presentation opt-in, not
-the character's mechanical base class. In particular the stock Bard, Rogue,
-and Necromancer use Wizard mechanics and the Alchemist uses Healer mechanics.
-Do not infer their portraits from those base classes or assign them to custom
-characters merely because they share one. Blacksmith artwork does not add a
-recruit or change the roster.
+the character's mechanical kit or battle art. The Mixologist has a distinct
+kit and uses the existing Healer board drawing pending dedicated battle art.
+Do not infer portraits from shared defaults or assign them to custom characters
+merely because they share those defaults. Blacksmith artwork does not add a recruit
+or change the roster.
 
 ## Destinations
 
@@ -40,5 +40,6 @@ an undisclosed future mission or the other branch.
 
 ## Rewards
 
-`upgrades/` uses the 48 upgrade definition IDs in `content/rewards.json`.
-Repeated copies use the same file. Guild perks are not adventure upgrades.
+`upgrades/` uses upgrade definition IDs from `content/rewards.json`. Repeated
+copies of an illustrated reward use the same file. Guild perks are not adventure
+upgrades.

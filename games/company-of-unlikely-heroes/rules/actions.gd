@@ -1,9 +1,11 @@
 extends RefCounted
 
+const Alchemy = preload("res://rules/alchemy.gd")
 const Board = preload("res://rules/board.gd")
 const Combat = preload("res://rules/combat.gd")
 const EncounterRandom = preload("res://rules/encounter_random.gd")
 const Frontier = preload("res://rules/frontier_combat.gd")
+const Movement = preload("res://rules/movement.gd")
 const Performances = preload("res://rules/performances.gd")
 const Shield = preload("res://rules/shield.gd")
 const Statuses = preload("res://rules/statuses.gd")
@@ -19,7 +21,7 @@ static func owned_ability(state: Dictionary, actor: Dictionary, id: String) -> D
 
 
 static func can_act(state: Dictionary, actor: Dictionary) -> bool:
-	return Board.alive(actor) and Statuses.ids_with_handler(state, actor, "skip_action").is_empty()
+	return Board.alive(actor) and not Statuses.has_skip(state, actor)
 
 
 static func accepts_target_argument(ability: Dictionary, target_id: String) -> bool:
@@ -45,6 +47,8 @@ static func _in_reach(actor: Dictionary, position: Vector2i, targeting: Dictiona
 
 
 static func _entity_allowed(state: Dictionary, actor: Dictionary, candidate: Dictionary, ability: Dictionary) -> bool:
+	if ability.handler in ["healing_potion", "acid", "plain_tonic"]:
+		return Alchemy.can_target(state, actor, candidate, ability)
 	if candidate.id == actor.id:
 		return ability.handler == "heal" and ability.targeting.kind == "automatic" \
 			and ability.params.get("prefer_wounded_self", false) == true \
@@ -151,7 +155,14 @@ static func _legal_choices(state: Dictionary, actor: Dictionary, ability: Dictio
 		return result
 	if ability.handler == "summon":
 		return _summon_choices(state, actor, ability)
-	var targeting: Dictionary = ability.targeting
+	var target_ability := ability
+	var prior_recipient := ""
+	if ability.handler == "repeat_batch":
+		target_ability = Alchemy.bottled_recipe(state, actor)
+		if target_ability.is_empty():
+			return result
+		prior_recipient = actor.bottled_reaction.recipient
+	var targeting: Dictionary = target_ability.targeting
 	match targeting.kind:
 		"cell":
 			if not can_move(state, actor):
@@ -167,7 +178,7 @@ static func _legal_choices(state: Dictionary, actor: Dictionary, ability: Dictio
 					result.append({"id": id, "label": Board.coordinate(position), "position": position})
 		"entity", "automatic":
 			for candidate in Board.occupants(state, targeting):
-				if _entity_allowed(state, actor, candidate, ability):
+				if candidate.id != prior_recipient and _entity_allowed(state, actor, candidate, target_ability):
 					var choice := {"id": candidate.id, "label": Board.display_name(state, candidate),
 						"position": candidate.position}
 					if ability.handler == "hook" and not _digs_in(state, actor, candidate):
@@ -350,14 +361,21 @@ static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictio
 			Board.authored_event(state, events, "status", "stop_target", {"actor": name, "target": target_name},
 				{"unit_id": actor.id, "target_id": target.id, "status_id": params.status})
 		"repel":
-			target.position = choice.destination
+			if Movement.blocks_forced(state, target, events):
+				return true
+			target.position = Movement.forced_destination(state, target, choice.destination,
+				-_pull_step(actor, target), events)
 			Board.authored_event(state, events, "repel", "repel",
 				{"actor": name, "target": target_name, "position": target.position},
 				{"unit_id": actor.id, "target_id": target.id, "position": target.position})
 			Shield.retrieve(state, target, events)
 		"push":
-			var destination: Vector2i = target.position - _pull_step(actor, target)
+			var direction := -_pull_step(actor, target)
+			var destination: Vector2i = target.position + direction
 			if Board.can_enter(state, destination):
+				if Movement.blocks_forced(state, target, events):
+					return true
+				destination = Movement.forced_destination(state, target, destination, direction, events)
 				target.position = destination
 				Board.authored_event(state, events, "push", "push",
 					{"actor": name, "target": target_name, "position": destination},
@@ -371,7 +389,10 @@ static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictio
 					{"actor": target_name}, {"unit_id": actor.id, "target_id": target.id})
 		"apply_status":
 			var id: String = params.status
-			if not Statuses.apply(state, actor, id, actor):
+			var application := Statuses.apply_result(state, actor, id, actor, events)
+			if application == Statuses.Application.RESISTED:
+				return true
+			if application != Statuses.Application.APPLIED:
 				return false
 			var status := Statuses.definition(state, id)
 			var data := {"unit_id": actor.id, "target_id": actor.id, "source_id": actor.id, "status_id": id}
@@ -399,6 +420,8 @@ static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictio
 				{"unit_id": actor.id, "target_id": target.id, "victim_id": victim.id, "status_id": params.status})
 		"heal", "enemy_heal":
 			Support.heal(state, actor, target, int(params.amount), events)
+		"healing_potion", "acid", "plain_tonic", "repeat_batch":
+			Alchemy.administer(state, actor, target, ability, action.ability_id, events)
 		"pull", "hook":
 			_pull(state, actor, target, action.ability_id, ability, choice, events)
 		_:
@@ -407,6 +430,8 @@ static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictio
 
 
 static func _move(state: Dictionary, actor: Dictionary, action: Dictionary, route: Array, events: Array) -> void:
+	if Movement.blocks_voluntary(state, actor, events):
+		return
 	for position: Vector2i in route:
 		_move_step(state, actor, action, position, events)
 	if action.has("retreat_second"):
@@ -426,7 +451,7 @@ static func _move_step(state: Dictionary, actor: Dictionary, action: Dictionary,
 		var followed := Board.entity(state, action.follow_target_id)
 		copy["target"] = Board.display_name(state, followed)
 		data["target_id"] = followed.id
-		template = "follow_party"
+		template = action.get("follow_event", "follow_party")
 	if action.get("tactical_retreat", false):
 		actor["last_retreat_round"] = state.round
 		Board.event(events, "move", "%s retreats to %s and cannot retreat next round." % [
@@ -483,16 +508,21 @@ static func _pull(state: Dictionary, actor: Dictionary, target: Dictionary, id: 
 	var move_from: Vector2i = target.position
 	if _digs_in(state, actor, target):
 		var origin: Vector2i = actor.position
-		var destination := origin - _pull_step(actor, target)
+		var direction := -_pull_step(actor, target)
+		var destination := origin + direction
 		if Board.capable(state, actor, "pullable") and Board.is_vacant(state, destination):
-			actor.position = destination
+			if Movement.blocks_forced(state, actor, events):
+				return
+			actor.position = Movement.forced_destination(state, actor, destination, direction, events)
 		Board.event(events, "pull", "Dig In: %s reverses %s's pull%s." % [target_name, name,
 			", pulling them to %s" % Board.coordinate(actor.position) if actor.position != origin else " and holds position"],
 			{"unit_id": target.id, "target_id": actor.id, "from_position": origin, "position": actor.position})
 		if actor.position != origin:
 			Shield.retrieve(state, actor, events)
 	elif ability.handler == "hook":
-		target.position = choice.destination
+		if Movement.blocks_forced(state, target, events):
+			return
+		target.position = Movement.forced_destination(state, target, choice.destination, _pull_step(actor, target), events)
 		Board.authored_event(state, events, "pull", "hook_pull",
 			{"actor": name, "target": target_name, "from": move_from, "position": target.position},
 			{"unit_id": actor.id, "target_id": target.id, "from_position": move_from, "position": target.position})
@@ -500,11 +530,14 @@ static func _pull(state: Dictionary, actor: Dictionary, target: Dictionary, id: 
 	else:
 		var old: Vector2i = actor.position
 		var direction := _pull_step(actor, target)
-		actor.position = old + direction
-		target.position = old
+		if Movement.blocks_forced(state, target, events) or Movement.blocks_forced(state, actor, events):
+			return
+		actor.position = Movement.forced_destination(state, actor, old + direction, direction, events)
+		# Continue in the pull direction, using the caster's resolved recoil position for occupancy.
+		target.position = Movement.forced_destination(state, target, old, direction, events)
 		Board.authored_event(state, events, "pull", "pull",
-			{"actor": name, "target": target_name, "position": old, "recoil": actor.position},
-			{"unit_id": actor.id, "target_id": target.id, "position": old, "recoil_position": actor.position})
+			{"actor": name, "target": target_name, "position": target.position, "recoil": actor.position},
+			{"unit_id": actor.id, "target_id": target.id, "position": target.position, "recoil_position": actor.position})
 		Shield.retrieve(state, target, events)
 		var status_id: String = ability.params.status
 		if id == "wizard_pull" and Upgrades.amount(state, actor, "braced_casting") > 0 \
@@ -516,14 +549,16 @@ static func _pull(state: Dictionary, actor: Dictionary, target: Dictionary, id: 
 
 
 static func _swap(state: Dictionary, actor: Dictionary, target: Dictionary, events: Array) -> void:
+	if Movement.blocks_voluntary(state, actor, events) or Movement.blocks_forced(state, target, events):
+		return
 	var old: Vector2i = actor.position
 	actor.position = target.position
-	target.position = old
+	target.position = Movement.forced_destination(state, target, old, Combat.toward(target.position, old), events)
 	var name := Board.display_name(state, actor)
 	var target_name := Board.display_name(state, target)
 	Board.authored_event(state, events, "swap", "swap",
 		{"actor": name, "target": target_name, "position": actor.position},
-		{"unit_id": actor.id, "target_id": target.id, "position": actor.position, "target_position": old})
+		{"unit_id": actor.id, "target_id": target.id, "position": actor.position, "target_position": target.position})
 	Shield.retrieve(state, actor, events)
 	Shield.retrieve(state, target, events)
 	if Upgrades.amount(state, actor, "body_double") > 0:

@@ -2,6 +2,7 @@ extends RefCounted
 
 const Board = preload("res://rules/board.gd")
 const Frontier = preload("res://rules/frontier_combat.gd")
+const Movement = preload("res://rules/movement.gd")
 const Shield = preload("res://rules/shield.gd")
 const Statuses = preload("res://rules/statuses.gd")
 const Summons = preload("res://rules/summons.gd")
@@ -78,8 +79,10 @@ static func _surround_bonus(state: Dictionary, actor: Dictionary, target: Dictio
 static func _blast_aftereffects(state: Dictionary, wizard: Dictionary, primary: Dictionary, impact: Vector2i,
 		damage: int, events: Array) -> void:
 	if Upgrades.amount(state, wizard, "parting_gift") > 0 and Board.alive(primary):
-		var destination := impact + toward(wizard.position, impact)
-		if Board.is_vacant(state, destination):
+		var direction := toward(wizard.position, impact)
+		var destination := impact + direction
+		if Board.is_vacant(state, destination) and not Movement.blocks_forced(state, primary, events):
+			destination = Movement.forced_destination(state, primary, destination, direction, events)
 			primary.position = destination
 			Board.event(events, "push", "Parting Gift pushes %s to %s." % [
 				Board.display_name(state, primary), Board.coordinate(destination)],
@@ -102,6 +105,13 @@ static func hurt(state: Dictionary, source: Dictionary, target: Dictionary, dama
 	var amount := _hurt_and_chain(state, source, target, damage, source_name, status_id, events, presentation)
 	_after_damage(state, source, target, amount, events, retaliation)
 	return amount
+
+
+## HP loss is not a hit: no mitigation, on-hit modifiers, or retaliation.
+static func lose_hp(state: Dictionary, source: Dictionary, target: Dictionary, amount: int,
+		cause: String, events: Array) -> void:
+	_hurt_and_chain(state, source, target, amount, cause, "", events, {"hp_loss": true,
+		"data": {}, "copy": {}, "text": "{source}: {target} loses {amount} HP."})
 
 
 static func _after_damage(state: Dictionary, attacker: Dictionary, defender: Dictionary, damage: int,
@@ -168,13 +178,17 @@ static func _hurt_and_chain(state: Dictionary, source: Dictionary, target: Dicti
 
 static func _apply_hit(state: Dictionary, source: Dictionary, target: Dictionary, damage: int,
 		source_name: String, status_id: String, events: Array, presentation: Dictionary, blasts: Array[Dictionary]) -> int:
-	if not Board.alive(target) or not Board.capable(state, target, "damageable"):
+	var hp_loss: bool = presentation.get("hp_loss", false)
+	if not Board.alive(target) or (not hp_loss and not Board.capable(state, target, "damageable")):
 		return -1
-	# Redirect first in attack(); resolve consumable statuses and then passive
-	# protection against the final recipient. No mitigation can restore HP.
-	var amount := Frontier.reduce_damage(state, target, Statuses.hit_amount(state, target, damage, events), events)
+	# Redirect first in attack(); resolve existing bonuses and passive armor
+	# before the Alchemist's consumables, including last-chance survival.
+	var amount := damage
+	if not hp_loss:
+		amount = Frontier.reduce_damage(state, target, Statuses.hit_amount(state, target, amount, events), events)
+		amount = Statuses.alchemy_hit_amount(state, source, target, amount, events)
 	target.hp = maxi(0, target.hp - amount)
-	var applied := not status_id.is_empty() and Statuses.apply(state, target, status_id, source)
+	var applied := not status_id.is_empty() and Statuses.apply(state, target, status_id, source, events)
 	var handler = Statuses.definition(state, status_id).get("handler", "") if applied else ""
 	var suffix := Board.text(state, "knockdown_suffix") if applied and Statuses.is_knockdown(state, status_id) else ""
 	var target_name := Board.display_name(state, target)

@@ -4,6 +4,7 @@ const Rules = preload("res://rules.gd")
 const BridgeArt = preload("res://bridge_art.gd")
 const BattleCues = preload("res://battle_cues.gd")
 const CastCues = preload("res://presentation/cast_cues.gd")
+const StorybookInk = preload("res://presentation/storybook_battle_ink.gd")
 const Catalog = preload("res://content/catalog.gd")
 const Adventure = preload("res://adventure.gd")
 const Upgrades = preload("res://rules/upgrades.gd")
@@ -1042,6 +1043,7 @@ func _show_battle(opening: Dictionary) -> void:
 
 
 func _show_storybook_battle() -> void:
+	_clear_terminal_replay()
 	_screen = "battle"
 	if is_instance_valid(_screen_root):
 		remove_child(_screen_root)
@@ -1229,7 +1231,9 @@ func _render_storybook() -> void:
 			if enabled and _is_selectable(kind):
 				enabled = not _rules.targets(context, _actor_id, choice.id).is_empty()
 				if not enabled:
-					label += " (no legal target)"
+					var empty_batch: bool = definition.get("handler") == "repeat_batch" \
+						and _rules.dose_forecast(context, _actor_id, choice.id).is_empty()
+					label += " (empty bottle)" if empty_batch else " (no legal target)"
 			actions.append({"id": choice.id, "label": label,
 				"kind": kind, "enabled": enabled, "help": definition.get("help", "")})
 	var orders: Array = []
@@ -1282,9 +1286,15 @@ func _render_storybook() -> void:
 	if _ongoing() and not _editor_can_act and not _actor_id.is_empty():
 		var reason := _unavailable_hero_reason()
 		inspection = reason if inspection.is_empty() else reason + " · " + inspection
+	var locked_dose := ""
 	if _storybook_aiming:
 		var hint := "Aim: choose target; reselect action to stop."
-		inspection = hint if inspection.is_empty() else hint + " · " + inspection
+		var dose := _rules.dose_forecast(context, _actor_id, _ability_id)
+		if not dose.is_empty():
+			if _target_id.is_empty():
+				locked_dose = "Locked dose · %s · %s" % [dose.category.capitalize(), dose.description]
+		else:
+			inspection = hint if inspection.is_empty() else hint + " · " + inspection
 	var upgrades: PackedStringArray = []
 	for unit in _roster():
 		var owned: Dictionary = _run.get("upgrades_by_id", {}).get(unit.id, {})
@@ -1306,6 +1316,7 @@ func _render_storybook() -> void:
 		"selected_hero": _name_for(_actor_id) if not _actor_id.is_empty() else "",
 		"selected_action_id": _ability_id, "actions": actions, "orders": orders,
 		"targets": target_choices, "command_summary": summary, "inspection": inspection,
+		"locked_dose": locked_dose,
 		"forecast": "\n".join(events), "can_clear": _ongoing() and (not commanded.is_empty() or _unpreviewed_edit),
 		"clear_label": "Clear command", "can_commit": _can_commit(), "outcome": _state.outcome,
 		"can_restart": not _fixed_mission.is_empty(), "upgrades_text": "\n".join(upgrades)})
@@ -1319,6 +1330,7 @@ func _restart_fixed() -> void:
 
 func _begin_attempt() -> void:
 	_board.clear_action_playback()
+	_storybook_page.play_committed_reactions([])
 	_planned_state = _state
 	_last_events.clear()
 	_unpreviewed_edit = false
@@ -1426,6 +1438,7 @@ func _commit() -> void:
 	_last_events = _plan.events.duplicate(true)
 	var cues := CastCues.build(_state, committed, _last_events)
 	_state = committed
+	var reactions := _committed_reactions()
 	_planned_state = _state
 	_unpreviewed_edit = false
 	_storybook_aiming = false
@@ -1435,7 +1448,7 @@ func _commit() -> void:
 	if not _ongoing() and _fixed_mission.is_empty():
 		_run = Adventure.settle_mission(_run, _state)
 		if _run.phase in ["reward", "route", "ready", "finished"]:
-			var replay := _take_terminal_board(cues)
+			var replay := _take_terminal_board(cues, reactions)
 			_show_settled_mission()
 			if replay != null:
 				_show_terminal_replay(replay)
@@ -1446,6 +1459,18 @@ func _commit() -> void:
 	if _board.has_focus() and _storybook_focus_cell is Vector2i:
 		_inspect_board(_storybook_focus_cell)
 	_board.play_committed_actions(cues)
+	_storybook_page.play_committed_reactions(reactions)
+
+
+func _committed_reactions() -> Array:
+	var reactions := []
+	for event: Dictionary in _last_events:
+		if event.type != "alchemy_reaction":
+			continue
+		var target := _find(event.target_id)
+		# After resolution the recipient may no longer occupy its forecast cell.
+		reactions.append(event.merged({"position": target.get("position", event.position)}, true))
+	return reactions
 
 
 func _show_settled_mission() -> void:
@@ -1463,13 +1488,14 @@ func _show_settled_mission() -> void:
 			_show_result()
 
 
-func _take_terminal_board(cues: Array) -> BridgeArt:
-	if cues.is_empty():
+func _take_terminal_board(cues: Array, reactions: Array) -> BridgeArt:
+	if cues.is_empty() and reactions.is_empty():
 		return null
 	_refresh_board()
 	_board.clear_action_playback()
 	_board.play_committed_actions(cues)
-	if _board.action_playback_snapshot().is_empty():
+	_storybook_page.play_committed_reactions(reactions)
+	if _board.action_playback_snapshot().is_empty() and reactions.is_empty():
 		return null
 	# Keep the resolved board only, not its controls or callbacks into the
 	# battle editor. A commission can deploy a new board synchronously.
@@ -1492,6 +1518,15 @@ func _take_terminal_board(cues: Array) -> BridgeArt:
 
 
 func _show_terminal_replay(board: BridgeArt) -> void:
+	if _screen == "battle":
+		# A new report can deploy immediately. Keep any usual cast replay, but
+		# never show the last battle's reaction over the new live board.
+		var ink := board.get_node_or_null("StorybookInk") as StorybookInk
+		if ink != null:
+			ink.play_committed_reactions([])
+		if board.action_playback_snapshot().is_empty():
+			board.queue_free()
+			return
 	var panel := PanelContainer.new()
 	panel.name = "TerminalCastReplay"
 	panel.z_index = 10
@@ -1515,8 +1550,10 @@ func _show_terminal_replay(board: BridgeArt) -> void:
 
 
 func _process(_delta: float) -> void:
+	var ink := _terminal_board.get_node_or_null("StorybookInk") as StorybookInk
 	if Time.get_ticks_msec() >= _terminal_replay_until \
-			or _terminal_board.action_playback_snapshot().is_empty():
+			or (_terminal_board.action_playback_snapshot().is_empty()
+			and (ink == null or not ink.has_committed_reactions())):
 		_clear_terminal_replay()
 
 
@@ -1759,6 +1796,9 @@ func _refresh_board() -> void:
 	var ink := {}
 	if _board.has_focus() and _storybook_focus_cell is Vector2i:
 		ink["focus_cell"] = _storybook_focus_cell
+	if _ongoing():
+		ink["alchemy"] = _plan.get("events", []).filter(func(event: Dictionary) -> bool:
+			return event.type == "alchemy_reaction")
 	var selected := _find(_actor_id)
 	if _ongoing() and not selected.is_empty():
 		ink["selected_cell"] = selected.position

@@ -25,9 +25,10 @@ func _initialize() -> void:
 		_check(Catalog.build(fixed_defs, "test_escort", ["knight"]).is_empty(), "custom fixed mission rejects supplied party")
 		_test_reachable_content(defs)
 		var brewer: Dictionary = Catalog.profile(defs, "alchemist")
-		_check(brewer.abilities == ["move", "alchemist_splash", "knight_aura"]
-			and defs.abilities.alchemist_splash.params.damage == 3,
-			"alchemist has a distinct risky splash and ward kit")
+		_check("alchemist_splash" not in brewer.get("abilities", [])
+			and "knight_aura" not in brewer.get("abilities", [])
+			and brewer.get("abilities", []) != Catalog.profile(defs, "healer").get("abilities", []),
+			"alchemist has a distinct kit rather than the old splash-and-ward mix-in")
 		var invalid := defs.duplicate(true)
 		invalid.missions.bridge_patrol.tier = 0
 		_check(not Catalog.validate(invalid).is_empty(), "tier must be positive")

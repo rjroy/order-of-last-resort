@@ -1,12 +1,15 @@
 extends RefCounted
 
 const Board = preload("res://rules/board.gd")
+const Statuses = preload("res://rules/statuses.gd")
 
 
-static func heal(state: Dictionary, actor: Dictionary, target: Dictionary, amount: int, events: Array) -> void:
+static func heal(state: Dictionary, actor: Dictionary, target: Dictionary, amount: int, events: Array,
+		cause := "") -> void:
+	amount = Statuses.healing_amount(state, target, amount, events)
 	var restored := mini(amount, target.max_hp - target.hp)
 	target.hp += restored
-	_heal_event(state, actor, target, restored, events)
+	_heal_event(state, actor, target, restored, events, cause)
 
 
 @warning_ignore("integer_division")
@@ -35,7 +38,14 @@ static func split_heal(state: Dictionary, actor: Dictionary, amount: int, events
 			heal(state, actor, unit, allocation, events)
 
 
-static func _heal_event(state: Dictionary, actor: Dictionary, target: Dictionary, amount: int, events: Array) -> void:
-	Board.authored_event(state, events, "heal", "heal" if amount > 0 else "heal_full",
-		{"actor": Board.display_name(state, actor), "target": Board.display_name(state, target), "amount": amount},
-		{"unit_id": actor.id, "target_id": target.id, "amount": amount})
+static func _heal_event(state: Dictionary, actor: Dictionary, target: Dictionary, amount: int, events: Array,
+		cause: String) -> void:
+	var actor_name := Board.display_name(state, actor)
+	var target_name := Board.display_name(state, target)
+	var data := {"unit_id": actor.id, "target_id": target.id, "amount": amount}
+	if not cause.is_empty() or (amount == 0 and target.hp < target.max_hp):
+		Board.event(events, "heal", "%s restores %d HP to %s." % [
+			cause if not cause.is_empty() else actor_name, amount, target_name], data)
+	else:
+		Board.authored_event(state, events, "heal", "heal" if amount > 0 else "heal_full",
+			{"actor": actor_name, "target": target_name, "amount": amount}, data)

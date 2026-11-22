@@ -128,12 +128,16 @@ After a victory with another mission ahead, inspect the debrief before continuin
 | Anxious Knight | Push a neighboring unit or obstacle. The push hurts only on collision. | His shield covers everyone in range, even an enemy. An incoming attack reflects to the nearest enemy or obstacle. |
 | Unimpressed Healer | A staff bonk damages an adjacent enemy or obstacle and draws an enemy’s attention. | When wounded, heals self; otherwise heals the nearest eligible companion, even if they are at full health. |
 | Enthusiastic Caster | The blast seeks the nearest thing, not the most convenient enemy. | Choose someone to pull. They land where the caster stood; the caster takes the recoil, including injury and knockdown. |
-| Mixologist | A volatile splash hits the nearest thing, friend or foe, and can knock it down. | A ward redirects attacks. The Mixologist can protect a wounded company, but cannot heal it or pull someone out of danger. |
+| Mixologist | **Acid:** Deal 1 damage to a chosen hostile character up to three tiles away, plus a forecast reaction. | **Healing Potion:** Heal yourself or a chosen adjacent friendly character for 1 HP, including civilians and summons, plus a forecast reaction. |
 | Daft Dodger | Wasn't Me marks an enemy beside another living character; its next attack is redirected to an adjacent character, including an ally. | Retreat steps away from the nearest enemy. Confusing Dodge swaps with the furthest other living character, friend or foe. |
 | Friendly Crypter | Summon Skeleton puts a 1 HP skeleton on an open neighboring tile. | Raise Dead consumes an unoccupied enemy corpse and puts a zombie there with half the enemy's maximum HP, rounded up. The Friendly Crypter holds unless directly commanded. |
 | Bad Bard | Healing Sonnet makes a random living opponent scream for 1 damage. It does not heal. | Inspiring Melody makes a random eligible opponent laugh away their next turn. The Bad Bard starts on Hold and can take either song as a standing order. |
 
 Daft Dodger distance ties and redirect victim ties use the lowest character instance ID. When the marked enemy attacks, Wasn't Me looks for an adjacent living character other than the attacker and its original target. If nobody else is there, the original target takes the attack. Either way, the mark is spent. Movement before the attack can change who takes the blame, and a reflecting aura can still redirect the resulting attack.
+
+The Mixologist normally follows the nearest other ally and stops when adjacent. **Make Rounds** gives a potion to the character missing the most HP among legal recipients; **Throw Samples** uses Acid on the nearest legal hostile, or waits if none are in range. These orders break ties in encounter order. You can replace any of them with a direct Move or a dose of your choosing. A full-health recipient can still react to a directly commanded potion.
+
+The reaction is good for the recipient 70% of the time with a potion and 20% with Acid; the chances of a bad reaction are reversed. Both have a 10% chance of a purely cosmetic reaction. Check the exact dose while aiming, before you choose who gets it. Changing recipients does not reroll the dose. The round forecast shows the recipient, reaction and any later events it triggers. Unless marked for this round's end or the next turn, an unused reaction expires at the end of the following round.
 
 The Friendly Crypter can have one living skeleton and one living zombie at a time. They appear immediately but first act **next round**, right after their summoner (skeleton before zombie). Neither takes a company slot, prevents a wipe, or joins the next mission. They cannot be commanded, and their remains cannot be raised.
 
@@ -153,9 +157,11 @@ Preview updates the forecast without resolving the round or starting any action 
 
 ### Rewards between missions
 
-After a victory with another mission ahead, the debrief shows **one offer per eligible deployed hero**. Each entry describes what changes, its rarity, and how many times you can take it during this outing. Choose **one reward total** using its **Take reward** button, or use Tab and Enter. The claimed reward stays on the debrief while you review the party and continue. Passing on an offer does not count against its cap. The splash-and-ward Mixologist does not have a reward pool yet. If there are no eligible offers, you can continue without choosing.
+After a victory with another mission ahead, the debrief shows **one offer per eligible deployed hero**. Each entry describes what changes, its rarity, and how many times you can take it during this outing. Choose **one reward total** using its **Take reward** button, or use Tab and Enter. The claimed reward stays on the debrief while you review the party and continue. Passing on an offer does not count against its cap. If there are no eligible offers, you can continue without choosing.
 
 Rewards start in the next mission. Extra maximum HP comes with the same amount of current HP, but does not erase existing wounds. In combat, open **Outing upgrades** above the round controls to review what each hero gained. New actions and orders appear in the same pickers as the base kit. For example, **Shield Throw** shows an outlined shield where it will land in the forecast, then a filled marker while it is on the board. Point at the tile to inspect it; **Advance** heads toward it so the Anxious Knight can recover it. **Say Hello to That One** names the summons' directed target in the forecast and on tile inspection.
+
+The Mixologist’s seven rewards include **Plain Tonic**, a heal without a random reaction, and **Keep the Culture**, which lets you repeat the last recipe and its exact reaction on a different recipient. The bottle is spent on use and is empty at the start of a new mission.
 
 There is no reward after a final victory or a defeat, or in standalone missions. Returning to the guild clears all outing upgrades; there are no permanent guild perks.
 

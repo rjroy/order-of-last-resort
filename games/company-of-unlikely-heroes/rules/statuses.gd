@@ -1,8 +1,11 @@
 extends RefCounted
 
 const Board = preload("res://rules/board.gd")
+const Reactions = preload("res://rules/alchemy_reactions.gd")
 const Upgrades = preload("res://rules/upgrades.gd")
 const RECOVER_EVENT := "recover"
+const JELLY_KNEES := "jelly_knees"
+enum Application { REJECTED, APPLIED, RESISTED }
 const REWARD_STATUSES := {
 	"borrowed_courage": {"label": "Borrowed Courage", "handler": "reduce_next_hit", "expiry": "source_turn_start"},
 	"body_double": {"label": "Body Double", "handler": "body_double", "expiry": "actor_turn_start"},
@@ -13,6 +16,14 @@ const REWARD_STATUSES := {
 
 static func definition(state: Dictionary, id: String) -> Dictionary:
 	return REWARD_STATUSES.get(id, state.catalog.defs.statuses.get(id, {}))
+
+
+static func alchemy_status(unit: Dictionary, id: String) -> Dictionary:
+	return unit.get("alchemy_statuses", {}).get(id, {})
+
+
+static func has_skip(state: Dictionary, unit: Dictionary) -> bool:
+	return not alchemy_status(unit, JELLY_KNEES).is_empty() or not ids_with_handler(state, unit, "skip_action").is_empty()
 
 
 static func ids_with_handler(state: Dictionary, unit: Dictionary, handler: String) -> Array[String]:
@@ -31,6 +42,8 @@ static func is_knockdown(state: Dictionary, id: String) -> bool:
 
 
 static func knocked_down(state: Dictionary, unit: Dictionary) -> bool:
+	if not alchemy_status(unit, JELLY_KNEES).is_empty():
+		return true
 	for id in ids_with_handler(state, unit, "skip_action"):
 		if is_knockdown(state, id):
 			return true
@@ -44,7 +57,18 @@ static func labels(state: Dictionary, unit: Dictionary, active_handler := "") ->
 	for id in ids:
 		var spec := definition(state, id)
 		if not spec.is_empty():
-			result.append(spec.params.immune_label if statuses[id].has("immune_through_round") else spec.label)
+			if statuses[id].has("immune_through_round"):
+				result.append(spec.params.immune_label)
+			else:
+				result.append(spec.label)
+	if active_handler in ["", "skip_action"] and not alchemy_status(unit, JELLY_KNEES).is_empty():
+		result.append("Jelly Knees: Down")
+	if active_handler.is_empty():
+		for id in unit.get("alchemy_statuses", {}):
+			if id == JELLY_KNEES:
+				continue
+			var spec := _alchemy_definition(id)
+			result.append("%s: %s (through round %d)" % [spec.label, spec.description, alchemy_status(unit, id).expires_after_round])
 	return result
 
 
@@ -67,12 +91,18 @@ static func expire_rounds(state: Dictionary) -> void:
 	for unit in state.units:
 		for id in unit.statuses.keys():
 			var entry: Dictionary = unit.statuses[id]
-			if entry.has("immune_through_round") and state.round > entry.immune_through_round:
+			if state.round > int(entry.get("immune_through_round", state.round)):
 				unit.statuses.erase(id)
+		for id in unit.get("alchemy_statuses", {}).keys():
+			if state.round > int(alchemy_status(unit, id).get("expires_after_round", state.round)):
+				clear_alchemy(unit, id)
 
 
-static func consume_skips(state: Dictionary, unit: Dictionary, events: Array) -> void:
+static func consume_skips(state: Dictionary, unit: Dictionary, events: Array, defer_jelly := false) -> void:
 	var ids := ids_with_handler(state, unit, "skip_action")
+	var jelly := not defer_jelly and clear_alchemy(unit, JELLY_KNEES)
+	if ids.is_empty() and not jelly:
+		return
 	var event := RECOVER_EVENT
 	for id in ids:
 		var spec := definition(state, id)
@@ -90,12 +120,26 @@ static func consume_skips(state: Dictionary, unit: Dictionary, events: Array) ->
 			unit.statuses.erase(id)
 		if event == RECOVER_EVENT:
 			event = params.get("skip_event", RECOVER_EVENT)
-	Board.authored_event(state, events, "recover", event, {"actor": Board.display_name(state, unit)},
-		{"unit_id": unit.id, "status_ids": ids})
+	_recover(state, unit, events, event, ids, jelly)
 	if unit.statuses.has("laughing_fit"):
 		Board.event(events, "status", "Laughing Fit: %s drops their guard; the next hit deals +%d damage." % [
 			Board.display_name(state, unit), unit.statuses.laughing_fit.amount],
 			{"unit_id": unit.id, "status_id": "laughing_fit", "amount": unit.statuses.laughing_fit.amount})
+
+
+static func consume_objective_skip(state: Dictionary, unit: Dictionary, events: Array) -> bool:
+	if not clear_alchemy(unit, JELLY_KNEES):
+		return false
+	_recover(state, unit, events, RECOVER_EVENT, [], true)
+	return true
+
+
+static func _recover(state: Dictionary, unit: Dictionary, events: Array, event: String,
+		ids: Array[String], jelly: bool) -> void:
+	var data := {"unit_id": unit.id, "status_ids": ids}
+	if jelly:
+		data["reaction_id"] = JELLY_KNEES
+	Board.authored_event(state, events, "recover", event, {"actor": Board.display_name(state, unit)}, data)
 
 
 static func accepts(state: Dictionary, target: Dictionary, id: String, source: Dictionary) -> bool:
@@ -114,11 +158,35 @@ static func accepts(state: Dictionary, target: Dictionary, id: String, source: D
 	return false
 
 
-static func apply(state: Dictionary, target: Dictionary, id: String, source: Dictionary) -> bool:
+static func apply(state: Dictionary, target: Dictionary, id: String, source: Dictionary,
+		events: Array = []) -> bool:
+	return apply_result(state, target, id, source, events) == Application.APPLIED
+
+
+static func apply_result(state: Dictionary, target: Dictionary, id: String, source: Dictionary,
+		events: Array) -> Application:
 	if not accepts(state, target, id, source):
-		return false
+		return Application.REJECTED
+	if is_knockdown(state, id) and _resists_knockdown(state, target, events):
+		return Application.RESISTED
 	target.statuses[id] = {"source_id": source.id}
+	return Application.APPLIED
+
+
+static func apply_alchemy(state: Dictionary, target: Dictionary, id: String, source: Dictionary, events: Array) -> bool:
+	if not Board.alive(target) or (id == JELLY_KNEES and _resists_knockdown(state, target, events)):
+		return false
+	var entry := {"source_id": source.id}
+	if id != JELLY_KNEES:
+		entry["expires_after_round"] = state.round + int(not Reactions.ROUND_END.has(id))
+	if not target.has("alchemy_statuses"):
+		target["alchemy_statuses"] = {}
+	target.alchemy_statuses[id] = entry
 	return true
+
+
+static func _resists_knockdown(state: Dictionary, target: Dictionary, events: Array) -> bool:
+	return not knocked_down(state, target) and consume_alchemy(state, target, "stiff_upper_lip", "stays upright", events)
 
 
 static func _accepts_source(state: Dictionary, source: Dictionary, params: Dictionary) -> bool:
@@ -245,6 +313,58 @@ static func hit_amount(state: Dictionary, target: Dictionary, damage: int, event
 			label, "increases" if id == "laughing_fit" else "reduces", Board.display_name(state, target), bonus],
 			{"unit_id": target.id, "status_id": id, "amount": bonus})
 	return maxi(0, amount)
+
+
+static func alchemy_hit_amount(state: Dictionary, source: Dictionary, target: Dictionary,
+		damage: int, events: Array) -> int:
+	if damage <= 0:
+		return damage
+	var range_to_source := Board.distance(source.position, target.position)
+	var amount := damage
+	if consume_alchemy(state, target, "thin_skinned", "takes 1 extra damage", events):
+		amount += 1
+	if range_to_source == 1 and consume_alchemy(state, target, "handle_with_care", "takes 1 extra damage", events):
+		amount += 1
+	if consume_alchemy(state, target, "emergency_crust", "absorbs 1 damage", events):
+		amount -= 1
+	if amount > 0 and range_to_source > 1 and consume_alchemy(state, target, "duck", "avoids 1 damage", events):
+		amount -= 1
+	if amount >= target.hp and consume_alchemy(state, target, "pocket_paramedic", "survives at 1 HP", events):
+		amount = target.hp - 1
+	return amount
+
+
+static func healing_amount(state: Dictionary, target: Dictionary, amount: int, events: Array) -> int:
+	if amount <= 0 or target.hp >= target.max_hp:
+		return amount
+	if consume_alchemy(state, target, "medicinal_aftertaste", "gets 1 extra healing", events):
+		amount += 1
+	if consume_alchemy(state, target, "no_refills", "gets 1 less healing", events):
+		amount -= 1
+	return amount
+
+
+static func consume_alchemy(state: Dictionary, target: Dictionary, id: String, effect: String,
+		events: Array) -> bool:
+	if not clear_alchemy(target, id):
+		return false
+	Board.event(events, "status", "%s: %s %s." % [_alchemy_definition(id).label,
+		Board.display_name(state, target), effect],
+		{"unit_id": target.id, "target_id": target.id, "status_id": id, "reaction_id": id, "consumed": true})
+	return true
+
+
+static func clear_alchemy(unit: Dictionary, id: String) -> bool:
+	var statuses: Dictionary = unit.get("alchemy_statuses", {})
+	if not statuses.erase(id):
+		return false
+	if statuses.is_empty():
+		unit.erase("alchemy_statuses")
+	return true
+
+
+static func _alchemy_definition(id: String) -> Dictionary:
+	return Reactions.POOLS.beneficial.get(id, Reactions.POOLS.harmful.get(id, {}))
 
 
 static func heckled_target(state: Dictionary, actor: Dictionary) -> Dictionary:

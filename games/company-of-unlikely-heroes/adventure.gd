@@ -3,6 +3,7 @@ extends RefCounted
 
 const Catalog = preload("res://content/catalog.gd")
 const Commissions = preload("res://commissions.gd")
+const EncounterRandom = preload("res://rules/encounter_random.gd")
 const Rewards = preload("res://rewards.gd")
 const Rules = preload("res://rules.gd")
 
@@ -14,7 +15,8 @@ static func start_adventure(definitions: Dictionary, adventure_id: String, picks
 	var entry: Dictionary = definitions.get("adventures", {}).get(adventure_id, {})
 	if not _valid_picks(entry, picks):
 		return {}
-	var run := _new_run(definitions, adventure_id, picks, reward_seed)
+	var outing_seed: int = randi() if reward_seed == null else reward_seed
+	var run := _new_run(definitions, adventure_id, picks, outing_seed, outing_seed)
 	run.mission_ids = entry.missions.duplicate()
 	return run
 
@@ -28,7 +30,8 @@ static func start_commission(definitions: Dictionary, offer: Dictionary, picks: 
 	var entry: Dictionary = definitions.adventures[roster_adventure]
 	if not _valid_picks(entry, picks):
 		return {}
-	var run := _new_run(definitions, roster_adventure, picks, reward_seed)
+	var outing_seed: int = offer.seed if reward_seed == null else reward_seed
+	var run := _new_run(definitions, roster_adventure, picks, outing_seed, reward_seed)
 	run["destination_id"] = offer.destination_id
 	run["mission_count"] = offer.length
 	run["route_rng_state"] = Commissions.starting_rng_state(offer.seed)
@@ -72,13 +75,13 @@ static func _valid_picks(entry: Dictionary, picks: Array) -> bool:
 
 
 static func _new_run(definitions: Dictionary, adventure_id: String, picks: Array,
-		reward_seed: Variant) -> Dictionary:
+		outing_seed: int, reward_seed: Variant) -> Dictionary:
 	var catalog := Catalog.FrozenCatalog.new(definitions)
 	return {"catalog": catalog, "adventure_id": adventure_id, "phase": "ready",
 		"mission_ids": [], "mission_index": 0, "party": picks.duplicate(),
 		"mission": {}, "outcome": "ongoing", "carry_by_id": _empty_observation(),
 		"last_result": _empty_observation(), "upgrades_by_id": {}, "reward_offers": [], "chosen_reward": {},
-		"reward_rng_state": Rewards.starting_rng_state(reward_seed)}
+		"outing_seed": outing_seed, "reward_rng_state": Rewards.starting_rng_state(reward_seed)}
 
 
 static func next_mission_max_hp(run: Dictionary, hero_id: String) -> int:
@@ -101,7 +104,9 @@ static func next_mission_hp(run: Dictionary, hero_id: String) -> int:
 static func begin_mission(run: Dictionary) -> Dictionary:
 	if run.get("phase") != "ready":
 		return run
-	var mission := Rules.open_mission(run.catalog.defs, run.mission_ids[run.mission_index], run.party)
+	var mission_id: String = run.mission_ids[run.mission_index]
+	var dose_seed := EncounterRandom.mission_dose_seed(run.outing_seed, run.mission_index, mission_id)
+	var mission := Rules.open_mission(run.catalog.defs, mission_id, run.party, dose_seed)
 	if mission.is_empty():
 		return run
 	for member in mission.units:

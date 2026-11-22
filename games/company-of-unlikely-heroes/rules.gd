@@ -1,5 +1,6 @@
 extends RefCounted
 
+const Alchemy = preload("res://rules/alchemy.gd")
 const Catalog = preload("res://content/catalog.gd")
 const Actions = preload("res://rules/actions.gd")
 const Behaviors = preload("res://rules/behaviors.gd")
@@ -22,8 +23,9 @@ func new_game(definitions_input: Variant, mission_id: String) -> Dictionary:
 
 
 ## With no party IDs, open an authored encounter without party slots.
-static func open_mission(definitions_input: Dictionary, mission_id: String, party_ids: Array = []) -> Dictionary:
-	var state := Catalog.build(definitions_input, mission_id, party_ids)
+static func open_mission(definitions_input: Dictionary, mission_id: String, party_ids: Array = [],
+		fallback_dose_seed := 1) -> Dictionary:
+	var state := Catalog.build(definitions_input, mission_id, party_ids, fallback_dose_seed)
 	if not state.is_empty() and not party_ids.is_empty():
 		state["party"] = party_ids.duplicate()
 	return state
@@ -106,7 +108,13 @@ func has_status(state: Dictionary, unit_id: String, status_id: String) -> bool:
 	return not status(state, unit_id, status_id).is_empty()
 
 
+func alchemy_status(state: Dictionary, unit_id: String, reaction_id: String) -> Dictionary:
+	return Statuses.alchemy_status(Board.entity(state, unit_id), reaction_id).duplicate()
+
+
 func has_status_handler(state: Dictionary, unit_id: String, handler: String) -> bool:
+	if handler == "skip_action":
+		return Statuses.has_skip(state, Board.entity(state, unit_id))
 	return not Statuses.ids_with_handler(state, Board.entity(state, unit_id), handler).is_empty()
 
 
@@ -173,6 +181,14 @@ func targets(state: Dictionary, unit_id: String, ability_id: String) -> Array:
 	return Actions.targets(state, Board.entity(state, unit_id), ability_id) if state.outcome == "ongoing" else []
 
 
+## `state` is the board at the start of the caster's turn, as for target selection.
+func dose_forecast(state: Dictionary, unit_id: String, ability_id: String) -> Dictionary:
+	var actor := Board.entity(state, unit_id)
+	if state.outcome != "ongoing" or not Actions.can_act(state, actor):
+		return {}
+	return Alchemy.reaction_forecast(state, actor, Actions.owned_ability(state, actor, ability_id).get("handler", ""))
+
+
 func preview(state: Dictionary, unit_id: String, ability_id: String, target_id := "") -> Dictionary:
 	var result := state.duplicate(true)
 	var events: Array = []
@@ -232,6 +248,9 @@ func preview_round(state: Dictionary) -> Dictionary:
 	if state.get("outcome") != "ongoing":
 		return _plan("round", state, result, events, false)
 	_resolve_turns(result, events)
+	var gate_before_reactions := Board.pressure_gate_open(result)
+	Alchemy.finish_round(result, events)
+	FrontierObjectives.report_gate_change(result, {}, gate_before_reactions, events)
 	FrontierObjectives.finish_round(result, events)
 	var ending := _end_condition(result)
 	if ending.is_empty():
@@ -286,8 +305,10 @@ func _resolve_turns(state: Dictionary, events: Array, stop_before := "") -> void
 
 
 func _resolve_turn(state: Dictionary, actor: Dictionary, events: Array) -> void:
-	if not Actions.can_act(state, actor):
-		Statuses.consume_skips(state, actor, events)
+	if Statuses.has_skip(state, actor):
+		# Wagon and sheep move during the objective pass, not their initiative slot.
+		# Keep this reaction pending until then, without deferring other statuses.
+		Statuses.consume_skips(state, actor, events, FrontierObjectives.controls_movement(state, actor.id))
 		return
 
 	var name := Board.display_name(state, actor)

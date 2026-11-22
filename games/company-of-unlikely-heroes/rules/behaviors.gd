@@ -39,6 +39,16 @@ static func decide(state: Dictionary, actor: Dictionary, behavior_id: String) ->
 			return _hook_and_seek(state, actor, params)
 		"follow_party":
 			return _follow_party(state, actor, params.move_ability)
+		"follow_ally":
+			var allies := Board.occupants(state, {}).filter(func(unit: Dictionary) -> bool:
+				return Board.allied(state, actor, unit))
+			return _follow(state, actor, params.move_ability, allies, "follow_ally")
+		"most_injured":
+			return _most_injured(state, actor, params.ability)
+		"nearest_target":
+			var target := Board.nearest(actor, Actions.targets(state, actor, params.ability), true)
+			if not target.is_empty():
+				return _action(params.ability, target.id)
 		"rescue":
 			if state.objective.handler != "escort":
 				return {}
@@ -175,13 +185,31 @@ static func _follow_party(state: Dictionary, actor: Dictionary, move_ability: St
 	var party: Array = state.get("party", [])
 	heroes = heroes.filter(func(hero: Dictionary) -> bool:
 		return not Board.capable(state, hero, "minion") and (party.is_empty() or hero.id in party))
-	var target := Board.nearest(actor, heroes)
+	return _follow(state, actor, move_ability, heroes, "follow_party")
+
+
+static func _follow(state: Dictionary, actor: Dictionary, move_ability: String,
+		allies: Array, template: String) -> Dictionary:
+	var target := Board.nearest(actor, allies)
 	if target.is_empty() or Board.distance(actor.position, target.position) <= 1:
 		return {"wait": "hold"}
 	var action := _move(state, actor, move_ability, target.position, 1)
 	if action.has("ability_id"):
 		action["follow_target_id"] = target.id
+		action["follow_event"] = template
 	return action
+
+
+static func _most_injured(state: Dictionary, actor: Dictionary, id: String) -> Dictionary:
+	var recipient := ""
+	var most_missing := 0
+	for choice in Actions.targets(state, actor, id):
+		var candidate := Board.entity(state, choice.id)
+		var missing: int = candidate.max_hp - candidate.hp
+		if missing > most_missing:
+			most_missing = missing
+			recipient = candidate.id
+	return _action(id, recipient) if not recipient.is_empty() else {"wait": "hold"}
 
 
 static func _greet(state: Dictionary, actor: Dictionary, params: Dictionary) -> Dictionary:

@@ -36,6 +36,7 @@ var _upgrade_dialog: AcceptDialog
 var _upgrade_text: Label
 var _summary: Label
 var _inspection: Label
+var _locked_dose: Label
 var _actions: MenuButton
 var _targets: MenuButton
 var _orders: Button
@@ -132,6 +133,7 @@ func render(view: Dictionary) -> void:
 					break
 		_inspection.text = "   ·   ".join(company)
 	_inspection.tooltip_text = _inspection.text
+	_render_locked_dose(str(view.get("locked_dose", "")))
 	_forecast.text = "Forecast" if active else "Round result"
 	_forecast_heading.text = "Round forecast" if active else "Round result"
 	_forecast_scroll.accessibility_name = "Round forecast in execution order" if active else "Resolved round events"
@@ -158,6 +160,23 @@ func _victory_summary() -> String:
 func render_ink(cues: Dictionary) -> void:
 	if is_instance_valid(_ink):
 		_ink.render(cues)
+
+
+func play_committed_reactions(reactions: Array) -> void:
+	if is_instance_valid(_ink):
+		_ink.play_committed_reactions(reactions)
+
+
+func _render_locked_dose(text: String) -> void:
+	var show_note := not text.is_empty()
+	if _locked_dose.visible and not show_note and _locked_dose.has_focus() and not _actions.disabled:
+		_actions.grab_focus()
+	_locked_dose.text = text
+	_locked_dose.accessibility_name = text
+	_actions.accessibility_description = text
+	_locked_dose.visible = show_note
+	_summary.visible = not show_note
+	_inspection.visible = not show_note
 
 
 ## Scenery uses full-page coordinates with transparent space for the live grid.
@@ -263,6 +282,7 @@ func _build_footer() -> void:
 	_footer = VBoxContainer.new()
 	_footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_footer.add_theme_constant_override("separation", 4)
+	_footer.minimum_size_changed.connect(_layout_page, CONNECT_DEFERRED)
 	add_child(_footer)
 	var line := HBoxContainer.new()
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -275,6 +295,24 @@ func _build_footer() -> void:
 	_inspection.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_inspection.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	line.add_child(_inspection)
+	# While a recipient is undecided, give the recipe the whole margin rather
+	# than competing with the command summary and cell inspection for one line.
+	_locked_dose = _label("", 16, PARCHMENT)
+	_locked_dose.name = "LockedDose"
+	_locked_dose.focus_mode = Control.FOCUS_ALL
+	_locked_dose.mouse_filter = Control.MOUSE_FILTER_PASS
+	_locked_dose.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_locked_dose.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_locked_dose.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	var note_style := _surface(Color("#30241d"), Color("#ab8967"), 12, 3)
+	var note_focus := _surface(Color("#30241d"), GOLD, 12, 3, 2)
+	_locked_dose.add_theme_stylebox_override("normal", note_style)
+	_locked_dose.focus_entered.connect(func() -> void:
+		_locked_dose.add_theme_stylebox_override("normal", note_focus))
+	_locked_dose.focus_exited.connect(func() -> void:
+		_locked_dose.add_theme_stylebox_override("normal", note_style))
+	line.add_child(_locked_dose)
+	_locked_dose.hide()
 	var controls := HBoxContainer.new()
 	controls.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	controls.add_theme_constant_override("separation", 8)
@@ -468,7 +506,8 @@ func _layout_page() -> void:
 		return
 	var margin := EDGE + 26.0
 	var content_width := size.x - margin * 2.0
-	var footer_top := size.y - EDGE - 83.0
+	var footer_height := maxf(72.0, _footer.get_combined_minimum_size().y) if _locked_dose.visible else 72.0
+	var footer_top := size.y - EDGE - 11.0 - footer_height
 	var board_top := EDGE + 65.0
 	var max_height := maxf(0.0, footer_top - board_top - 7.0)
 	var board_extent := Vector2(_dimensions) * BridgeArt.TILE + BridgeArt.GUTTER * 2.0
@@ -482,7 +521,7 @@ func _layout_page() -> void:
 	_header.size = Vector2(content_width, 57.0)
 	_layout_header()
 	_footer.position = Vector2(margin, footer_top)
-	_footer.size = Vector2(content_width, 72.0)
+	_footer.size = Vector2(content_width, footer_height)
 	var leaf_height := 210.0 if _expanded == "orders" else 242.0
 	_leaf.position = Vector2(margin, footer_top - leaf_height - 5.0)
 	_leaf.size = Vector2(minf(maxf(content_width, 0), 510.0), leaf_height)

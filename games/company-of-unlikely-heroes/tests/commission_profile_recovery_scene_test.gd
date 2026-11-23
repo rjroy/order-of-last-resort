@@ -71,6 +71,8 @@ func _start_outing() -> bool:
 		if DirAccess.remove_absolute(ProjectSettings.globalize_path(profile_path)) != OK:
 			_check(false, "Previous test-owned profile can be removed")
 			return false
+	if not _remove_test_backup():
+		return false
 	var created: Dictionary = store.create(profile_path, GUILD_NAME, BOARD_SEED)
 	if created.has("error"):
 		_check(false, "Test-owned profile can be created: " + str(created))
@@ -160,6 +162,8 @@ func _test_missing_profile() -> void:
 	var error := DirAccess.remove_absolute(ProjectSettings.globalize_path(profile_path))
 	if error != OK:
 		_check(false, "Another instance can remove the test profile")
+		return
+	if not _remove_test_backup():
 		return
 	await _press("ReturnToGuild")
 	if scene.current_screen() == "result":

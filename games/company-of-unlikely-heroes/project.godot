@@ -3,11 +3,6 @@ config_version=5
 [application]
 
 config/name="Barnaby's Order of Last Resort"
-; Keep user:// at the original project path, including platform-specific casing.
-config/use_custom_user_dir=true
-config/custom_user_dir_name="godot/app_userdata/The Company of Unlikely Heroes"
-config/custom_user_dir_name.windows="Godot/app_userdata/The Company of Unlikely Heroes"
-config/custom_user_dir_name.macos="Godot/app_userdata/The Company of Unlikely Heroes"
 run/main_scene="res://main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 

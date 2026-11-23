@@ -180,5 +180,6 @@ func _mentions_destination(text: String, outcome: String) -> bool:
 func _cleanup_conflict(directory: String) -> void:
 	if FileAccess.file_exists(profile_path):
 		_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(profile_path)) == OK, "Remove test profile")
+	_remove_test_backup()
 	_check(DirAccess.remove_absolute(directory) == OK, "Remove test directory")
 	_finish()

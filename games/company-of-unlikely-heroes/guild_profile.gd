@@ -1,8 +1,8 @@
 extends RefCounted
 
 ## Only guild progress and preparation persist. Missions and their rewards do not.
-# Keep the original location so v1 guilds are found and grandfathered.
-const DEFAULT_PATH := "user://company_of_unlikely_heroes/guild_profile_v1.json"
+const DEFAULT_PATH := "user://guild_profile_v1.json"
+const CUSTOM_PATH := "user://custom_guild_profile_v1.json"
 const MAX_NAME_LENGTH := 80
 const FORMAT_VERSION := 3
 const FOUNDERS := ["knight", "healer", "wizard"]
@@ -13,13 +13,143 @@ const Catalog = preload("res://content/catalog.gd")
 const Progression = preload("res://guild_progression.gd")
 
 
+## Copy the old profile only when the new location is absent. Leave the source
+## intact, and surface errors rather than offering to create a replacement.
+static func migrate_location(path: String) -> Dictionary:
+	var destination := ProjectSettings.globalize_path(path)
+	if _path_exists(destination):
+		return {}
+	if _path_exists(destination + ".backup"):
+		return _backup_recovery_error(destination)
+	var lock := destination + ".migration-lock"
+	var error := DirAccess.make_dir_absolute(lock)
+	if error != OK:
+		# A completed profile takes precedence even over a stale lock.
+		if _path_exists(destination):
+			return {}
+		return {"error": "Could not acquire migration lock %s: %s. If no game is running, remove this empty lock directory and retry." % [lock, error_string(error)]}
+	var result := _migrate_locked(destination)
+	error = DirAccess.remove_absolute(lock)
+	if error != OK and not result.has("error"):
+		return {"error": "Could not release migration lock %s: %s. If no game is running, remove this empty directory and retry." % [lock, error_string(error)]}
+	return result
+
+
+static func _path_exists(path: String) -> bool:
+	return FileAccess.file_exists(path) or DirAccess.dir_exists_absolute(path)
+
+
+static func _backup_recovery_error(path: String) -> Dictionary:
+	return {"error": "The profile is missing but a backup exists at %s.backup. With the game closed, inspect and restore that backup before retrying." % path}
+
+
+static func _with_write_lock(path: String, operation: Callable) -> Dictionary:
+	var absolute := ProjectSettings.globalize_path(path)
+	var error := DirAccess.make_dir_recursive_absolute(absolute.get_base_dir())
+	if error != OK:
+		return {"error": "Could not create profile directory: %s" % error_string(error)}
+	var lock := absolute + ".migration-lock"
+	error = DirAccess.make_dir_absolute(lock)
+	if error != OK:
+		return {"error": "Could not acquire profile lock %s: %s. If no game is running, remove this empty lock directory and retry." % [lock, error_string(error)]}
+	var result: Dictionary = operation.call()
+	error = DirAccess.remove_absolute(lock)
+	if error != OK:
+		return {"error": "Could not release profile lock %s: %s. If no game is running, remove this empty directory and retry." % [lock, error_string(error)]}
+	return result
+
+
+static func _migrate_locked(destination: String) -> Dictionary:
+	if _path_exists(destination):
+		return {}
+	if _path_exists(destination + ".backup"):
+		return _backup_recovery_error(destination)
+	var base := ProjectSettings.globalize_path("user://").trim_suffix("/").get_base_dir()
+	var components := ["The Company of Unlikely Heroes", "company_of_unlikely_heroes", destination.get_file()]
+	var directory := base
+	for index in components.size():
+		var component: String = components[index]
+		var candidate := directory.path_join(component)
+		# First use the filesystem's own path lookup, including its case rules.
+		var opened := false
+		if index < components.size() - 1:
+			opened = DirAccess.open(candidate) != null
+		else:
+			var file := FileAccess.open(candidate, FileAccess.READ)
+			opened = file != null
+			if opened:
+				file.close()
+		if opened:
+			directory = candidate
+			continue
+		# An unsuccessful open may mean absence or denied access. Inspect the
+		# accessible parent, including hidden entries, before calling it absent.
+		var dir := DirAccess.open(directory)
+		if dir == null:
+			return {"error": "Could not inspect legacy save directory %s: %s" % [directory, error_string(DirAccess.get_open_error())]}
+		dir.include_hidden = true
+		var list_error := dir.list_dir_begin()
+		if list_error != OK:
+			return {"error": "Could not inspect legacy save directory %s: %s" % [directory, error_string(list_error)]}
+		var found := false
+		var entry := dir.get_next()
+		while not entry.is_empty():
+			if entry.to_lower() == component.to_lower():
+				found = true
+				break
+			entry = dir.get_next()
+		dir.list_dir_end()
+		if not found:
+			return {}
+		return {"error": "Could not access legacy save path %s. Check its permissions and retry." % candidate}
+	var legacy := directory
+	print_verbose("Migrating guild profile from %s to %s." % [legacy, destination])
+	var loaded := load_profile(legacy)
+	if loaded.has("error") or loaded.is_empty():
+		return {"error": "Could not migrate legacy profile at %s: %s" % [
+			legacy, loaded.get("error", "Profile is missing.")]}
+	var temp := "%s.migrate.%d.%d" % [destination, OS.get_process_id(), Time.get_ticks_usec()]
+	var error := DirAccess.copy_absolute(legacy, temp)
+	if error != OK:
+		DirAccess.remove_absolute(temp)
+		return {"error": "Could not copy legacy profile at %s: %s" % [legacy, error_string(error)]}
+	# Confirm the copied bytes before publishing. The legacy file remains untouched.
+	var source := FileAccess.get_file_as_bytes(legacy)
+	var source_error := FileAccess.get_open_error()
+	var copy := FileAccess.get_file_as_bytes(temp)
+	var copy_error := FileAccess.get_open_error()
+	if source_error != OK or copy_error != OK or source != copy:
+		DirAccess.remove_absolute(temp)
+		return {"error": "Could not verify legacy profile copy from %s." % legacy}
+	if _path_exists(destination):
+		DirAccess.remove_absolute(temp)
+		return {}
+	error = DirAccess.rename_absolute(temp, destination)
+	if error != OK:
+		DirAccess.remove_absolute(temp)
+		return {"error": "Could not place legacy profile from %s: %s" % [legacy, error_string(error)]}
+	print_verbose("Guild profile migration completed; legacy profile retained at %s." % legacy)
+	return {}
+
+
+## Serialize creation with first-time migration for the default profile paths.
+static func create_default(path: String, guild_name: String, seed: int) -> Dictionary:
+	return _with_write_lock(path, func() -> Dictionary:
+		var result := _migrate_locked(ProjectSettings.globalize_path(path))
+		return _create_locked(path, guild_name, seed) if result.is_empty() else result
+	)
+
+
 ## Returns {} for a missing profile, {"error": ...} for invalid or unreadable
 ## data, or a profile dictionary for a valid file. v1 migration is read-only
 ## until the first successful update, so a failed load/update never rewrites it.
 static func load_profile(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):
-		if DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(path)):
+		var absolute := ProjectSettings.globalize_path(path)
+		if DirAccess.dir_exists_absolute(absolute):
 			return {"error": "Profile path is a directory."}
+		if _path_exists(absolute + ".backup"):
+			return _backup_recovery_error(absolute)
 		return {}
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
@@ -64,11 +194,17 @@ static func _migrate_legacy(profile: Dictionary) -> Dictionary:
 ## Creates a profile only when no file already exists. Returns the same shapes
 ## as load_profile, with validation and write failures reported as errors.
 static func create(path: String, guild_name: String, seed: int) -> Dictionary:
+	return _with_write_lock(path, func() -> Dictionary: return _create_locked(path, guild_name, seed))
+
+
+static func _create_locked(path: String, guild_name: String, seed: int) -> Dictionary:
 	guild_name = guild_name.strip_edges()
 	if not _valid_name(guild_name):
 		return {"error": "Guild name must contain 1 to %d characters." % MAX_NAME_LENGTH}
 	if FileAccess.file_exists(path) or DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(path)):
 		return {"error": "A guild profile already exists."}
+	if _path_exists(ProjectSettings.globalize_path(path) + ".backup"):
+		return _backup_recovery_error(ProjectSettings.globalize_path(path))
 	var guild_id := Crypto.new().generate_random_bytes(32).hex_encode()
 	if guild_id.is_empty():
 		return {"error": "Could not create a guild identity."}
@@ -77,6 +213,10 @@ static func create(path: String, guild_name: String, seed: int) -> Dictionary:
 
 ## Unscoped commission compatibility: renew without crediting a receipt.
 static func renew(path: String, profile: Dictionary, new_seed: int) -> Dictionary:
+	return _with_write_lock(path, func() -> Dictionary: return _renew_locked(path, profile, new_seed))
+
+
+static func _renew_locked(path: String, profile: Dictionary, new_seed: int) -> Dictionary:
 	var current := _current_profile(path, profile)
 	if current.has("error"):
 		return current
@@ -97,6 +237,10 @@ static func petitions(defs: Dictionary, profile: Dictionary) -> Array[Dictionary
 
 
 static func purchase(path: String, profile: Dictionary, defs: Dictionary, petition_id: String) -> Dictionary:
+	return _with_write_lock(path, func() -> Dictionary: return _purchase_locked(path, profile, defs, petition_id))
+
+
+static func _purchase_locked(path: String, profile: Dictionary, defs: Dictionary, petition_id: String) -> Dictionary:
 	var current := _current_profile(path, profile)
 	if current.has("error"):
 		return current
@@ -120,6 +264,10 @@ static func order_options(defs: Dictionary, profile: Dictionary, hero_id: String
 
 
 static func save_loadouts(path: String, profile: Dictionary, defs: Dictionary, loadouts: Dictionary) -> Dictionary:
+	return _with_write_lock(path, func() -> Dictionary: return _save_loadouts_locked(path, profile, defs, loadouts))
+
+
+static func _save_loadouts_locked(path: String, profile: Dictionary, defs: Dictionary, loadouts: Dictionary) -> Dictionary:
 	var current := _current_profile(path, profile)
 	if current.has("error"):
 		return current
@@ -136,6 +284,10 @@ static func valid_loadouts(defs: Dictionary, profile: Dictionary, loadouts: Dict
 
 
 static func settle_return(path: String, profile: Dictionary, run: Dictionary, new_seed: int) -> Dictionary:
+	return _with_write_lock(path, func() -> Dictionary: return _settle_return_locked(path, profile, run, new_seed))
+
+
+static func _settle_return_locked(path: String, profile: Dictionary, run: Dictionary, new_seed: int) -> Dictionary:
 	var current := _load_existing_profile(path)
 	if current.has("error"):
 		return current
@@ -279,6 +431,35 @@ static func _valid_name(guild_name: String) -> bool:
 	return not guild_name.strip_edges().is_empty() and guild_name.length() <= MAX_NAME_LENGTH
 
 
+## Publish a verified copy of the current canonical bytes before replacement.
+## If backup publication fails, the canonical profile is still untouched.
+static func _preserve_backup(absolute_path: String) -> Dictionary:
+	var backup := absolute_path + ".backup"
+	var temp := "%s.tmp.%d.%d" % [backup, OS.get_process_id(), Time.get_ticks_usec()]
+	var error := DirAccess.copy_absolute(absolute_path, temp)
+	if error != OK:
+		DirAccess.remove_absolute(temp)
+		return {"error": "Could not copy the current profile to a backup: %s" % error_string(error)}
+	var original := FileAccess.get_file_as_bytes(absolute_path)
+	var original_error := FileAccess.get_open_error()
+	var copied := FileAccess.get_file_as_bytes(temp)
+	var copy_error := FileAccess.get_open_error()
+	if original_error != OK or copy_error != OK or original != copied:
+		DirAccess.remove_absolute(temp)
+		return {"error": "Could not verify the current profile backup."}
+	if DirAccess.dir_exists_absolute(backup):
+		DirAccess.remove_absolute(temp)
+		return {"error": "Profile backup path is a directory: %s" % backup}
+	error = DirAccess.rename_absolute(temp, backup)
+	if error != OK:
+		DirAccess.remove_absolute(temp)
+		return {"error": "Could not publish the current profile backup: %s" % error_string(error)}
+	var saved := FileAccess.get_file_as_bytes(backup)
+	if FileAccess.get_open_error() != OK or saved != original:
+		return {"error": "Could not verify the published profile backup at %s." % backup}
+	return {}
+
+
 static func _write_profile(path: String, profile: Dictionary) -> Dictionary:
 	var absolute_path := ProjectSettings.globalize_path(path)
 	var directory := absolute_path.get_base_dir()
@@ -320,6 +501,14 @@ static func _write_profile(path: String, profile: Dictionary) -> Dictionary:
 	if not matches:
 		DirAccess.remove_absolute(temp_path)
 		return {"error": "Written profile did not match expected data."}
+	if FileAccess.file_exists(absolute_path):
+		var backup_result := _preserve_backup(absolute_path)
+		if backup_result.has("error"):
+			DirAccess.remove_absolute(temp_path)
+			return backup_result
+	elif _path_exists(absolute_path + ".backup"):
+		DirAccess.remove_absolute(temp_path)
+		return _backup_recovery_error(absolute_path)
 	error = DirAccess.rename_absolute(temp_path, absolute_path)
 	if error != OK:
 		DirAccess.remove_absolute(temp_path)

@@ -14,9 +14,9 @@ func _run() -> void:
 	_check(root.title == GAME_TITLE, "Window displays the game title")
 	if OS.get_name() in ["Linux", "FreeBSD", "NetBSD", "OpenBSD", "BSD", "Windows", "macOS"]:
 		var godot_dir := "Godot" if OS.get_name() in ["Windows", "macOS"] else "godot"
-		var legacy_suffix := "%s/app_userdata/The Company of Unlikely Heroes" % godot_dir
-		_check(OS.get_user_data_dir().replace("\\", "/").ends_with(legacy_suffix),
-			"User data remains at the original project path")
+		var title_suffix := "%s/app_userdata/%s" % [godot_dir, GAME_TITLE]
+		_check(OS.get_user_data_dir().replace("\\", "/").ends_with(title_suffix),
+			"User data uses the current game title")
 	var container := SubViewportContainer.new()
 	container.size = VIEWPORT_SIZE
 	container.scale = Vector2(0.5, 0.5)
@@ -470,4 +470,14 @@ func _cleanup() -> void:
 	if FileAccess.file_exists(profile_path):
 		_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(profile_path)) == OK,
 			"Test-owned profile is removed")
+	_remove_test_backup()
 	_finish()
+
+
+func _remove_test_backup() -> bool:
+	var backup := profile_path + ".backup"
+	if not FileAccess.file_exists(backup):
+		return true
+	var removed := DirAccess.remove_absolute(ProjectSettings.globalize_path(backup)) == OK
+	_check(removed, "Test-owned profile backup is removed")
+	return removed

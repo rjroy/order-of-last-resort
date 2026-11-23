@@ -42,7 +42,21 @@ At each fork, choose between two field reports using **Take Route A** or **Take 
 
 Use **Edit loadout** during recruitment to choose an offense, utility and compatible starting order. Buying an ability never silently equips it or teaches the donor's standing orders. For example, a Knight equipped with **Rescue Line** can pull an ally toward him instead of guarding. A new Mixologist can throw Acid directly from her first mission; **Throw Samples** teaches her to do it while you command someone else.
 
-Returning clears outing upgrades and refreshes the commission board. Guild points, permanent purchases and preferred loadouts survive. Existing guild profiles retain access to their previous recruits. The profile still lives at `user://company_of_unlikely_heroes/guild_profile_v1.json`; there is no mid-run save.
+Returning clears outing upgrades and refreshes the commission board. Guild points, permanent purchases and preferred loadouts survive. Existing guild profiles retain access to their previous recruits. There is no mid-run save.
+
+### Guild save location
+
+The standard profile is `guild_profile_v1.json` in Godot's default user-data directory for **Barnaby's Order of Last Resort**. Custom catalog launches use the separate `custom_guild_profile_v1.json` in the same directory. Typical locations are:
+
+- Linux: `${XDG_DATA_HOME:-~/.local/share}/godot/app_userdata/Barnaby's Order of Last Resort/`
+- Windows: `%APPDATA%\Godot\app_userdata\Barnaby's Order of Last Resort\`
+- macOS: `~/Library/Application Support/Godot/app_userdata/Barnaby's Order of Last Resort/`
+
+When a profile is first needed and its new file does not exist, the game copies its corresponding old file from the sibling `The Company of Unlikely Heroes/company_of_unlikely_heroes/` directory. It leaves the original in place and never intentionally replaces a profile already at the new location. If the old profile cannot be read or copied, the game shows an error instead of offering a blank guild; correct the problem and reload. Explicitly configured profile paths are isolated and do not trigger migration.
+
+Migration and all profile updates use an adjacent `<profile filename>.migration-lock` directory to prevent two game processes from publishing at once. An interruption can leave this directory behind. If no game process is running, remove the empty lock directory named in the error and reload; do not remove the profile or legacy save. A profile already present at the new location can be read even if a lock remains, but updates require the lock to be cleared.
+
+Before replacing a profile, the game saves and verifies its previous committed bytes as `<profile filename>.backup`. The canonical profile takes precedence when present. If it is missing but a backup exists, the game stops rather than importing an older legacy save or creating a blank guild. Close all game processes, retain copies of both the backup and any other save files, inspect the backup, and copy it to the canonical filename before retrying. The backup represents the state before the most recent update, not necessarily the newest canonical state. This also applies to explicitly configured profile paths.
 
 ### Practice outings
 

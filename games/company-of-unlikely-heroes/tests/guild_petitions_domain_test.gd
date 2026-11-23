@@ -35,9 +35,10 @@ func _initialize() -> void:
 		_test_purchase_path(defs, "recruit_bard")
 		_test_purchase_path(defs, "teach_healer_blast")
 	for path in paths:
-		if FileAccess.file_exists(path):
-			_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(path)) == OK,
-				"Remove disposable profile " + path)
+		for owned_path in [path, path + ".backup"]:
+			if FileAccess.file_exists(owned_path):
+				_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(owned_path)) == OK,
+					"Remove disposable profile file " + owned_path)
 	if failures.is_empty():
 		print("PASS: guild petitions domain")
 	else:
@@ -284,6 +285,10 @@ func _test_same_board_stale_return(defs: Dictionary) -> void:
 	# A new guild at the same test-owned path, name and seed is not the old guild.
 	if DirAccess.remove_absolute(ProjectSettings.globalize_path(path)) != OK:
 		_check(false, "Replace test-owned profile for recreated-guild boundary")
+		return
+	var backup := path + ".backup"
+	if FileAccess.file_exists(backup) and DirAccess.remove_absolute(ProjectSettings.globalize_path(backup)) != OK:
+		_check(false, "Remove test-owned backup for recreated-guild boundary")
 		return
 	var recreated: Dictionary = profile_store.call("create", path, "Petition Test", SEED)
 	if recreated.has("error"):

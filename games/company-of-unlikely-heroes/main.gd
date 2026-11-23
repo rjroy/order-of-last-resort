@@ -106,7 +106,7 @@ func _ready() -> void:
 	_definitions = content.definitions
 	_uses_builtin_catalog = launch.content.is_empty()
 	if not _uses_builtin_catalog and not _profile_path_configured:
-		_profile_path = "user://company_of_unlikely_heroes/custom_guild_profile_v1.json"
+		_profile_path = GuildProfile.CUSTOM_PATH
 	_fixed_mission = launch.mission
 	var adventures: Dictionary = _definitions.get("adventures", {})
 	if not adventures.is_empty() and not adventures.has(_adventure_id):
@@ -318,7 +318,9 @@ func _open_commission_hub(board_refresh_failed := false) -> void:
 	_run = {}
 	_state = {}
 	print_verbose("Loading the guild profile.")
-	_guild_profile = GuildProfile.load_profile(_profile_path)
+	_guild_profile = {} if _profile_path_configured else GuildProfile.migrate_location(_profile_path)
+	if _guild_profile.is_empty():
+		_guild_profile = GuildProfile.load_profile(_profile_path)
 	if _guild_profile.has("error"):
 		print_verbose("Could not load the guild profile: %s" % _guild_profile.error)
 		_show_profile_error(str(_guild_profile.error))
@@ -396,7 +398,8 @@ func _show_guild_creation(after_missing_profile := false) -> void:
 
 func _create_guild(guild_name: String, feedback: Label) -> void:
 	print_verbose("Creating a guild profile.")
-	var created := GuildProfile.create(_profile_path, guild_name, randi())
+	var created := GuildProfile.create(_profile_path, guild_name, randi()) if _profile_path_configured \
+		else GuildProfile.create_default(_profile_path, guild_name, randi())
 	if created.has("error"):
 		print_verbose("Could not create the guild profile: %s" % created.error)
 		feedback.text = str(created.error)

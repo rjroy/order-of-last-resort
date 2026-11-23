@@ -1,7 +1,7 @@
 extends "res://presentation/guild_book_page.gd"
 ## Opt-in book furniture. Unpolished leaves retain the ordinary page.
 
-enum Surface { BINDING, CLOTH, POSTING }
+enum Surface { BINDING, CLOTH, POSTING, FLAT_BINDING }
 
 const BookMaterial = preload("res://presentation/guild_book_material.gdshader")
 const FOCUS_GOLD := Color("#aa660e")
@@ -15,7 +15,7 @@ func _draw() -> void:
 	draw_texture_rect(_surface_pixel, Rect2(Vector2.ZERO, size), false)
 
 
-func bind_cover(horizontal: int, top: int, bottom: int) -> void:
+func bind_cover(horizontal: int, top: int, bottom: int, flat := false) -> void:
 	for side in ["left", "right"]:
 		add_theme_constant_override("margin_" + side, horizontal)
 	add_theme_constant_override("margin_top", top)
@@ -25,7 +25,7 @@ func bind_cover(horizontal: int, top: int, bottom: int) -> void:
 	var pixel := Image.create_empty(1, 1, false, Image.FORMAT_RGBA8)
 	pixel.fill(Color.WHITE)
 	_surface_pixel = ImageTexture.create_from_image(pixel)
-	_set_material(self, Surface.BINDING)
+	_set_material(self, Surface.FLAT_BINDING if flat else Surface.BINDING)
 
 
 func material_panel(parent: Control, kind: Surface, horizontal: int, top: int, bottom: int) -> PanelContainer:

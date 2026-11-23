@@ -1,7 +1,8 @@
 extends "res://tests/commission_scene_test.gd"
 
 # Run: godot --headless --path games/company-of-unlikely-heroes --script res://tests/commission_profile_recovery_scene_test.gd
-# Exercise recovery through the result screen using a test-owned profile.
+# Exercise recovery at launch and on return using test-owned profiles.
+# Add -- --capture-dir=/absolute/existing/directory in a graphical run for the long case.
 const RENEWED_SEED := 97531
 var fixture_path := "user://commission_recovery_catalog_%d_%d.json" % [OS.get_process_id(), Time.get_ticks_usec()]
 
@@ -18,6 +19,7 @@ func _run() -> void:
 	container.add_child(viewport)
 	root.add_child(container)
 	await _test_corrupt_profile()
+	await _test_long_backup_path()
 	await _test_changed_profile()
 	await _test_missing_profile()
 	_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(fixture_path)) == OK,
@@ -35,12 +37,107 @@ func _test_corrupt_profile() -> void:
 	await _launch_normal()
 	_check(scene.current_screen() == "profile_error", "Corrupt profile opens recovery")
 	_check_no_practice("Corrupt profile recovery")
-	_check(_reload_button() != null, "Corrupt profile recovery offers reload")
-	_check(FileAccess.get_file_as_string(profile_path) == "{ invalid json",
-		"Recovery preserves corrupt profile for repair")
-	await _press("ReloadGuild")
+	var diagnostic := _node("ProfileErrorText") as Label
+	var path := _node("ProfilePath") as Label
+	_check(_reachable(diagnostic) and diagnostic.text == "Invalid profile data.",
+		"The real parse error is readable")
+	_check(_reachable(path) and path.text == ProjectSettings.globalize_path(profile_path),
+		"The recovery sheet shows the actual profile path separately")
+	_check(_reachable(_reload_button()) and _reload_button().has_focus()
+		and _reload_button().text == "Reload profile", "Recovery focuses the on-screen reload action")
+	_check(scene.get("_screen_root").find_children("*", "BaseButton", true, false).size() == 1,
+		"Reload is the only action on the recovery sheet")
+	var corrupt := "{ invalid json".to_utf8_buffer()
+	_check(FileAccess.get_file_as_bytes(profile_path) == corrupt, "Opening recovery preserves the corrupt bytes")
+	await _key(KEY_ENTER)
 	_check(scene.current_screen() == "profile_error", "Reload keeps reporting an unrepaired profile")
+	_check(FileAccess.get_file_as_bytes(profile_path) == corrupt, "Keyboard retry preserves the corrupt bytes")
 	_check_no_practice("Corrupt profile recovery after retry")
+	_check(_reachable(_reload_button()) and _reload_button().has_focus(), "Failed reload restores focus")
+	if DirAccess.remove_absolute(ProjectSettings.globalize_path(profile_path)) != OK:
+		_check(false, "External repair can remove the test-owned broken save")
+		return
+	var store = load("res://guild_profile.gd")
+	var repaired: Dictionary = store.create(profile_path, GUILD_NAME, RENEWED_SEED)
+	_check(not repaired.has("error"), "External repair can put a valid save in place")
+	var repaired_bytes := FileAccess.get_file_as_bytes(profile_path)
+	await _key(KEY_ENTER)
+	_check(scene.current_screen() == "commissions" and _visible_text().contains(GUILD_NAME),
+		"The same keyboard reload opens the repaired guild")
+	_check(FileAccess.get_file_as_bytes(profile_path) == repaired_bytes, "Reload leaves repaired save bytes unchanged")
+
+
+func _test_long_backup_path() -> void:
+	var original := profile_path
+	var dirs: Array[String] = [ProjectSettings.globalize_path("user://recovery_%d_%d" % [
+		OS.get_process_id(), Time.get_ticks_usec()])]
+	for index in 9:
+		dirs.append(dirs[-1].path_join("%d_%s" % [index, "recovery_test_".repeat(12)]))
+	if DirAccess.make_dir_recursive_absolute(dirs[-1]) != OK:
+		_check(false, "Long-path test directory can be created")
+		_remove_fixture_dirs(dirs)
+		return
+	profile_path = dirs[-1].path_join("long-profile.json")
+	var backup := profile_path + ".backup"
+	var original_bytes := "Only this test-owned backup exists.".to_utf8_buffer()
+	var file := FileAccess.open(backup, FileAccess.WRITE)
+	if file != null:
+		file.store_buffer(original_bytes)
+		file.close()
+		await _launch_normal()
+		for frame in 4:
+			await process_frame
+		_check(scene.current_screen() == "profile_error", "Backup-only profile opens recovery, not creation")
+		var diagnostic := _node("ProfileErrorText") as Label
+		var path := _node("ProfilePath") as Label
+		_check(diagnostic != null and diagnostic.text.contains(backup) and diagnostic.text.contains("restore"),
+			"Long diagnostic keeps the actual backup path and guidance")
+		_check(path != null and path.text == profile_path, "Long profile path remains complete")
+		_check(_reachable(scene.get("_screen_root")) and _reachable(_reload_button())
+			and _reload_button().has_focus(), "Both long values leave the frame and focused action in bounds")
+		await _capture("long-backup-recovery")
+		await _check_long_detail(diagnostic, "Diagnostic")
+		await _check_long_detail(path, "Profile path")
+		await _key(KEY_TAB)
+		_check(viewport.gui_get_focus_owner() == _reload_button(),
+			"Tab returns from the two scrolling details to Reload profile")
+		await _key(KEY_ENTER)
+		_check(scene.current_screen() == "profile_error" and FileAccess.get_file_as_bytes(backup) == original_bytes
+			and not FileAccess.file_exists(profile_path), "Retry leaves the backup intact and never creates a profile")
+	else:
+		_check(false, "Long-path test backup can be created")
+	_remove_test_backup()
+	profile_path = original
+	_remove_fixture_dirs(dirs)
+
+
+func _check_long_detail(label: Label, caption: String) -> void:
+	var scroll := label.get_parent() as ScrollContainer if label != null else null
+	if not _reachable(scroll):
+		_check(false, "%s has a bounded viewport" % caption)
+		return
+	var bar := scroll.get_v_scroll_bar()
+	_check(bar.max_value > bar.page and label.size.x <= scroll.size.x, "%s wraps and scrolls without horizontal overflow" % caption)
+	await _key(KEY_TAB)
+	_check(bar.has_focus(), "%s scrollbar is in the Tab order" % caption)
+	await _key(KEY_DOWN)
+	_check(scroll.scroll_vertical > 0, "%s can scroll with the keyboard" % caption)
+
+
+func _remove_fixture_dirs(dirs: Array[String]) -> void:
+	dirs.reverse()
+	for directory in dirs:
+		if DirAccess.dir_exists_absolute(directory):
+			_check(DirAccess.remove_absolute(directory) == OK, "Remove test-owned directory")
+
+
+func _key(code: Key) -> void:
+	for pressed in [true, false]:
+		var event := InputEventKey.new()
+		event.keycode = code
+		event.pressed = pressed
+		viewport.push_input(event, true)
+		await process_frame
 
 
 func _write_fixture() -> bool:

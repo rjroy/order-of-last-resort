@@ -25,12 +25,12 @@ float inside(float edge) {
 	return 1.0 - smoothstep(-0.65, 0.65, edge);
 }
 
-vec3 binding(vec2 p, vec2 extent) {
+vec3 binding(vec2 p, vec2 extent, bool spread) {
 	float tooth = grain(p * vec2(0.58, 1.08)) - 0.5;
 	float mottling = grain(p * 0.021) - 0.5;
 	float fold = p.x - extent.x * 0.5;
-	float spine = exp(-abs(fold) * 0.11);
-	float rise = 3.0 * exp(-abs(fold) * 0.077);
+	float spine = spread ? exp(-abs(fold) * 0.11) : 0.0;
+	float rise = spread ? 3.0 * exp(-abs(fold) * 0.077) : 0.0;
 	vec2 leaf_p = vec2(p.x, p.y + sign(p.y - extent.y * 0.5) * rise);
 
 	float leather_edge = rounded_edge(p, extent, 2.2, 14.0);
@@ -50,7 +50,9 @@ vec3 binding(vec2 p, vec2 extent) {
 	paper -= (vec3(0.13, 0.18, 0.21) + tooth * 0.12) * exp(min(paper_edge, 0.0) * 0.095);
 	paper -= vec3(0.23, 0.25, 0.19) * exp(-abs(paper_edge + 0.6) * 1.85);
 	paper -= vec3(0.23, 0.26, 0.27) * spine * (fold < 0.0 ? 0.66 : 0.40);
-	paper += vec3(0.037, 0.035, 0.019) * exp(-abs(fold - 4.0) * 0.62);
+	if (spread) {
+		paper += vec3(0.037, 0.035, 0.019) * exp(-abs(fold - 4.0) * 0.62);
+	}
 
 	vec3 bound = mix(vec3(0.113, 0.081, 0.061), leather, inside(leather_edge));
 	bound = mix(bound, edges, inside(leaf_edge));
@@ -114,6 +116,6 @@ void fragment() {
 	} else if (surface_kind == 1) {
 		COLOR = cloth(p, surface_size);
 	} else {
-		COLOR = vec4(binding(p, surface_size), 1.0);
+		COLOR = vec4(binding(p, surface_size, surface_kind == 0), 1.0);
 	}
 }

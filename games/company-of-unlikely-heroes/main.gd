@@ -19,6 +19,7 @@ const CommissionBoardPage = preload("res://presentation/commission_board_page.gd
 const FieldReportsPage = preload("res://presentation/field_reports_page.gd")
 const MissionDebriefPage = preload("res://presentation/mission_debrief_page.gd")
 const RunResultPage = preload("res://presentation/run_result_page.gd")
+const DiagnosticBookPage = preload("res://presentation/diagnostic_book_page.gd")
 const ReceiptCopy = preload("res://presentation/guild_receipt_copy.gd")
 const GuildPetitionViewModel = preload("res://presentation/guild_petition_view_model.gd")
 const DEFAULT_ADVENTURE := "first_outing"
@@ -374,15 +375,13 @@ func _open_commission_hub(board_refresh_failed := false) -> void:
 
 
 func _show_profile_error(message: String) -> void:
-	var page := _book_page("profile_error")
-	_book_heading(page, "Could not open the guild", "The saved profile hasn’t been changed.")
-	_book.text(page, message, 17, GuildBookPage.RUST)
-	_book.text(page, "Check the guild profile file and try again:", 16)
-	_book.text(page, ProjectSettings.globalize_path(_profile_path), 15, GuildBookPage.SUBTLE)
-	var retry := _book.button(page, "ReloadGuild", "Reload profile", "ClothButton")
-	retry.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	retry.pressed.connect(_open_commission_hub)
-	retry.grab_focus()
+	var notice := DiagnosticBookPage.new()
+	var page := _book_page("profile_error", -1.0, notice)
+	notice.heading(page, "Could not open the guild", "The saved profile hasn’t been changed.")
+	notice.error_detail(page, "ProfileErrorText", message)
+	notice.file_detail(page, "ProfilePath", "Check the guild profile file and try again:",
+		ProjectSettings.globalize_path(_profile_path))
+	notice.primary_action(page, "ReloadGuild", "Reload profile", _open_commission_hub)
 
 
 func _show_guild_creation(after_missing_profile := false) -> void:

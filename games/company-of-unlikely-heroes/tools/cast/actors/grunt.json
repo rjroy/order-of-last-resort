@@ -1,0 +1,92 @@
+{
+  "role": "grunt",
+  "master": {
+    "source": "models/grunt/grunt-candidate.blend",
+    "sha256": "3dcf176a63e749f5ca8f5e9038765323a40afce0f31f4299ac55ebf529f706b9",
+    "rig_name": "Grunt_Rig",
+    "action_prefix": "Grunt"
+  },
+  "takes": {
+    "advance": [
+      "Advance",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        27
+      ],
+      28,
+      false
+    ],
+    "close_strike": [
+      "Close Strike",
+      [
+        1,
+        6,
+        10,
+        11,
+        16,
+        21,
+        26
+      ],
+      27,
+      false
+    ],
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        29
+      ],
+      30,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        6,
+        11,
+        16,
+        17
+      ],
+      18,
+      false
+    ],
+    "ready": [
+      "Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31
+      ],
+      33,
+      true
+    ],
+    "square_up": [
+      "Square Up",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        22
+      ],
+      23,
+      false
+    ]
+  }
+}

@@ -651,7 +651,26 @@
         "move",
         "grunt_strike"
       ],
-      "behavior": "frontier_grunt_strike"
+      "behavior": "frontier_grunt_strike",
+      "cast_key": "grunt",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "advance"
+          },
+          "grunt_strike": {
+            "handler": "attack",
+            "clip": "close_strike",
+            "impact_frame": 10
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat"
+      }
     },
     "bomber": {
       "class": "enemy",

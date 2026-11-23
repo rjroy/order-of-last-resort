@@ -1,0 +1,18 @@
+{
+  "actor": "grunt",
+  "case": {
+    "automatic_rounds": 4,
+    "cast_key": "grunt",
+    "minimum_opening": 2,
+    "triggers": [
+      {
+        "ability": "grunt_strike",
+        "actor_field": "source_id",
+        "clip": "close_strike",
+        "id": "strike",
+        "type": "action"
+      }
+    ]
+  },
+  "mission": "cowardly_captain"
+}

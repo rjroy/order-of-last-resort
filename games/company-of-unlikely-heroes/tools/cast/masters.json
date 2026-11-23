@@ -8,6 +8,10 @@
     "source": "models/bard/bard-blockout.blend",
     "sha256": "5685e66c4f43a73a8267afcb6d16c369e64d3d6460cc80631642f3e796874966"
   },
+  "ferryman": {
+    "source": "models/ferryman/ferryman.blend",
+    "sha256": "6094dbf00ae9b19aa514b35abc939c472513553e11f0b2d3449fd2394dff6eea"
+  },
   "harpooner": {
     "source": "models/harpooner/harpooner.blend",
     "sha256": "e097b3aa7697ef09b02aa8713e12a32746c29c323c77c5b8b089ad5cd66b003a",

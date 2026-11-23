@@ -9,6 +9,568 @@
     -0.435386419
   ],
   "actors": {
+    "ferryman": {
+      "source": "art/models/ferryman/ferryman.blend",
+      "sha256": "6094dbf00ae9b19aa514b35abc939c472513553e11f0b2d3449fd2394dff6eea",
+      "clips": {
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 292,
+              "rect": [
+                636,
+                1068,
+                118,
+                202
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 291,
+              "rect": [
+                754,
+                1068,
+                118,
+                202
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 334,
+              "rect": [
+                872,
+                1068,
+                118,
+                202
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 250,
+              "rect": [
+                990,
+                1068,
+                118,
+                202
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 166,
+              "rect": [
+                0,
+                1275,
+                118,
+                202
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            58,
+            178
+          ],
+          "action": "Ferryman | Ready",
+          "path": "res://assets/cast/ferryman.png"
+        },
+        "travel": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                861,
+                159,
+                207
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 125,
+              "rect": [
+                159,
+                861,
+                159,
+                207
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 125,
+              "rect": [
+                318,
+                861,
+                159,
+                207
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 125,
+              "rect": [
+                477,
+                861,
+                159,
+                207
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 208,
+              "rect": [
+                636,
+                861,
+                159,
+                207
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 125,
+              "rect": [
+                795,
+                861,
+                159,
+                207
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 125,
+              "rect": [
+                954,
+                861,
+                159,
+                207
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                1068,
+                159,
+                207
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 125,
+              "rect": [
+                159,
+                1068,
+                159,
+                207
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 167,
+              "rect": [
+                318,
+                1068,
+                159,
+                207
+              ]
+            },
+            {
+              "source_frame": 35,
+              "duration_ms": 166,
+              "rect": [
+                477,
+                1068,
+                159,
+                207
+              ]
+            },
+            {
+              "source_frame": 39,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                861,
+                159,
+                207
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            65,
+            178
+          ],
+          "action": "Ferryman | Cautious Step",
+          "path": "res://assets/cast/ferryman.png"
+        },
+        "safe_bank": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                770,
+                441,
+                138,
+                208
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                908,
+                441,
+                138,
+                208
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 125,
+              "rect": [
+                1046,
+                441,
+                138,
+                208
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                653,
+                138,
+                208
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 209,
+              "rect": [
+                138,
+                653,
+                138,
+                208
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 125,
+              "rect": [
+                276,
+                653,
+                138,
+                208
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 208,
+              "rect": [
+                414,
+                653,
+                138,
+                208
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 250,
+              "rect": [
+                552,
+                653,
+                138,
+                208
+              ]
+            },
+            {
+              "source_frame": 34,
+              "duration_ms": 208,
+              "rect": [
+                690,
+                653,
+                138,
+                208
+              ]
+            },
+            {
+              "source_frame": 39,
+              "duration_ms": 209,
+              "rect": [
+                828,
+                653,
+                138,
+                208
+              ]
+            },
+            {
+              "source_frame": 44,
+              "duration_ms": 41,
+              "rect": [
+                966,
+                653,
+                138,
+                208
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            60,
+            183
+          ],
+          "action": "Ferryman | Safe Bank",
+          "path": "res://assets/cast/ferryman.png"
+        },
+        "flinch": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 83,
+              "rect": [
+                990,
+                225,
+                154,
+                212
+              ]
+            },
+            {
+              "source_frame": 3,
+              "duration_ms": 84,
+              "rect": [
+                0,
+                441,
+                154,
+                212
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                154,
+                441,
+                154,
+                212
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                308,
+                441,
+                154,
+                212
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                462,
+                441,
+                154,
+                212
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 250,
+              "rect": [
+                616,
+                441,
+                154,
+                212
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 41,
+              "rect": [
+                990,
+                225,
+                154,
+                212
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            71,
+            188
+          ],
+          "action": "Ferryman | Flinch",
+          "path": "res://assets/cast/ferryman.png"
+        },
+        "down": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                0,
+                167,
+                225
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 208,
+              "rect": [
+                167,
+                0,
+                167,
+                225
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 167,
+              "rect": [
+                334,
+                0,
+                167,
+                225
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 208,
+              "rect": [
+                501,
+                0,
+                167,
+                225
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 167,
+              "rect": [
+                668,
+                0,
+                167,
+                225
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 333,
+              "rect": [
+                835,
+                0,
+                167,
+                225
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 42,
+              "rect": [
+                835,
+                0,
+                167,
+                225
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            84,
+            186
+          ],
+          "action": "Ferryman | Down",
+          "path": "res://assets/cast/ferryman.png"
+        },
+        "recover": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                1002,
+                0,
+                165,
+                216
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                225,
+                165,
+                216
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                165,
+                225,
+                165,
+                216
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 125,
+              "rect": [
+                330,
+                225,
+                165,
+                216
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 209,
+              "rect": [
+                495,
+                225,
+                165,
+                216
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 166,
+              "rect": [
+                660,
+                225,
+                165,
+                216
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 42,
+              "rect": [
+                825,
+                225,
+                165,
+                216
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            83,
+            178
+          ],
+          "action": "Ferryman | Recover",
+          "path": "res://assets/cast/ferryman.png"
+        }
+      }
+    },
     "alchemist": {
       "source": "art/models/mixologist/mixologist-blockout.blend",
       "sha256": "8458bf889a27b57fc99698964c5dcceb981c9b60bf54ac3db3aff29cea48033f",

@@ -16,7 +16,9 @@ The capture driver launches the normal main battle scene with the unmodified
 the same opening for each sequence, stages legal commands through the battle
 interface, commits each forecast, and advances the actual board playback.
 Screenshots and any profile path stay in the specified disposable directory.
-The Ferryman is still the existing fallback, not the later actor integration.
+The Ferryman and Harpooner both use their authored cast identities. The visual
+fallback comparison changes only the Harpooner; it leaves the Ferryman and
+board state intact.
 
 * Close: Knight move `2,1`; Wizard move `1,1`; Wizard Pull Harpooner;
   Knight Push Harpooner. The third round attacks the Ferryman at distance one.

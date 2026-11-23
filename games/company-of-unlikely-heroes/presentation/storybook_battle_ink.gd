@@ -76,6 +76,10 @@ func has_committed_reactions() -> bool:
 	return not _committed_reactions.is_empty()
 
 
+func committed_reactions_remaining_ms() -> float:
+	return maxf(0.0, _reaction_time_left * 1000.0)
+
+
 func _process(delta: float) -> void:
 	_reaction_time_left -= delta
 	if _reaction_time_left <= 0.0:

@@ -270,7 +270,10 @@
     },
     "ferryman": {
       "class": "civilian",
-      "label": "Ferryman"
+      "label": "Ferryman",
+      "cast_key": "ferryman",
+      "cast_art_key": "ferryman",
+      "cast_team": "civilian"
     }
   },
   "capabilities": {

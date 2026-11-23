@@ -3,6 +3,7 @@ extends RefCounted
 ## The caller owns the commit boundary; inspecting a forecast never plays it.
 
 const Catalog = preload("res://content/catalog.gd")
+const Statuses = preload("res://rules/statuses.gd")
 # [expected rules handler, clip]. Catalog authors can redefine an ability ID.
 const CLIPS := {
 	"knight": {"knight_aura": ["apply_status", "guard"], "knight_shield_throw": ["attack", "shield_away"]},
@@ -21,6 +22,7 @@ const CLIPS := {
 		"alchemist_repeat_batch": ["repeat_batch", "potion"]},
 	"harpooner": {"move": ["move", "pursue"], "enemy_attack": ["attack", "close_thrust"],
 		"enemy_harpoon": ["attack", "ranged_cast"]},
+	"ferryman": {"move": ["move", "travel"]},
 }
 const STRIKES := ["bonk", "blast", "shield_away", "offer_flower", "healing_sonnet", "wave"]
 
@@ -53,8 +55,10 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 	for entity in before.units + before.obstacles:
 		positions[entity.id] = entity.position
 	var health := {}
+	var prone := {}
 	for unit in before.units:
 		health[unit.id] = int(unit.hp)
+		prone[unit.id] = int(unit.hp) <= 0 or Statuses.knocked_down(before, unit)
 	var cues := []
 	var index := 0
 	while index < events.size():
@@ -67,8 +71,13 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 			return []
 		var echo_started := false
 		var reactions := []
+		var travelled := false
 		while index < end:
 			var event: Dictionary = events[index]
+			if event.get("type") == "move" and event.get("unit_id") == action.get("unit_id") \
+					and event.get("position") is Vector2i \
+					and event.get("position") != positions.get(action.get("unit_id")):
+				travelled = true
 			if not echo_started and event.get("song_echo", false):
 				# Weaving is one rules action, but the two songs have distinct poses and recipients.
 				if not cue.is_empty():
@@ -79,22 +88,65 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 				echo_started = true
 			if not cue.is_empty():
 				_observe(cue, event, positions)
-			if event.get("type") == "damage" and int(event.get("amount", 0)) > 0:
+			if event.get("type") == "damage":
 				var victim: String = event.get("target_id", "")
 				if health.has(victim):
-					health[victim] = maxi(0, int(health[victim]) - int(event.amount))
+					var amount := int(event.get("amount", 0))
+					health[victim] = maxi(0, int(health[victim]) - amount)
 					var target: Dictionary = actors.get(victim, {})
-					if cast_key_for(after, target) == "harpooner":
-						reactions.append({"unit_id": victim, "cast_key": "harpooner",
-							"clip": "defeat" if health[victim] <= 0 else "hit",
+					var key := cast_key_for(after, target)
+					var knocked := key == "ferryman" and Statuses.is_knockdown(after, event.get("status_id", ""))
+					if key in ["harpooner", "ferryman"] and (amount > 0 or knocked) \
+							and (key != "ferryman" or not prone.get(victim, false)):
+						var down: bool = health[victim] <= 0 or (key == "ferryman" \
+							and knocked)
+						reactions.append({"unit_id": victim, "cast_key": key,
+							"clip": ("defeat" if down else "hit") if key == "harpooner" else ("down" if down else "flinch"),
 							"source_cell": positions.get(victim), "actor_cell": positions.get(victim),
 							"target_id": "", "recipients": []})
+					if key == "ferryman" and (knocked or health[victim] <= 0):
+						prone[victim] = true
 			elif event.get("type") == "heal":
 				var healed: String = event.get("target_id", "")
 				if health.has(healed):
 					health[healed] += int(event.get("amount", 0))
+			elif (event.get("type") == "status" and Statuses.is_knockdown(after, event.get("status_id", ""))) \
+					or (event.get("type") == "alchemy_reaction" and event.get("reaction_id") == "jelly_knees" \
+					and event.get("applied", false)):
+				var victim: String = event.get("target_id", "")
+				var target: Dictionary = actors.get(victim, {})
+				if cast_key_for(after, target) == "ferryman":
+					if not prone.get(victim, false):
+						reactions.append({"unit_id": victim, "cast_key": "ferryman", "clip": "down",
+							"source_cell": positions.get(victim), "actor_cell": positions.get(victim),
+							"target_id": "", "recipients": []})
+					prone[victim] = true
+			elif event.get("type") == "recover":
+				var recovered: String = event.get("unit_id", "")
+				var target: Dictionary = actors.get(recovered, {})
+				var knocked: bool = event.get("reaction_id") == "jelly_knees"
+				for status_id in event.get("status_ids", []):
+					knocked = knocked or Statuses.is_knockdown(after, status_id)
+				if knocked and cast_key_for(after, target) == "ferryman" and prone.get(recovered, false):
+					reactions.append({"unit_id": recovered, "cast_key": "ferryman", "clip": "recover",
+						"source_cell": positions.get(recovered), "actor_cell": positions.get(recovered),
+						"target_id": "", "recipients": []})
+					prone[recovered] = false
+			elif event.get("type") == "victory" and after.get("outcome") == "victory":
+				var objective: Dictionary = after.get("objective", {})
+				var subject: String = event.get("target_id", "")
+				var target: Dictionary = actors.get(subject, {})
+				if objective.get("handler") == "escort" and objective.get("subject") == subject \
+						and event.get("position") == objective.get("destination") \
+						and target.get("position") == objective.get("destination") \
+						and cast_key_for(after, target) == "ferryman":
+					reactions.append({"unit_id": subject, "cast_key": "ferryman", "clip": "safe_bank",
+						"source_cell": target.position, "actor_cell": target.position,
+						"target_id": "", "recipients": []})
 			_trace_position(event, positions)
 			index += 1
+		if not cue.is_empty() and cue.clip == "travel" and not travelled:
+			cue.clear()
 		if not cue.is_empty() and cue.cast_key == "harpooner" and cue.clip == "ranged_cast" \
 				and cue.get("target_cell") is Vector2i:
 			var offset: Vector2i = cue.target_cell - cue.source_cell
@@ -133,7 +185,7 @@ static func _start_cue(state: Dictionary, actor: Dictionary, action: Dictionary)
 		"source_cell": action.source_cell, "actor_cell": action.actor_cell, "recipients": []}
 	if clip == "retreat":
 		cue["target_cell"] = action.actor_cell
-	elif clip == "pursue":
+	elif clip in ["pursue", "travel"]:
 		cue["target_cell"] = action.actor_cell
 	return cue
 

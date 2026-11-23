@@ -14,7 +14,7 @@ const GuildBookPage = preload("res://presentation/guild_book_page.gd")
 const GuildBookArt = preload("res://presentation/guild_book_art.gd")
 const GuildPetitionViewModel = preload("res://presentation/guild_petition_view_model.gd")
 const DEFAULT_ADVENTURE := "first_outing"
-const TERMINAL_REPLAY_LIMIT_MS := 3200
+const TERMINAL_REPLAY_STALL_MS := 3200
 
 const PAPER := Color("#f1dfb8")
 const MUTED := Color("#c0c7ad")
@@ -87,6 +87,7 @@ var _board_cues: BattleCues
 var _terminal_replay: PanelContainer
 var _terminal_board: BridgeArt
 var _terminal_replay_until := 0
+var _terminal_remaining_ms := 0.0
 
 
 func _ready() -> void:
@@ -2044,16 +2045,30 @@ func _show_terminal_replay(board: BridgeArt) -> void:
 	stack.add_child(board)
 	_terminal_replay = panel
 	_terminal_board = board
-	_terminal_replay_until = Time.get_ticks_msec() + TERMINAL_REPLAY_LIMIT_MS
+	_terminal_remaining_ms = _terminal_playback_remaining_ms()
+	_terminal_replay_until = Time.get_ticks_msec() + TERMINAL_REPLAY_STALL_MS
 	set_process(true)
 
 
 func _process(_delta: float) -> void:
 	var ink := _terminal_board.get_node_or_null("StorybookInk") as StorybookInk
-	if Time.get_ticks_msec() >= _terminal_replay_until \
-			or (_terminal_board.action_playback_snapshot().is_empty()
-			and (ink == null or not ink.has_committed_reactions())):
+	if _terminal_board.action_playback_snapshot().is_empty() \
+			and (ink == null or not ink.has_committed_reactions()):
 		_clear_terminal_replay()
+		return
+	# A long, progressing queue should finish; only a stuck timeline is bounded.
+	var remaining := _terminal_playback_remaining_ms()
+	if remaining < _terminal_remaining_ms:
+		_terminal_remaining_ms = remaining
+		_terminal_replay_until = Time.get_ticks_msec() + TERMINAL_REPLAY_STALL_MS
+	elif Time.get_ticks_msec() >= _terminal_replay_until:
+		_clear_terminal_replay()
+
+
+func _terminal_playback_remaining_ms() -> float:
+	var ink := _terminal_board.get_node_or_null("StorybookInk") as StorybookInk
+	return _terminal_board.action_playback_remaining_ms() \
+		+ (ink.committed_reactions_remaining_ms() if ink != null else 0.0)
 
 
 func _input(event: InputEvent) -> void:

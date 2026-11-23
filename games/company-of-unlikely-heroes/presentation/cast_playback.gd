@@ -78,6 +78,27 @@ func pending() -> bool:
 	return not _entries.is_empty()
 
 
+func remaining_ms() -> float:
+	var remaining := 0.0
+	for entry in _entries:
+		remaining = maxf(remaining, entry.duration_ms - entry.elapsed_ms)
+	return remaining
+
+
+func actor_cell(unit_id: String, fallback: Vector2i) -> Vector2i:
+	# The first queued action describes where this actor is until that action
+	# begins. Movement cues use their committed destination as actor_cell.
+	for entry in _entries:
+		if entry.cue.get("unit_id") != unit_id:
+			continue
+		var cell: Variant = entry.cue.get("actor_cell")
+		if entry.cue.get("clip") == "travel" and entry.elapsed_ms < 0.0:
+			cell = entry.cue.get("source_cell", cell)
+		if cell is Vector2i:
+			return cell
+	return fallback
+
+
 func has_pending_clip(unit_id: String, key: String) -> bool:
 	return _entries.any(func(entry: Entry): return entry.cue.get("unit_id") == unit_id \
 		and entry.cue.get("clip") == key)

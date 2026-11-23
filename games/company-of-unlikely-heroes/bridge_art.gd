@@ -159,6 +159,10 @@ func action_playback_snapshot() -> Array:
 	return _playback.snapshot()
 
 
+func action_playback_remaining_ms() -> float:
+	return _playback.remaining_ms()
+
+
 func _set_ready_clips() -> void:
 	_ready_clips.clear()
 	for unit in _units:
@@ -430,11 +434,21 @@ func _draw_figures() -> void:
 	var occupants: Array = []
 	for original: Dictionary in _units:
 		var occupant := original
-		if str(original.get("cast_key", "")) == "harpooner" and int(original.get("hp", 1)) <= 0 \
-				and _playback.has_pending_clip(str(original.get("id", "")), "defeat"):
+		var key := str(original.get("cast_key", ""))
+		var id := str(original.get("id", ""))
+		if key == "ferryman":
+			var cell := _playback.actor_cell(id, original.cell)
+			if cell != original.cell:
+				occupant = original.duplicate()
+				occupant["cell"] = cell
+		if (key == "harpooner" and int(original.get("hp", 1)) <= 0 \
+				and _playback.has_pending_clip(id, "defeat")) \
+				or (key == "ferryman" and bool(original.get("prone", false)) \
+				and _playback.has_pending_clip(id, "down")):
 			# The final corpse row is authoritative, but its appearance belongs
 			# after the complete committed action and defeat timeline.
-			occupant = original.duplicate()
+			if occupant == original:
+				occupant = original.duplicate()
 			occupant["pre_defeat"] = true
 			occupant["label"] = ""
 		occupants.append(occupant)
@@ -452,10 +466,13 @@ func _draw_figures() -> void:
 			var harpoon_reaction: bool = entry.cue.cast_key == "harpooner" and entry.cue.clip in ["hit", "defeat"]
 			var before_harpoon_defeat: bool = entry.cue.cast_key == "harpooner" \
 				and _playback.has_pending_clip(id, "defeat")
-			if int(unit.get("hp", 1)) <= 0 and not dose_gesture and not harpoon_reaction and not before_harpoon_defeat:
+			var ferryman_reaction: bool = entry.cue.cast_key == "ferryman" \
+				and (entry.cue.clip in ["flinch", "down", "recover"] or _playback.has_pending_clip(id, "down"))
+			if int(unit.get("hp", 1)) <= 0 and not dose_gesture and not harpoon_reaction \
+					and not before_harpoon_defeat and not ferryman_reaction:
 				continue
 			if bool(unit.get("prone", false)) and not _is_wizard_pull(entry) and not dose_gesture \
-					and not harpoon_reaction and not before_harpoon_defeat:
+					and not harpoon_reaction and not before_harpoon_defeat and not ferryman_reaction:
 				continue
 			# A previous shield throw cannot remove a shield that has since been recovered.
 			if entry.cue.clip == "shield_away" and not bool(unit.get("shield_away", false)):
@@ -861,6 +878,12 @@ func _draw_cast(unit: Dictionary, foot: Vector2, facing: float, prone: bool, act
 		facing = _wizard_pull_facing[unit.id]
 	elif cast_key == "harpooner" and int(unit.get("hp", 1)) <= 0 and not bool(unit.get("pre_defeat", false)):
 		key = "defeat"
+		time_ms = INF
+		turned_down = false
+	elif cast_key == "ferryman" and (prone or (_playback.has_pending_clip(str(unit.get("id", "")), "recover") \
+			and not _playback.has_pending_clip(str(unit.get("id", "")), "down"))) \
+			and not bool(unit.get("pre_defeat", false)):
+		key = "down"
 		time_ms = INF
 		turned_down = false
 	elif prone and not bool(unit.get("pre_defeat", false)):

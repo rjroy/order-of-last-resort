@@ -20,6 +20,18 @@ TAKES = {
         "guard": (GUARD, [8, 14, 20, 25, 31, 35, 39, 44, 51, 65], 78, False),
         "shield_away": (GUARD, [8], 32, True),
     },
+    "ferryman": {
+        "ready": ("Ready", [1, 8, 15, 23, 29], 33, True),
+        "travel": (
+            "Cautious Step", [1, 4, 7, 10, 13, 18, 21, 24, 28, 31, 35, 39], 40, False
+        ),
+        "safe_bank": (
+            "Safe Bank", [1, 5, 9, 12, 15, 20, 23, 28, 34, 39, 44], 45, False
+        ),
+        "flinch": ("Flinch", [1, 3, 5, 9, 13, 17, 23], 24, False),
+        "down": ("Down", [1, 5, 10, 14, 19, 23, 31], 32, False),
+        "recover": ("Recover", [1, 5, 8, 12, 15, 20, 24], 25, False),
+    },
     "harpooner": {
         "ready": ("Ready", [1, 6, 12, 18, 24, 28, 34, 38], 41, True),
         "pursue": ("Pursue", [1, 3, 5, 7, 9, 12, 14, 16, 18, 21], 22, False),

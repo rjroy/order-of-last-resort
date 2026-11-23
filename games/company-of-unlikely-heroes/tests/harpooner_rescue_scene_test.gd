@@ -212,6 +212,14 @@ func _check_ready_is_not_placeholder(board: Node, label: String) -> void:
 	for unit: Dictionary in fallback:
 		if unit.get("id") == "harpooner":
 			unit.erase("cast_key")
+	_check(fallback.size() == units.size(), label + ": comparison preserves all board occupants")
+	for index in units.size():
+		if units[index].get("id") != "harpooner":
+			_check(fallback[index] == units[index], label + ": comparison preserves other actors and geometry")
+		else:
+			var restored: Dictionary = fallback[index].duplicate(true)
+			restored["cast_key"] = units[index].get("cast_key")
+			_check(restored == units[index], label + ": only the Harpooner's cast binding changes")
 	board.call("set_render_state", cells, fallback, overlay)
 	board.set_process(false)
 	await process_frame

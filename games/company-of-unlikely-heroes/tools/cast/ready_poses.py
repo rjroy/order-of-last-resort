@@ -82,4 +82,19 @@ READY_IDLES = {
         ReadyPose(31, 1, (("head", (4, 2, -6)), ("upper.R", (0, -2, 1)))),
         ReadyPose(38, 1, (("head", (1, 0, -2)),)),
     )),
+    # The head droops, then the gift-side shoulder catches up as he settles.
+    # The stone follows the closed hand; nothing touches its socket or flight.
+    "zombie": ReadyIdle("Ready", 57, (
+        ReadyPose(1, 1),
+        ReadyPose(8, 1, (("head", (3, -2, 0)),)),
+        ReadyPose(15, 1, (("chest", (1, -2, 0)), ("head", (7, -5, -2)),
+                          ("clavicle.R", (0, 1, 0)))),
+        ReadyPose(22, 1, (("chest", (2, -3, 0)), ("head", (9, -8, -3)),
+                          ("clavicle.R", (2, -2, 0)))),
+        ReadyPose(29, 1, (("chest", (2, -3, 0)), ("head", (4, -5, -2)),
+                          ("clavicle.R", (3, -3, 1)))),
+        ReadyPose(37, 1, (("chest", (0, -1, 0)), ("head", (-3, 2, 1)),
+                          ("clavicle.R", (1, -1, 0)))),
+        ReadyPose(46, 1, (("head", (-1, 1, 0)),)),
+    )),
 }

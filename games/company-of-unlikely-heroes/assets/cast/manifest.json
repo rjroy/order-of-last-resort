@@ -3292,21 +3292,81 @@
           "frames": [
             {
               "source_frame": 1,
-              "duration_ms": 1000,
+              "duration_ms": 292,
               "rect": [
-                528,
-                808,
-                103,
-                195
+                0,
+                804,
+                104,
+                196
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 291,
+              "rect": [
+                104,
+                804,
+                104,
+                196
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 292,
+              "rect": [
+                208,
+                804,
+                104,
+                196
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 292,
+              "rect": [
+                312,
+                804,
+                104,
+                196
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 333,
+              "rect": [
+                416,
+                804,
+                104,
+                196
+              ]
+            },
+            {
+              "source_frame": 37,
+              "duration_ms": 375,
+              "rect": [
+                520,
+                804,
+                104,
+                196
+              ]
+            },
+            {
+              "source_frame": 46,
+              "duration_ms": 458,
+              "rect": [
+                624,
+                804,
+                104,
+                196
               ]
             }
           ],
           "loop": true,
           "anchor": [
             48,
-            176
+            177
           ],
-          "action": "Zombie | Ready",
+          "action": "Zombie | Ready Idle",
           "path": "res://assets/cast/zombie.png"
         },
         "say_hello": {
@@ -3315,8 +3375,8 @@
               "source_frame": 1,
               "duration_ms": 250,
               "rect": [
-                146,
-                606,
+                584,
+                404,
                 132,
                 198
               ]
@@ -3325,8 +3385,8 @@
               "source_frame": 7,
               "duration_ms": 208,
               "rect": [
-                278,
-                606,
+                716,
+                404,
                 132,
                 198
               ]
@@ -3335,7 +3395,7 @@
               "source_frame": 12,
               "duration_ms": 167,
               "rect": [
-                410,
+                0,
                 606,
                 132,
                 198
@@ -3345,7 +3405,7 @@
               "source_frame": 16,
               "duration_ms": 125,
               "rect": [
-                542,
+                132,
                 606,
                 132,
                 198
@@ -3355,7 +3415,7 @@
               "source_frame": 19,
               "duration_ms": 250,
               "rect": [
-                674,
+                264,
                 606,
                 132,
                 198
@@ -3365,8 +3425,8 @@
               "source_frame": 25,
               "duration_ms": 208,
               "rect": [
-                0,
-                808,
+                396,
+                606,
                 132,
                 198
               ]
@@ -3375,8 +3435,8 @@
               "source_frame": 30,
               "duration_ms": 250,
               "rect": [
-                132,
-                808,
+                528,
+                606,
                 132,
                 198
               ]
@@ -3385,8 +3445,8 @@
               "source_frame": 36,
               "duration_ms": 250,
               "rect": [
-                264,
-                808,
+                660,
+                606,
                 132,
                 198
               ]
@@ -3395,8 +3455,8 @@
               "source_frame": 42,
               "duration_ms": 167,
               "rect": [
-                396,
-                808,
+                792,
+                606,
                 132,
                 198
               ]
@@ -3466,8 +3526,8 @@
               "source_frame": 19,
               "duration_ms": 83,
               "rect": [
+                730,
                 0,
-                202,
                 146,
                 202
               ]
@@ -3476,7 +3536,7 @@
               "source_frame": 21,
               "duration_ms": 42,
               "rect": [
-                146,
+                0,
                 202,
                 146,
                 202
@@ -3486,7 +3546,7 @@
               "source_frame": 22,
               "duration_ms": 83,
               "rect": [
-                292,
+                146,
                 202,
                 146,
                 202
@@ -3496,7 +3556,7 @@
               "source_frame": 24,
               "duration_ms": 84,
               "rect": [
-                438,
+                292,
                 202,
                 146,
                 202
@@ -3506,7 +3566,7 @@
               "source_frame": 26,
               "duration_ms": 125,
               "rect": [
-                584,
+                438,
                 202,
                 146,
                 202
@@ -3516,8 +3576,8 @@
               "source_frame": 29,
               "duration_ms": 125,
               "rect": [
-                0,
-                404,
+                584,
+                202,
                 146,
                 202
               ]
@@ -3526,8 +3586,8 @@
               "source_frame": 32,
               "duration_ms": 208,
               "rect": [
-                146,
-                404,
+                730,
+                202,
                 146,
                 202
               ]
@@ -3536,7 +3596,7 @@
               "source_frame": 37,
               "duration_ms": 208,
               "rect": [
-                292,
+                0,
                 404,
                 146,
                 202
@@ -3546,7 +3606,7 @@
               "source_frame": 42,
               "duration_ms": 209,
               "rect": [
-                438,
+                146,
                 404,
                 146,
                 202
@@ -3556,7 +3616,7 @@
               "source_frame": 47,
               "duration_ms": 250,
               "rect": [
-                584,
+                292,
                 404,
                 146,
                 202
@@ -3566,8 +3626,8 @@
               "source_frame": 53,
               "duration_ms": 208,
               "rect": [
-                0,
-                606,
+                438,
+                404,
                 146,
                 202
               ]
@@ -3595,8 +3655,8 @@
               "source_frame": 22,
               "duration_ms": 1000,
               "rect": [
-                631,
-                808,
+                728,
+                804,
                 32,
                 54
               ]

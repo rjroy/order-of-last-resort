@@ -104,7 +104,7 @@ TAKES = {
         ),
     },
     "zombie": {
-        "ready": ("Ready", [1], 25, True),
+        "ready": READY_IDLES["zombie"].take(),
         "say_hello": ("Say Hello", [1, 7, 12, 16, 19, 25, 30, 36, 42], 46, False),
         "offer_flower": (
             "Offer Flower",

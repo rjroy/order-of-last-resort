@@ -29,6 +29,7 @@ const EXTRA_CLIPS := {
 const READY_ACTIONS := {
 	"knight": "guard", "healer": "bonk", "wizard": "blast",
 	"rogue": "misdirect", "alchemist": "potion",
+	"zombie": "offer_flower",
 	# Existing animated guild members and an opponent are controls.
 	"bard": "inspiring_melody", "necromancer": "summon_skeleton", "harpooner": "close_thrust",
 }
@@ -132,18 +133,37 @@ func _check_live_ready(role: String, action: String) -> void:
 		return
 	await _check_ready_cycles(role, ready)
 
-	board.play_committed_actions([{"unit_id": "unit", "cast_key": role, "clip": action,
-		"source_cell": CELL}])
+	var before_action: Image
+	if role == "zombie":
+		before_action = await _ready_frame_zero()
+	var cue := {"unit_id": "unit", "cast_key": role, "clip": action, "source_cell": CELL}
+	if role == "zombie":
+		cue["target_cell"] = Vector2i(1, 0)
+	board.play_committed_actions([cue])
 	board.set_process(false)
 	var active: Array = board.get("_playback").active()
 	if active.is_empty():
 		_check(false, role + " action enters playback")
 		return
+	if role == "zombie":
+		_check(active[0].gift != null, "Offer Flower releases the rock gift")
 	board._process((active[0].duration_ms + 1.0) / 1000.0)
 	_check(board.action_playback_snapshot().is_empty(), role + " action completes")
 	_check(board.is_processing(), role + " resumes processing ready after its action")
 	board.set_process(false)
+	if role == "zombie":
+		var returned := await _ready_frame_zero()
+		_check(_difference(before_action, returned) == 0,
+			"Zombie returns to its original rock-in-hand ready pose after Offer Flower")
 	await _check_ready_cycles(role + " after action", ready)
+
+
+func _ready_frame_zero() -> Image:
+	board.set("_ready_ms", 0.0)
+	board.get("_figures").queue_redraw()
+	await process_frame
+	await RenderingServer.frame_post_draw
+	return viewport.get_texture().get_image()
 
 
 func _check_ready_cycles(label: String, ready) -> void:

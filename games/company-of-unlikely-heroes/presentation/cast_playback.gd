@@ -10,6 +10,8 @@ const ACTION_BEATS := {
 	"inspiring_melody": 25, "healing_sonnet": 25, "summon_skeleton": 20, "raise_dead": 34,
 	"wave": 18, "dont_go": 27, "say_hello": 25,
 	"close_thrust": 8,
+	"rescue_line": 14, "rescue_line_unshielded": 14, "ring_sparks": 12,
+	"tripwire": 13, "grave_bell": 12, "etching_paste": 13,
 }
 
 class Entry:
@@ -65,7 +67,7 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 			if not ordinary and ACTION_BEATS.has(key) else clip.total_ms * 0.48
 		if ordinary and cue.get("impact_frame") is int and cue.impact_frame in clip.source_frames:
 			entry.impact_ms = clip.time_at_source_frame(cue.impact_frame)
-		if clip.release_ms >= 0.0 and cue.get("target_cell") is Vector2i:
+		if key != "etching_paste" and clip.release_ms >= 0.0 and cue.get("target_cell") is Vector2i:
 			entry.gift = art.clip_for(role, clip.release_clip)
 			if entry.gift != null:
 				entry.impact_ms = clip.release_ms + GIFT_FLIGHT_MS

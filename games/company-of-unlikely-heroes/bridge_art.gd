@@ -502,7 +502,8 @@ func _draw_figures() -> void:
 			if source is Vector2i and _cells.has(source):
 				# A unit that acted and fell can finish the cue without regaining HP or a label.
 				occupants.append({"id": id, "cast_key": entry.cue.cast_key, "transient": true,
-					"art_key": entry.cue.cast_key, "cell": source})
+					"art_key": entry.cue.cast_key, "cell": source,
+					"shield_away": entry.cue.get("shield_away", false)})
 	occupants.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _reading_order(a.cell, b.cell))
 	for unit in occupants:
 		if _cells.has(unit.cell):
@@ -887,6 +888,13 @@ func _draw_cast(unit: Dictionary, foot: Vector2, facing: float, prone: bool, act
 	if not unit.has("cast_lifecycle") and cast_key == "knight" and bool(unit.get("shield_away", false)):
 		# Equipment is authoritative. Never show a second shield on the unit.
 		key = "shield_away"
+		if action != null and action.cue.clip == "rescue_line" \
+				and action.elapsed_ms < action.clip.total_ms \
+				and _cast.clip_for(cast_key, "rescue_line_unshielded") != null:
+			key = "rescue_line_unshielded"
+			time_ms = action.elapsed_ms
+			turned_down = false
+			facing = action.facing if action.facing != 0.0 else facing
 	elif action != null and action.elapsed_ms < action.clip.total_ms:
 		key = action.cue.clip
 		time_ms = action.elapsed_ms
@@ -976,7 +984,7 @@ func _is_wizard_pull(entry: CastPlayback.Entry) -> bool:
 
 func _is_dose_gesture(entry: CastPlayback.Entry) -> bool:
 	return not entry.cue.get("ordinary_presentation", false) \
-		and entry.cue.cast_key == "alchemist" and entry.cue.clip in ["potion", "acid"]
+		and entry.cue.cast_key == "alchemist" and entry.cue.clip in ["potion", "acid", "etching_paste"]
 
 
 func _sync_playback_geometry() -> void:

@@ -14,8 +14,7 @@ from mathutils import Euler, Vector
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from ready_poses import READY_IDLES
-from takes import PILOT, RELEASES, TAKES
+from takes import DERIVED_TAKES, PILOT, RELEASES, TAKES
 from recipe import action_name, capture_config, load_fragment, load_registered, release_prop_hidden, rig_name
 
 ART = HERE.parents[3] / ".lore/work/games/company-of-unlikely-heroes/art"
@@ -148,9 +147,9 @@ def magick(*args):
 
 
 @contextmanager
-def ready_turns(rig, turns):
-    """Add small model-space turns to a sampled pose; never key the native take."""
-    if not turns:
+def ready_turns(rig, turns, carried=None):
+    """Turn bones in a sampled pose without keying the native take."""
+    if not turns and carried is None:
         yield
         return
     # A still render evaluates animation again. Hold the sampled FK channels
@@ -166,6 +165,10 @@ def ready_turns(rig, turns):
         offsets[name] = axes.inverted() @ turn @ axes
     animation = rig.animation_data
     native, slot = animation.action, animation.action_slot
+    if carried:
+        prop, grip = (rig.pose.bones[name] for name in carried)
+        grip_space = grip.matrix.inverted() @ prop.matrix
+        prop_basis = prop.matrix_basis.copy()
     animation.action = None
     edited_rotations = []
     try:
@@ -178,8 +181,13 @@ def ready_turns(rig, turns):
             bone.rotation_quaternion = rotation @ turn if turn is not None else rotation
             bone.scale = scale
         bpy.context.view_layer.update()
+        if carried:
+            prop.matrix = grip.matrix @ grip_space
+            bpy.context.view_layer.update()
         yield
     finally:
+        if carried:
+            prop.matrix_basis = prop_basis
         for bone, rotation in edited_rotations:
             bone.rotation_quaternion = rotation
         animation.action = native
@@ -246,9 +254,15 @@ def bake(role, work, recipe=None):
     cache = {}
     data = {}
     pilot_clip = {"knight": "guard", "healer": "ally_heal"}.get(role)
+    shield_draw = {}
+    if role == "knight":
+        shield_draw = {
+            part: part.hide_render
+            for part in bpy.data.objects["Shield_L_Detachable"].children_recursive
+        }
     for clip, (action, frames, end, loop) in takes[role].items():
-        idle = READY_IDLES.get(role) if clip == "ready" else None
-        native_action = idle.source_action if idle else action
+        performance = DERIVED_TAKES.get((role, clip))
+        native_action = performance.source_action if performance else action
         take = bpy.data.actions[action_name(role, master, native_action)]
         rig.animation_data.action = take
         data[clip] = {
@@ -256,14 +270,15 @@ def bake(role, work, recipe=None):
             "action": action_name(role, master, action),
         }
         for i, f in enumerate(frames):
-            pose = idle.poses[i] if idle else None
+            pose = performance.poses[i] if performance else None
             native_frame = pose.source if pose else f
             s.frame_set(int(native_frame), subframe=native_frame % 1)
             variant = ""
-            if role == "knight" and clip == "shield_away":
+            without_shield = role == "knight" and clip in ("shield_away", "rescue_line_unshielded")
+            if without_shield:
                 variant = "without_shield"
-                for o in bpy.data.objects["Shield_L_Detachable"].children_recursive:
-                    o.hide_render = True
+            for part, hidden in shield_draw.items():
+                part.hide_render = without_shield or hidden
             if release:
                 prop_only = clip == prop_clip
                 empty_hand = clip == actor_clip and f >= release_frame
@@ -294,13 +309,18 @@ def bake(role, work, recipe=None):
                             "offset": [round(a - b, 3) for a, b in zip(px, anchor)],
                             "clip": prop_clip,
                         }
-            # Hold onto the original neutral drawing for stamps and prone poses.
-            # Do not use a fresh render in place of an exact pilot drawing.
             turns = pose.turns if pose else ()
+            carried = pose.carried if pose else None
+            # A neutral start or reset can reuse the exact pilot drawing.
+            # Keep the original full-canvas renders for later ready samples.
             use_pilot = pilot_clip is not None and (
-                clip == pilot_clip or (idle is not None and i == 0)
+                clip == pilot_clip or (
+                    performance is not None and not turns and carried is None
+                    and not without_shield and (clip != "ready" or i == 0)
+                    and native_frame in takes[role][pilot_clip][1]
+                )
             )
-            key = (native_action, native_frame, variant, turns, use_pilot)
+            key = (native_action, native_frame, variant, turns, carried, use_pilot)
             if key not in cache:
                 out = work / f"{role}-{len(cache):03d}.png"
                 cache[key] = out
@@ -322,7 +342,7 @@ def bake(role, work, recipe=None):
                         f"PNG32:{out}",
                     )
                 else:
-                    with ready_turns(rig, turns):
+                    with ready_turns(rig, turns, carried):
                         render_ink(s, work / f"{role}-raw.png", out, size)
             start = frames[0]
             stop = frames[i + 1] if i + 1 < len(frames) else end

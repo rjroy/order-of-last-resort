@@ -1,21 +1,10 @@
 """Ready-only performances sampled on immutable cast masters at bake time."""
 
-from typing import NamedTuple
+from derived_poses import DerivedTake, PoseSample as ReadyPose
 
 
-class ReadyPose(NamedTuple):
-    frame: int  # Drawing time on the derived 24 fps timeline.
-    source: float  # Frame in the approved native action.
-    turns: tuple = ()  # (bone, X/Y/Z rotation in model-space degrees)
-
-
-class ReadyIdle(NamedTuple):
-    source_action: str
-    end: int  # Exclusive. The original ready pose closes the loop.
-    poses: tuple[ReadyPose, ...]
-
-    def take(self):
-        return "Ready Idle", [pose.frame for pose in self.poses], self.end, True
+def ReadyIdle(source_action, end, poses):
+    return DerivedTake("Ready Idle", source_action, end, poses, loop=True)
 
 
 GUARD = "Wary, plant, cover, settle"

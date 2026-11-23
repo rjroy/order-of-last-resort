@@ -79,6 +79,20 @@ python "$tools/verify_cast.py" --assets "$scratch/guild-ready" knight healer wiz
 
 The full recipe also builds these loops. The staged manifest remains partial; merge only these five entries if publishing a subset. Review the loops at board scale rather than treating multiple packed samples as evidence of readable motion.
 
+## Guild training gestures
+
+`cast/training_poses.py` adds one-shot, owner-specific takes to the existing derived-pose recipe. It samples each owner's approved animation and adds bone turns in memory. The takes begin and end in the native Ready pose. No master, geometry, or existing take is edited. The Mixologist's active flask follows the original hand-to-prop transform through the altered poses; this contact take has no projectile or release marker.
+
+| Clip | Gesture | Feedback frame |
+| --- | --- | ---: |
+| `rescue_line` / `rescue_line_unshielded` | Reach and haul with the free gauntlet. The same gesture can render with the shield hierarchy hidden. | 14 |
+| `ring_sparks` | Both palms open low and wide from a planted gather, without the step or recoil of the base spells. | 12 |
+| `tripwire` | Plant, reach down, and give a quick tug. No crossing step. | 13 |
+| `grave_bell` | One short bell strike, without the high repeated ring and invitation of Summon Skeleton. | 12 |
+| `etching_paste` | Draw the green flask, press it forward low, and return it to the rack. | 13 |
+
+Use the disk-backed subset command above with `knight wizard rogue necromancer alchemist` and a fresh staging directory. Verify the staged atlas and compare the previous clips after alignment by their anchors: atlas shelf packing may move a rectangle even when the drawing, timing, and registration are unchanged.
+
 **Drawing contract.** `manifest.actors[art_key].clips[name]` gives `path`, `frames`, `anchor` and `loop`; each frame is an atlas `rect: [x,y,width,height]` with `source_frame` and `duration_ms`. Use the root-level `display_scale` (0.375) uniformly. Register the **clip-local** anchor, not the rectangle center, on the actor's ground position. If mirroring, mirror the entire draw around that position. Three clear pixels surround all nonzero alpha in each rectangle, including the warm outline. Rectangles can repeat. On actor drawings the anchor is the projected ground origin, unchanged by the current pose. Thus planted feet stay put; even the Wizard's slip moves relative to a stationary ground point.
 
 At Zombie Offer Flower's `release.time_ms` (875 ms; F22), stop drawing a held gift. The baked actor already has an empty hand on this and every subsequent drawing. Start the separate `gift` clip at actor ground position plus `release.offset * display_scale`, mirroring the horizontal component when the actor faces the other way. The gift clip anchor locates its **stone root**, not its feet or bounds center. Its offset comes from the evaluated authored prop root at the marker. Draw flight to the chosen target; the model's review trajectory is deliberately absent. Only a switch back to Ready restores the held gift after the throw. For a shot sequence stay on its final empty frame until that transition.

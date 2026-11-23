@@ -37,6 +37,8 @@ func _run() -> void:
 	await _ko_overrides_live_action()
 	await _knockdown_overrides_live_heal()
 	await _recovered_shield_overrides_live_throw()
+	await _shield_away_rescue_line()
+	await _fallen_rescue_equipment()
 	await _wizard_pull_finishes_seated()
 	_test_acid_release_geometry()
 	await _mixologist_knockdown_playback()
@@ -96,6 +98,121 @@ func _recovered_shield_overrides_live_throw() -> void:
 	var shield_away := await _state(away)
 	_check(_difference(without_cue, shield_away) > 100,
 		"Recovered and away shield states must be visually distinct")
+
+
+func _shield_away_rescue_line() -> void:
+	board.clear_action_playback()
+	var away := _unit("knight", {"shield_away": true})
+	var hold := await _state(away)
+	var cast = board.get("_cast")
+	var gesture = cast.clip_for("knight", "rescue_line_unshielded")
+	var rescue = cast.clip_for("knight", "rescue_line")
+	if gesture == null or rescue == null:
+		_check(false, "Rescue Line has shielded and unshielded gesture clips")
+		return
+	var sample_ms: float = gesture.time_at_source_frame(14) + 1.0
+	_cue("knight", "rescue_line")
+	_advance(sample_ms / 1000.0)
+	var actual := await _capture()
+	_check(_difference(hold, actual) > 30, "Shield-away Rescue Line visibly plays its gesture")
+
+	# The same authored unshielded clip played directly is the reference, so
+	# displaying a shielded gesture or the stationary hold cannot satisfy this.
+	board.clear_action_playback()
+	await _state(_unit("knight", {"shield_away": false}))
+	_cue("knight", "rescue_line_unshielded")
+	_advance(sample_ms / 1000.0)
+	var expected := await _capture()
+	_check(_difference(actual, expected) == 0,
+		"Shield-away Rescue Line renders the unshielded gesture")
+
+	board.clear_action_playback()
+	await _state(away)
+	_cue("knight", "rescue_line")
+	var active: Array = board.get("_playback").active()
+	if active.is_empty():
+		_check(false, "Shield-away Rescue Line enters playback")
+		return
+	_advance((active[0].duration_ms + 1.0) / 1000.0)
+	_check(board.action_playback_snapshot().is_empty(), "Shield-away Rescue Line completes")
+	var returned := await _capture()
+	_check(_difference(hold, returned) == 0,
+		"Shield-away Rescue Line returns to the equipment hold")
+
+
+func _fallen_rescue_equipment() -> void:
+	var defs := Catalog.read_default()
+	defs.classes.knight.abilities.append("knight_rescue_line")
+	defs = load("res://tests/fixtures/rules_catalog.gd").add_fixed_escort(defs)
+	var rules := Rules.new()
+	var cast = board.get("_cast")
+	var away_clip = cast.clip_for("knight", "rescue_line_unshielded")
+	var held_clip = cast.clip_for("knight", "rescue_line")
+	if away_clip == null or held_clip == null:
+		_check(false, "Fallen rescue fixture needs both Rescue Line clips")
+		return
+	for facing in [-1, 1]:
+		for away in [true, false]:
+			var source := Vector2i(3, 3)
+			var state: Dictionary = rules.new_game(defs, "test_escort")
+			state.width = 12
+			state.height = 12
+			state.default_tile = "stone"
+			state.terrain = []
+			state.obstacles = []
+			var knight := {"id": "knight", "character_id": "knight", "position": source,
+				"hp": 1, "max_hp": 8, "statuses": {}}
+			if away:
+				knight["shield_position"] = Vector2i(8, 8)
+			state.units = [knight, {"id": "patient", "character_id": "healer",
+				"position": source + Vector2i(2 * facing, 0), "hp": 7, "max_hp": 7, "statuses": {}}]
+			state.orders = {}
+			state.overrides = {}
+			state.objective = {"handler": "escort", "subject": "civilian", "destination": Vector2i(11, 11)}
+			var plan: Dictionary = rules.preview(state, "knight", "knight_rescue_line", "patient")
+			if not plan.get("valid", false):
+				_check(false, "Fallen rescue fixture has a valid action")
+				continue
+			# Model a later fatal event in the committed round. The board removes
+			# the dead non-objective hero, but the earlier cue is still playing.
+			var after: Dictionary = rules.apply_plan(state, plan)
+			_entity(after, "knight").hp = 0
+			var cues: Array = Cues.build(state, after, plan.events)
+			var rescue := cues.filter(func(cue): return cue.get("unit_id") == "knight" \
+				and cue.get("clip") == "rescue_line")
+			if rescue.size() != 1:
+				_check(false, "Fallen rescue produces its actual action cue")
+				continue
+			if facing == 1:
+				var equipment_event := {"type": "shield_retrieve" if away else "shield_drop",
+					"unit_id": "knight", "position": Vector2i(8, 8),
+					"resolved_action": {"unit_id": "knight", "ability_id": "move",
+						"source_cell": source, "actor_cell": source, "event_count": 1}}
+				var changed_cues: Array = Cues.build(state, after, [equipment_event] + plan.events)
+				var changed := changed_cues.filter(func(cue): return cue.get("unit_id") == "knight" \
+					and cue.get("clip") == "rescue_line")
+				_check(changed.size() == 1 and changed[0].get("shield_away") == not away,
+					"Rescue snapshots equipment changes before the action")
+			var cell := {source: "bridge"}
+			board.clear_action_playback()
+			board.set_render_state(cell, [])
+			board.play_committed_actions(rescue)
+			board.set_process(false)
+			var sample: float = held_clip.time_at_source_frame(14) + 1.0
+			_advance(sample / 1000.0)
+			var transient := await _capture()
+
+			board.clear_action_playback()
+			board.set_render_state(cell, [{"id": "knight", "art_key": "knight",
+				"cast_key": "knight", "cell": source, "facing": facing}])
+			var reference: Dictionary = rescue[0].duplicate(true)
+			reference.clip = "rescue_line_unshielded" if away else "rescue_line"
+			board.play_committed_actions([reference])
+			board.set_process(false)
+			_advance(sample / 1000.0)
+			var expected := await _capture()
+			_check(_difference(transient, expected) == 0,
+				"Fallen rescue preserves shield %s facing %d" % ["away" if away else "held", facing])
 
 
 func _wizard_pull_finishes_seated() -> void:

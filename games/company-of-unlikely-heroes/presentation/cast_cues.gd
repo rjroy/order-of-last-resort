@@ -7,19 +7,23 @@ const Board = preload("res://rules/board.gd")
 const Statuses = preload("res://rules/statuses.gd")
 # [expected rules handler, clip]. Catalog authors can redefine an ability ID.
 const CLIPS := {
-	"knight": {"knight_aura": ["apply_status", "guard"], "knight_shield_throw": ["attack", "shield_away"]},
+	"knight": {"knight_aura": ["apply_status", "guard"], "knight_shield_throw": ["attack", "shield_away"],
+		"knight_rescue_line": ["hook", "rescue_line"]},
 	"healer": {"healer_heal": ["heal", "ally_heal"], "healer_field_dressing": ["heal", "ally_heal"],
 		"healer_bonk": ["bonk", "bonk"]},
-	"wizard": {"wizard_blast": ["blast", "blast"], "wizard_pull": ["pull", "pull"]},
+	"wizard": {"wizard_blast": ["blast", "blast"], "wizard_pull": ["pull", "pull"],
+		"wizard_ring_sparks": ["sweep", "ring_sparks"]},
 	"rogue": {"move": ["move", "retreat"], "rogue_confusing_dodge": ["swap_furthest", "swap"],
-		"rogue_wasnt_me": ["misdirect", "misdirect"]},
+		"rogue_wasnt_me": ["misdirect", "misdirect"], "rogue_tripwire": ["stop_target", "tripwire"]},
 	"bard": {"inspiring_melody": ["perform", "inspiring_melody"], "healing_sonnet": ["perform", "healing_sonnet"],
 		"bard_take_the_stage": ["perform", "healing_sonnet"]},
-	"necromancer": {"summon_skeleton": ["summon", "summon_skeleton"], "raise_dead": ["summon", "raise_dead"]},
+	"necromancer": {"summon_skeleton": ["summon", "summon_skeleton"], "raise_dead": ["summon", "raise_dead"],
+		"necro_grave_bell": ["repel", "grave_bell"]},
 	"skeleton": {"wave": ["sweep", "wave"], "dont_go": ["stop_target", "dont_go"]},
 	"zombie": {"say_hello": ["repel", "say_hello"], "offer_flower": ["attack", "offer_flower"]},
 	"alchemist": {"alchemist_potion": ["healing_potion", "potion"],
-		"alchemist_acid": ["acid", "acid"], "alchemist_plain_tonic": ["plain_tonic", "potion"],
+		"alchemist_acid": ["acid", "acid"], "alchemist_etching_paste": ["acid", "etching_paste"],
+		"alchemist_plain_tonic": ["plain_tonic", "potion"],
 		"alchemist_repeat_batch": ["repeat_batch", "potion"]},
 	"harpooner": {"move": ["move", "pursue"], "enemy_attack": ["attack", "close_thrust"],
 		"enemy_harpoon": ["attack", "ranged_cast"]},
@@ -145,9 +149,11 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 		positions[entity.id] = entity.position
 	var health := {}
 	var prone := {}
+	var shield_away := {}
 	for unit in before.units:
 		health[unit.id] = int(unit.hp)
 		prone[unit.id] = int(unit.hp) <= 0 or Statuses.knocked_down(before, unit)
+		shield_away[unit.id] = unit.get("shield_position") is Vector2i
 	var cues := []
 	var last_shift := {}
 	var index := 0
@@ -155,6 +161,8 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 		var action: Dictionary = events[index].get("resolved_action", {})
 		var actor: Dictionary = actors.get(action.get("unit_id", ""), {})
 		var cue := _start_cue(after, actor, action)
+		if cue.get("cast_key") == "knight" and cue.get("clip") == "rescue_line":
+			cue["shield_away"] = shield_away.get(actor.id, actor.get("shield_position") is Vector2i)
 		var end := index + int(action.get("event_count", 1))
 		if end <= index or end > events.size():
 			push_error("Invalid resolved action span at event %d." % index)
@@ -290,6 +298,10 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 					reactions.append({"unit_id": subject, "cast_key": "ferryman", "clip": "safe_bank",
 						"source_cell": target.position, "actor_cell": target.position,
 						"target_id": "", "recipients": []})
+			if event.get("type") == "shield_drop":
+				shield_away[event.get("unit_id", "")] = true
+			elif event.get("type") == "shield_retrieve":
+				shield_away[event.get("unit_id", "")] = false
 			positions.merge(position_changes, true)
 			index += 1
 		if not cue.is_empty() and not cue.get("ordinary_presentation", false) \
@@ -471,7 +483,7 @@ static func _start_cue(state: Dictionary, actor: Dictionary, action: Dictionary)
 	if ability.get("handler") == "repeat_batch":
 		var recipe: Dictionary = definitions.abilities.get(action.get("recipe_id", ""), {})
 		if recipe.get("handler") == "acid":
-			clip = "acid"
+			clip = "etching_paste" if action.get("recipe_id") == "alchemist_etching_paste" else "acid"
 		elif recipe.get("handler") != "healing_potion":
 			return {}
 	var cue := {"unit_id": actor.id, "cast_key": key, "clip": clip, "target_id": "",
@@ -562,18 +574,21 @@ static func _observe(cue: Dictionary, event: Dictionary, positions: Dictionary) 
 				if clip != "wave" and not _has_recipient(cue, "hit"):
 					_aim(cue, id, cell)
 				_recipient(cue, id, cell, "hit")
-			elif clip == "acid" and event.get("source_id") == actor:
+			elif clip in ["acid", "etching_paste"] and event.get("source_id") == actor:
 				if not cue.has("target_cell"):
 					_aim(cue, id, cell)
 				_recipient(cue, id, cell, "hit")
+			elif clip == "ring_sparks" and event.get("source_id") == actor:
+				_recipient(cue, id, cell, "hit")
 		"alchemy_reaction":
-			if own_action and clip in ["potion", "acid"]:
+			if own_action and (clip in ["potion", "acid"] \
+					or (clip == "etching_paste" and not cue.has("target_cell"))):
 				_aim(cue, id, event.get("position", cell))
 		"shield_drop":
 			if own_action and clip == "shield_away":
 				cue["target_cell"] = event.position
 		"pull":
-			if clip == "pull":
+			if clip in ["pull", "rescue_line"]:
 				# Dig In reverses the geometry and names the defender as
 				# the event's unit, not as the initiator of the cast.
 				if own_action:
@@ -583,7 +598,7 @@ static func _observe(cue: Dictionary, event: Dictionary, positions: Dictionary) 
 					_aim(cue, defender, positions.get(defender))
 				_recipient(cue, id, event.position, "shift")
 		"repel", "push":
-			if own_action and clip == "say_hello":
+			if own_action and clip in ["say_hello", "grave_bell"]:
 				_aim(cue, id, cell)
 				_recipient(cue, id, event.position, "shift")
 			elif own_action and clip == "blast":
@@ -597,9 +612,12 @@ static func _observe(cue: Dictionary, event: Dictionary, positions: Dictionary) 
 				_aim(cue, id, cell)
 				_recipient(cue, id, cell, "status")
 		"status":
-			if own_action and clip == "dont_go":
+			if own_action and clip in ["dont_go", "tripwire"]:
 				_aim(cue, id, cell)
 				_recipient(cue, id, cell, "status")
+			elif clip in ["rescue_line", "grave_bell"] and event.get("reaction_id") == "cork_soles":
+				var resisted: String = event.get("resisted_target_id", id)
+				_aim(cue, resisted, positions.get(resisted))
 		"summon":
 			if own_action and clip in ["summon_skeleton", "raise_dead"]:
 				_aim(cue, id, event.position)

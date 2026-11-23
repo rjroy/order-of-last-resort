@@ -31,7 +31,6 @@ const TEAL := Color("#263c3a")
 const LINE := Color("#536353")
 const GOLD := Color("#e3b970")
 const MINT := Color("#cae1b6")
-const RUST := Color("#f0b495")
 const DARK_TEXT := Color("#2f281e")
 
 var _rules = Rules.new()
@@ -142,7 +141,7 @@ func _ready() -> void:
 		var party: Array = launch.get("party", _definitions.missions[_fixed_mission].get("default_party", []))
 		var setup := _standalone_setup(_fixed_mission, party, launch.loadouts)
 		if setup.has("error"):
-			_show_launch_error(setup.error)
+			_show_launch_error(setup.error, setup.get("guidance", ""))
 			return
 		_opening_state = setup.state
 		if _opening_state.is_empty():
@@ -180,7 +179,10 @@ func _standalone_setup(mission_id: String, party: Array, overrides: Dictionary) 
 	var encounter: Dictionary = _definitions.encounters[_definitions.missions[mission_id].encounter]
 	var count: int = encounter.get("party_slots", []).size()
 	if party.size() != count:
-		return {"error": "Mission '%s' needs exactly %d party heroes; received %d. Use --party=<hero,...> in deployment order." % [mission_id, count, party.size()]}
+		return {
+			"error": "Mission '%s' needs exactly %d party heroes; received %d." % [mission_id, count, party.size()],
+			"guidance": "Use --party=<hero,...> in deployment order.",
+		}
 	var seen := {}
 	for id in party:
 		var hero := Catalog.profile(_definitions, id)
@@ -286,37 +288,16 @@ func _read_launch_options(args: PackedStringArray) -> Dictionary:
 	return launch
 
 
-func _show_launch_error(message: String) -> void:
-	printerr("Could not start the game: " + message)
+func _show_launch_error(message: String, guidance := "") -> void:
+	printerr("Could not start the game: " + message + ("" if guidance.is_empty() else " " + guidance))
 	_screen = "error"
 	if DisplayServer.get_name() == "headless":
 		get_tree().quit(1)
 		return
-	var page := _page("error", 34)
-	_label(page, "Could not start the game", 29, PAPER, true)
-	_label(page, "Check your launch options and try again.", 14, MUTED)
-	var detail := _log(page, "LaunchErrorText", 72, true)
-	detail.bbcode_enabled = false
-	detail.add_theme_color_override("default_color", RUST)
-	detail.text = message
-
-
-func _page(screen: String, top_margin := 22) -> VBoxContainer:
-	_clear_terminal_replay()
-	_screen = screen
-	if is_instance_valid(_screen_root):
-		remove_child(_screen_root)
-		_screen_root.queue_free()
-	var padding := MarginContainer.new()
-	_screen_root = padding
-	padding.name = screen.to_pascal_case() + "Screen"
-	padding.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "right"]:
-		padding.add_theme_constant_override("margin_" + side, 34)
-	for side in ["top", "bottom"]:
-		padding.add_theme_constant_override("margin_" + side, top_margin)
-	add_child(padding)
-	return _stack(padding, 13)
+	var notice := DiagnosticBookPage.new()
+	var page := _book_page("error", -1.0, notice)
+	notice.heading(page, "Could not start the game", "Check your launch options and try again.", true)
+	notice.launch_detail(page, "LaunchErrorText", message + ("" if guidance.is_empty() else "\n" + guidance))
 
 
 func _book_page(screen: String, gutter := -1.0, book: GuildBookPage = null) -> VBoxContainer:
@@ -2508,20 +2489,6 @@ func _picker(parent: Control, node_name: String) -> OptionButton:
 	result.fit_to_longest_item = false
 	result.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	result.custom_minimum_size.y = 34
-	parent.add_child(result)
-	return result
-
-
-func _log(parent: Control, node_name: String, height: float, expand := false) -> RichTextLabel:
-	var result := RichTextLabel.new()
-	result.name = node_name
-	result.bbcode_enabled = true
-	result.custom_minimum_size.y = height
-	result.size_flags_vertical = Control.SIZE_EXPAND_FILL if expand else Control.SIZE_FILL
-	result.add_theme_font_size_override("normal_font_size", 14)
-	result.add_theme_color_override("default_color", PAPER)
-	result.add_theme_constant_override("line_separation", 3)
-	result.add_theme_stylebox_override("normal", _box(Color("#162725"), Color("#46574c"), 1, 0, 10, 7))
 	parent.add_child(result)
 	return result
 

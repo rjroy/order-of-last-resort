@@ -58,7 +58,9 @@ func _run() -> void:
 			_check(false, "Road %d offers a temporary reward" % (road_index + 1))
 			_cleanup()
 			return
-		await _settlement_click(reward.get_global_rect().get_center())
+		if not await RewardClick.click(self, reward, _settlement_click):
+			_cleanup()
+			return
 		var continuation := _node("ContinueAdventure") as BaseButton
 		if continuation == null or continuation.disabled:
 			_check(false, "Road %d reward enables continuation" % (road_index + 1))

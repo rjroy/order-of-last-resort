@@ -121,7 +121,8 @@ func _earn_upgrade_and_deploy() -> bool:
 	if reward == null:
 		_check(false, "Victory offers an eligible upgrade")
 		return false
-	await _settlement_click(reward.get_global_rect().get_center())
+	if not await RewardClick.click(self, reward, _settlement_click):
+		return false
 	var owned: Dictionary = scene.get("_run").get("upgrades_by_id", {}).duplicate(true)
 	if not owned.values().any(func(upgrades: Dictionary) -> bool: return not upgrades.is_empty()):
 		_check(false, "GUI reward choice earns an upgrade")

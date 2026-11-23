@@ -26,6 +26,10 @@ func _run() -> void:
 	for id in FOUNDER_PARTY:
 		await _press("Recruit_" + id)
 	await _press("StartAdventure")
+	# Fix only the reward draw so this fixture exercises a long debrief layout.
+	var rewards = load("res://rewards.gd")
+	var run: Dictionary = scene.get("_run")
+	run.reward_rng_state = rewards.starting_rng_state(13)
 	await _press("Route_0")
 	if scene.current_screen() != "battle":
 		_check(false, "Stock commission enters its first battle")

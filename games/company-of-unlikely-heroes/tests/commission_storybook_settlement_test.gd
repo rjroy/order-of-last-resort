@@ -68,7 +68,9 @@ func _run() -> void:
 		_check(false, "Reward debrief offers an enabled claim")
 		_cleanup()
 		return
-	await _settlement_click(reward.get_global_rect().get_center())
+	if not await RewardClick.click(self, reward, _settlement_click):
+		_cleanup()
+		return
 	var upgrades: Dictionary = scene.get("_run").get("upgrades_by_id", {}).duplicate(true)
 	_check(upgrades.values().any(func(owned: Dictionary) -> bool: return not owned.is_empty()),
 		"Actual GUI click claims an upgrade")
@@ -106,6 +108,9 @@ func _run() -> void:
 		_check(scene.current_screen() == "battle" and scene.battle_snapshot() == opening,
 			"Old replay callbacks do not alter the next battle")
 	_cleanup()
+
+
+const RewardClick = preload("res://tests/support/reward_click.gd")
 
 
 func _stage_best_command() -> void:

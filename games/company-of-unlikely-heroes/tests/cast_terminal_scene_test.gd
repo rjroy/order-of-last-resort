@@ -3,6 +3,7 @@ extends "res://tests/commission_profile_recovery_scene_test.gd"
 # Run: godot --headless --path games/company-of-unlikely-heroes --script res://tests/cast_terminal_scene_test.gd
 # The test-owned catalog makes the first real commission battle short, without
 # manufacturing a terminal state or bypassing its settlement.
+const RewardClick = preload("res://tests/support/reward_click.gd")
 
 func _run() -> void:
 	# The inherited helpers allocate a SubViewport; real pointer input needs the
@@ -90,7 +91,8 @@ func _terminal_round() -> void:
 	if reward == null:
 		_check(false, "Debrief offers an enabled reward")
 		return
-	await _click(reward)
+	if not await RewardClick.click(self, reward, _click):
+		return
 	_check(not scene.get("_run").get("upgrades_by_id", {}).is_empty(),
 		"First click selects the reward rather than being stolen by the overlay")
 	_check(not is_instance_valid(overlay) or not overlay.is_visible_in_tree(),
@@ -115,8 +117,7 @@ func _terminal_round() -> void:
 		"New battle controls are ready")
 
 
-func _click(control: Control) -> void:
-	var position := control.get_global_rect().get_center()
+func _click(position: Vector2) -> void:
 	var motion := InputEventMouseMotion.new()
 	motion.position = position
 	motion.global_position = position

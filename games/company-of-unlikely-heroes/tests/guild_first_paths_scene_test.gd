@@ -176,7 +176,8 @@ func _win_road_and_continue() -> bool:
 	if reward == null:
 		_check(false, "Road victory also offers a separate temporary upgrade")
 		return false
-	await _settlement_click(reward.get_global_rect().get_center())
+	if not await RewardClick.click(self, reward, _settlement_click):
+		return false
 	var continuation := _node("ContinueAdventure") as BaseButton
 	if continuation == null or continuation.disabled:
 		_check(false, "Claiming the temporary upgrade enables continuation")

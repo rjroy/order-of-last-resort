@@ -23,6 +23,7 @@ const LEARNER_BEATS := {
 	"necromancer": {"melody": 13},
 	"alchemist": {"pull": 13, "pull_upright": 13},
 }
+const GUILD_REACTION_BEATS := {"down": 16, "recover": 22, "seated_recover": 22}
 
 class Entry:
 	var cue: Dictionary
@@ -80,8 +81,12 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 		var entry := Entry.new()
 		entry.cue = cue
 		entry.clip = clip
-		entry.facing = 0.0
+		var declared_facing: Variant = cue.get("facing")
+		entry.facing = float(declared_facing) if (declared_facing is int or declared_facing is float) \
+			and absf(float(declared_facing)) == 1.0 else 0.0
 		var beat: int = LEARNER_BEATS.get(role, {}).get(key, ACTION_BEATS.get(key, -1))
+		if cue.get("hero_knockdown") in GUILD_REACTION_BEATS:
+			beat = GUILD_REACTION_BEATS[cue.hero_knockdown]
 		entry.impact_ms = clip.time_at_source_frame(beat) \
 			if not ordinary and beat >= 0 else clip.total_ms * 0.48
 		if ordinary and cue.get("impact_frame") is int and cue.impact_frame in clip.source_frames:
@@ -127,9 +132,25 @@ func clear() -> void:
 
 func clear_pull_recoil(unit_id: String) -> void:
 	for entry in _entries:
-		if entry.cue.get("unit_id") == unit_id and entry.cue.get("cast_key") == "alchemist" \
+		if entry.cue.get("unit_id") == unit_id and entry.cue.get("cast_key") in ["wizard", "alchemist"] \
 				and entry.cue.get("clip") == "pull" and not entry.cue.get("ordinary_presentation", false):
 			entry.cue.erase("pull_recoil_down")
+
+
+func pull_recoil_facing(unit_id: String) -> float:
+	# A pre-metadata save may still have its own Pull waiting in the queue.
+	for index in range(_entries.size() - 1, -1, -1):
+		var entry := _entries[index]
+		if entry.cue.get("unit_id") != unit_id or entry.cue.get("cast_key") not in ["wizard", "alchemist"] \
+				or entry.cue.get("clip") != "pull" or not entry.cue.get("pull_recoil_down", false):
+			continue
+		if entry.facing != 0.0:
+			return entry.facing
+		var source: Variant = entry.cue.get("source_cell")
+		var target: Variant = entry.cue.get("target_cell")
+		if source is Vector2i and target is Vector2i and source.x != target.x:
+			return -1.0 if target.x < source.x else 1.0
+	return 0.0
 
 
 func shield_in_transit(cell: Vector2i) -> bool:
@@ -161,6 +182,22 @@ func waiting_swap_cell(unit_id: String) -> Variant:
 		if entry.cue.swap_partner_id == unit_id:
 			return entry.cue.get("actor_cell")
 	return null
+
+
+func hero_pending_pose(unit_id: String) -> String:
+	# The final rules snapshot can be ahead of this unit's queued reactions.
+	for entry in _entries:
+		if entry.cue.get("unit_id") != unit_id or not entry.cue.has("hero_knockdown"):
+			continue
+		var kind: String = entry.cue.hero_knockdown
+		if entry.elapsed_ms < 0.0:
+			if kind == "down":
+				return "ready"
+			return "seated" if kind == "seated_recover" else "down"
+		if entry.elapsed_ms >= entry.clip.total_ms:
+			return "down" if kind == "down" else "ready"
+		return ""
+	return ""
 
 
 func actor_cell(unit_id: String, fallback: Vector2i) -> Vector2i:

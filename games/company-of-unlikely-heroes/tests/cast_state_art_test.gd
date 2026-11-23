@@ -221,9 +221,27 @@ func _fallen_rescue_equipment() -> void:
 
 func _wizard_pull_finishes_seated() -> void:
 	board.clear_action_playback()
+	var rules := Rules.new()
+	var before := Rules.open_mission(Catalog.read_default(), "harpoon_squad", ["wizard", "healer", "bard"])
+	before.obstacles = []
+	_entity(before, "wizard").position = Vector2i(3, 3)
+	_entity(before, "bruiser").position = Vector2i(6, 3)
+	_entity(before, "healer").position = Vector2i(0, 0)
+	_entity(before, "bard").position = Vector2i(0, 1)
+	var plan: Dictionary = rules.preview(before, "wizard", "wizard_pull", "bruiser")
+	if not plan.get("valid", false):
+		_check(false, "Wizard Pull fixture resolves")
+		return
+	var after: Dictionary = rules.apply_plan(before, plan)
+	var pulls: Array = Cues.build(before, after, plan.events).filter(func(cue): return \
+		cue.get("unit_id") == "wizard" and cue.get("clip") == "pull")
+	if pulls.size() != 1 or not pulls[0].get("pull_recoil_down", false):
+		_check(false, "Wizard Pull cue records its own actual recoil knockdown")
+		return
 	var down := _unit("wizard", {"prone": true, "hp": 2, "max_hp": 3})
 	await _state(down)
-	_cue("wizard", "pull")
+	board.play_committed_actions(pulls)
+	board.set_process(false)
 	var first := await _capture()
 	var manifest: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/cast/manifest.json"))
 	var frames: Array = manifest.actors.wizard.clips.pull.frames
@@ -272,7 +290,7 @@ func _mixologist_pull_recoil() -> void:
 	_check(pulls[0].get("pull_recoil_down", false),
 		"Actual Pull cue records its own recoil knockdown")
 	var down := _unit("alchemist", {"art_key": "healer", "prone": Statuses.knocked_down(after, actor),
-		"hp": actor.hp, "max_hp": actor.max_hp})
+		"hp": actor.hp, "max_hp": actor.max_hp, "guild_knockdown_art": true})
 	var idle_down := await _state(down)
 	# Capture the standing reference on a separate playback. Setting the real
 	# board to standing while recoil is active represents recovery and correctly
@@ -360,7 +378,7 @@ func _mixologist_pull_recoil() -> void:
 	var queued_return := await _capture()
 	_check(_difference(queued_return, idle_down) == 0,
 		"Recovery while Pull is queued prevents stale seating on a later knockdown")
-	await _same_batch_recoil_reset(after, pulls[0], down, idle_down)
+	await _same_batch_recoil_reset(after, pulls[0], down, idle_down, seated)
 
 
 func _resisted_pull_before_later_hit() -> void:
@@ -429,7 +447,8 @@ func _resisted_pull_before_later_hit() -> void:
 		"Resisted Pull finishes in ordinary prone without a seated tail")
 
 
-func _same_batch_recoil_reset(state: Dictionary, pull: Dictionary, down: Dictionary, idle_down: Image) -> void:
+func _same_batch_recoil_reset(state: Dictionary, pull: Dictionary, down: Dictionary,
+		idle_down: Image, seated: Image) -> void:
 	# The final board is prone both before and after the second commit, even
 	# though recovery occurred in between. The real recovery event must carry
 	# that transition to the presentation queue.
@@ -471,13 +490,24 @@ func _same_batch_recoil_reset(state: Dictionary, pull: Dictionary, down: Diction
 		else:
 			_advance((blocking_ms + 1.0) / 1000.0)
 			active = board.get("_playback").active()
-			if active.size() != 1:
+			if active.size() != 1 or active[0].cue.get("clip") != "pull":
 				_check(false, "Old Pull still plays after committed recovery")
 				continue
 			_advance((active[0].duration_ms + 1.0) / 1000.0)
+			active = board.get("_playback").active()
+			if active.size() != 1 or active[0].cue.get("clip") != "seated_recover":
+				_check(false, "Actual recovery follows the old Pull")
+				continue
+			_advance((active[0].duration_ms + 1.0) / 1000.0)
+			active = board.get("_playback").active()
+			if active.size() != 1 or active[0].cue.get("clip") != "down":
+				_check(false, "Later unrelated knockdown follows actual recovery")
+				continue
+			_advance((active[0].duration_ms + 1.0) / 1000.0)
 			var returned := await _capture()
-			_check(_difference(returned, idle_down) == 0,
-				"Committed recovery prevents old Pull seating after a later same-batch knockdown")
+			_check(board.action_playback_snapshot().is_empty() and _difference(returned, idle_down) == 0 \
+				and _difference(returned, seated) > 30,
+				"Committed recovery and later knockdown end at ordinary down, not the stale Pull seat")
 
 
 func _test_acid_release_geometry() -> void:

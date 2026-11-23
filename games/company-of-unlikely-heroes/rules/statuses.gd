@@ -121,9 +121,16 @@ static func _consume_skips(state: Dictionary, unit: Dictionary, events: Array,
 		return
 	var event := RECOVER_EVENT
 	var granted_laughing_fit := false
+	var presentation_cause := ""
+	var presentation_facing := 0
 	for id in ids:
 		var spec := definition(state, id)
 		var params: Dictionary = spec.params
+		if is_knockdown(state, id) and unit.statuses[id].get("presentation_cause") == "pull_recoil":
+			presentation_cause = "pull_recoil"
+			var direction: Variant = unit.statuses[id].get("presentation_facing")
+			if (direction is int or direction is float) and absf(float(direction)) == 1.0:
+				presentation_facing = int(direction)
 		if params.get("skip_event") == "laugh_skip":
 			var bard := Board.entity(state, unit.statuses[id].source_id)
 			var bonus := Upgrades.amount(state, bard, "laughing_fit")
@@ -138,7 +145,7 @@ static func _consume_skips(state: Dictionary, unit: Dictionary, events: Array,
 			unit.statuses.erase(id)
 		if event == RECOVER_EVENT:
 			event = params.get("skip_event", RECOVER_EVENT)
-	_recover(state, unit, events, event, ids, jelly)
+	_recover(state, unit, events, event, ids, jelly, presentation_cause, presentation_facing)
 	if granted_laughing_fit:
 		Board.event(events, "status", "Laughing Fit: %s drops their guard; the next hit deals +%d damage." % [
 			Board.display_name(state, unit), unit.statuses.laughing_fit.amount],
@@ -153,10 +160,14 @@ static func consume_objective_skip(state: Dictionary, unit: Dictionary, events: 
 
 
 static func _recover(state: Dictionary, unit: Dictionary, events: Array, event: String,
-		ids: Array[String], jelly: bool) -> void:
+		ids: Array[String], jelly: bool, presentation_cause: String, presentation_facing: int) -> void:
 	var data := {"unit_id": unit.id, "status_ids": ids}
 	if jelly:
 		data["reaction_id"] = JELLY_KNEES
+	if not presentation_cause.is_empty():
+		data["presentation_cause"] = presentation_cause
+		if presentation_facing != 0:
+			data["presentation_facing"] = presentation_facing
 	Board.authored_event(state, events, "recover", event, {"actor": Board.display_name(state, unit)}, data)
 
 
@@ -187,7 +198,21 @@ static func apply_result(state: Dictionary, target: Dictionary, id: String, sour
 		return Application.REJECTED
 	if is_knockdown(state, id) and _resists_knockdown(state, target, events):
 		return Application.RESISTED
+	# Reapplying knockdown while already prone replaces its rules source, but
+	# does not produce a second physical fall. Keep the existing optional pose
+	# provenance so the eventual rise starts from the pose actually held.
+	var presentation := {}
+	if is_knockdown(state, id) and knocked_down(state, target):
+		for previous in ids_with_handler(state, target, "skip_action"):
+			var old: Dictionary = target.statuses[previous]
+			if is_knockdown(state, previous) and old.get("presentation_cause") == "pull_recoil":
+				presentation["presentation_cause"] = "pull_recoil"
+				var direction: Variant = old.get("presentation_facing")
+				if (direction is int or direction is float) and absf(float(direction)) == 1.0:
+					presentation["presentation_facing"] = int(direction)
+				break
 	target.statuses[id] = {"source_id": source.id}
+	target.statuses[id].merge(presentation)
 	return Application.APPLIED
 
 

@@ -32,6 +32,7 @@ const CLIPS := {
 	"ferryman": {"move": ["move", "travel"]},
 }
 const STRIKES := ["bonk", "blast", "push", "shield_throw", "offer_flower", "healing_sonnet", "wave"]
+const GUILD_HEROES := ["knight", "healer", "wizard", "bard", "rogue", "necromancer", "alchemist"]
 
 
 static func cast_key_for(state: Dictionary, unit: Dictionary, profile := {}) -> String:
@@ -215,9 +216,10 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 				var cause: String = event.get("damage_cause", "")
 				var amount := int(event.get("amount", 0))
 				if not cue.get("ordinary_presentation", false) \
-						and cue.get("cast_key") == "alchemist" and cue.get("clip") == "pull" \
+						and cue.get("cast_key") in ["wizard", "alchemist"] and cue.get("clip") == "pull" \
 						and victim == cue.get("unit_id") and source == victim \
 						and not prone.get(victim, false) and int(health.get(victim, 0)) > amount \
+						and event.get("presentation_cause") == "pull_recoil" \
 						and Statuses.is_knockdown(after, event.get("status_id", "")):
 					cue["pull_recoil_down"] = true
 					cue["pull_recoil_happened"] = true
@@ -236,6 +238,18 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 					var target: Dictionary = actors.get(victim, {})
 					var key := cast_key_for(after, target)
 					var presentation := presentation_for(after, target)
+					var hero_key := guild_hero_key(after, target)
+					var new_knockdown: bool = Statuses.is_knockdown(after, event.get("status_id", "")) \
+						and not prone.get(victim, false) and int(health[victim]) > 0
+					var own_pull: bool = event.get("presentation_cause") == "pull_recoil" \
+						and cue.get("unit_id") == victim and cue.get("cast_key") == hero_key \
+						and hero_key in ["wizard", "alchemist"] and cue.get("clip") == "pull"
+					if new_knockdown and not hero_key.is_empty() and not own_pull:
+						var falling := _guild_reaction(victim, hero_key, "down", positions.get(victim),
+							bool(shield_away.get(victim, false)))
+						if dependency >= 0:
+							falling["after_reaction"] = dependency
+						reactions.append(falling)
 					if was_alive and amount > 0 and not presentation.is_empty() \
 							and "damageable" in Catalog.profile(after.catalog.defs, target.get("character_id", "")).get("capabilities", []):
 						var reaction_clip: Variant = presentation.get("defeat" if health[victim] <= 0 else "hit")
@@ -275,6 +289,10 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 					and event.get("applied", false)):
 				var victim: String = event.get("target_id", "")
 				var target: Dictionary = actors.get(victim, {})
+				var hero_key := guild_hero_key(after, target)
+				if not hero_key.is_empty() and not prone.get(victim, false) and int(health.get(victim, 0)) > 0:
+					reactions.append(_guild_reaction(victim, hero_key, "down", positions.get(victim),
+						bool(shield_away.get(victim, false))))
 				if cast_key_for(after, target) == "ferryman" and not has_presentation(after, target):
 					if not prone.get(victim, false):
 						reactions.append({"unit_id": victim, "cast_key": "ferryman", "clip": "down",
@@ -292,10 +310,22 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 					if pull_recoils.has(recovered):
 						pull_recoils[recovered].erase("pull_recoil_down")
 						pull_recoils.erase(recovered)
-					if cast_key_for(after, target) == "alchemist" and not has_presentation(after, target):
+					if guild_hero_key(after, target) in ["wizard", "alchemist"] \
+							or (cast_key_for(after, target) == "alchemist" and not has_presentation(after, target)):
 						# This can happen between two committed prone board snapshots.
 						# Preserve its ordering relative to other queued actions.
 						reactions.append({"unit_id": recovered, "control": "clear_pull_recoil"})
+					var hero_key := guild_hero_key(after, target)
+					if not hero_key.is_empty():
+						var clip := "seated_recover" if hero_key in ["wizard", "alchemist"] \
+							and event.get("presentation_cause") == "pull_recoil" else "recover"
+						var rising := _guild_reaction(recovered, hero_key, clip, positions.get(recovered),
+							bool(shield_away.get(recovered, false)))
+						var direction: Variant = event.get("presentation_facing")
+						if clip == "seated_recover" and (direction is int or direction is float) \
+								and absf(float(direction)) == 1.0:
+							rising["facing"] = int(direction)
+						reactions.append(rising)
 					if cast_key_for(after, target) == "ferryman" and not has_presentation(after, target):
 						reactions.append({"unit_id": recovered, "cast_key": "ferryman", "clip": "recover",
 							"source_cell": positions.get(recovered), "actor_cell": positions.get(recovered),
@@ -374,11 +404,24 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 			pull_recoils[id].erase("pull_recoil_down")
 	for cue in cues:
 		if not cue.get("ordinary_presentation", false) \
-				and cue.get("cast_key") == "alchemist" and cue.get("clip") == "pull":
-			if not cue.get("pull_recoil_happened", false):
+				and cue.get("cast_key") in ["wizard", "alchemist"] and cue.get("clip") == "pull":
+			if cue.get("cast_key") == "alchemist" and not cue.get("pull_recoil_happened", false):
 				cue["clip"] = "pull_upright"
 			cue.erase("pull_recoil_happened")
 	return cues
+
+
+static func guild_hero_key(state: Dictionary, unit: Dictionary) -> String:
+	if unit.is_empty() or has_presentation(state, unit):
+		return ""
+	var key := cast_key_for(state, unit)
+	return key if key in GUILD_HEROES and unit.get("character_id") == key else ""
+
+
+static func _guild_reaction(id: String, key: String, clip: String, cell: Variant, away: bool) -> Dictionary:
+	return {"unit_id": id, "cast_key": key, "clip": clip, "hero_knockdown": clip,
+		"source_cell": cell, "actor_cell": cell, "target_id": "", "recipients": [],
+		"shield_away": away}
 
 
 static func _replace_clip(cue: Dictionary, replacement: String) -> void:

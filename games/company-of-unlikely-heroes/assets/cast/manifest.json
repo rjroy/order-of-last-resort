@@ -581,8 +581,8 @@
               "source_frame": 1,
               "duration_ms": 250,
               "rect": [
-                854,
-                717,
+                976,
+                952,
                 101,
                 230
               ]
@@ -591,8 +591,8 @@
               "source_frame": 7,
               "duration_ms": 208,
               "rect": [
-                955,
-                717,
+                1077,
+                952,
                 101,
                 230
               ]
@@ -601,8 +601,8 @@
               "source_frame": 12,
               "duration_ms": 250,
               "rect": [
-                1056,
-                717,
+                1178,
+                952,
                 101,
                 230
               ]
@@ -612,7 +612,7 @@
               "duration_ms": 250,
               "rect": [
                 0,
-                950,
+                1185,
                 101,
                 230
               ]
@@ -622,7 +622,7 @@
               "duration_ms": 292,
               "rect": [
                 101,
-                950,
+                1185,
                 101,
                 230
               ]
@@ -632,7 +632,7 @@
               "duration_ms": 292,
               "rect": [
                 202,
-                950,
+                1185,
                 101,
                 230
               ]
@@ -642,7 +642,7 @@
               "duration_ms": 458,
               "rect": [
                 303,
-                950,
+                1185,
                 101,
                 230
               ]
@@ -662,8 +662,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                615,
-                478,
+                903,
+                717,
                 122,
                 233
               ]
@@ -672,8 +672,8 @@
               "source_frame": 4,
               "duration_ms": 125,
               "rect": [
-                737,
-                478,
+                1025,
+                717,
                 122,
                 233
               ]
@@ -682,8 +682,8 @@
               "source_frame": 7,
               "duration_ms": 125,
               "rect": [
-                859,
-                478,
+                1147,
+                717,
                 122,
                 233
               ]
@@ -692,8 +692,8 @@
               "source_frame": 10,
               "duration_ms": 125,
               "rect": [
-                981,
-                478,
+                0,
+                952,
                 122,
                 233
               ]
@@ -702,8 +702,8 @@
               "source_frame": 13,
               "duration_ms": 167,
               "rect": [
-                0,
-                717,
+                122,
+                952,
                 122,
                 233
               ]
@@ -712,8 +712,8 @@
               "source_frame": 17,
               "duration_ms": 125,
               "rect": [
-                122,
-                717,
+                244,
+                952,
                 122,
                 233
               ]
@@ -722,8 +722,8 @@
               "source_frame": 20,
               "duration_ms": 125,
               "rect": [
-                244,
-                717,
+                366,
+                952,
                 122,
                 233
               ]
@@ -732,8 +732,8 @@
               "source_frame": 23,
               "duration_ms": 41,
               "rect": [
-                244,
-                717,
+                366,
+                952,
                 122,
                 233
               ]
@@ -742,8 +742,8 @@
               "source_frame": 24,
               "duration_ms": 167,
               "rect": [
-                366,
-                717,
+                488,
+                952,
                 122,
                 233
               ]
@@ -752,8 +752,8 @@
               "source_frame": 28,
               "duration_ms": 167,
               "rect": [
-                488,
-                717,
+                610,
+                952,
                 122,
                 233
               ]
@@ -762,8 +762,8 @@
               "source_frame": 32,
               "duration_ms": 166,
               "rect": [
-                610,
-                717,
+                732,
+                952,
                 122,
                 233
               ]
@@ -772,8 +772,8 @@
               "source_frame": 36,
               "duration_ms": 125,
               "rect": [
-                732,
-                717,
+                854,
+                952,
                 122,
                 233
               ]
@@ -863,8 +863,8 @@
               "source_frame": 21,
               "duration_ms": 167,
               "rect": [
+                1085,
                 0,
-                239,
                 155,
                 239
               ]
@@ -873,7 +873,7 @@
               "source_frame": 25,
               "duration_ms": 167,
               "rect": [
-                155,
+                0,
                 239,
                 155,
                 239
@@ -883,7 +883,7 @@
               "source_frame": 29,
               "duration_ms": 125,
               "rect": [
-                310,
+                155,
                 239,
                 155,
                 239
@@ -893,7 +893,7 @@
               "source_frame": 32,
               "duration_ms": 125,
               "rect": [
-                465,
+                310,
                 239,
                 155,
                 239
@@ -922,8 +922,8 @@
               "source_frame": 18,
               "duration_ms": 42,
               "rect": [
-                264,
-                1180,
+                1328,
+                1185,
                 24,
                 32
               ]
@@ -944,7 +944,7 @@
               "duration_ms": 125,
               "rect": [
                 404,
-                950,
+                1185,
                 132,
                 229
               ]
@@ -954,7 +954,7 @@
               "duration_ms": 125,
               "rect": [
                 536,
-                950,
+                1185,
                 132,
                 229
               ]
@@ -964,7 +964,7 @@
               "duration_ms": 125,
               "rect": [
                 668,
-                950,
+                1185,
                 132,
                 229
               ]
@@ -974,7 +974,7 @@
               "duration_ms": 125,
               "rect": [
                 800,
-                950,
+                1185,
                 132,
                 229
               ]
@@ -984,7 +984,7 @@
               "duration_ms": 125,
               "rect": [
                 932,
-                950,
+                1185,
                 132,
                 229
               ]
@@ -993,8 +993,8 @@
               "source_frame": 16,
               "duration_ms": 125,
               "rect": [
-                0,
-                1180,
+                1064,
+                1185,
                 132,
                 229
               ]
@@ -1003,8 +1003,8 @@
               "source_frame": 19,
               "duration_ms": 125,
               "rect": [
-                132,
-                1180,
+                1196,
+                1185,
                 132,
                 229
               ]
@@ -1014,7 +1014,7 @@
               "duration_ms": 125,
               "rect": [
                 668,
-                950,
+                1185,
                 132,
                 229
               ]
@@ -1024,7 +1024,7 @@
               "duration_ms": 83,
               "rect": [
                 536,
-                950,
+                1185,
                 132,
                 229
               ]
@@ -1034,7 +1034,7 @@
               "duration_ms": 84,
               "rect": [
                 404,
-                950,
+                1185,
                 132,
                 229
               ]
@@ -1054,8 +1054,8 @@
               "source_frame": 1,
               "duration_ms": 167,
               "rect": [
-                620,
-                239,
+                129,
+                478,
                 123,
                 239
               ]
@@ -1064,8 +1064,8 @@
               "source_frame": 5,
               "duration_ms": 166,
               "rect": [
-                743,
-                239,
+                252,
+                478,
                 123,
                 239
               ]
@@ -1074,8 +1074,8 @@
               "source_frame": 9,
               "duration_ms": 167,
               "rect": [
-                866,
-                239,
+                375,
+                478,
                 123,
                 239
               ]
@@ -1084,8 +1084,8 @@
               "source_frame": 13,
               "duration_ms": 125,
               "rect": [
-                989,
-                239,
+                498,
+                478,
                 123,
                 239
               ]
@@ -1094,7 +1094,7 @@
               "source_frame": 16,
               "duration_ms": 167,
               "rect": [
-                0,
+                621,
                 478,
                 123,
                 239
@@ -1104,7 +1104,7 @@
               "source_frame": 20,
               "duration_ms": 166,
               "rect": [
-                123,
+                744,
                 478,
                 123,
                 239
@@ -1114,7 +1114,7 @@
               "source_frame": 24,
               "duration_ms": 167,
               "rect": [
-                246,
+                867,
                 478,
                 123,
                 239
@@ -1124,7 +1124,7 @@
               "source_frame": 28,
               "duration_ms": 208,
               "rect": [
-                369,
+                990,
                 478,
                 123,
                 239
@@ -1134,7 +1134,7 @@
               "source_frame": 33,
               "duration_ms": 167,
               "rect": [
-                492,
+                1113,
                 478,
                 123,
                 239
@@ -1147,6 +1147,249 @@
             216
           ],
           "action": "Mixologist | Pull",
+          "path": "res://assets/cast/alchemist.png"
+        },
+        "down": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                717,
+                129,
+                235
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 167,
+              "rect": [
+                129,
+                717,
+                129,
+                235
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                258,
+                717,
+                129,
+                235
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                387,
+                717,
+                129,
+                235
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                516,
+                717,
+                129,
+                235
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 166,
+              "rect": [
+                645,
+                717,
+                129,
+                235
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 167,
+              "rect": [
+                774,
+                717,
+                129,
+                235
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            57,
+            211
+          ],
+          "action": "Mixologist | Down",
+          "path": "res://assets/cast/alchemist.png"
+        },
+        "recover": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                465,
+                239,
+                129,
+                239
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                594,
+                239,
+                129,
+                239
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                723,
+                239,
+                129,
+                239
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                852,
+                239,
+                129,
+                239
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 208,
+              "rect": [
+                981,
+                239,
+                129,
+                239
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 167,
+              "rect": [
+                1110,
+                239,
+                129,
+                239
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                478,
+                129,
+                239
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            57,
+            211
+          ],
+          "action": "Mixologist | Recover",
+          "path": "res://assets/cast/alchemist.png"
+        },
+        "seated_recover": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                1113,
+                478,
+                123,
+                239
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                990,
+                478,
+                123,
+                239
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                867,
+                478,
+                123,
+                239
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                744,
+                478,
+                123,
+                239
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 208,
+              "rect": [
+                621,
+                478,
+                123,
+                239
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 167,
+              "rect": [
+                1236,
+                478,
+                123,
+                239
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                129,
+                478,
+                123,
+                239
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            67,
+            216
+          ],
+          "action": "Mixologist | Seated Recover",
           "path": "res://assets/cast/alchemist.png"
         }
       }
@@ -1162,7 +1405,7 @@
               "duration_ms": 167,
               "rect": [
                 596,
-                903,
+                1138,
                 143,
                 221
               ]
@@ -1172,7 +1415,7 @@
               "duration_ms": 166,
               "rect": [
                 739,
-                903,
+                1138,
                 143,
                 221
               ]
@@ -1182,7 +1425,7 @@
               "duration_ms": 167,
               "rect": [
                 882,
-                903,
+                1138,
                 143,
                 221
               ]
@@ -1191,8 +1434,8 @@
               "source_frame": 13,
               "duration_ms": 167,
               "rect": [
-                0,
-                1124,
+                1025,
+                1138,
                 143,
                 221
               ]
@@ -1201,8 +1444,8 @@
               "source_frame": 17,
               "duration_ms": 208,
               "rect": [
-                143,
-                1124,
+                1168,
+                1138,
                 143,
                 221
               ]
@@ -1211,8 +1454,8 @@
               "source_frame": 22,
               "duration_ms": 125,
               "rect": [
-                286,
-                1124,
+                0,
+                1359,
                 143,
                 221
               ]
@@ -1232,8 +1475,8 @@
               "source_frame": 1,
               "duration_ms": 167,
               "rect": [
-                668,
-                458,
+                1169,
+                693,
                 149,
                 221
               ]
@@ -1242,8 +1485,8 @@
               "source_frame": 5,
               "duration_ms": 125,
               "rect": [
-                817,
-                458,
+                0,
+                917,
                 149,
                 221
               ]
@@ -1252,8 +1495,8 @@
               "source_frame": 8,
               "duration_ms": 125,
               "rect": [
-                966,
-                458,
+                149,
+                917,
                 149,
                 221
               ]
@@ -1262,8 +1505,8 @@
               "source_frame": 11,
               "duration_ms": 83,
               "rect": [
-                0,
-                682,
+                298,
+                917,
                 149,
                 221
               ]
@@ -1272,8 +1515,8 @@
               "source_frame": 13,
               "duration_ms": 167,
               "rect": [
-                149,
-                682,
+                447,
+                917,
                 149,
                 221
               ]
@@ -1282,8 +1525,8 @@
               "source_frame": 17,
               "duration_ms": 166,
               "rect": [
-                298,
-                682,
+                596,
+                917,
                 149,
                 221
               ]
@@ -1292,8 +1535,8 @@
               "source_frame": 21,
               "duration_ms": 167,
               "rect": [
-                447,
-                682,
+                745,
+                917,
                 149,
                 221
               ]
@@ -1302,8 +1545,8 @@
               "source_frame": 25,
               "duration_ms": 167,
               "rect": [
-                596,
-                682,
+                894,
+                917,
                 149,
                 221
               ]
@@ -1312,8 +1555,8 @@
               "source_frame": 29,
               "duration_ms": 125,
               "rect": [
-                745,
-                682,
+                1043,
+                917,
                 149,
                 221
               ]
@@ -1322,8 +1565,8 @@
               "source_frame": 32,
               "duration_ms": 83,
               "rect": [
-                894,
-                682,
+                1192,
+                917,
                 149,
                 221
               ]
@@ -1333,7 +1576,7 @@
               "duration_ms": 167,
               "rect": [
                 0,
-                903,
+                1138,
                 149,
                 221
               ]
@@ -1343,7 +1586,7 @@
               "duration_ms": 125,
               "rect": [
                 149,
-                903,
+                1138,
                 149,
                 221
               ]
@@ -1353,7 +1596,7 @@
               "duration_ms": 208,
               "rect": [
                 298,
-                903,
+                1138,
                 149,
                 221
               ]
@@ -1363,7 +1606,7 @@
               "duration_ms": 125,
               "rect": [
                 447,
-                903,
+                1138,
                 149,
                 221
               ]
@@ -1383,8 +1626,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                0,
-                0,
+                880,
+                232,
                 144,
                 229
               ]
@@ -1393,8 +1636,8 @@
               "source_frame": 4,
               "duration_ms": 167,
               "rect": [
-                144,
-                0,
+                1024,
+                232,
                 144,
                 229
               ]
@@ -1403,8 +1646,8 @@
               "source_frame": 8,
               "duration_ms": 125,
               "rect": [
-                288,
-                0,
+                1168,
+                232,
                 144,
                 229
               ]
@@ -1413,8 +1656,8 @@
               "source_frame": 11,
               "duration_ms": 208,
               "rect": [
-                432,
                 0,
+                464,
                 144,
                 229
               ]
@@ -1423,8 +1666,8 @@
               "source_frame": 16,
               "duration_ms": 208,
               "rect": [
-                576,
-                0,
+                144,
+                464,
                 144,
                 229
               ]
@@ -1433,8 +1676,8 @@
               "source_frame": 21,
               "duration_ms": 167,
               "rect": [
-                720,
-                0,
+                288,
+                464,
                 144,
                 229
               ]
@@ -1443,8 +1686,8 @@
               "source_frame": 25,
               "duration_ms": 250,
               "rect": [
-                864,
-                0,
+                432,
+                464,
                 144,
                 229
               ]
@@ -1453,8 +1696,8 @@
               "source_frame": 31,
               "duration_ms": 292,
               "rect": [
-                1008,
-                0,
+                576,
+                464,
                 144,
                 229
               ]
@@ -1463,8 +1706,8 @@
               "source_frame": 38,
               "duration_ms": 208,
               "rect": [
-                0,
-                229,
+                720,
+                464,
                 144,
                 229
               ]
@@ -1473,8 +1716,8 @@
               "source_frame": 43,
               "duration_ms": 208,
               "rect": [
-                144,
-                229,
+                864,
+                464,
                 144,
                 229
               ]
@@ -1483,8 +1726,8 @@
               "source_frame": 48,
               "duration_ms": 292,
               "rect": [
-                288,
-                229,
+                1008,
+                464,
                 144,
                 229
               ]
@@ -1493,8 +1736,8 @@
               "source_frame": 55,
               "duration_ms": 250,
               "rect": [
-                432,
-                229,
+                1152,
+                464,
                 144,
                 229
               ]
@@ -1514,8 +1757,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                576,
-                229,
+                0,
+                693,
                 167,
                 224
               ]
@@ -1524,8 +1767,8 @@
               "source_frame": 4,
               "duration_ms": 167,
               "rect": [
-                743,
-                229,
+                167,
+                693,
                 167,
                 224
               ]
@@ -1534,8 +1777,8 @@
               "source_frame": 8,
               "duration_ms": 166,
               "rect": [
-                910,
-                229,
+                334,
+                693,
                 167,
                 224
               ]
@@ -1544,8 +1787,8 @@
               "source_frame": 12,
               "duration_ms": 125,
               "rect": [
-                0,
-                458,
+                501,
+                693,
                 167,
                 224
               ]
@@ -1554,8 +1797,8 @@
               "source_frame": 15,
               "duration_ms": 167,
               "rect": [
-                167,
-                458,
+                668,
+                693,
                 167,
                 224
               ]
@@ -1564,8 +1807,8 @@
               "source_frame": 19,
               "duration_ms": 167,
               "rect": [
-                334,
-                458,
+                835,
+                693,
                 167,
                 224
               ]
@@ -1574,8 +1817,8 @@
               "source_frame": 23,
               "duration_ms": 166,
               "rect": [
-                501,
-                458,
+                1002,
+                693,
                 167,
                 224
               ]
@@ -1584,8 +1827,8 @@
               "source_frame": 27,
               "duration_ms": 84,
               "rect": [
-                576,
-                229,
+                0,
+                693,
                 167,
                 224
               ]
@@ -1597,6 +1840,168 @@
             208
           ],
           "action": "Bard | Push",
+          "path": "res://assets/cast/bard.png"
+        },
+        "down": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                0,
+                176,
+                232
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 167,
+              "rect": [
+                176,
+                0,
+                176,
+                232
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                352,
+                0,
+                176,
+                232
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                528,
+                0,
+                176,
+                232
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                704,
+                0,
+                176,
+                232
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 166,
+              "rect": [
+                880,
+                0,
+                176,
+                232
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 167,
+              "rect": [
+                1056,
+                0,
+                176,
+                232
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            81,
+            205
+          ],
+          "action": "Bard | Down",
+          "path": "res://assets/cast/bard.png"
+        },
+        "recover": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                1056,
+                0,
+                176,
+                232
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                0,
+                232,
+                176,
+                232
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                176,
+                232,
+                176,
+                232
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                352,
+                232,
+                176,
+                232
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 208,
+              "rect": [
+                528,
+                232,
+                176,
+                232
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 167,
+              "rect": [
+                704,
+                232,
+                176,
+                232
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                0,
+                176,
+                232
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            81,
+            205
+          ],
+          "action": "Bard | Recover",
           "path": "res://assets/cast/bard.png"
         }
       }
@@ -1611,8 +2016,8 @@
               "source_frame": 1,
               "duration_ms": 292,
               "rect": [
-                625,
-                832,
+                500,
+                1059,
                 118,
                 207
               ]
@@ -1621,8 +2026,8 @@
               "source_frame": 8,
               "duration_ms": 250,
               "rect": [
-                743,
-                832,
+                618,
+                1059,
                 118,
                 207
               ]
@@ -1631,8 +2036,8 @@
               "source_frame": 14,
               "duration_ms": 250,
               "rect": [
-                861,
-                832,
+                736,
+                1059,
                 118,
                 207
               ]
@@ -1641,8 +2046,8 @@
               "source_frame": 20,
               "duration_ms": 375,
               "rect": [
-                0,
-                1039,
+                854,
+                1059,
                 118,
                 207
               ]
@@ -1651,8 +2056,8 @@
               "source_frame": 29,
               "duration_ms": 291,
               "rect": [
-                118,
-                1039,
+                972,
+                1059,
                 118,
                 207
               ]
@@ -1661,8 +2066,8 @@
               "source_frame": 36,
               "duration_ms": 250,
               "rect": [
-                236,
-                1039,
+                1090,
+                1059,
                 118,
                 207
               ]
@@ -1671,8 +2076,8 @@
               "source_frame": 42,
               "duration_ms": 417,
               "rect": [
-                354,
-                1039,
+                0,
+                1266,
                 118,
                 207
               ]
@@ -1692,8 +2097,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                159,
-                209,
+                795,
+                436,
                 156,
                 207
               ]
@@ -1702,8 +2107,8 @@
               "source_frame": 4,
               "duration_ms": 125,
               "rect": [
-                315,
-                209,
+                951,
+                436,
                 156,
                 207
               ]
@@ -1712,8 +2117,8 @@
               "source_frame": 7,
               "duration_ms": 125,
               "rect": [
-                471,
-                209,
+                1107,
+                436,
                 156,
                 207
               ]
@@ -1722,8 +2127,8 @@
               "source_frame": 10,
               "duration_ms": 125,
               "rect": [
-                627,
-                209,
+                0,
+                645,
                 156,
                 207
               ]
@@ -1732,8 +2137,8 @@
               "source_frame": 13,
               "duration_ms": 167,
               "rect": [
-                783,
-                209,
+                156,
+                645,
                 156,
                 207
               ]
@@ -1742,8 +2147,8 @@
               "source_frame": 17,
               "duration_ms": 125,
               "rect": [
-                0,
-                418,
+                312,
+                645,
                 156,
                 207
               ]
@@ -1752,8 +2157,8 @@
               "source_frame": 20,
               "duration_ms": 125,
               "rect": [
-                156,
-                418,
+                468,
+                645,
                 156,
                 207
               ]
@@ -1762,8 +2167,8 @@
               "source_frame": 23,
               "duration_ms": 125,
               "rect": [
-                312,
-                418,
+                624,
+                645,
                 156,
                 207
               ]
@@ -1772,8 +2177,8 @@
               "source_frame": 26,
               "duration_ms": 83,
               "rect": [
-                468,
-                418,
+                780,
+                645,
                 156,
                 207
               ]
@@ -1782,8 +2187,8 @@
               "source_frame": 28,
               "duration_ms": 208,
               "rect": [
-                159,
-                209,
+                795,
+                436,
                 156,
                 207
               ]
@@ -1804,7 +2209,7 @@
               "duration_ms": 167,
               "rect": [
                 765,
-                625,
+                852,
                 125,
                 207
               ]
@@ -1814,7 +2219,7 @@
               "duration_ms": 166,
               "rect": [
                 890,
-                625,
+                852,
                 125,
                 207
               ]
@@ -1823,8 +2228,8 @@
               "source_frame": 9,
               "duration_ms": 125,
               "rect": [
-                0,
-                832,
+                1015,
+                852,
                 125,
                 207
               ]
@@ -1833,8 +2238,8 @@
               "source_frame": 12,
               "duration_ms": 209,
               "rect": [
-                125,
-                832,
+                0,
+                1059,
                 125,
                 207
               ]
@@ -1843,8 +2248,8 @@
               "source_frame": 17,
               "duration_ms": 166,
               "rect": [
-                250,
-                832,
+                125,
+                1059,
                 125,
                 207
               ]
@@ -1853,8 +2258,8 @@
               "source_frame": 21,
               "duration_ms": 167,
               "rect": [
-                375,
-                832,
+                250,
+                1059,
                 125,
                 207
               ]
@@ -1863,8 +2268,8 @@
               "source_frame": 25,
               "duration_ms": 125,
               "rect": [
-                500,
-                832,
+                375,
+                1059,
                 125,
                 207
               ]
@@ -1874,7 +2279,7 @@
               "duration_ms": 208,
               "rect": [
                 765,
-                625,
+                852,
                 125,
                 207
               ]
@@ -1894,8 +2299,8 @@
               "source_frame": 1,
               "duration_ms": 167,
               "rect": [
-                0,
-                0,
+                942,
+                219,
                 159,
                 209
               ]
@@ -1904,8 +2309,8 @@
               "source_frame": 5,
               "duration_ms": 208,
               "rect": [
-                159,
-                0,
+                1101,
+                219,
                 159,
                 209
               ]
@@ -1914,8 +2319,8 @@
               "source_frame": 10,
               "duration_ms": 125,
               "rect": [
-                318,
                 0,
+                436,
                 159,
                 209
               ]
@@ -1924,8 +2329,8 @@
               "source_frame": 13,
               "duration_ms": 83,
               "rect": [
-                477,
-                0,
+                159,
+                436,
                 159,
                 209
               ]
@@ -1934,8 +2339,8 @@
               "source_frame": 15,
               "duration_ms": 125,
               "rect": [
-                636,
-                0,
+                318,
+                436,
                 159,
                 209
               ]
@@ -1944,8 +2349,8 @@
               "source_frame": 18,
               "duration_ms": 209,
               "rect": [
-                795,
-                0,
+                477,
+                436,
                 159,
                 209
               ]
@@ -1954,8 +2359,8 @@
               "source_frame": 23,
               "duration_ms": 250,
               "rect": [
-                0,
-                209,
+                636,
+                436,
                 159,
                 209
               ]
@@ -1964,8 +2369,8 @@
               "source_frame": 29,
               "duration_ms": 166,
               "rect": [
-                0,
-                0,
+                942,
+                219,
                 159,
                 209
               ]
@@ -1985,8 +2390,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                624,
-                418,
+                936,
+                645,
                 153,
                 207
               ]
@@ -1995,8 +2400,8 @@
               "source_frame": 4,
               "duration_ms": 167,
               "rect": [
-                777,
-                418,
+                1089,
+                645,
                 153,
                 207
               ]
@@ -2006,7 +2411,7 @@
               "duration_ms": 166,
               "rect": [
                 0,
-                625,
+                852,
                 153,
                 207
               ]
@@ -2016,7 +2421,7 @@
               "duration_ms": 125,
               "rect": [
                 153,
-                625,
+                852,
                 153,
                 207
               ]
@@ -2026,7 +2431,7 @@
               "duration_ms": 125,
               "rect": [
                 306,
-                625,
+                852,
                 153,
                 207
               ]
@@ -2036,7 +2441,7 @@
               "duration_ms": 167,
               "rect": [
                 459,
-                625,
+                852,
                 153,
                 207
               ]
@@ -2046,7 +2451,7 @@
               "duration_ms": 208,
               "rect": [
                 612,
-                625,
+                852,
                 153,
                 207
               ]
@@ -2055,8 +2460,8 @@
               "source_frame": 27,
               "duration_ms": 84,
               "rect": [
-                624,
-                418,
+                936,
+                645,
                 153,
                 207
               ]
@@ -2068,6 +2473,168 @@
             186
           ],
           "action": "Healer | Blast",
+          "path": "res://assets/cast/healer.png"
+        },
+        "down": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                1099,
+                0,
+                157,
+                217
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                219,
+                157,
+                217
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                157,
+                219,
+                157,
+                217
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                314,
+                219,
+                157,
+                217
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                471,
+                219,
+                157,
+                217
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 166,
+              "rect": [
+                628,
+                219,
+                157,
+                217
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 167,
+              "rect": [
+                785,
+                219,
+                157,
+                217
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            78,
+            187
+          ],
+          "action": "Healer | Down",
+          "path": "res://assets/cast/healer.png"
+        },
+        "recover": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                0,
+                157,
+                219
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                157,
+                0,
+                157,
+                219
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                314,
+                0,
+                157,
+                219
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                471,
+                0,
+                157,
+                219
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 208,
+              "rect": [
+                628,
+                0,
+                157,
+                219
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 167,
+              "rect": [
+                785,
+                0,
+                157,
+                219
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                942,
+                0,
+                157,
+                219
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            78,
+            187
+          ],
+          "action": "Healer | Recover",
           "path": "res://assets/cast/healer.png"
         }
       }
@@ -2082,8 +2649,8 @@
               "source_frame": 1,
               "duration_ms": 208,
               "rect": [
-                1064,
-                688,
+                665,
+                1175,
                 133,
                 227
               ]
@@ -2092,8 +2659,8 @@
               "source_frame": 6,
               "duration_ms": 167,
               "rect": [
-                0,
-                916,
+                798,
+                1175,
                 133,
                 227
               ]
@@ -2102,8 +2669,8 @@
               "source_frame": 10,
               "duration_ms": 208,
               "rect": [
-                133,
-                916,
+                931,
+                1175,
                 133,
                 227
               ]
@@ -2112,8 +2679,8 @@
               "source_frame": 15,
               "duration_ms": 250,
               "rect": [
-                266,
-                916,
+                1064,
+                1175,
                 133,
                 227
               ]
@@ -2122,8 +2689,8 @@
               "source_frame": 21,
               "duration_ms": 209,
               "rect": [
-                399,
-                916,
+                1197,
+                1175,
                 133,
                 227
               ]
@@ -2132,8 +2699,8 @@
               "source_frame": 26,
               "duration_ms": 250,
               "rect": [
-                133,
-                916,
+                931,
+                1175,
                 133,
                 227
               ]
@@ -2142,8 +2709,8 @@
               "source_frame": 32,
               "duration_ms": 458,
               "rect": [
-                532,
-                916,
+                1330,
+                1175,
                 133,
                 227
               ]
@@ -2163,8 +2730,8 @@
               "source_frame": 8,
               "duration_ms": 250,
               "rect": [
-                0,
-                0,
+                408,
+                478,
                 140,
                 230
               ]
@@ -2173,8 +2740,8 @@
               "source_frame": 14,
               "duration_ms": 250,
               "rect": [
-                140,
-                0,
+                548,
+                478,
                 140,
                 230
               ]
@@ -2183,8 +2750,8 @@
               "source_frame": 20,
               "duration_ms": 208,
               "rect": [
-                280,
-                0,
+                688,
+                478,
                 140,
                 230
               ]
@@ -2193,8 +2760,8 @@
               "source_frame": 25,
               "duration_ms": 250,
               "rect": [
-                420,
-                0,
+                828,
+                478,
                 140,
                 230
               ]
@@ -2203,8 +2770,8 @@
               "source_frame": 31,
               "duration_ms": 167,
               "rect": [
-                560,
-                0,
+                968,
+                478,
                 140,
                 230
               ]
@@ -2213,8 +2780,8 @@
               "source_frame": 35,
               "duration_ms": 167,
               "rect": [
-                700,
-                0,
+                1108,
+                478,
                 140,
                 230
               ]
@@ -2223,8 +2790,8 @@
               "source_frame": 39,
               "duration_ms": 208,
               "rect": [
-                840,
-                0,
+                1248,
+                478,
                 140,
                 230
               ]
@@ -2233,8 +2800,8 @@
               "source_frame": 44,
               "duration_ms": 292,
               "rect": [
-                980,
-                0,
+                1388,
+                478,
                 140,
                 230
               ]
@@ -2243,8 +2810,8 @@
               "source_frame": 51,
               "duration_ms": 583,
               "rect": [
-                1120,
                 0,
+                717,
                 140,
                 230
               ]
@@ -2253,8 +2820,8 @@
               "source_frame": 65,
               "duration_ms": 542,
               "rect": [
-                0,
-                230,
+                140,
+                717,
                 140,
                 230
               ]
@@ -2274,8 +2841,8 @@
               "source_frame": 8,
               "duration_ms": 1000,
               "rect": [
-                1107,
-                1143,
+                246,
+                1630,
                 123,
                 226
               ]
@@ -2295,8 +2862,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                459,
-                460,
+                306,
+                947,
                 133,
                 228
               ]
@@ -2305,8 +2872,8 @@
               "source_frame": 4,
               "duration_ms": 167,
               "rect": [
-                592,
-                460,
+                439,
+                947,
                 133,
                 228
               ]
@@ -2315,8 +2882,8 @@
               "source_frame": 8,
               "duration_ms": 125,
               "rect": [
-                725,
-                460,
+                572,
+                947,
                 133,
                 228
               ]
@@ -2325,8 +2892,8 @@
               "source_frame": 11,
               "duration_ms": 125,
               "rect": [
-                858,
-                460,
+                705,
+                947,
                 133,
                 228
               ]
@@ -2335,8 +2902,8 @@
               "source_frame": 14,
               "duration_ms": 166,
               "rect": [
-                991,
-                460,
+                838,
+                947,
                 133,
                 228
               ]
@@ -2345,8 +2912,8 @@
               "source_frame": 18,
               "duration_ms": 167,
               "rect": [
-                1124,
-                460,
+                971,
+                947,
                 133,
                 228
               ]
@@ -2355,8 +2922,8 @@
               "source_frame": 22,
               "duration_ms": 167,
               "rect": [
-                0,
-                688,
+                1104,
+                947,
                 133,
                 228
               ]
@@ -2365,8 +2932,8 @@
               "source_frame": 26,
               "duration_ms": 83,
               "rect": [
-                459,
-                460,
+                306,
+                947,
                 133,
                 228
               ]
@@ -2386,8 +2953,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                665,
-                916,
+                0,
+                1403,
                 123,
                 227
               ]
@@ -2396,8 +2963,8 @@
               "source_frame": 4,
               "duration_ms": 167,
               "rect": [
-                788,
-                916,
+                123,
+                1403,
                 123,
                 227
               ]
@@ -2406,8 +2973,8 @@
               "source_frame": 8,
               "duration_ms": 125,
               "rect": [
-                911,
-                916,
+                246,
+                1403,
                 123,
                 227
               ]
@@ -2416,8 +2983,8 @@
               "source_frame": 11,
               "duration_ms": 125,
               "rect": [
-                1034,
-                916,
+                369,
+                1403,
                 123,
                 227
               ]
@@ -2426,8 +2993,8 @@
               "source_frame": 14,
               "duration_ms": 166,
               "rect": [
-                1157,
-                916,
+                492,
+                1403,
                 123,
                 227
               ]
@@ -2436,8 +3003,8 @@
               "source_frame": 18,
               "duration_ms": 167,
               "rect": [
-                0,
-                1143,
+                615,
+                1403,
                 123,
                 227
               ]
@@ -2446,8 +3013,8 @@
               "source_frame": 22,
               "duration_ms": 167,
               "rect": [
-                123,
-                1143,
+                738,
+                1403,
                 123,
                 227
               ]
@@ -2456,8 +3023,8 @@
               "source_frame": 26,
               "duration_ms": 83,
               "rect": [
-                665,
-                916,
+                0,
+                1403,
                 123,
                 227
               ]
@@ -2477,8 +3044,8 @@
               "source_frame": 1,
               "duration_ms": 167,
               "rect": [
-                459,
-                460,
+                306,
+                947,
                 133,
                 228
               ]
@@ -2487,8 +3054,8 @@
               "source_frame": 5,
               "duration_ms": 166,
               "rect": [
-                133,
-                688,
+                1237,
+                947,
                 133,
                 228
               ]
@@ -2497,8 +3064,8 @@
               "source_frame": 9,
               "duration_ms": 84,
               "rect": [
-                266,
-                688,
+                1370,
+                947,
                 133,
                 228
               ]
@@ -2507,8 +3074,8 @@
               "source_frame": 11,
               "duration_ms": 83,
               "rect": [
-                399,
-                688,
+                0,
+                1175,
                 133,
                 228
               ]
@@ -2517,8 +3084,8 @@
               "source_frame": 13,
               "duration_ms": 125,
               "rect": [
-                532,
-                688,
+                133,
+                1175,
                 133,
                 228
               ]
@@ -2527,8 +3094,8 @@
               "source_frame": 16,
               "duration_ms": 167,
               "rect": [
-                665,
-                688,
+                266,
+                1175,
                 133,
                 228
               ]
@@ -2537,8 +3104,8 @@
               "source_frame": 20,
               "duration_ms": 166,
               "rect": [
-                798,
-                688,
+                399,
+                1175,
                 133,
                 228
               ]
@@ -2547,8 +3114,8 @@
               "source_frame": 24,
               "duration_ms": 250,
               "rect": [
-                931,
-                688,
+                532,
+                1175,
                 133,
                 228
               ]
@@ -2557,8 +3124,8 @@
               "source_frame": 30,
               "duration_ms": 125,
               "rect": [
-                459,
-                460,
+                306,
+                947,
                 133,
                 228
               ]
@@ -2578,8 +3145,8 @@
               "source_frame": 1,
               "duration_ms": 167,
               "rect": [
-                665,
-                916,
+                0,
+                1403,
                 123,
                 227
               ]
@@ -2588,8 +3155,8 @@
               "source_frame": 5,
               "duration_ms": 166,
               "rect": [
-                246,
-                1143,
+                861,
+                1403,
                 123,
                 227
               ]
@@ -2598,8 +3165,8 @@
               "source_frame": 9,
               "duration_ms": 84,
               "rect": [
-                369,
-                1143,
+                984,
+                1403,
                 123,
                 227
               ]
@@ -2608,8 +3175,8 @@
               "source_frame": 11,
               "duration_ms": 83,
               "rect": [
-                492,
-                1143,
+                1107,
+                1403,
                 123,
                 227
               ]
@@ -2618,8 +3185,8 @@
               "source_frame": 13,
               "duration_ms": 125,
               "rect": [
-                615,
-                1143,
+                1230,
+                1403,
                 123,
                 227
               ]
@@ -2628,8 +3195,8 @@
               "source_frame": 16,
               "duration_ms": 167,
               "rect": [
-                738,
-                1143,
+                1353,
+                1403,
                 123,
                 227
               ]
@@ -2638,8 +3205,8 @@
               "source_frame": 20,
               "duration_ms": 166,
               "rect": [
-                861,
-                1143,
+                0,
+                1630,
                 123,
                 227
               ]
@@ -2648,8 +3215,8 @@
               "source_frame": 24,
               "duration_ms": 250,
               "rect": [
-                984,
-                1143,
+                123,
+                1630,
                 123,
                 227
               ]
@@ -2658,8 +3225,8 @@
               "source_frame": 30,
               "duration_ms": 125,
               "rect": [
-                665,
-                916,
+                0,
+                1403,
                 123,
                 227
               ]
@@ -2679,8 +3246,8 @@
               "source_frame": 1,
               "duration_ms": 167,
               "rect": [
-                140,
-                230,
+                280,
+                717,
                 153,
                 228
               ]
@@ -2689,8 +3256,8 @@
               "source_frame": 5,
               "duration_ms": 166,
               "rect": [
-                293,
-                230,
+                433,
+                717,
                 153,
                 228
               ]
@@ -2699,8 +3266,8 @@
               "source_frame": 9,
               "duration_ms": 125,
               "rect": [
-                446,
-                230,
+                586,
+                717,
                 153,
                 228
               ]
@@ -2709,8 +3276,8 @@
               "source_frame": 12,
               "duration_ms": 125,
               "rect": [
-                599,
-                230,
+                739,
+                717,
                 153,
                 228
               ]
@@ -2719,8 +3286,8 @@
               "source_frame": 15,
               "duration_ms": 42,
               "rect": [
-                752,
-                230,
+                892,
+                717,
                 153,
                 228
               ]
@@ -2729,8 +3296,8 @@
               "source_frame": 16,
               "duration_ms": 125,
               "rect": [
-                905,
-                230,
+                1045,
+                717,
                 153,
                 228
               ]
@@ -2739,8 +3306,8 @@
               "source_frame": 19,
               "duration_ms": 167,
               "rect": [
-                1058,
-                230,
+                1198,
+                717,
                 153,
                 228
               ]
@@ -2749,8 +3316,8 @@
               "source_frame": 23,
               "duration_ms": 208,
               "rect": [
-                0,
-                460,
+                1351,
+                717,
                 153,
                 228
               ]
@@ -2759,8 +3326,8 @@
               "source_frame": 28,
               "duration_ms": 167,
               "rect": [
-                153,
-                460,
+                0,
+                947,
                 153,
                 228
               ]
@@ -2769,8 +3336,8 @@
               "source_frame": 32,
               "duration_ms": 125,
               "rect": [
-                306,
-                460,
+                153,
+                947,
                 153,
                 228
               ]
@@ -2798,8 +3365,8 @@
               "source_frame": 16,
               "duration_ms": 42,
               "rect": [
-                1230,
-                1143,
+                369,
+                1630,
                 65,
                 111
               ]
@@ -2811,6 +3378,330 @@
             41.462
           ],
           "action": "Knight | Shield Throw",
+          "path": "res://assets/cast/knight.png"
+        },
+        "down": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                0,
+                145,
+                239
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 167,
+              "rect": [
+                145,
+                0,
+                145,
+                239
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                290,
+                0,
+                145,
+                239
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                435,
+                0,
+                145,
+                239
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                580,
+                0,
+                145,
+                239
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 166,
+              "rect": [
+                725,
+                0,
+                145,
+                239
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 167,
+              "rect": [
+                870,
+                0,
+                145,
+                239
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            66,
+            211
+          ],
+          "action": "Knight | Down",
+          "path": "res://assets/cast/knight.png"
+        },
+        "recover": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                870,
+                0,
+                145,
+                239
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                1015,
+                0,
+                145,
+                239
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                1160,
+                0,
+                145,
+                239
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                1305,
+                0,
+                145,
+                239
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                239,
+                145,
+                239
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 167,
+              "rect": [
+                145,
+                239,
+                145,
+                239
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                0,
+                145,
+                239
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            66,
+            211
+          ],
+          "action": "Knight | Recover",
+          "path": "res://assets/cast/knight.png"
+        },
+        "down_unshielded": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                290,
+                239,
+                136,
+                239
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 167,
+              "rect": [
+                426,
+                239,
+                136,
+                239
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                562,
+                239,
+                136,
+                239
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                698,
+                239,
+                136,
+                239
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                834,
+                239,
+                136,
+                239
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 166,
+              "rect": [
+                970,
+                239,
+                136,
+                239
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 167,
+              "rect": [
+                1106,
+                239,
+                136,
+                239
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            66,
+            211
+          ],
+          "action": "Knight | Down",
+          "path": "res://assets/cast/knight.png"
+        },
+        "recover_unshielded": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                1106,
+                239,
+                136,
+                239
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                1242,
+                239,
+                136,
+                239
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                1378,
+                239,
+                136,
+                239
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                478,
+                136,
+                239
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 208,
+              "rect": [
+                136,
+                478,
+                136,
+                239
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 167,
+              "rect": [
+                272,
+                478,
+                136,
+                239
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                290,
+                239,
+                136,
+                239
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            66,
+            211
+          ],
+          "action": "Knight | Recover",
           "path": "res://assets/cast/knight.png"
         }
       }
@@ -2825,8 +3716,8 @@
               "source_frame": 1,
               "duration_ms": 250,
               "rect": [
-                143,
-                212,
+                1287,
+                0,
                 98,
                 212
               ]
@@ -2835,7 +3726,7 @@
               "source_frame": 7,
               "duration_ms": 250,
               "rect": [
-                241,
+                0,
                 212,
                 98,
                 212
@@ -2845,7 +3736,7 @@
               "source_frame": 13,
               "duration_ms": 250,
               "rect": [
-                339,
+                98,
                 212,
                 98,
                 212
@@ -2855,7 +3746,7 @@
               "source_frame": 19,
               "duration_ms": 250,
               "rect": [
-                437,
+                196,
                 212,
                 98,
                 212
@@ -2876,8 +3767,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                304,
-                635,
+                152,
+                846,
                 142,
                 211
               ]
@@ -2886,8 +3777,8 @@
               "source_frame": 4,
               "duration_ms": 125,
               "rect": [
-                446,
-                635,
+                294,
+                846,
                 142,
                 211
               ]
@@ -2896,8 +3787,8 @@
               "source_frame": 7,
               "duration_ms": 125,
               "rect": [
-                588,
-                635,
+                436,
+                846,
                 142,
                 211
               ]
@@ -2906,8 +3797,8 @@
               "source_frame": 10,
               "duration_ms": 125,
               "rect": [
-                730,
-                635,
+                578,
+                846,
                 142,
                 211
               ]
@@ -2916,8 +3807,8 @@
               "source_frame": 13,
               "duration_ms": 125,
               "rect": [
-                872,
-                635,
+                720,
+                846,
                 142,
                 211
               ]
@@ -2926,8 +3817,8 @@
               "source_frame": 16,
               "duration_ms": 167,
               "rect": [
-                1014,
-                635,
+                862,
+                846,
                 142,
                 211
               ]
@@ -2936,7 +3827,7 @@
               "source_frame": 20,
               "duration_ms": 166,
               "rect": [
-                0,
+                1004,
                 846,
                 142,
                 211
@@ -2946,7 +3837,7 @@
               "source_frame": 24,
               "duration_ms": 125,
               "rect": [
-                142,
+                1146,
                 846,
                 142,
                 211
@@ -2956,8 +3847,8 @@
               "source_frame": 27,
               "duration_ms": 292,
               "rect": [
-                284,
-                846,
+                0,
+                1057,
                 142,
                 211
               ]
@@ -2966,8 +3857,8 @@
               "source_frame": 34,
               "duration_ms": 208,
               "rect": [
-                426,
-                846,
+                142,
+                1057,
                 142,
                 211
               ]
@@ -2976,8 +3867,8 @@
               "source_frame": 39,
               "duration_ms": 167,
               "rect": [
-                568,
-                846,
+                284,
+                1057,
                 142,
                 211
               ]
@@ -2986,8 +3877,8 @@
               "source_frame": 43,
               "duration_ms": 125,
               "rect": [
-                710,
-                846,
+                426,
+                1057,
                 142,
                 211
               ]
@@ -3007,8 +3898,8 @@
               "source_frame": 1,
               "duration_ms": 292,
               "rect": [
-                535,
-                212,
+                780,
+                424,
                 152,
                 211
               ]
@@ -3017,8 +3908,8 @@
               "source_frame": 8,
               "duration_ms": 208,
               "rect": [
-                687,
-                212,
+                932,
+                424,
                 152,
                 211
               ]
@@ -3027,8 +3918,8 @@
               "source_frame": 13,
               "duration_ms": 208,
               "rect": [
-                839,
-                212,
+                1084,
+                424,
                 152,
                 211
               ]
@@ -3037,8 +3928,8 @@
               "source_frame": 18,
               "duration_ms": 167,
               "rect": [
-                991,
-                212,
+                1236,
+                424,
                 152,
                 211
               ]
@@ -3048,7 +3939,7 @@
               "duration_ms": 167,
               "rect": [
                 0,
-                424,
+                635,
                 152,
                 211
               ]
@@ -3058,7 +3949,7 @@
               "duration_ms": 333,
               "rect": [
                 152,
-                424,
+                635,
                 152,
                 211
               ]
@@ -3068,7 +3959,7 @@
               "duration_ms": 292,
               "rect": [
                 304,
-                424,
+                635,
                 152,
                 211
               ]
@@ -3078,7 +3969,7 @@
               "duration_ms": 166,
               "rect": [
                 456,
-                424,
+                635,
                 152,
                 211
               ]
@@ -3088,7 +3979,7 @@
               "duration_ms": 167,
               "rect": [
                 608,
-                424,
+                635,
                 152,
                 211
               ]
@@ -3098,7 +3989,7 @@
               "duration_ms": 208,
               "rect": [
                 760,
-                424,
+                635,
                 152,
                 211
               ]
@@ -3108,7 +3999,7 @@
               "duration_ms": 209,
               "rect": [
                 912,
-                424,
+                635,
                 152,
                 211
               ]
@@ -3118,7 +4009,7 @@
               "duration_ms": 208,
               "rect": [
                 1064,
-                424,
+                635,
                 152,
                 211
               ]
@@ -3127,7 +4018,7 @@
               "source_frame": 64,
               "duration_ms": 125,
               "rect": [
-                0,
+                1216,
                 635,
                 152,
                 211
@@ -3137,8 +4028,8 @@
               "source_frame": 67,
               "duration_ms": 125,
               "rect": [
-                152,
-                635,
+                0,
+                846,
                 152,
                 211
               ]
@@ -3158,8 +4049,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                560,
-                1057,
+                140,
+                1268,
                 135,
                 211
               ]
@@ -3168,8 +4059,8 @@
               "source_frame": 4,
               "duration_ms": 167,
               "rect": [
-                695,
-                1057,
+                275,
+                1268,
                 135,
                 211
               ]
@@ -3178,8 +4069,8 @@
               "source_frame": 8,
               "duration_ms": 166,
               "rect": [
-                830,
-                1057,
+                410,
+                1268,
                 135,
                 211
               ]
@@ -3188,8 +4079,8 @@
               "source_frame": 12,
               "duration_ms": 125,
               "rect": [
-                965,
-                1057,
+                545,
+                1268,
                 135,
                 211
               ]
@@ -3198,8 +4089,8 @@
               "source_frame": 15,
               "duration_ms": 167,
               "rect": [
-                1100,
-                1057,
+                680,
+                1268,
                 135,
                 211
               ]
@@ -3208,7 +4099,7 @@
               "source_frame": 19,
               "duration_ms": 167,
               "rect": [
-                0,
+                815,
                 1268,
                 135,
                 211
@@ -3218,7 +4109,7 @@
               "source_frame": 23,
               "duration_ms": 83,
               "rect": [
-                135,
+                950,
                 1268,
                 135,
                 211
@@ -3228,8 +4119,8 @@
               "source_frame": 25,
               "duration_ms": 83,
               "rect": [
-                560,
-                1057,
+                140,
+                1268,
                 135,
                 211
               ]
@@ -3329,8 +4220,8 @@
               "source_frame": 34,
               "duration_ms": 250,
               "rect": [
+                1144,
                 0,
-                212,
                 143,
                 212
               ]
@@ -3360,8 +4251,8 @@
               "source_frame": 1,
               "duration_ms": 167,
               "rect": [
-                852,
-                846,
+                568,
+                1057,
                 140,
                 211
               ]
@@ -3370,8 +4261,8 @@
               "source_frame": 5,
               "duration_ms": 166,
               "rect": [
-                992,
-                846,
+                708,
+                1057,
                 140,
                 211
               ]
@@ -3380,7 +4271,7 @@
               "source_frame": 9,
               "duration_ms": 167,
               "rect": [
-                0,
+                848,
                 1057,
                 140,
                 211
@@ -3390,7 +4281,7 @@
               "source_frame": 13,
               "duration_ms": 167,
               "rect": [
-                140,
+                988,
                 1057,
                 140,
                 211
@@ -3400,7 +4291,7 @@
               "source_frame": 17,
               "duration_ms": 208,
               "rect": [
-                280,
+                1128,
                 1057,
                 140,
                 211
@@ -3410,8 +4301,8 @@
               "source_frame": 22,
               "duration_ms": 208,
               "rect": [
-                420,
-                1057,
+                0,
+                1268,
                 140,
                 211
               ]
@@ -3420,8 +4311,8 @@
               "source_frame": 27,
               "duration_ms": 125,
               "rect": [
-                852,
-                846,
+                568,
+                1057,
                 140,
                 211
               ]
@@ -3433,6 +4324,168 @@
             195
           ],
           "action": "Necromancer | Say Hello to That One",
+          "path": "res://assets/cast/necromancer.png"
+        },
+        "down": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                294,
+                212,
+                156,
+                211
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 167,
+              "rect": [
+                450,
+                212,
+                156,
+                211
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                606,
+                212,
+                156,
+                211
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                762,
+                212,
+                156,
+                211
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                918,
+                212,
+                156,
+                211
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 166,
+              "rect": [
+                1074,
+                212,
+                156,
+                211
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 167,
+              "rect": [
+                1230,
+                212,
+                156,
+                211
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            67,
+            195
+          ],
+          "action": "Necromancer | Down",
+          "path": "res://assets/cast/necromancer.png"
+        },
+        "recover": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                1230,
+                212,
+                156,
+                211
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                0,
+                424,
+                156,
+                211
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                156,
+                424,
+                156,
+                211
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                312,
+                424,
+                156,
+                211
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 208,
+              "rect": [
+                468,
+                424,
+                156,
+                211
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 167,
+              "rect": [
+                624,
+                424,
+                156,
+                211
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                294,
+                212,
+                156,
+                211
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            67,
+            195
+          ],
+          "action": "Necromancer | Recover",
           "path": "res://assets/cast/necromancer.png"
         }
       }
@@ -3447,8 +4500,8 @@
               "source_frame": 1,
               "duration_ms": 250,
               "rect": [
-                834,
-                893,
+                833,
+                1117,
                 99,
                 223
               ]
@@ -3457,8 +4510,8 @@
               "source_frame": 7,
               "duration_ms": 167,
               "rect": [
-                933,
-                893,
+                932,
+                1117,
                 99,
                 223
               ]
@@ -3467,8 +4520,8 @@
               "source_frame": 11,
               "duration_ms": 166,
               "rect": [
-                1032,
-                893,
+                1031,
+                1117,
                 99,
                 223
               ]
@@ -3477,8 +4530,8 @@
               "source_frame": 15,
               "duration_ms": 209,
               "rect": [
-                0,
-                1116,
+                1130,
+                1117,
                 99,
                 223
               ]
@@ -3487,8 +4540,8 @@
               "source_frame": 20,
               "duration_ms": 208,
               "rect": [
-                99,
-                1116,
+                0,
+                1340,
                 99,
                 223
               ]
@@ -3497,8 +4550,8 @@
               "source_frame": 25,
               "duration_ms": 292,
               "rect": [
-                198,
-                1116,
+                99,
+                1340,
                 99,
                 223
               ]
@@ -3507,8 +4560,8 @@
               "source_frame": 32,
               "duration_ms": 541,
               "rect": [
-                297,
-                1116,
+                198,
+                1340,
                 99,
                 223
               ]
@@ -3528,8 +4581,8 @@
               "source_frame": 1,
               "duration_ms": 167,
               "rect": [
-                120,
-                893,
+                119,
+                1117,
                 102,
                 223
               ]
@@ -3538,8 +4591,8 @@
               "source_frame": 5,
               "duration_ms": 166,
               "rect": [
-                222,
-                893,
+                221,
+                1117,
                 102,
                 223
               ]
@@ -3548,8 +4601,8 @@
               "source_frame": 9,
               "duration_ms": 167,
               "rect": [
-                324,
-                893,
+                323,
+                1117,
                 102,
                 223
               ]
@@ -3558,8 +4611,8 @@
               "source_frame": 13,
               "duration_ms": 167,
               "rect": [
-                426,
-                893,
+                425,
+                1117,
                 102,
                 223
               ]
@@ -3568,8 +4621,8 @@
               "source_frame": 17,
               "duration_ms": 166,
               "rect": [
-                528,
-                893,
+                527,
+                1117,
                 102,
                 223
               ]
@@ -3578,8 +4631,8 @@
               "source_frame": 21,
               "duration_ms": 209,
               "rect": [
-                630,
-                893,
+                629,
+                1117,
                 102,
                 223
               ]
@@ -3588,8 +4641,8 @@
               "source_frame": 26,
               "duration_ms": 166,
               "rect": [
-                732,
-                893,
+                731,
+                1117,
                 102,
                 223
               ]
@@ -3609,7 +4662,7 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                0,
+                720,
                 224,
                 158,
                 223
@@ -3619,7 +4672,7 @@
               "source_frame": 4,
               "duration_ms": 125,
               "rect": [
-                158,
+                878,
                 224,
                 158,
                 223
@@ -3629,7 +4682,7 @@
               "source_frame": 7,
               "duration_ms": 125,
               "rect": [
-                316,
+                1036,
                 224,
                 158,
                 223
@@ -3639,8 +4692,8 @@
               "source_frame": 10,
               "duration_ms": 83,
               "rect": [
-                474,
-                224,
+                0,
+                448,
                 158,
                 223
               ]
@@ -3649,8 +4702,8 @@
               "source_frame": 12,
               "duration_ms": 125,
               "rect": [
-                632,
-                224,
+                158,
+                448,
                 158,
                 223
               ]
@@ -3659,8 +4712,8 @@
               "source_frame": 15,
               "duration_ms": 167,
               "rect": [
-                790,
-                224,
+                316,
+                448,
                 158,
                 223
               ]
@@ -3669,8 +4722,8 @@
               "source_frame": 19,
               "duration_ms": 250,
               "rect": [
-                948,
-                224,
+                474,
+                448,
                 158,
                 223
               ]
@@ -3679,8 +4732,8 @@
               "source_frame": 25,
               "duration_ms": 208,
               "rect": [
-                0,
-                447,
+                632,
+                448,
                 158,
                 223
               ]
@@ -3689,8 +4742,8 @@
               "source_frame": 30,
               "duration_ms": 167,
               "rect": [
-                158,
-                447,
+                790,
+                448,
                 158,
                 223
               ]
@@ -3699,8 +4752,8 @@
               "source_frame": 34,
               "duration_ms": 167,
               "rect": [
-                316,
-                447,
+                948,
+                448,
                 158,
                 223
               ]
@@ -3811,8 +4864,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                393,
-                670,
+                917,
+                671,
                 120,
                 223
               ]
@@ -3821,8 +4874,8 @@
               "source_frame": 4,
               "duration_ms": 167,
               "rect": [
-                513,
-                670,
+                1037,
+                671,
                 120,
                 223
               ]
@@ -3831,8 +4884,8 @@
               "source_frame": 8,
               "duration_ms": 83,
               "rect": [
-                633,
-                670,
+                1157,
+                671,
                 120,
                 223
               ]
@@ -3841,8 +4894,8 @@
               "source_frame": 10,
               "duration_ms": 125,
               "rect": [
-                753,
-                670,
+                0,
+                894,
                 120,
                 223
               ]
@@ -3851,8 +4904,8 @@
               "source_frame": 13,
               "duration_ms": 167,
               "rect": [
-                873,
-                670,
+                120,
+                894,
                 120,
                 223
               ]
@@ -3861,8 +4914,8 @@
               "source_frame": 17,
               "duration_ms": 166,
               "rect": [
-                993,
-                670,
+                240,
+                894,
                 120,
                 223
               ]
@@ -3871,8 +4924,8 @@
               "source_frame": 21,
               "duration_ms": 167,
               "rect": [
-                0,
-                893,
+                360,
+                894,
                 120,
                 223
               ]
@@ -3881,8 +4934,8 @@
               "source_frame": 25,
               "duration_ms": 83,
               "rect": [
-                393,
-                670,
+                917,
+                671,
                 120,
                 223
               ]
@@ -3902,8 +4955,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                474,
-                447,
+                1106,
+                448,
                 131,
                 223
               ]
@@ -3912,8 +4965,8 @@
               "source_frame": 4,
               "duration_ms": 167,
               "rect": [
-                605,
-                447,
+                0,
+                671,
                 131,
                 223
               ]
@@ -3922,8 +4975,8 @@
               "source_frame": 8,
               "duration_ms": 125,
               "rect": [
-                736,
-                447,
+                131,
+                671,
                 131,
                 223
               ]
@@ -3932,8 +4985,8 @@
               "source_frame": 11,
               "duration_ms": 166,
               "rect": [
-                867,
-                447,
+                262,
+                671,
                 131,
                 223
               ]
@@ -3942,8 +4995,8 @@
               "source_frame": 15,
               "duration_ms": 125,
               "rect": [
-                998,
-                447,
+                393,
+                671,
                 131,
                 223
               ]
@@ -3952,8 +5005,8 @@
               "source_frame": 18,
               "duration_ms": 167,
               "rect": [
-                0,
-                670,
+                524,
+                671,
                 131,
                 223
               ]
@@ -3962,8 +5015,8 @@
               "source_frame": 22,
               "duration_ms": 167,
               "rect": [
-                131,
-                670,
+                655,
+                671,
                 131,
                 223
               ]
@@ -3972,8 +5025,8 @@
               "source_frame": 26,
               "duration_ms": 125,
               "rect": [
-                262,
-                670,
+                786,
+                671,
                 131,
                 223
               ]
@@ -3982,8 +5035,8 @@
               "source_frame": 29,
               "duration_ms": 83,
               "rect": [
-                474,
-                447,
+                1106,
+                448,
                 131,
                 223
               ]
@@ -3995,6 +5048,168 @@
             199
           ],
           "action": "Rogue | Healing Potion",
+          "path": "res://assets/cast/rogue.png"
+        },
+        "down": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                480,
+                894,
+                119,
+                223
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 167,
+              "rect": [
+                599,
+                894,
+                119,
+                223
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                718,
+                894,
+                119,
+                223
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                837,
+                894,
+                119,
+                223
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                956,
+                894,
+                119,
+                223
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 166,
+              "rect": [
+                1075,
+                894,
+                119,
+                223
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                1117,
+                119,
+                223
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            51,
+            199
+          ],
+          "action": "Rogue | Down",
+          "path": "res://assets/cast/rogue.png"
+        },
+        "recover": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                1128,
+                0,
+                120,
+                224
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                0,
+                224,
+                120,
+                224
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                120,
+                224,
+                120,
+                224
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                240,
+                224,
+                120,
+                224
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 208,
+              "rect": [
+                360,
+                224,
+                120,
+                224
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 167,
+              "rect": [
+                480,
+                224,
+                120,
+                224
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                600,
+                224,
+                120,
+                224
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            51,
+            200
+          ],
+          "action": "Rogue | Recover",
           "path": "res://assets/cast/rogue.png"
         }
       }
@@ -4378,8 +5593,8 @@
               "source_frame": 1,
               "duration_ms": 208,
               "rect": [
-                815,
-                456,
+                978,
+                683,
                 123,
                 217
               ]
@@ -4388,8 +5603,8 @@
               "source_frame": 6,
               "duration_ms": 167,
               "rect": [
-                938,
-                456,
+                1101,
+                683,
                 123,
                 217
               ]
@@ -4398,8 +5613,8 @@
               "source_frame": 10,
               "duration_ms": 167,
               "rect": [
-                0,
-                674,
+                1224,
+                683,
                 123,
                 217
               ]
@@ -4408,8 +5623,8 @@
               "source_frame": 14,
               "duration_ms": 208,
               "rect": [
-                123,
-                674,
+                0,
+                901,
                 123,
                 217
               ]
@@ -4418,8 +5633,8 @@
               "source_frame": 19,
               "duration_ms": 208,
               "rect": [
-                246,
-                674,
+                123,
+                901,
                 123,
                 217
               ]
@@ -4428,8 +5643,8 @@
               "source_frame": 24,
               "duration_ms": 250,
               "rect": [
-                369,
-                674,
+                246,
+                901,
                 123,
                 217
               ]
@@ -4438,8 +5653,8 @@
               "source_frame": 30,
               "duration_ms": 292,
               "rect": [
-                492,
-                674,
+                369,
+                901,
                 123,
                 217
               ]
@@ -4529,8 +5744,8 @@
               "source_frame": 24,
               "duration_ms": 209,
               "rect": [
+                1127,
                 0,
-                228,
                 161,
                 228
               ]
@@ -4539,7 +5754,7 @@
               "source_frame": 29,
               "duration_ms": 208,
               "rect": [
-                161,
+                0,
                 228,
                 161,
                 228
@@ -4570,8 +5785,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                322,
-                228,
+                705,
+                456,
                 163,
                 218
               ]
@@ -4580,8 +5795,8 @@
               "source_frame": 4,
               "duration_ms": 167,
               "rect": [
-                485,
-                228,
+                868,
+                456,
                 163,
                 218
               ]
@@ -4590,8 +5805,8 @@
               "source_frame": 8,
               "duration_ms": 208,
               "rect": [
-                648,
-                228,
+                1031,
+                456,
                 163,
                 218
               ]
@@ -4600,8 +5815,8 @@
               "source_frame": 13,
               "duration_ms": 125,
               "rect": [
-                811,
-                228,
+                1194,
+                456,
                 163,
                 218
               ]
@@ -4610,8 +5825,8 @@
               "source_frame": 16,
               "duration_ms": 125,
               "rect": [
-                974,
-                228,
+                0,
+                683,
                 163,
                 218
               ]
@@ -4620,8 +5835,8 @@
               "source_frame": 19,
               "duration_ms": 83,
               "rect": [
-                0,
-                456,
+                163,
+                683,
                 163,
                 218
               ]
@@ -4630,8 +5845,8 @@
               "source_frame": 21,
               "duration_ms": 125,
               "rect": [
-                163,
-                456,
+                326,
+                683,
                 163,
                 218
               ]
@@ -4640,8 +5855,8 @@
               "source_frame": 24,
               "duration_ms": 167,
               "rect": [
-                326,
-                456,
+                489,
+                683,
                 163,
                 218
               ]
@@ -4650,8 +5865,8 @@
               "source_frame": 28,
               "duration_ms": 208,
               "rect": [
-                489,
-                456,
+                652,
+                683,
                 163,
                 218
               ]
@@ -4660,8 +5875,8 @@
               "source_frame": 33,
               "duration_ms": 334,
               "rect": [
-                652,
-                456,
+                815,
+                683,
                 163,
                 218
               ]
@@ -4681,8 +5896,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                615,
-                674,
+                312,
+                1118,
                 184,
                 212
               ]
@@ -4691,8 +5906,8 @@
               "source_frame": 4,
               "duration_ms": 167,
               "rect": [
-                799,
-                674,
+                496,
+                1118,
                 184,
                 212
               ]
@@ -4701,8 +5916,8 @@
               "source_frame": 8,
               "duration_ms": 166,
               "rect": [
-                983,
-                674,
+                680,
+                1118,
                 184,
                 212
               ]
@@ -4711,8 +5926,8 @@
               "source_frame": 12,
               "duration_ms": 125,
               "rect": [
-                0,
-                891,
+                864,
+                1118,
                 184,
                 212
               ]
@@ -4721,8 +5936,8 @@
               "source_frame": 15,
               "duration_ms": 167,
               "rect": [
-                184,
-                891,
+                1048,
+                1118,
                 184,
                 212
               ]
@@ -4731,8 +5946,8 @@
               "source_frame": 19,
               "duration_ms": 167,
               "rect": [
-                368,
-                891,
+                1232,
+                1118,
                 184,
                 212
               ]
@@ -4741,8 +5956,8 @@
               "source_frame": 23,
               "duration_ms": 125,
               "rect": [
-                552,
-                891,
+                0,
+                1331,
                 184,
                 212
               ]
@@ -4751,8 +5966,8 @@
               "source_frame": 26,
               "duration_ms": 83,
               "rect": [
-                615,
-                674,
+                312,
+                1118,
                 184,
                 212
               ]
@@ -4772,8 +5987,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                736,
-                891,
+                184,
+                1331,
                 135,
                 212
               ]
@@ -4782,8 +5997,8 @@
               "source_frame": 4,
               "duration_ms": 167,
               "rect": [
-                871,
-                891,
+                319,
+                1331,
                 135,
                 212
               ]
@@ -4792,8 +6007,8 @@
               "source_frame": 8,
               "duration_ms": 125,
               "rect": [
-                1006,
-                891,
+                454,
+                1331,
                 135,
                 212
               ]
@@ -4802,8 +6017,8 @@
               "source_frame": 11,
               "duration_ms": 125,
               "rect": [
-                0,
-                1103,
+                589,
+                1331,
                 135,
                 212
               ]
@@ -4812,8 +6027,8 @@
               "source_frame": 14,
               "duration_ms": 166,
               "rect": [
-                135,
-                1103,
+                724,
+                1331,
                 135,
                 212
               ]
@@ -4822,8 +6037,8 @@
               "source_frame": 18,
               "duration_ms": 167,
               "rect": [
-                270,
-                1103,
+                859,
+                1331,
                 135,
                 212
               ]
@@ -4832,8 +6047,8 @@
               "source_frame": 22,
               "duration_ms": 125,
               "rect": [
-                405,
-                1103,
+                994,
+                1331,
                 135,
                 212
               ]
@@ -4842,8 +6057,8 @@
               "source_frame": 25,
               "duration_ms": 83,
               "rect": [
-                736,
-                891,
+                184,
+                1331,
                 135,
                 212
               ]
@@ -4855,6 +6070,249 @@
             198
           ],
           "action": "Wizard | Confusing Dodge",
+          "path": "res://assets/cast/wizard.png"
+        },
+        "down": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                161,
+                228,
+                140,
+                228
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 167,
+              "rect": [
+                301,
+                228,
+                140,
+                228
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                441,
+                228,
+                140,
+                228
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                581,
+                228,
+                140,
+                228
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                721,
+                228,
+                140,
+                228
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 166,
+              "rect": [
+                861,
+                228,
+                140,
+                228
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 167,
+              "rect": [
+                1001,
+                228,
+                140,
+                228
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            56,
+            199
+          ],
+          "action": "Wizard | Down",
+          "path": "res://assets/cast/wizard.png"
+        },
+        "recover": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                1141,
+                228,
+                141,
+                227
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                1282,
+                228,
+                141,
+                227
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                456,
+                141,
+                227
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                141,
+                456,
+                141,
+                227
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 208,
+              "rect": [
+                282,
+                456,
+                141,
+                227
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 167,
+              "rect": [
+                423,
+                456,
+                141,
+                227
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                564,
+                456,
+                141,
+                227
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            56,
+            198
+          ],
+          "action": "Wizard | Recover",
+          "path": "res://assets/cast/wizard.png"
+        },
+        "seated_recover": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                492,
+                901,
+                156,
+                213
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                648,
+                901,
+                156,
+                213
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                804,
+                901,
+                156,
+                213
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                960,
+                901,
+                156,
+                213
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 208,
+              "rect": [
+                1116,
+                901,
+                156,
+                213
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                1118,
+                156,
+                213
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                156,
+                1118,
+                156,
+                213
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            89,
+            198
+          ],
+          "action": "Wizard | Seated Recover",
           "path": "res://assets/cast/wizard.png"
         }
       }

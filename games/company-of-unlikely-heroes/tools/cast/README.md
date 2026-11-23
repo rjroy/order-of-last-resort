@@ -116,6 +116,17 @@ To rebuild just these actors, use the disk-backed subset recipe above with `knig
 - `knight.shield_throw` turns the strapped shield back, swings it forward, and settles into the existing `shield_away` drawing. F15 is the last held sample. F16 is the first empty-handed sample and the release (625 ms). `shield_projectile` isolates the complete `Shield_L_Detachable` assembly at the same evaluated F16 pose and registers it to the projected shield mount. The drawing contains no character pixels. Runtime mirrors the actor-relative release offset and uses the committed shield drop cell for the 300 ms flight, before showing a ground marker.
 - `necromancer.nominate` points with the free left hand at F13 (500 ms) and returns to Ready. The bell remains low and quiet; no projectile, summon or ground mark is baked.
 
+## Living knockdown and recovery
+
+`cast/knockdown_poses.py` layers each performer’s own brace and recovery over the unchanged approved rig. The last `down` drawing and first `recover` drawing register to the same pose. The Knight has matching `down_unshielded` and `recover_unshielded` clips; only the detachable shield is hidden. Wizard and Mixologist `seated_recover` start from the exact final drawing of their respective Pull, not from ordinary Down. Every recovery ends on the original Ready drawing, or the exact shield-away drawing for the unshielded Knight.
+
+| Take | Contact / rise | Duration |
+| --- | --- | ---: |
+| `down`, `down_unshielded` | F16 (625 ms) contacts; F24 settles | 1125 ms |
+| `recover`, `recover_unshielded`, `seated_recover` | F22 (875 ms) is the final rise; F26 is ready | 1167 ms |
+
+Use the same disk-backed subset command with `knight healer wizard rogue bard necromancer alchemist`. Compare ground-registered drawings for all three seams: Ready into fall, the down-to-recover hold, and return to Ready. These are living performances, not defeat art.
+
 **Drawing contract.** `manifest.actors[art_key].clips[name]` gives `path`, `frames`, `anchor` and `loop`; each frame is an atlas `rect: [x,y,width,height]` with `source_frame` and `duration_ms`. Use the root-level `display_scale` (0.375) uniformly. Register the **clip-local** anchor, not the rectangle center, on the actor's ground position. If mirroring, mirror the entire draw around that position. Three clear pixels surround all nonzero alpha in each rectangle, including the warm outline. Rectangles can repeat. On actor drawings the anchor is the projected ground origin, unchanged by the current pose. Thus planted feet stay put; even the Wizard's slip moves relative to a stationary ground point.
 
 At Zombie Offer Flower's `release.time_ms` (875 ms; F22), stop drawing a held gift. The baked actor already has an empty hand on this and every subsequent drawing. Start the separate `gift` clip at actor ground position plus `release.offset * display_scale`, mirroring the horizontal component when the actor faces the other way. The gift clip anchor locates its **stone root**, not its feet or bounds center. Its offset comes from the evaluated authored prop root at the marker. Draw flight to the chosen target; the model's review trajectory is deliberately absent. Only a switch back to Ready restores the held gift after the throw. For a shot sequence stay on its final empty frame until that transition.

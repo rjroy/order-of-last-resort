@@ -6,6 +6,7 @@ from ready_poses import GUARD, READY_IDLES
 from training_poses import TRAINING_TAKES
 from learner_poses import LEARNER_TAKES
 from reward_poses import REWARD_TAKES, SHIELD_FLIGHT_CLIP, SHIELD_RELEASE
+from knockdown_poses import KNOCKDOWN_TAKES
 
 TAKES = {
     "alchemist": {
@@ -124,6 +125,7 @@ DERIVED_TAKES = {
     **TRAINING_TAKES,
     **LEARNER_TAKES,
     **REWARD_TAKES,
+    **KNOCKDOWN_TAKES,
 }
 for (role, clip), performance in DERIVED_TAKES.items():
     if clip != "ready":

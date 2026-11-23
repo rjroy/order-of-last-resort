@@ -277,20 +277,23 @@ def bake(role, work, recipe=None):
         }
     for clip, (action, frames, end, loop) in takes[role].items():
         performance = DERIVED_TAKES.get((role, clip))
-        native_action = performance.source_action if performance else action
-        take = bpy.data.actions[action_name(role, master, native_action)]
-        rig.animation_data.action = take
+        source_action = performance.source_action if performance else action
         data[clip] = {
             "frames": [], "loop": loop, "anchor": anchor,
             "action": action_name(role, master, action),
         }
         for i, f in enumerate(frames):
             pose = performance.poses[i] if performance else None
+            native_action = pose.native if pose and pose.native else source_action
+            take = bpy.data.actions[action_name(role, master, native_action)]
+            if rig.animation_data.action != take:
+                rig.animation_data.action = take
             native_frame = pose.source if pose else f
             s.frame_set(int(native_frame), subframe=native_frame % 1)
             variant = ""
             without_shield = role == "knight" and clip in (
                 "shield_away", "rescue_line_unshielded", "bonk_unshielded",
+                "down_unshielded", "recover_unshielded",
             )
             if without_shield:
                 variant = "without_shield"

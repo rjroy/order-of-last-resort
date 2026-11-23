@@ -2004,6 +2004,8 @@ func _refresh_board() -> void:
 		var cast_key := CastCues.cast_key_for(_state, unit, profile)
 		if not cast_key.is_empty():
 			figure["cast_key"] = cast_key
+			if not CastCues.guild_hero_key(_state, unit).is_empty():
+				figure["guild_knockdown_art"] = true
 			var presentation := CastCues.presentation_for(_state, unit, profile)
 			if CastCues.has_presentation(_state, unit):
 				figure["cast_lifecycle"] = presentation

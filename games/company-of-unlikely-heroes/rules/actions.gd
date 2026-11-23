@@ -591,8 +591,19 @@ static func _pull(state: Dictionary, actor: Dictionary, target: Dictionary, id: 
 				and not Board.passable(state, actor.position + direction):
 			status_id = ""
 			Board.event(events, "status", "Braced Casting keeps %s upright." % name, {"unit_id": actor.id})
+		var first_recoil_event := events.size()
 		Combat.hurt(state, actor, actor, int(ability.params.recoil_damage),
 			Board.text(state, "recoil_source"), status_id, events)
+		# Optional presentation provenance. It does not change status behavior:
+		# recovery can distinguish a Pull's seated fall from other knockdowns.
+		for event in events.slice(first_recoil_event):
+			if id == "wizard_pull" and event.get("type") == "damage" and event.get("target_id") == actor.id \
+					and event.get("status_id") == status_id and Statuses.is_knockdown(state, status_id):
+				actor.statuses[status_id]["presentation_cause"] = "pull_recoil"
+				event["presentation_cause"] = "pull_recoil"
+				var horizontal := signi(move_from.x - old.x)
+				if horizontal != 0:
+					actor.statuses[status_id]["presentation_facing"] = horizontal
 
 
 static func _blocks_aimed_shift(state: Dictionary, mover: Dictionary, intended: Dictionary, events: Array) -> bool:

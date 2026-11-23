@@ -84,6 +84,7 @@ func _test_cosmetic() -> void:
 	var opening := await _open_fixture(COSMETIC, "cosmetic_fixture")
 	if opening.is_empty():
 		return
+	_isolate_reaction_ink()
 	var recipient := _tile_area(_unit(opening, RECIPIENT).position)
 	var caster := _tile_area(_unit(opening, ACTOR).position)
 	var other := _tile_area(_unit(opening, OTHER).position)
@@ -114,7 +115,10 @@ func _test_cosmetic() -> void:
 
 	# Transition while a second cue is live, not just after the first one expired.
 	opening = await _open_fixture(COSMETIC, "cosmetic_fixture")
-	if opening.is_empty() or not await _stage_cosmetic(opening) or not await _commit_cosmetic():
+	if opening.is_empty():
+		return
+	_isolate_reaction_ink()
+	if not await _stage_cosmetic(opening) or not await _commit_cosmetic():
 		return
 	var replayed := await _frame()
 	_check(_changed_pixels(replayed, clean, recipient) >= MIN_MARK_PIXELS,
@@ -122,9 +126,19 @@ func _test_cosmetic() -> void:
 	var next := await _open_fixture("handle_with_care", "next_battle_fixture")
 	if next.is_empty():
 		return
+	_isolate_reaction_ink()
 	var next_frame := await _frame()
-	_check(_changed_pixels(next_frame, clean, recipient) < MIN_MARK_PIXELS,
+	var next_recipient := _tile_area(_unit(next, RECIPIENT).position)
+	_check(next_recipient == recipient, "The next battle uses the same recipient tile and layout")
+	_check(_changed_pixels(next_frame, clean, next_recipient) < MIN_MARK_PIXELS,
 		"Next battle starts without the prior battle's active cosmetic")
+
+
+func _isolate_reaction_ink() -> void:
+	# The board keeps processing its ready and action animations. Hide only their
+	# shared drawing layer: unrelated sprite frames otherwise dominate tile diffs.
+	# Forecast and committed seals remain on the live storybook ink layer.
+	(board.get("_figures") as CanvasItem).hide()
 
 
 func _aim(opening: Dictionary) -> bool:

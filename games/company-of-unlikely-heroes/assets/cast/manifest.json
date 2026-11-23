@@ -10229,6 +10229,428 @@
           "path": "res://assets/cast/grunt.png"
         }
       }
+    },
+    "duelist": {
+      "source": "art/models/duelist/duelist-pigment.blend",
+      "sha256": "73dd3f381ea869da44430838a36df65766400d82d93a568ce29c7b6275417d4e",
+      "clips": {
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                0,
+                232,
+                276
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                232,
+                0,
+                232,
+                276
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                464,
+                0,
+                232,
+                276
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                696,
+                0,
+                232,
+                276
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 125,
+              "rect": [
+                928,
+                0,
+                232,
+                276
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 42,
+              "rect": [
+                1160,
+                0,
+                232,
+                276
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            106,
+            251
+          ],
+          "action": "Defeat",
+          "path": "res://assets/cast/duelist.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                985,
+                796,
+                200,
+                250
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                1185,
+                796,
+                200,
+                250
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                1050,
+                200,
+                250
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 41,
+              "rect": [
+                200,
+                1050,
+                200,
+                250
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            74,
+            229
+          ],
+          "action": "Hit",
+          "path": "res://assets/cast/duelist.png"
+        },
+        "lunge": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                276,
+                312,
+                260
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 84,
+              "rect": [
+                312,
+                276,
+                312,
+                260
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 125,
+              "rect": [
+                624,
+                276,
+                312,
+                260
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 166,
+              "rect": [
+                936,
+                276,
+                312,
+                260
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                536,
+                312,
+                260
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                536,
+                312,
+                260
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                312,
+                536,
+                312,
+                260
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 166,
+              "rect": [
+                624,
+                536,
+                312,
+                260
+              ]
+            },
+            {
+              "source_frame": 30,
+              "duration_ms": 42,
+              "rect": [
+                936,
+                536,
+                312,
+                260
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            76,
+            237
+          ],
+          "action": "Lunge",
+          "path": "res://assets/cast/duelist.png"
+        },
+        "move": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                400,
+                1050,
+                194,
+                241
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                594,
+                1050,
+                194,
+                241
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                788,
+                1050,
+                194,
+                241
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                982,
+                1050,
+                194,
+                241
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 125,
+              "rect": [
+                1176,
+                1050,
+                194,
+                241
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                1300,
+                194,
+                241
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            56,
+            222
+          ],
+          "action": "Move",
+          "path": "res://assets/cast/duelist.png"
+        },
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                194,
+                1300,
+                182,
+                236
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                376,
+                1300,
+                182,
+                236
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                558,
+                1300,
+                182,
+                236
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                740,
+                1300,
+                182,
+                236
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                922,
+                1300,
+                182,
+                236
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            54,
+            218
+          ],
+          "action": "Ready",
+          "path": "res://assets/cast/duelist.png"
+        },
+        "retaliate": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                796,
+                197,
+                254
+              ]
+            },
+            {
+              "source_frame": 3,
+              "duration_ms": 125,
+              "rect": [
+                197,
+                796,
+                197,
+                254
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                394,
+                796,
+                197,
+                254
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 166,
+              "rect": [
+                591,
+                796,
+                197,
+                254
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 42,
+              "rect": [
+                788,
+                796,
+                197,
+                254
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            71,
+            234
+          ],
+          "action": "Retaliate",
+          "path": "res://assets/cast/duelist.png"
+        }
+      }
     }
   }
 }

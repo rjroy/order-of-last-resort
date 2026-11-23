@@ -761,7 +761,28 @@
           "damage": 1,
           "range": 1
         }
-      ]
+      ],
+      "cast_key": "duelist",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "move"
+          },
+          "duelist_strike": {
+            "handler": "attack",
+            "clip": "lunge"
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat",
+        "events": {
+          "retaliate": "retaliate"
+        }
+      }
     },
     "ogre": {
       "class": "enemy",

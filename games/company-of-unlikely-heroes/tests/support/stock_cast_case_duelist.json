@@ -1,0 +1,53 @@
+{
+  "actor": "duelist",
+  "case": {
+    "automatic_rounds": 4,
+    "cast_key": "duelist",
+    "minimum_opening": 2,
+    "triggers": [
+      {
+        "ability": "duelist_strike",
+        "actor_field": "source_id",
+        "clip": "lunge",
+        "id": "strike",
+        "type": "action"
+      }
+    ],
+    "variants": {
+      "retaliate": {
+        "rounds": [
+          {
+            "command": {
+              "ability": "wizard_blast",
+              "actor": "wizard"
+            }
+          },
+          {
+            "command": {
+              "ability": "wizard_pull",
+              "actor": "wizard",
+              "target": "healer"
+            }
+          },
+          {
+            "command": {
+              "ability": "healer_bonk",
+              "actor": "healer",
+              "target": "duelist_2"
+            }
+          }
+        ],
+        "triggers": [
+          {
+            "actor_field": "unit_id",
+            "clip": "retaliate",
+            "event": "retaliate",
+            "id": "retaliate",
+            "type": "event"
+          }
+        ]
+      }
+    }
+  },
+  "mission": "duelists"
+}

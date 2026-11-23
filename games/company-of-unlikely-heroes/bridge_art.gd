@@ -448,12 +448,16 @@ func _draw_figures() -> void:
 		var key := str(original.get("cast_key", ""))
 		var id := str(original.get("id", ""))
 		var ordinary_defeat := _ordinary_defeat_clip(original)
+		var cell: Vector2i = original.cell
 		if key == "ferryman" or original.has("cast_lifecycle"):
-			var cell := _playback.actor_cell(id, original.cell)
-			if cell != original.cell:
-				occupant = original.duplicate()
-				occupant["cell"] = cell
-				occupant.erase("cast_hold")
+			cell = _playback.actor_cell(id, cell)
+		var waiting_cell: Variant = _playback.waiting_swap_cell(id)
+		if waiting_cell is Vector2i:
+			cell = waiting_cell
+		if cell != original.cell:
+			occupant = original.duplicate()
+			occupant["cell"] = cell
+			occupant.erase("cast_hold")
 		if original.has("cast_lifecycle") and int(original.get("hp", 1)) > 0 \
 				and bool(original.get("prone", false)) and _playback.has_waiting_upright_hit(id):
 			if occupant == original:
@@ -515,6 +519,15 @@ func _draw_figures() -> void:
 				occupants.append({"id": id, "cast_key": entry.cue.cast_key, "transient": true,
 					"art_key": entry.cue.cast_key, "cell": source,
 					"shield_away": entry.cue.get("shield_away", false)})
+	for index in occupants.size():
+		var occupant: Dictionary = occupants[index]
+		var action: CastPlayback.Entry = actions.get(occupant.id)
+		if action != null and action.is_shield_throw():
+			var cast_cell: Variant = action.cue.get("actor_cell", action.cue.get("source_cell"))
+			if cast_cell is Vector2i and cast_cell != occupant.cell:
+				occupant = occupant.duplicate()
+				occupant["cell"] = cast_cell
+				occupants[index] = occupant
 	occupants.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _reading_order(a.cell, b.cell))
 	for unit in occupants:
 		if _cells.has(unit.cell):
@@ -540,7 +553,7 @@ func _draw_figures() -> void:
 			_at(_tile_origin(cell))
 			_draw_shield_marker(true)
 	for cell in _overlay.get("shields", []):
-		if _cells.has(cell):
+		if _cells.has(cell) and not _playback.shield_in_transit(cell):
 			_at(_tile_origin(cell))
 			_draw_shield_marker(false)
 	_ink_canvas = self
@@ -899,7 +912,12 @@ func _draw_cast(unit: Dictionary, foot: Vector2, facing: float, prone: bool, act
 	if not unit.has("cast_lifecycle") and cast_key == "knight" and bool(unit.get("shield_away", false)):
 		# Equipment is authoritative. Never show a second shield on the unit.
 		key = "shield_away"
-		if action != null and action.cue.clip in ["rescue_line", "bonk"] \
+		if action != null and action.cue.clip == "shield_throw" and action.elapsed_ms < action.clip.total_ms:
+			key = "shield_throw"
+			time_ms = action.elapsed_ms
+			turned_down = false
+			facing = action.facing if action.facing != 0.0 else facing
+		elif action != null and action.cue.clip in ["rescue_line", "bonk"] \
 				and action.elapsed_ms < action.clip.total_ms:
 			var unshielded: String = action.cue.clip + "_unshielded"
 			if _cast.clip_for(cast_key, unshielded) != null:
@@ -1024,13 +1042,15 @@ func _sync_playback_geometry() -> void:
 		# Actors render at the committed board position, or at actor_cell when
 		# represented by a transient figure after removal. Keep the launch on
 		# that figure while retaining action-time geometry for facing and impact.
-		var rendered_cell: Variant = entry.cue.get("actor_cell", source) if entry.cue.get("ordinary_presentation", false) \
+		var rendered_cell: Variant = entry.cue.get("actor_cell", source) if entry.is_shield_throw() \
+				or entry.cue.get("ordinary_presentation", false) \
 			else unit.get("cell", entry.cue.get("actor_cell", source))
 		if not rendered_cell is Vector2i:
 			continue
 		var nudge := entry.clip.release_offset * Vector2(entry.facing, 1.0) * entry.clip.scale
 		entry.gift_from = _unit_foot(rendered_cell) + nudge
-		entry.gift_to = _unit_foot(target) + Vector2(0, -29)
+		var landing: Vector2i = entry.cue.get("shield_drop_cell", target)
+		entry.gift_to = _unit_foot(landing) + Vector2(0, -29)
 		if entry.gift.tip is Vector2:
 			var tip_offset: Vector2 = (entry.gift.tip - entry.gift.anchor) * entry.gift.scale \
 				* Vector2(entry.facing, 1.0)

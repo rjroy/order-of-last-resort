@@ -23,6 +23,7 @@ func _initialize() -> void:
 		_test_repeated_performers_and_reactions()
 		_test_reflection()
 		_test_committed_round()
+		_test_swap_waits_for_queued_throw()
 		_test_non_actions_and_aliases()
 		_test_custom_ability_handlers()
 		_test_mixologist_recipes()
@@ -109,6 +110,8 @@ func _test_direct_actions() -> void:
 		elif entry[1] == "wizard_blast":
 			expected_target = "foe"
 		var cue := _cue(cues, "actor_instance", role, entry[3], expected_target)
+		if entry[1] == "rogue_confusing_dodge":
+			_check(cue.get("swap_partner_id") == "friend", "A resolved Dodge records its actual swap partner")
 		if entry[1] == "knight_aura" and not cue.is_empty():
 			_check({"id": "actor_instance", "cell": Vector2i(3, 3), "kind": "guard"} in cue.get("recipients", []),
 				"Guard effect is attached to the acting knight's cell")
@@ -268,6 +271,47 @@ func _test_committed_round() -> void:
 	var result: Dictionary = rules.commit_round(selected, plan)
 	_check(result == plan.result, "Round commit agrees with forecast")
 	_cue(_build(selected, result, plan.events), "wizard_instance", "wizard", "blast", "foe")
+
+
+func _test_swap_waits_for_queued_throw() -> void:
+	const Sprites = preload("res://presentation/cast_sprites.gd")
+	const Playback = preload("res://presentation/cast_playback.gd")
+	var art := Sprites.new()
+	var clip := Sprites.Clip.new()
+	clip.total_ms = 1000.0
+	art.set("_actors", {"knight": {"fixture_gesture": clip, "shield_throw": clip}, "rogue": {"swap": clip}})
+	var knight := Vector2i(3, 3)
+	var rogue := Vector2i(5, 3)
+	var gesture := {"unit_id": "thrower", "cast_key": "knight", "clip": "fixture_gesture"}
+	var throw := {"unit_id": "thrower", "cast_key": "knight", "clip": "shield_throw",
+		"actor_cell": knight, "shield_drop_cell": Vector2i(6, 3)}
+	var swap := {"unit_id": "swapper", "cast_key": "rogue", "clip": "swap",
+		"source_cell": rogue, "actor_cell": knight, "swap_partner_id": "thrower"}
+	var playback := Playback.new()
+	playback.enqueue([gesture, throw], art)
+	_check(playback.active().size() == 1 and playback.active()[0].cue.clip == "fixture_gesture",
+		"The earlier gesture leaves the real throw pending, not yet in windup")
+	playback.enqueue([swap], art)
+	_check(playback.waiting_swap_cell("swapper") == rogue and playback.waiting_swap_cell("thrower") == knight,
+		"A later commit keeps both swap participants at their old cells while the throw is pending")
+	playback.advance(1999.0)
+	_check(playback.active().size() == 1 and playback.active()[0].cue.clip == "shield_throw" \
+		and playback.waiting_swap_cell("swapper") == rogue, "Dodge waits through the whole throw")
+	playback.advance(1.0)
+	_check(playback.active().size() == 1 and playback.active()[0].cue.clip == "swap" \
+		and playback.waiting_swap_cell("swapper") == null and playback.waiting_swap_cell("thrower") == null,
+		"At completion the swap starts and releases both cell holds")
+
+	playback.clear()
+	playback.enqueue([throw], art)
+	var unrelated := swap.merged({"unit_id": "unrelated", "swap_partner_id": "other"}, true)
+	playback.enqueue([unrelated], art)
+	_check(playback.active().size() == 2 and playback.waiting_swap_cell("unrelated") == null,
+		"A same-cell swap of a different unit is not serialized with the throw")
+	playback.clear()
+	playback.enqueue([swap], art)
+	_check(playback.active().size() == 1 and playback.waiting_swap_cell("swapper") == null,
+		"Clearing playback removes the hold; no old throw can delay a new swap")
 
 
 func _test_non_actions_and_aliases() -> void:

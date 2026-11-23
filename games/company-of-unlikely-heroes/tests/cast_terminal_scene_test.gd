@@ -5,6 +5,7 @@ extends "res://tests/commission_profile_recovery_scene_test.gd"
 # manufacturing a terminal state or bypassing its settlement.
 const RewardClick = preload("res://tests/support/reward_click.gd")
 
+
 func _run() -> void:
 	# The inherited helpers allocate a SubViewport; real pointer input needs the
 	# window viewport instead, so release the unused one.
@@ -14,6 +15,7 @@ func _run() -> void:
 		return
 	root.size = VIEWPORT_SIZE
 	await _terminal_round()
+	await _rapid_terminal_pickup()
 	_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(fixture_path)) == OK,
 		"Removed test-owned catalog")
 	_cleanup()
@@ -115,6 +117,79 @@ func _terminal_round() -> void:
 	var next_commit := _node("Commit") as BaseButton
 	_check(next_commit != null and next_commit.is_visible_in_tree() and not next_commit.disabled,
 		"New battle controls are ready")
+
+
+func _rapid_terminal_pickup() -> void:
+	if scene.current_screen() != "battle":
+		_check(false, "Rapid pickup fixture needs the next real commission battle")
+		return
+	var rules = preload("res://rules.gd").new()
+	var state: Dictionary = scene.battle_snapshot().duplicate(true)
+	state.width = 12
+	state.height = 12
+	state.default_tile = "stone"
+	state.terrain = []
+	state.obstacles = []
+	state.objective = {"handler": "survive", "turns": state.round + 1, "reserves": []}
+	var positions := {"knight": Vector2i(3, 3), "healer": Vector2i(1, 1),
+		"wizard": Vector2i(1, 2), "grunt_1": Vector2i(4, 3)}
+	for unit in state.units:
+		if positions.has(unit.id):
+			unit.position = positions[unit.id]
+		if unit.id == "knight":
+			unit["upgrades"] = {"knight_shield_throw": 1}
+		if unit.id == "grunt_1":
+			unit.hp = 20
+			unit.max_hp = 20
+	for id in ["healer", "wizard"]:
+		state = rules.set_order(state, id, "order_hold")
+	state = rules.set_order(state, "knight", "order_advance")
+	scene.call("_show_battle", state)
+	var staged: Dictionary = rules.choose_manual(state, "knight", "knight_shield_throw", "grunt_1")
+	scene.set("_planned_state", staged)
+	scene.call("_refresh")
+	var first: Dictionary = scene.get("_plan")
+	if not first.get("valid", false) or first.get("result", {}).get("outcome") != "ongoing":
+		_check(false, "Throw round forecasts a valid nonterminal result")
+		return
+	(_node("Commit") as BaseButton).pressed.emit()
+	var board = scene.get("_board")
+	board.set_process(false)
+	var entries: Array = board.get("_playback").active()
+	var throws := entries.filter(func(entry): return entry.cue.get("unit_id") == "knight" \
+		and entry.cue.get("clip") == "shield_throw")
+	if throws.size() != 1:
+		_check(false, "Real throw commit queues one shield throw")
+		return
+	var throw = throws[0]
+	_check(throw.gift != null and throw.elapsed_ms < throw.clip.release_ms,
+		"Prior committed shield has not yet released")
+	var terminal: Dictionary = scene.get("_plan")
+	_check(terminal.get("valid", false) and terminal.get("result", {}).get("outcome") == "victory" \
+		and terminal.events.any(func(event): return event.get("type") == "shield_retrieve"),
+		"Next committed round retrieves the shield and ends the mission")
+	if not terminal.get("valid", false) or terminal.get("result", {}).get("outcome") != "victory":
+		return
+	(_node("Commit") as BaseButton).pressed.emit()
+	_check(scene.get("_state").get("outcome") == "victory" and scene.get("_run").get("phase") != "mission",
+		"Rapid pickup settles synchronously")
+	var replay = scene.get("_terminal_board")
+	_check(replay == board, "Terminal replay retains the board with the earlier throw")
+	if replay != board:
+		return
+	var retained: Array = replay.get("_playback").active()
+	var retained_throws := retained.filter(func(entry): return entry.cue.get("unit_id") == "knight" \
+		and entry.cue.get("clip") == "shield_throw")
+	_check(retained_throws.size() == 1 and retained_throws[0] == throw \
+		and throw.elapsed_ms < throw.clip.release_ms,
+		"Terminal transfer keeps the original unreleased throw exactly once")
+	replay.set_process(false)
+	replay._process((throw.clip.release_ms - throw.elapsed_ms + 1.0) / 1000.0)
+	_check(throw.gift_from is Vector2 and throw.gift_to is Vector2,
+		"Retained throw reaches its shield release in terminal replay")
+	scene.call("_clear_terminal_replay")
+	_check(scene.get("_terminal_board") == null and scene.get("_terminal_replay") == null,
+		"Skipping terminal replay tears down the retained board")
 
 
 func _click(position: Vector2) -> void:

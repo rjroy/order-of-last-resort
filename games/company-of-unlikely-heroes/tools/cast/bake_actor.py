@@ -296,6 +296,7 @@ def bake(role, work, recipe=None):
                 variant = "without_shield"
             for part, hidden in shield_draw.items():
                 part.hide_render = without_shield or hidden
+            at_release = False
             if release:
                 prop_only = clip == prop_clip
                 empty_hand = clip == actor_clip and f >= release_frame
@@ -303,7 +304,9 @@ def bake(role, work, recipe=None):
                 hidden_prop = empty_hand or (window is not None and release_prop_hidden(window, clip, f))
                 for o, hidden in visibility.items():
                     o.hide_render = (
-                        hidden or (prop_only and o not in prop) or (not prop_only and hidden_prop and o in prop)
+                        hidden or (prop_only and o not in prop)
+                        or (not prop_only and hidden_prop and o in prop)
+                        or (without_shield and o in shield_draw)
                     )
                 if prop_only:
                     variant = "prop_only"
@@ -311,21 +314,10 @@ def bake(role, work, recipe=None):
                     variant = "empty_hand"
                 elif hidden_prop:
                     variant = "hidden_prop"
-                if (prop_only or empty_hand) and f == release_frame:
+                at_release = (prop_only or empty_hand) and f == release_frame
+                if at_release:
                     if marker:
                         assert take.pose_markers[marker].frame == f
-                    uv = world_to_camera_view(
-                        s, s.camera, root.matrix_world.translation
-                    )
-                    px = [round(uv.x * size, 3), round((1 - uv.y) * size, 3)]
-                    if prop_only:
-                        data[clip]["anchor"] = px
-                    else:
-                        data[clip]["release"] = {
-                            "time_ms": round((f - frames[0]) * 1000 / 24),
-                            "offset": [round(a - b, 3) for a, b in zip(px, anchor)],
-                            "clip": prop_clip,
-                        }
             turns = pose.turns if pose else ()
             carried = pose.carried if pose else None
             shifts = pose.shifts if pose else ()
@@ -337,11 +329,25 @@ def bake(role, work, recipe=None):
             use_pilot = pilot_clip is not None and (
                 clip == pilot_clip or (
                     performance is not None and not turns and carried is None and not shifts
-                    and not without_shield and (clip != "ready" or i == 0)
+                    and not variant and (clip != "ready" or i == 0)
                     and native_frame in takes[role][pilot_clip][1]
                 )
             )
             key = (native_action, native_frame, variant, turns, carried, shifts, held_vial, use_pilot)
+            if at_release:
+                # A derived release must use the same evaluated pose as the
+                # drawing, including any offset inherited by the prop socket.
+                with ready_turns(rig, turns, carried, shifts):
+                    uv = world_to_camera_view(s, s.camera, root.matrix_world.translation)
+                px = [round(uv.x * size, 3), round((1 - uv.y) * size, 3)]
+                if prop_only:
+                    data[clip]["anchor"] = px
+                else:
+                    data[clip]["release"] = {
+                        "time_ms": round((f - frames[0]) * 1000 / 24),
+                        "offset": [round(a - b, 3) for a, b in zip(px, anchor)],
+                        "clip": prop_clip,
+                    }
             if key not in cache:
                 out = work / f"{role}-{len(cache):03d}.png"
                 cache[key] = out

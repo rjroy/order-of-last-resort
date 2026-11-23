@@ -2082,7 +2082,7 @@
               "source_frame": 1,
               "duration_ms": 208,
               "rect": [
-                0,
+                1064,
                 688,
                 133,
                 227
@@ -2092,8 +2092,8 @@
               "source_frame": 6,
               "duration_ms": 167,
               "rect": [
-                133,
-                688,
+                0,
+                916,
                 133,
                 227
               ]
@@ -2102,8 +2102,8 @@
               "source_frame": 10,
               "duration_ms": 208,
               "rect": [
-                266,
-                688,
+                133,
+                916,
                 133,
                 227
               ]
@@ -2112,8 +2112,8 @@
               "source_frame": 15,
               "duration_ms": 250,
               "rect": [
-                399,
-                688,
+                266,
+                916,
                 133,
                 227
               ]
@@ -2122,8 +2122,8 @@
               "source_frame": 21,
               "duration_ms": 209,
               "rect": [
-                532,
-                688,
+                399,
+                916,
                 133,
                 227
               ]
@@ -2132,8 +2132,8 @@
               "source_frame": 26,
               "duration_ms": 250,
               "rect": [
-                266,
-                688,
+                133,
+                916,
                 133,
                 227
               ]
@@ -2142,8 +2142,8 @@
               "source_frame": 32,
               "duration_ms": 458,
               "rect": [
-                665,
-                688,
+                532,
+                916,
                 133,
                 227
               ]
@@ -2243,8 +2243,8 @@
               "source_frame": 51,
               "duration_ms": 583,
               "rect": [
+                1120,
                 0,
-                230,
                 140,
                 230
               ]
@@ -2253,7 +2253,7 @@
               "source_frame": 65,
               "duration_ms": 542,
               "rect": [
-                140,
+                0,
                 230,
                 140,
                 230
@@ -2274,8 +2274,8 @@
               "source_frame": 8,
               "duration_ms": 1000,
               "rect": [
-                246,
-                1142,
+                1107,
+                1143,
                 123,
                 226
               ]
@@ -2295,8 +2295,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                280,
-                230,
+                459,
+                460,
                 133,
                 228
               ]
@@ -2305,8 +2305,8 @@
               "source_frame": 4,
               "duration_ms": 167,
               "rect": [
-                413,
-                230,
+                592,
+                460,
                 133,
                 228
               ]
@@ -2315,8 +2315,8 @@
               "source_frame": 8,
               "duration_ms": 125,
               "rect": [
-                546,
-                230,
+                725,
+                460,
                 133,
                 228
               ]
@@ -2325,8 +2325,8 @@
               "source_frame": 11,
               "duration_ms": 125,
               "rect": [
-                679,
-                230,
+                858,
+                460,
                 133,
                 228
               ]
@@ -2335,8 +2335,8 @@
               "source_frame": 14,
               "duration_ms": 166,
               "rect": [
-                812,
-                230,
+                991,
+                460,
                 133,
                 228
               ]
@@ -2345,8 +2345,8 @@
               "source_frame": 18,
               "duration_ms": 167,
               "rect": [
-                945,
-                230,
+                1124,
+                460,
                 133,
                 228
               ]
@@ -2356,7 +2356,7 @@
               "duration_ms": 167,
               "rect": [
                 0,
-                460,
+                688,
                 133,
                 228
               ]
@@ -2365,8 +2365,8 @@
               "source_frame": 26,
               "duration_ms": 83,
               "rect": [
-                280,
-                230,
+                459,
+                460,
                 133,
                 228
               ]
@@ -2386,8 +2386,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                798,
-                688,
+                665,
+                916,
                 123,
                 227
               ]
@@ -2396,8 +2396,8 @@
               "source_frame": 4,
               "duration_ms": 167,
               "rect": [
-                921,
-                688,
+                788,
+                916,
                 123,
                 227
               ]
@@ -2406,8 +2406,8 @@
               "source_frame": 8,
               "duration_ms": 125,
               "rect": [
-                1044,
-                688,
+                911,
+                916,
                 123,
                 227
               ]
@@ -2416,8 +2416,8 @@
               "source_frame": 11,
               "duration_ms": 125,
               "rect": [
-                0,
-                915,
+                1034,
+                916,
                 123,
                 227
               ]
@@ -2426,8 +2426,8 @@
               "source_frame": 14,
               "duration_ms": 166,
               "rect": [
-                123,
-                915,
+                1157,
+                916,
                 123,
                 227
               ]
@@ -2436,8 +2436,8 @@
               "source_frame": 18,
               "duration_ms": 167,
               "rect": [
-                246,
-                915,
+                0,
+                1143,
                 123,
                 227
               ]
@@ -2446,8 +2446,8 @@
               "source_frame": 22,
               "duration_ms": 167,
               "rect": [
-                369,
-                915,
+                123,
+                1143,
                 123,
                 227
               ]
@@ -2456,8 +2456,8 @@
               "source_frame": 26,
               "duration_ms": 83,
               "rect": [
-                798,
-                688,
+                665,
+                916,
                 123,
                 227
               ]
@@ -2477,8 +2477,8 @@
               "source_frame": 1,
               "duration_ms": 167,
               "rect": [
-                280,
-                230,
+                459,
+                460,
                 133,
                 228
               ]
@@ -2488,7 +2488,7 @@
               "duration_ms": 166,
               "rect": [
                 133,
-                460,
+                688,
                 133,
                 228
               ]
@@ -2498,7 +2498,7 @@
               "duration_ms": 84,
               "rect": [
                 266,
-                460,
+                688,
                 133,
                 228
               ]
@@ -2508,7 +2508,7 @@
               "duration_ms": 83,
               "rect": [
                 399,
-                460,
+                688,
                 133,
                 228
               ]
@@ -2518,7 +2518,7 @@
               "duration_ms": 125,
               "rect": [
                 532,
-                460,
+                688,
                 133,
                 228
               ]
@@ -2528,7 +2528,7 @@
               "duration_ms": 167,
               "rect": [
                 665,
-                460,
+                688,
                 133,
                 228
               ]
@@ -2538,7 +2538,7 @@
               "duration_ms": 166,
               "rect": [
                 798,
-                460,
+                688,
                 133,
                 228
               ]
@@ -2548,7 +2548,7 @@
               "duration_ms": 250,
               "rect": [
                 931,
-                460,
+                688,
                 133,
                 228
               ]
@@ -2557,8 +2557,8 @@
               "source_frame": 30,
               "duration_ms": 125,
               "rect": [
-                280,
-                230,
+                459,
+                460,
                 133,
                 228
               ]
@@ -2578,8 +2578,8 @@
               "source_frame": 1,
               "duration_ms": 167,
               "rect": [
-                798,
-                688,
+                665,
+                916,
                 123,
                 227
               ]
@@ -2588,8 +2588,8 @@
               "source_frame": 5,
               "duration_ms": 166,
               "rect": [
-                492,
-                915,
+                246,
+                1143,
                 123,
                 227
               ]
@@ -2598,8 +2598,8 @@
               "source_frame": 9,
               "duration_ms": 84,
               "rect": [
-                615,
-                915,
+                369,
+                1143,
                 123,
                 227
               ]
@@ -2608,8 +2608,8 @@
               "source_frame": 11,
               "duration_ms": 83,
               "rect": [
-                738,
-                915,
+                492,
+                1143,
                 123,
                 227
               ]
@@ -2618,8 +2618,8 @@
               "source_frame": 13,
               "duration_ms": 125,
               "rect": [
-                861,
-                915,
+                615,
+                1143,
                 123,
                 227
               ]
@@ -2628,8 +2628,8 @@
               "source_frame": 16,
               "duration_ms": 167,
               "rect": [
-                984,
-                915,
+                738,
+                1143,
                 123,
                 227
               ]
@@ -2638,8 +2638,8 @@
               "source_frame": 20,
               "duration_ms": 166,
               "rect": [
-                0,
-                1142,
+                861,
+                1143,
                 123,
                 227
               ]
@@ -2648,8 +2648,8 @@
               "source_frame": 24,
               "duration_ms": 250,
               "rect": [
-                123,
-                1142,
+                984,
+                1143,
                 123,
                 227
               ]
@@ -2658,8 +2658,8 @@
               "source_frame": 30,
               "duration_ms": 125,
               "rect": [
-                798,
-                688,
+                665,
+                916,
                 123,
                 227
               ]
@@ -2671,6 +2671,146 @@
             212
           ],
           "action": "Knight | Bonk and Taunt",
+          "path": "res://assets/cast/knight.png"
+        },
+        "shield_throw": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                140,
+                230,
+                153,
+                228
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                293,
+                230,
+                153,
+                228
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 125,
+              "rect": [
+                446,
+                230,
+                153,
+                228
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 125,
+              "rect": [
+                599,
+                230,
+                153,
+                228
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 42,
+              "rect": [
+                752,
+                230,
+                153,
+                228
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 125,
+              "rect": [
+                905,
+                230,
+                153,
+                228
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 167,
+              "rect": [
+                1058,
+                230,
+                153,
+                228
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                460,
+                153,
+                228
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 167,
+              "rect": [
+                153,
+                460,
+                153,
+                228
+              ]
+            },
+            {
+              "source_frame": 32,
+              "duration_ms": 125,
+              "rect": [
+                306,
+                460,
+                153,
+                228
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            62,
+            212
+          ],
+          "action": "Knight | Shield Throw",
+          "release": {
+            "time_ms": 625,
+            "offset": [
+              64.019,
+              -122.538
+            ],
+            "clip": "shield_projectile"
+          },
+          "path": "res://assets/cast/knight.png"
+        },
+        "shield_projectile": {
+          "frames": [
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                1230,
+                1143,
+                65,
+                111
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            33.019,
+            41.462
+          ],
+          "action": "Knight | Shield Throw",
           "path": "res://assets/cast/knight.png"
         }
       }
@@ -2736,7 +2876,7 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                456,
+                304,
                 635,
                 142,
                 211
@@ -2746,7 +2886,7 @@
               "source_frame": 4,
               "duration_ms": 125,
               "rect": [
-                598,
+                446,
                 635,
                 142,
                 211
@@ -2756,7 +2896,7 @@
               "source_frame": 7,
               "duration_ms": 125,
               "rect": [
-                740,
+                588,
                 635,
                 142,
                 211
@@ -2766,7 +2906,7 @@
               "source_frame": 10,
               "duration_ms": 125,
               "rect": [
-                882,
+                730,
                 635,
                 142,
                 211
@@ -2776,7 +2916,7 @@
               "source_frame": 13,
               "duration_ms": 125,
               "rect": [
-                1024,
+                872,
                 635,
                 142,
                 211
@@ -2786,8 +2926,8 @@
               "source_frame": 16,
               "duration_ms": 167,
               "rect": [
-                0,
-                846,
+                1014,
+                635,
                 142,
                 211
               ]
@@ -2796,7 +2936,7 @@
               "source_frame": 20,
               "duration_ms": 166,
               "rect": [
-                142,
+                0,
                 846,
                 142,
                 211
@@ -2806,7 +2946,7 @@
               "source_frame": 24,
               "duration_ms": 125,
               "rect": [
-                284,
+                142,
                 846,
                 142,
                 211
@@ -2816,7 +2956,7 @@
               "source_frame": 27,
               "duration_ms": 292,
               "rect": [
-                426,
+                284,
                 846,
                 142,
                 211
@@ -2826,7 +2966,7 @@
               "source_frame": 34,
               "duration_ms": 208,
               "rect": [
-                568,
+                426,
                 846,
                 142,
                 211
@@ -2836,7 +2976,7 @@
               "source_frame": 39,
               "duration_ms": 167,
               "rect": [
-                710,
+                568,
                 846,
                 142,
                 211
@@ -2846,7 +2986,7 @@
               "source_frame": 43,
               "duration_ms": 125,
               "rect": [
-                852,
+                710,
                 846,
                 142,
                 211
@@ -2977,8 +3117,8 @@
               "source_frame": 59,
               "duration_ms": 208,
               "rect": [
-                0,
-                635,
+                1064,
+                424,
                 152,
                 211
               ]
@@ -2987,7 +3127,7 @@
               "source_frame": 64,
               "duration_ms": 125,
               "rect": [
-                152,
+                0,
                 635,
                 152,
                 211
@@ -2997,7 +3137,7 @@
               "source_frame": 67,
               "duration_ms": 125,
               "rect": [
-                304,
+                152,
                 635,
                 152,
                 211
@@ -3018,8 +3158,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                994,
-                846,
+                560,
+                1057,
                 135,
                 211
               ]
@@ -3028,7 +3168,7 @@
               "source_frame": 4,
               "duration_ms": 167,
               "rect": [
-                0,
+                695,
                 1057,
                 135,
                 211
@@ -3038,7 +3178,7 @@
               "source_frame": 8,
               "duration_ms": 166,
               "rect": [
-                135,
+                830,
                 1057,
                 135,
                 211
@@ -3048,7 +3188,7 @@
               "source_frame": 12,
               "duration_ms": 125,
               "rect": [
-                270,
+                965,
                 1057,
                 135,
                 211
@@ -3058,7 +3198,7 @@
               "source_frame": 15,
               "duration_ms": 167,
               "rect": [
-                405,
+                1100,
                 1057,
                 135,
                 211
@@ -3068,8 +3208,8 @@
               "source_frame": 19,
               "duration_ms": 167,
               "rect": [
-                540,
-                1057,
+                0,
+                1268,
                 135,
                 211
               ]
@@ -3078,8 +3218,8 @@
               "source_frame": 23,
               "duration_ms": 83,
               "rect": [
-                675,
-                1057,
+                135,
+                1268,
                 135,
                 211
               ]
@@ -3088,8 +3228,8 @@
               "source_frame": 25,
               "duration_ms": 83,
               "rect": [
-                994,
-                846,
+                560,
+                1057,
                 135,
                 211
               ]
@@ -3212,6 +3352,87 @@
             196
           ],
           "action": "Necromancer | Inspiring Melody",
+          "path": "res://assets/cast/necromancer.png"
+        },
+        "nominate": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                852,
+                846,
+                140,
+                211
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                992,
+                846,
+                140,
+                211
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                1057,
+                140,
+                211
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                140,
+                1057,
+                140,
+                211
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 208,
+              "rect": [
+                280,
+                1057,
+                140,
+                211
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 208,
+              "rect": [
+                420,
+                1057,
+                140,
+                211
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 125,
+              "rect": [
+                852,
+                846,
+                140,
+                211
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            52,
+            195
+          ],
+          "action": "Necromancer | Say Hello to That One",
           "path": "res://assets/cast/necromancer.png"
         }
       }

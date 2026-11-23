@@ -5,6 +5,7 @@ Times are absolute 24-fps source offsets; held poses need only one drawing.
 from ready_poses import GUARD, READY_IDLES
 from training_poses import TRAINING_TAKES
 from learner_poses import LEARNER_TAKES
+from reward_poses import REWARD_TAKES, SHIELD_FLIGHT_CLIP, SHIELD_RELEASE
 
 TAKES = {
     "alchemist": {
@@ -122,6 +123,7 @@ DERIVED_TAKES = {
     **{(role, "ready"): idle for role, idle in READY_IDLES.items()},
     **TRAINING_TAKES,
     **LEARNER_TAKES,
+    **REWARD_TAKES,
 }
 for (role, clip), performance in DERIVED_TAKES.items():
     if clip != "ready":
@@ -131,6 +133,7 @@ for (role, clip), performance in DERIVED_TAKES.items():
 RELEASES = {
     "alchemist": ("acid", "acid_flask", "Acid_Flask_Detachable", 18, None),
     "harpooner": ("ranged_cast", "harpoon_projectile", "Harpoon_Detachable", 11, "Release"),
+    "knight": ("shield_throw", SHIELD_FLIGHT_CLIP, "Shield_L_Detachable", SHIELD_RELEASE, None),
     "zombie": ("offer_flower", "gift", "Daisy & fieldstone", 22, "Gift Release"),
 }
 

@@ -12,6 +12,7 @@ const ACTION_BEATS := {
 	"close_thrust": 8,
 	"rescue_line": 14, "rescue_line_unshielded": 14, "ring_sparks": 12,
 	"tripwire": 13, "grave_bell": 12, "etching_paste": 13,
+	"nominate": 13,
 }
 const LEARNER_BEATS := {
 	"knight": {"bonk": 13, "bonk_unshielded": 13},
@@ -35,12 +36,17 @@ class Entry:
 	var gift_angle := 0.0
 	var gift_point_first := false
 	var facing: float
+	var waits_for_throw := false
 
 	func progress() -> float:
 		return (elapsed_ms - impact_ms) / FEEDBACK_MS
 
 	func flight_progress() -> float:
 		return (elapsed_ms - clip.release_ms) / GIFT_FLIGHT_MS
+
+	func is_shield_throw() -> bool:
+		return cue.cast_key == "knight" and cue.clip == "shield_throw" \
+			and not cue.get("ordinary_presentation", false)
 
 var _entries: Array[Entry] = []
 
@@ -81,7 +87,8 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 		if ordinary and cue.get("impact_frame") is int and cue.impact_frame in clip.source_frames:
 			entry.impact_ms = clip.time_at_source_frame(cue.impact_frame)
 		if key != "etching_paste" and not (role == "rogue" and key == "potion") \
-				and clip.release_ms >= 0.0 and cue.get("target_cell") is Vector2i:
+				and clip.release_ms >= 0.0 and (cue.get("target_cell") is Vector2i \
+				or cue.get("shield_drop_cell") is Vector2i):
 			entry.gift = art.clip_for(role, clip.release_clip)
 			if entry.gift != null:
 				entry.impact_ms = clip.release_ms + GIFT_FLIGHT_MS
@@ -89,11 +96,29 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 		var start := float(tails.get(cue.unit_id, 0.0))
 		var parent: Variant = added.get(int(cue.get("after_cue", -1)))
 		if parent != null:
-			start = maxf(start, -parent.elapsed_ms + parent.impact_ms)
+			start = maxf(start, parent.impact_ms - parent.elapsed_ms)
+		var throw_wait := _swap_throw_wait(cue)
+		entry.waits_for_throw = throw_wait > 0.0
+		start = maxf(start, throw_wait)
 		entry.elapsed_ms = -start
 		tails[cue.unit_id] = entry.duration_ms - entry.elapsed_ms
 		_entries.append(entry)
 		added[index] = entry
+
+
+func _swap_throw_wait(cue: Dictionary) -> float:
+	var partner: String = cue.get("swap_partner_id", "")
+	if partner.is_empty():
+		return 0.0
+	# A resolved swap would place its actor on the thrower's visible cast cell.
+	# The queue includes earlier cues from this batch and from previous commits.
+	var wait := 0.0
+	for entry in _entries:
+		if entry.cue.unit_id == partner and entry.is_shield_throw() \
+				and entry.cue.get("shield_drop_cell") is Vector2i \
+				and entry.cue.get("actor_cell") == cue.actor_cell:
+			wait = maxf(wait, entry.duration_ms - entry.elapsed_ms)
+	return wait
 
 
 func clear() -> void:
@@ -107,6 +132,15 @@ func clear_pull_recoil(unit_id: String) -> void:
 			entry.cue.erase("pull_recoil_down")
 
 
+func shield_in_transit(cell: Vector2i) -> bool:
+	for entry in _entries:
+		if entry.is_shield_throw() \
+				and entry.cue.get("shield_drop_cell") == cell \
+				and entry.gift != null and entry.elapsed_ms < entry.impact_ms:
+			return true
+	return false
+
+
 func pending() -> bool:
 	return not _entries.is_empty()
 
@@ -116,6 +150,17 @@ func remaining_ms() -> float:
 	for entry in _entries:
 		remaining = maxf(remaining, entry.duration_ms - entry.elapsed_ms)
 	return remaining
+
+
+func waiting_swap_cell(unit_id: String) -> Variant:
+	for entry in _entries:
+		if not entry.waits_for_throw or entry.elapsed_ms >= 0.0:
+			continue
+		if entry.cue.unit_id == unit_id:
+			return entry.cue.get("source_cell")
+		if entry.cue.swap_partner_id == unit_id:
+			return entry.cue.get("actor_cell")
+	return null
 
 
 func actor_cell(unit_id: String, fallback: Vector2i) -> Vector2i:

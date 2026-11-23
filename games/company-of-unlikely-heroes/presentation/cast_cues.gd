@@ -7,7 +7,7 @@ const Board = preload("res://rules/board.gd")
 const Statuses = preload("res://rules/statuses.gd")
 # [expected rules handler, clip]. Catalog authors can redefine an ability ID.
 const CLIPS := {
-	"knight": {"knight_aura": ["apply_status", "guard"], "knight_shield_throw": ["attack", "shield_away"],
+	"knight": {"knight_aura": ["apply_status", "guard"], "knight_shield_throw": ["attack", "shield_throw"],
 		"knight_rescue_line": ["hook", "rescue_line"], "healer_bonk": ["bonk", "bonk"]},
 	"healer": {"healer_heal": ["heal", "ally_heal"], "healer_field_dressing": ["heal", "ally_heal"],
 		"healer_bonk": ["bonk", "bonk"], "wizard_blast": ["blast", "blast"]},
@@ -19,7 +19,8 @@ const CLIPS := {
 	"bard": {"inspiring_melody": ["perform", "inspiring_melody"], "healing_sonnet": ["perform", "healing_sonnet"],
 		"bard_take_the_stage": ["perform", "healing_sonnet"], "knight_push": ["push", "push"]},
 	"necromancer": {"summon_skeleton": ["summon", "summon_skeleton"], "raise_dead": ["summon", "raise_dead"],
-		"necro_grave_bell": ["repel", "grave_bell"], "inspiring_melody": ["perform", "melody"]},
+		"necro_grave_bell": ["repel", "grave_bell"], "inspiring_melody": ["perform", "melody"],
+		"necromancer_say_hello_to_that_one": ["nominate", "nominate"]},
 	"skeleton": {"wave": ["sweep", "wave"], "dont_go": ["stop_target", "dont_go"]},
 	"zombie": {"say_hello": ["repel", "say_hello"], "offer_flower": ["attack", "offer_flower"]},
 	"alchemist": {"alchemist_potion": ["healing_potion", "potion"],
@@ -30,7 +31,7 @@ const CLIPS := {
 		"enemy_harpoon": ["attack", "ranged_cast"]},
 	"ferryman": {"move": ["move", "travel"]},
 }
-const STRIKES := ["bonk", "blast", "push", "shield_away", "offer_flower", "healing_sonnet", "wave"]
+const STRIKES := ["bonk", "blast", "push", "shield_throw", "offer_flower", "healing_sonnet", "wave"]
 
 
 static func cast_key_for(state: Dictionary, unit: Dictionary, profile := {}) -> String:
@@ -165,6 +166,8 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 		var cue := _start_cue(after, actor, action)
 		if cue.get("cast_key") == "knight" and cue.get("clip") in ["rescue_line", "bonk"]:
 			cue["shield_away"] = shield_away.get(actor.id, actor.get("shield_position") is Vector2i)
+		elif cue.get("cast_key") == "knight" and cue.get("clip") == "shield_throw":
+			cue["shield_away"] = actor.get("shield_position") is Vector2i
 		var end := index + int(action.get("event_count", 1))
 		if end <= index or end > events.size():
 			push_error("Invalid resolved action span at event %d." % index)
@@ -552,6 +555,9 @@ static func _supports_shape(definitions: Dictionary, ability: Dictionary, clip: 
 
 
 static func _observe(cue: Dictionary, event: Dictionary, positions: Dictionary) -> void:
+	if event.type == "swap" and event.unit_id == cue.unit_id \
+			and event.position == cue.actor_cell and event.position != cue.source_cell:
+		cue["swap_partner_id"] = event.target_id
 	if cue.get("ordinary_presentation", false):
 		_observe_ordinary_action(cue, event, positions)
 		return
@@ -614,8 +620,10 @@ static func _observe(cue: Dictionary, event: Dictionary, positions: Dictionary) 
 					or (clip == "etching_paste" and not cue.has("target_cell"))):
 				_aim(cue, id, event.get("position", cell))
 		"shield_drop":
-			if own_action and clip == "shield_away":
-				cue["target_cell"] = event.position
+			if own_action and clip == "shield_throw":
+				cue["shield_drop_cell"] = event.position
+				if not cue.has("target_cell"):
+					cue["target_cell"] = event.position
 		"pull":
 			if clip in ["pull", "rescue_line"]:
 				# Dig In reverses the geometry and names the defender as
@@ -654,6 +662,10 @@ static func _observe(cue: Dictionary, event: Dictionary, positions: Dictionary) 
 			if own_action and clip in ["summon_skeleton", "raise_dead"]:
 				_aim(cue, id, event.position)
 				_recipient(cue, event.summon_id, event.position, "summon")
+		"nominate":
+			if own_action and clip == "nominate":
+				_aim(cue, id, cell)
+				_recipient(cue, id, cell, "status")
 
 
 static func _observe_ordinary_action(cue: Dictionary, event: Dictionary, positions: Dictionary) -> void:

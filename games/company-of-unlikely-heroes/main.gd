@@ -1751,13 +1751,14 @@ func _show_settled_mission() -> void:
 
 
 func _take_terminal_board(cues: Array, reactions: Array) -> BridgeArt:
-	if cues.is_empty() and reactions.is_empty():
-		return null
 	_refresh_board()
-	_board.clear_action_playback()
 	_board.play_committed_actions(cues)
-	_storybook_page.play_committed_reactions(reactions)
-	if _board.action_playback_snapshot().is_empty() and reactions.is_empty():
+	var ink := _board.get_node_or_null("StorybookInk") as StorybookInk
+	if not reactions.is_empty():
+		var pending: Array = ink.get("_committed_reactions").duplicate(true) if ink != null else []
+		pending.append_array(reactions)
+		_storybook_page.play_committed_reactions(pending)
+	if _board.action_playback_snapshot().is_empty() and (ink == null or not ink.has_committed_reactions()):
 		return null
 	# Keep the resolved board only, not its controls or callbacks into the
 	# battle editor. A commission can deploy a new board synchronously.

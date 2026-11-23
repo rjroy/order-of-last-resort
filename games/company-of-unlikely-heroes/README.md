@@ -94,7 +94,20 @@ Missions are listed in play order within each outing.
 
 #### Launch a standalone mission
 
-A `--mission` launch opens one isolated battle with its authored starting party and a restart button. It does not offer guild rewards or carry wounds, orders, or upgrades into another mission. The two missions in the company's first outing, including `company_rescue`, require recruitment through the outing.
+A `--mission` launch opens an isolated battle with a restart button. It uses the authored starting party unless you supply `--party`, and does not read or change a guild profile, award guild rewards, or carry anything into another mission. Missions without an authored party, including the company's first outing, require `--party`. Supply exactly one distinct commandable hero per encounter slot, in deployment order.
+
+Add repeatable `--loadout=hero:field=id,...` options to change selected heroes' `offense`, `utility`, and/or starting `order`. Omitted fields retain their catalog defaults. Choices include the catalog's available ability and order unlocks, without buying them in a guild; the selected order must be compatible with the equipped abilities. Other passive techniques, such as Song Weaving, are not granted. Invalid heroes, choices, duplicate fields or duplicate hero loadouts stop the launch with an error. Both options require an explicit `--mission`. Custom content uses its own authored party slots and guild kit choices.
+
+```sh
+# The authored default party and kits
+godot --path games/company-of-unlikely-heroes -- --mission=wrong_side_of_the_door
+# An ordered party for a mission without a default party
+godot --path games/company-of-unlikely-heroes -- --mission=bridge_patrol --party=bard,healer,knight
+# An authored default party with a partial kit and learned order
+godot --path games/company-of-unlikely-heroes -- --mission=wrong_side_of_the_door --loadout=knight:utility=knight_rescue_line,order=order_knight_escort
+# Combine a custom party with an explicit loadout
+godot --path games/company-of-unlikely-heroes -- --mission=bridge_patrol --party=wizard,knight,healer --loadout=knight:utility=knight_rescue_line,order=order_knight_escort
+```
 
 From the repository root:
 
@@ -168,7 +181,7 @@ Both summons pursue opponents and, close enough, independently pick a legal gree
 
 The Bad Bard can Move or perform either song as a direct command. It interrupts that Bad Bard's standing order for one round; directly commanding anyone else lets the song continue. Songs choose their own listener from living opponents anywhere on the board, never a crate, ally or corpse. The ordered forecast names the listener and shows whether they lose their turn; refreshing the same forecast never rerolls it. A listener who laughs is immune to more laughter through the entire following round, but the Sonnet still hurts them. With two opponents and no other interference, a standing Melody alternates between them. With one, the Bad Bard sings without an eligible listener every other round.
 
-To try it in the practice patrol, choose **The company's first outing** and recruit Bad Bard, Unimpressed Healer and Anxious Knight in that order. Leave the other two on their default orders and commit three rounds of **Inspiring Melody**, comparing the listeners. Switch to **Healing Sonnet** for round four to see damage against the raider who just laughed. Before committing, preview a Move for another hero to leave the song in place, then replace the command with a Bad Bard Move to see the song drop out of the forecast.
+To try it in the practice patrol, launch `godot --path games/company-of-unlikely-heroes -- --mission=bridge_patrol --party=bard,healer,knight`. Set the Bad Bard's standing order to **Inspiring Melody**, leave the other two on their default orders, and commit three rounds, comparing the listeners. Switch to **Healing Sonnet** for round four to see damage against the raider who just laughed. Before committing, preview a Move for another hero to leave the song in place, then replace the command with a Bad Bard Move to see the song drop out of the forecast.
 
 The game collects no playtest telemetry. The question to take away: **Did you enjoy trusting two of these people while you took charge of the third?**
 
@@ -176,7 +189,7 @@ The game collects no playtest telemetry. The question to take away: **Did you en
 
 All 20 stock missions use Blender-rendered sprites for the seven heroes, both undead summons, and the entire field cast: 25 non-party characters and the animated Supply Wagon. A flock shares one Sheep model; the three bandit siblings and the three rival heroes each have their own. The [cast inventory](../../.lore/work/games/company-of-unlikely-heroes/art/non-hero-cast.md) links models to missions. The [runtime manifest](assets/cast/manifest.json) maps performances to packaged sprite sheets. Neither historical renders nor an editor import cache are needed to play.
 
-From the repository root, try `godot --path games/company-of-unlikely-heroes -- --mission=hold_the_line` and commit through round four to see the reserve Archer and War Drummer. Other showcases are `mirror_company` for the rival trio, `great_sheep_escape` for the flock and shepherd, and `last_wagon` for the loaded wagon advancing, stalling, and breaking down. For the Ferryman, use `--fixed-outings`, choose **The company's first outing**, and recruit a team for the patrol and rescue.
+From the repository root, try `godot --path games/company-of-unlikely-heroes -- --mission=hold_the_line` and commit through round four to see the reserve Archer and War Drummer. Other showcases are `mirror_company` for the rival trio, `great_sheep_escape` for the flock and shepherd, and `last_wagon` for the loaded wagon advancing, stalling, and breaking down. For the Ferryman, launch `--mission=company_rescue --party=knight,healer,wizard`, or use `--fixed-outings` and recruit a team for the patrol and rescue.
 
 The [stock scene verification guide](tools/cast/verify_stock_scenes.md) provides one command to reproduce the stock opening and committed-action checks. The seven heroes and both summons retain their prior battle artwork; the original [static summon sources](assets/summons/README.md) are also preserved.
 

@@ -10,6 +10,7 @@ const Adventure = preload("res://adventure.gd")
 const Upgrades = preload("res://rules/upgrades.gd")
 const Commissions = preload("res://commissions.gd")
 const GuildProfile = preload("res://guild_profile.gd")
+const Progression = preload("res://guild_progression.gd")
 const GuildBookPage = preload("res://presentation/guild_book_page.gd")
 const GuildBookArt = preload("res://presentation/guild_book_art.gd")
 const GuildPetitionViewModel = preload("res://presentation/guild_petition_view_model.gd")
@@ -125,22 +126,18 @@ func _ready() -> void:
 		if not _definitions.missions.has(_fixed_mission):
 			_show_launch_error("No mission named \"%s\". %s" % [_fixed_mission, _fixed_mission_help()])
 			return
-		if _requires_party(_fixed_mission):
-			var guild_adventure := _adventure_for_mission(_fixed_mission)
-			var via_commissions := guild_adventure.is_empty()
-			if via_commissions:
-				guild_adventure = _commission_roster_for_mission(_fixed_mission)
-			if guild_adventure.is_empty():
-				_show_launch_error("The mission \"%s\" is not standalone, and this content has no guild route to it. %s" % [
-					_fixed_mission, _fixed_mission_help()])
-			else:
-				var party_size := int(guild_adventure.party_size)
-				var flags := "--mission or --fixed-outings" if via_commissions else "--mission"
-				_show_launch_error("The mission \"%s\" needs a guild party. Launch without %s and choose %d %s at the guild. %s" % [
-					_fixed_mission, flags, party_size, "recruit" if party_size == 1 else "recruits", _fixed_mission_help()])
+		if _requires_party(_fixed_mission) and not launch.has("party"):
+			var encounter: Dictionary = _definitions.encounters[_definitions.missions[_fixed_mission].encounter]
+			var count: int = encounter.get("party_slots", []).size()
+			_show_launch_error("Mission '%s' needs exactly %d party heroes. Use --mission=%s --party=<hero,...> in deployment order." % [
+				_fixed_mission, count, _fixed_mission])
 			return
-		var default_party: Array = _definitions.missions[_fixed_mission].get("default_party", [])
-		_opening_state = Rules.open_mission(_definitions, _fixed_mission, default_party)
+		var party: Array = launch.get("party", _definitions.missions[_fixed_mission].get("default_party", []))
+		var setup := _standalone_setup(_fixed_mission, party, launch.loadouts)
+		if setup.has("error"):
+			_show_launch_error(setup.error)
+			return
+		_opening_state = setup.state
 		if _opening_state.is_empty():
 			_show_launch_error("The mission \"%s\" could not be set up. Check your content file." % _fixed_mission)
 			return
@@ -161,30 +158,56 @@ func _requires_party(mission_id: String) -> bool:
 	return not encounter.get("party_slots", []).is_empty() and mission.get("default_party", []).is_empty()
 
 
-func _adventure_for_mission(mission_id: String) -> Dictionary:
-	for entry in _definitions.get("adventures", {}).values():
-		if mission_id in entry.get("missions", []):
-			return entry
-	return {}
-
-
-func _commission_roster_for_mission(mission_id: String) -> Dictionary:
-	if not _definitions.get("mission_reports", {}).has(mission_id):
-		return {}
-	# Catalog validation checks each reported mission can deploy the commission roster.
-	var roster_id: String = _definitions.get("commission_settings", {}).get("roster_adventure", "")
-	return _definitions.get("adventures", {}).get(roster_id, {})
-
-
 func _fixed_mission_help() -> String:
 	var ids: PackedStringArray = []
 	for id in _definitions.missions:
 		if not _requires_party(id):
 			ids.append(id)
 	if ids.is_empty():
-		return "This content has no standalone missions."
+		return "Use --mission=<id> --party=<hero,...> to select a mission and its party."
 	ids.sort()
-	return "Use --mission=<id> for a standalone mission: %s." % ", ".join(ids)
+	return "Use --mission=<id> for an authored party (%s), or supply --party=<hero,...> for any mission." % ", ".join(ids)
+
+
+func _standalone_setup(mission_id: String, party: Array, overrides: Dictionary) -> Dictionary:
+	var encounter: Dictionary = _definitions.encounters[_definitions.missions[mission_id].encounter]
+	var count: int = encounter.get("party_slots", []).size()
+	if party.size() != count:
+		return {"error": "Mission '%s' needs exactly %d party heroes; received %d. Use --party=<hero,...> in deployment order." % [mission_id, count, party.size()]}
+	var seen := {}
+	for id in party:
+		var hero := Catalog.profile(_definitions, id)
+		if id.is_empty() or hero.is_empty():
+			return {"error": "Unknown or empty party hero '%s'. Use character IDs in --party." % id}
+		if seen.has(id):
+			return {"error": "Party hero '%s' appears more than once." % id}
+		if hero.get("team") != "heroes" or "commandable" not in hero.get("capabilities", []):
+			return {"error": "Party member '%s' is not a commandable hero." % id}
+		for placement in encounter.placements:
+			if placement.id == id:
+				return {"error": "Party hero '%s' conflicts with an encounter placement." % id}
+		seen[id] = true
+	for id in overrides:
+		if id not in party:
+			return {"error": "Loadout hero '%s' is not in the selected party." % id}
+	var kits := {}
+	if not overrides.is_empty():
+		var errors := Catalog.validate_playtest_progression(_definitions)
+		if not errors.is_empty():
+			return {"error": "Cannot use --loadout with this content: " + "; ".join(errors)}
+		for id in overrides:
+			var result := Progression.playtest_kit(_definitions, id, overrides[id])
+			if result.has("error"):
+				return result
+			kits[id] = result.kit
+	var state := Rules.open_mission(_definitions, mission_id, party)
+	if state.is_empty():
+		return {"error": "Mission '%s' could not be set up with that party. Check the content." % mission_id}
+	if not kits.is_empty():
+		state["_guild"] = Catalog.FrozenCatalog.new({"kits": kits})
+		for id in kits:
+			state.orders[id] = kits[id].default_order
+	return {"state": state}
 
 
 func configure_launch(args: PackedStringArray) -> void:
@@ -211,7 +234,7 @@ func battle_snapshot() -> Dictionary:
 
 
 func _read_launch_options(args: PackedStringArray) -> Dictionary:
-	var launch := {"content": "", "mission": "", "fixed_outings": false, "storybook": false}
+	var launch := {"content": "", "mission": "", "fixed_outings": false, "storybook": false, "loadouts": {}}
 	var seen: Dictionary = {}
 	for arg in args:
 		var key := arg.get_slice("=", 0).trim_prefix("--")
@@ -227,13 +250,32 @@ func _read_launch_options(args: PackedStringArray) -> Dictionary:
 				return {"error": "Use --fixed-outings once, without a value."}
 			launch.fixed_outings = true
 			continue
-		if not arg.begins_with("--") or key not in ["content", "mission"]:
+		if not arg.begins_with("--") or key not in ["content", "mission", "party", "loadout"]:
 			continue
 		var value := arg.substr(arg.find("=") + 1) if "=" in arg else ""
-		if value.strip_edges().is_empty() or seen.has(key):
+		if value.strip_edges().is_empty() or (key != "loadout" and seen.has(key)):
 			return {"error": "Use --%s=<value> once, with a nonempty value." % key}
-		launch[key] = value
+		if key == "party":
+			launch.party = Array(value.split(",", true))
+		elif key == "loadout":
+			var parts := value.split(":", true)
+			if parts.size() != 2 or parts[0].is_empty() or parts[1].is_empty():
+				return {"error": "Use --loadout=hero:offense=id,utility=id,order=id (fields optional)."}
+			var hero: String = parts[0]
+			if launch.loadouts.has(hero):
+				return {"error": "Loadout for '%s' was supplied more than once." % hero}
+			var fields := {}
+			for assignment in parts[1].split(",", true):
+				var pair := assignment.split("=", true)
+				if pair.size() != 2 or pair[0] not in ["offense", "utility", "order"] or pair[1].is_empty() or fields.has(pair[0]):
+					return {"error": "Invalid or duplicate loadout slot or order field '%s' for '%s'; use offense, utility, or order with a nonempty ID." % [assignment, hero]}
+				fields[pair[0]] = pair[1]
+			launch.loadouts[hero] = fields
+		else:
+			launch[key] = value
 		seen[key] = true
+	if launch.mission.is_empty() and (launch.has("party") or not launch.loadouts.is_empty()):
+		return {"error": "--party and --loadout require --mission=<id>."}
 	return launch
 
 

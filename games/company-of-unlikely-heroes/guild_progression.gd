@@ -77,8 +77,9 @@ static func _owns_petition(profile: Dictionary, table: Dictionary, id: String) -
 	return id in profile.get("purchased_ids", [])
 
 
-static func slot_options(defs: Dictionary, profile: Dictionary, hero_id: String) -> Dictionary:
-	if hero_id not in roster(defs, profile):
+static func slot_options(defs: Dictionary, profile: Dictionary, hero_id: String,
+		playtest := false) -> Dictionary:
+	if (not playtest and hero_id not in roster(defs, profile)) or not _kits(defs).has(hero_id):
 		return {}
 	var slots: Dictionary = _kits(defs)[hero_id]
 	var result: Dictionary = {}
@@ -91,18 +92,19 @@ static func slot_options(defs: Dictionary, profile: Dictionary, hero_id: String)
 	return result
 
 
-static func default_loadout(defs: Dictionary, profile: Dictionary, hero_id: String) -> Dictionary:
-	var choices := slot_options(defs, profile, hero_id)
+static func default_loadout(defs: Dictionary, profile: Dictionary, hero_id: String,
+		playtest := false) -> Dictionary:
+	var choices := slot_options(defs, profile, hero_id, playtest)
 	if choices.is_empty():
 		return {}
 	var preference: Dictionary = profile.get("preferred_loadouts", {}).get(hero_id, {})
-	if not effective_kit(defs, profile, hero_id, preference).is_empty():
+	if not effective_kit(defs, profile, hero_id, preference, playtest).is_empty():
 		return preference.duplicate(true)
 	var slots: Dictionary = {}
 	for slot_id in choices:
 		slots[slot_id] = choices[slot_id][0]
-	var loadout := {"slots": slots, "order_id": Catalog.profile(defs, hero_id).default_order}
-	var orders := order_options(defs, profile, hero_id, loadout)
+	var loadout := {"slots": slots, "order_id": Catalog.profile(defs, hero_id).get("default_order", "")}
+	var orders := order_options(defs, profile, hero_id, loadout, playtest)
 	for order in orders:
 		if order.id == loadout.order_id and order.compatible:
 			return loadout
@@ -113,16 +115,67 @@ static func default_loadout(defs: Dictionary, profile: Dictionary, hero_id: Stri
 	return {}
 
 
+## Resolve explicit standalone choices against the same slot and order rules as
+## guild appointments, without a guild roster, purchases, or passive grants.
+static func playtest_kit(defs: Dictionary, hero_id: String, fields: Dictionary) -> Dictionary:
+	var profile := {"recruited_ids": [], "purchased_ids": [], "preferred_loadouts": {}}
+	for petition_id in _petitions(defs):
+		var spec: Dictionary = _petitions(defs)[petition_id]
+		if not spec.get("teaser", false) and spec.get("grant", {}).get("kind") in ["ability", "order"]:
+			profile.purchased_ids.append(petition_id)
+	var loadout := default_loadout(defs, profile, hero_id, true)
+	if loadout.is_empty():
+		if not _kits(defs).has(hero_id):
+			return {"error": "Hero '%s' has no configurable catalog kit." % hero_id}
+		loadout = {"slots": _kits(defs)[hero_id].duplicate(), "order_id": ""}
+	for field in fields:
+		if field == "order":
+			loadout.order_id = fields[field]
+		elif not loadout.slots.has(field):
+			return {"error": "Hero '%s' has no '%s' loadout slot." % [hero_id, field]}
+		else:
+			loadout.slots[field] = fields[field]
+	var kit := effective_kit(defs, profile, hero_id, loadout, true)
+	if kit.is_empty():
+		var choices := slot_options(defs, profile, hero_id, true)
+		for slot in loadout.slots:
+			if loadout.slots[slot] not in choices[slot]:
+				return {"error": "Hero '%s': ability '%s' is invalid for slot '%s'. Available IDs: %s." % [
+					hero_id, loadout.slots[slot], slot, ", ".join(choices[slot])]}
+		var orders := order_options(defs, profile, hero_id, loadout, true)
+		if orders.is_empty():
+			if not _equipped_abilities(defs, profile, hero_id, loadout, true).is_empty():
+				return {"error": "Hero '%s': order '%s' cannot be selected; no orders are available for this kit." % [
+					hero_id, loadout.order_id]}
+			return {"error": "Hero '%s': equipped slot abilities %s conflict or duplicate an existing ability; choose distinct abilities. Available slot IDs: %s." % [
+				hero_id, str(loadout.slots), str(choices)]}
+		var available: Array[String] = []
+		var selected := {}
+		for row in orders:
+			if row.compatible:
+				available.append(row.id)
+			if row.id == loadout.order_id:
+				selected = row
+		var alternatives := ", ".join(available) if not available.is_empty() else "(none)"
+		if selected.is_empty():
+			return {"error": "Hero '%s': unknown or unavailable order '%s'. Compatible order IDs: %s." % [
+				hero_id, loadout.order_id, alternatives]}
+		return {"error": "Hero '%s': order '%s' is incompatible; missing equipped abilities: %s. Compatible order IDs: %s." % [
+			hero_id, loadout.order_id, ", ".join(selected.missing_abilities), alternatives]}
+	return {"kit": kit}
+
+
 static func order_options(defs: Dictionary, profile: Dictionary, hero_id: String,
-		loadout: Dictionary) -> Array[Dictionary]:
-	var abilities := _equipped_abilities(defs, profile, hero_id, loadout)
+		loadout: Dictionary, playtest := false) -> Array[Dictionary]:
+	var abilities := _equipped_abilities(defs, profile, hero_id, loadout, playtest)
 	return _order_rows(defs, profile, hero_id, abilities) if not abilities.is_empty() else []
 
 
-static func effective_kit(defs: Dictionary, profile: Dictionary, hero_id: String, loadout: Dictionary) -> Dictionary:
+static func effective_kit(defs: Dictionary, profile: Dictionary, hero_id: String, loadout: Dictionary,
+		playtest := false) -> Dictionary:
 	if loadout.size() != 2 or not loadout.get("order_id") is String:
 		return {}
-	var abilities := _equipped_abilities(defs, profile, hero_id, loadout)
+	var abilities := _equipped_abilities(defs, profile, hero_id, loadout, playtest)
 	if abilities.is_empty():
 		return {}
 	var habits: Dictionary = {}
@@ -148,8 +201,8 @@ static func valid_loadouts(defs: Dictionary, profile: Dictionary, loadouts: Dict
 
 
 static func _equipped_abilities(defs: Dictionary, profile: Dictionary, hero_id: String,
-		loadout: Dictionary) -> Array[String]:
-	var choices := slot_options(defs, profile, hero_id)
+		loadout: Dictionary, playtest := false) -> Array[String]:
+	var choices := slot_options(defs, profile, hero_id, playtest)
 	var slots: Variant = loadout.get("slots")
 	if choices.is_empty() or not slots is Dictionary or slots.size() != choices.size():
 		return []

@@ -1,7 +1,6 @@
 extends SceneTree
 ## Graphical stock-cast regression. See stock_cast_mission_test.md.
 const Cases = preload("res://tests/support/stock_cast_cases.gd")
-const Rules = preload("res://rules.gd")
 const Catalog = preload("res://content/catalog.gd")
 const Driver = preload("res://tests/support/storybook_driver.gd")
 const Triggers = preload("res://tests/support/stock_cast_triggers.gd")
@@ -81,40 +80,19 @@ func _run() -> void:
 	root.add_child(viewport)
 	scene = load("res://main.tscn").instantiate()
 	var default_party: Array = defs.missions[mission].get("default_party", [])
+	var explicit_party := case.has("party") or (inventory and default_party.is_empty())
 	if inventory and default_party.is_empty():
 		default_party = ["knight", "healer", "wizard"].slice(0,
 			defs.encounters[defs.missions[mission].encounter].get("party_slots", []).size())
-	var route: Dictionary = case
-	if case.has("fixed_route"):
-		var routes: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://tests/fixed_outing_routes.json"))
-		if not routes is Dictionary or not routes.has(case.fixed_route):
-			_finish("Missing fixed outing route.")
-			return
-		route = routes[case.fixed_route]
-	var party: Array = case.get("party", route.get("party", default_party))
-	# Standalone launches use their real default party. Missions without one need
-	# the main scene's battle entry with an explicitly selected stock party.
-	var has_default: bool = not defs.missions[mission].get("default_party", []).is_empty()
-	var launch_mission := mission if has_default else "goblin_mob"
-	scene.configure_launch(PackedStringArray(["--storybook", "--mission=" + launch_mission]))
+	var party: Array = case.get("party", default_party)
+	var launch_args := PackedStringArray(["--storybook", "--mission=" + mission])
+	if explicit_party and not party.is_empty():
+		launch_args.append("--party=" + ",".join(party))
+	scene.configure_launch(launch_args)
 	scene.configure_profile_path(output.path_join("unused-profile.json"))
 	viewport.add_child(scene)
 	await process_frame
 	await process_frame
-	if not has_default:
-		if party.is_empty():
-			_finish("This mission requires an explicit stock party in its case or route.")
-			return
-		var opening: Dictionary = Rules.open_mission(defs, mission, party)
-		if opening.is_empty():
-			_finish("Stock mission and party could not be opened.")
-			return
-		scene.set("_opening_state", opening.duplicate(true))
-		scene.call("_show_battle", opening)
-		await process_frame
-	elif party != default_party:
-		_finish("Standalone case party must match the normal main-scene launch.")
-		return
 	if scene.current_screen() != "battle":
 		_finish("Stock battle did not open.")
 		return
@@ -137,15 +115,15 @@ func _run() -> void:
 	else:
 		await _ready(board, case, "opening")
 	var driver = Driver.new(self, scene)
-	var rounds: Array = route.get("rounds", []).duplicate(true)
-	if route.has("route_ref"):
+	var rounds: Array = case.get("rounds", []).duplicate(true)
+	if case.has("route_ref"):
 		var shared: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://tests/support/stock_cast_routes.json"))
-		if not shared is Dictionary or not shared.has(route.route_ref):
-			_finish("Unknown shared route " + str(route.route_ref))
+		if not shared is Dictionary or not shared.has(case.route_ref):
+			_finish("Unknown shared route " + str(case.route_ref))
 			return
-		rounds = shared[route.route_ref]
+		rounds = shared[case.route_ref]
 	elif rounds.is_empty():
-		for round_number in int(route.get("automatic_rounds", 0)):
+		for round_number in int(case.get("automatic_rounds", 0)):
 			rounds.append({})
 	for index in rounds.size():
 		if scene.current_screen() != "battle":

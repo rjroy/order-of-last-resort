@@ -2,7 +2,7 @@ extends SceneTree
 
 ## Graphical: godot --path games/company-of-unlikely-heroes --script res://tests/mixologist_cast_scene_test.gd
 ## Optional: -- --capture-dir=/absolute/ignored/directory
-## Deploys through the stock guild and commits real player commands on the primary page.
+## Launches the stock mission with an explicit party and commits real player commands.
 const Driver = preload("res://tests/support/storybook_driver.gd")
 var rules = preload("res://rules.gd").new()
 var scene: Node
@@ -33,33 +33,16 @@ func _launch_stock() -> bool:
 		scene.queue_free()
 		await process_frame
 	scene = load("res://main.tscn").instantiate()
-	scene.configure_launch(PackedStringArray(["--fixed-outings"]))
+	scene.configure_launch(PackedStringArray([
+		"--mission=goblin_mob", "--party=alchemist,healer,wizard"]))
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
 	await process_frame
-	var selector := scene.find_child("AdventureSelect", true, false) as OptionButton
-	if not _check(scene.current_screen() == "guild" and selector != null, "Stock guild opens"):
-		return false
-	var found := false
-	for index in selector.item_count:
-		if str(selector.get_item_metadata(index)) == "village_troubles":
-			selector.select(index)
-			selector.item_selected.emit(index)
-			found = true
-			break
-	if not _check(found, "Stock Village Troubles outing is selectable"):
-		return false
-	await process_frame
-	for id in ["alchemist", "healer", "wizard"]:
-		if not await _press("Recruit_" + id):
-			return false
-	if not await _press("StartAdventure"):
-		return false
 	var state: Dictionary = scene.battle_snapshot()
 	return _check(scene.current_screen() == "battle" and state.get("mission_id") == "goblin_mob"
 		and state.get("party") == ["alchemist", "healer", "wizard"],
-		"Stock Goblin Mob deploys the selected Mixologist, Healer and Wizard")
+		"Stock Goblin Mob launches with the specified Mixologist, Healer and Wizard")
 
 
 func _exercise(action: String) -> void:

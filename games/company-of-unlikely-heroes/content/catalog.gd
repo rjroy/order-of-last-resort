@@ -149,6 +149,18 @@ static func validate_guild_progression(defs: Dictionary) -> PackedStringArray:
 	return Validator.new(defs).check_guild_progression()
 
 
+## Standalone playtests have no guild roster; the authored kit owners are the
+## relevant roster for validating the same progression tables.
+static func validate_playtest_progression(defs: Dictionary) -> PackedStringArray:
+	var guild: Variant = defs.get("guild_progression")
+	if not guild is Dictionary:
+		return PackedStringArray(["guild_progression: expected a dictionary"])
+	var kits: Variant = guild.get("kits")
+	if not kits is Dictionary:
+		return PackedStringArray(["guild_progression.kits: expected a dictionary"])
+	return Validator.new(defs).check_guild_progression(kits.keys())
+
+
 static func behavior_ability_ids(behavior: Dictionary) -> Array[String]:
 	return Validator.behavior_ability_ids(behavior)
 
@@ -307,7 +319,7 @@ class Validator:
 					_error(path, "expected a dictionary")
 		return _errors
 
-	func check_guild_progression() -> PackedStringArray:
+	func check_guild_progression(playtest_roster: Variant = null) -> PackedStringArray:
 		var path := "guild_progression"
 		var guild := _dictionary(_defs.get(path), path)
 		if not _errors.is_empty():
@@ -317,7 +329,8 @@ class Validator:
 		var petitions := _dictionary(guild.get("petitions"), path + ".petitions")
 		var starting := _dictionary(guild.get("starting_habits", {}), path + ".starting_habits")
 		var roster_id: Variant = _record(_defs, "commission_settings").get("roster_adventure")
-		var roster: Variant = _record(_record(_defs, "adventures"), roster_id if roster_id is String else "").get("roster")
+		var roster: Variant = playtest_roster if playtest_roster != null else \
+			_record(_record(_defs, "adventures"), roster_id if roster_id is String else "").get("roster")
 		if not roster is Array:
 			_error(path, "requires a commission roster")
 			return _errors
@@ -353,7 +366,7 @@ class Validator:
 			for order in habits:
 				_ref(order, "orders", habit_path + "." + str(order))
 				_behavior_for_kit(habits[order], hero.get("abilities", []), habit_path + "." + str(order))
-			if not habits.has(hero.get("default_order")):
+			if hero.has("default_order") and not habits.has(hero.default_order):
 				_error(habit_path, "must include the hero's default order")
 		for id in petitions:
 			_check_petition(kits, petitions, id)

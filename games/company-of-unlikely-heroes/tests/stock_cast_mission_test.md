@@ -21,15 +21,15 @@ actor case; the shared `stock_cast_cases.gd` loader accepts any subset. Stage
 the Goblin case with the reusable driver and triggers without staging future
 actors. A case names its stock mission, expected cast key, opening population,
 and event triggers. `automatic_rounds` commits standing orders without repeating
-identical empty route data. `rounds` uses the existing fixed-outing route format
-(`command` and `orders`); `fixed_route` reuses `fixed_outing_routes.json`.
+identical empty route data. `rounds` uses steps with `command` and `orders`.
 `route_ref` references a shared route in `stock_cast_routes.json`. Optional
 `--variant=<id>` chooses only that actor's alternate checkpoint.
-For a mission without a default party supply a stock `party` in the case, or
-use a fixed route that supplies one. Such missions enter the actual main battle
-with `Rules.open_mission`, not through the guild adventure progression. Routes
-for later outing missions may need a separately specified party and do not
-reproduce prior-mission rewards. No content or rules are replaced.
+For a mission without a default party supply a stock `party` in the case.
+The fixture passes the selected mission through the main scene's public
+`--mission` option. It passes `--party` for a case-declared party or an inventory
+fallback; otherwise it exercises the authored default without a party flag.
+The opening assertion checks party order in either path. Routes for later outing missions do not reproduce prior-mission
+rewards. No content or rules are replaced.
 
 To check the graphical fixture and stock events before a cast exists, append
 `--events-only`. This mode still launches the main scene, commits the routes,
@@ -50,8 +50,8 @@ route reaches one.
 The following clip names match the current candidate bake recipes, not approved
 assets or existing production bindings. Cast keys are the stock character IDs.
 Archer's candidate recipe became available during this work. Each default uses
-its stock mission default party. The listed
-variants use legal commands with that same party.
+its configured party, or its stock mission default party when none is specified.
+The listed variants use their configured party and legal commands.
 
 | Character | Mission | Required clips |
 | --- | --- | --- |
@@ -146,8 +146,18 @@ For each mission, launch separately with `--mission=<id> --inventory
 catalog encounter placement, its ID and stock cell, whether reserves remain
 off-board, and active figure or obstacle presence on the real board. It logs
 every placement and captures the complete shared opening. Missions without a
-default party use an explicit stock Knight/Healer/Wizard party via the main
-battle entry. Inventory is not an authored-cast check.
+default party use an explicit stock Knight/Healer/Wizard party via `--party`.
+Inventory is not an authored-cast check.
+
+For example, `bridge_patrol` has no default party and previously used a private
+battle-entry shortcut. Exercise its public launch path with:
+
+```sh
+godot --path games/company-of-unlikely-heroes \
+  --script res://tests/stock_cast_mission_test.gd -- \
+  --mission=bridge_patrol --inventory \
+  --output="$PWD/.lore/local/stock-cast-bridge-inventory"
+```
 
 After all actors are integrated, add `--all-integrated` to inventory to require
 the registered cast binding for every opening and reserve character, plus

@@ -1,4 +1,4 @@
-extends "res://tests/village_outing_scene_test.gd"
+extends "res://tests/support/scene_fixture.gd"
 ## Graphical capture. From the repository root:
 ## godot --path games/company-of-unlikely-heroes --script res://tools/capture_guild_book.gd -- --output="$PWD/.lore/local/guild-book-review/<new-directory>"
 ## Opening spread only: add --guild-creation-only and use an output directory

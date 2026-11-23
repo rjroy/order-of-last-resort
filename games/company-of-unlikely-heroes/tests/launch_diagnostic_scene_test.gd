@@ -1,4 +1,4 @@
-extends "res://tests/village_outing_scene_test.gd"
+extends "res://tests/support/scene_fixture.gd"
 
 # Run graphically with --script res://tests/launch_diagnostic_scene_test.gd.
 # Add -- --capture-dir=/absolute/existing/directory to save the long case.

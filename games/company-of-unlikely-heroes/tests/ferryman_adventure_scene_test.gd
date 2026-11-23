@@ -1,6 +1,6 @@
 extends "res://tests/ferryman_rescue_scene_test.gd"
 ## godot --path games/company-of-unlikely-heroes --script res://tests/ferryman_adventure_scene_test.gd -- --output="$PWD/.lore/local/ferryman-adventure"
-## Real fixed outing and stock patrol; no injected battle or settled run.
+## Commission route and stock rescue; no injected battle or settled run.
 
 
 func _run() -> void:
@@ -30,58 +30,83 @@ func _run() -> void:
 	if dir == null or not dir.get_files().is_empty() or not dir.get_directories().is_empty():
 		_finish("Output directory must be empty.")
 		return
+	# Make the stock rescue eligible as a road report, without changing its
+	# authored mission or encounter, so its settlement is reached immediately.
+	var defs: Dictionary = Catalog.read_default()
+	defs.mission_reports.company_rescue.erase("destination_descriptors")
+	var errors: PackedStringArray = Catalog.validate(defs)
+	if not errors.is_empty():
+		_finish("Commission rescue fixture is invalid: " + str(errors))
+		return
+	var fixture := output.path_join("rescue-catalog.json")
+	var file := FileAccess.open(fixture, FileAccess.WRITE)
+	if file == null:
+		_finish("Cannot write rescue catalog fixture.")
+		return
+	file.store_string(JSON.stringify(defs))
+	file.close()
+	var commissions = load("res://commissions.gd")
+	var adventure = load("res://adventure.gd")
+	var board_seed := -1
+	var offer_index := -1
+	var route_index := -1
+	for candidate in range(1, 501):
+		var offers: Array = commissions.board(defs, candidate)
+		for index in offers.size():
+			var run: Dictionary = adventure.start_commission(defs, offers[index], ["knight", "healer", "wizard"], 12345)
+			for report_index in run.get("reports", []).size():
+				if run.reports[report_index].mission_id == "company_rescue":
+					board_seed = candidate
+					offer_index = index
+					route_index = report_index
+					break
+			if board_seed >= 0:
+				break
+		if board_seed >= 0:
+			break
+	if board_seed < 0:
+		_finish("No commission offered the rescue in the controlled seed range.")
+		return
+	var profile := output.path_join("profile.json")
+	var created: Dictionary = load("res://guild_profile.gd").create(profile, "Ferryman test", board_seed)
+	if created.has("error"):
+		_finish("Cannot create isolated guild: " + str(created))
+		return
 	viewport = SubViewport.new()
 	viewport.size = Vector2i(1280, 820)
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	root.add_child(viewport)
 	scene = load("res://main.tscn").instantiate()
-	scene.configure_launch(PackedStringArray(["--fixed-outings"]))
-	scene.configure_profile_path(output.path_join("unused-profile.json"))
+	scene.configure_launch(PackedStringArray(["--content=" + fixture]))
+	scene.configure_profile_path(profile)
 	viewport.add_child(scene)
 	await process_frame
 	await process_frame
+	if not await _press("Commission_%d" % offer_index):
+		_finish("")
+		return
 	for id in ["knight", "healer", "wizard"]:
 		if not await _press("Recruit_" + id):
 			_finish("")
 			return
-	if not await _press("StartAdventure"):
+	if not await _press("StartAdventure") or not await _press("Route_%d" % route_index):
 		_finish("")
-		return
-	var driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
-	if not await driver.order("wizard", "order_blast"):
-		_finish(driver.error)
-		return
-	for i in 3:
-		if i == 2 and not await driver.command("wizard", "wizard_pull", "raider_two"):
-			_finish(driver.error)
-			return
-		if not await _press("Commit"):
-			_finish("")
-			return
-	_check(scene.current_screen() == "debrief", "Actual patrol victory settles to debrief")
-	if scene.current_screen() != "debrief":
-		_finish("")
-		return
-	var offered := false
-	for id in ["knight", "healer", "wizard"]:
-		var reward := scene.find_child("Reward_" + id, true, false) as BaseButton
-		if reward != null and not reward.disabled and reward.is_visible_in_tree():
-			offered = await _press("Reward_" + id)
-			break
-	if not offered or not await _press("ContinueAdventure"):
-		_finish("Cannot continue to rescue.")
 		return
 	_check(scene.current_screen() == "battle" and scene.battle_snapshot().get("mission_id") == "company_rescue",
-		"Actual outing opens the stock rescue")
+		"Selected commission report opens the stock rescue")
 	if scene.current_screen() != "battle":
 		_finish("")
 		return
+	var driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
 	var board := scene.find_child("BridgeBoard", true, false)
 	_check(board.get("_units_by_id").get("civilian", {}).get("cast_key") == "ferryman"
 		and board.get("_units_by_id").get("harpooner", {}).get("cast_key") == "harpooner",
 		"Both authored actors coexist on the live outing board")
 	await _capture("adventure-ready.png")
-	for i in 10:
+	for command in ROUTE:
+		if not command.is_empty() and not await driver.command(command[0], command[1], command[2]):
+			_finish(driver.error)
+			return
 		var plan: Dictionary = scene.get("_plan").duplicate(true)
 		if not plan.get("valid", false):
 			_finish("Rescue forecast is invalid.")
@@ -92,8 +117,8 @@ func _run() -> void:
 			return
 		if terminal:
 			_check(plan.events.any(func(event): return event.get("type") == "victory" \
-				and event.get("target_id") == "civilian"), "Actual committed victory names Ferryman")
-			_check(scene.current_screen() != "battle", "Actual outing leaves battle on victory")
+				and event.get("target_id") == "civilian"), "Committed victory names Ferryman")
+			_check(scene.current_screen() != "battle", "Commission leaves battle on victory")
 			var overlay := scene.find_child("TerminalCastReplay", true, false) as Control
 			_check(overlay != null and overlay.is_visible_in_tree(), "Terminal replay is visible after settlement")
 			if overlay != null:
@@ -103,15 +128,15 @@ func _run() -> void:
 						replay = child
 						break
 				_check(replay != null and _has_cue(replay.call("action_playback_snapshot"), "safe_bank"),
-					"Settled adventure retains the Ferryman safe_bank performance")
+					"Settled commission retains the Ferryman safe_bank performance")
 				if replay != null:
 					await _watch_terminal_replay(replay)
 			_finish("")
 			return
 		if scene.current_screen() != "battle":
-			_finish("Stock outing rescue ended without victory.")
+			_finish("Stock commission rescue ended without victory.")
 			return
-	_check(false, "Stock outing rescue reaches victory before deadline")
+	_check(false, "Stock commission rescue reaches victory before deadline")
 	_finish("")
 
 

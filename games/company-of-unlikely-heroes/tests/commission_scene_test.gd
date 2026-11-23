@@ -1,10 +1,11 @@
-extends "res://tests/village_outing_scene_test.gd"
+extends "res://tests/support/scene_fixture.gd"
 
 # Run: godot --headless --path games/company-of-unlikely-heroes --script res://tests/commission_scene_test.gd
 # Use the existing bounded, forecast-driven battle player, but enter through the
 # normal commission flow and never use a player's profile.
 const GUILD_NAME := "The Test Company"
 const GAME_TITLE := "Barnaby's Order of Last Resort"
+const PARTY := ["healer", "knight", "bard"]
 const BOARD_SEED := 147258
 const FOUNDER_PARTY := ["healer", "knight", "wizard"]
 var profile_path := "user://commission_scene_%d_%d.json" % [OS.get_process_id(), Time.get_ticks_usec()]

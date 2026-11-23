@@ -12,17 +12,15 @@ func populate(page: VBoxContainer, model: Dictionary) -> void:
 	_compact = viewport_size.x < 1100 or viewport_size.y < 700
 	bind_cover(30 if _compact else 36, 23 if _compact else 25, 29 if _compact else 36)
 	page.add_theme_constant_override("separation", 8 if _compact else 11)
-	var title := "Choose one reward" if model.pending else (
-		"Mission cleared" if model.claimed.is_empty() else "Reward claimed")
+	var title := "Choose one reward" if model.pending else "Reward claimed"
 	var heading := stack(page, 0)
 	strong_text(heading, title, 36 if _compact else 48)
 	var subtitle: String = model.mission
 	if model.pending:
 		subtitle += " cleared. The chosen hero keeps the upgrade until the outing ends."
-	elif not model.claimed.is_empty():
+	else:
 		subtitle += " cleared."
-	if model.pending or not model.claimed.is_empty():
-		_bound_title(text(heading, subtitle, 18 if _compact else 23, SUBTLE, "italic"), "DebriefMissionTitle")
+	_bound_title(text(heading, subtitle, 18 if _compact else 23, SUBTLE, "italic"), "DebriefMissionTitle")
 	rule(page, PRINT_RULE)
 	if not model.receipt.is_empty():
 		text(page, model.receipt, 16 if _compact else 19, FOREST, "display")
@@ -85,10 +83,7 @@ func _build_pending_notes(page: VBoxContainer, carry: String, scout_note: String
 
 func _build_settled(page: VBoxContainer, model: Dictionary) -> void:
 	var leaves := spread(page, 0.5, 26 if _compact else 42)
-	if model.claimed.is_empty():
-		_build_ordinary(leaves[0], model)
-	else:
-		_build_reward(leaves[0], model.claimed, false)
+	_build_reward(leaves[0], model.claimed, false)
 
 	var account := material_panel(leaves[1], Surface.POSTING, 17 if _compact else 24, 30, 24)
 	account.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -104,25 +99,9 @@ func _build_settled(page: VBoxContainer, model: Dictionary) -> void:
 		strong_text(record, "Your scout’s note", 21 if _compact else 26)
 		text(record, model.scout_note, 17 if _compact else 20, INK, "display").name = "DebriefScoutNote"
 	rule(notes, PRINT_RULE)
-	if not model.claimed.is_empty() and not model.next_title.is_empty():
+	if not model.next_title.is_empty():
 		_add_next_title(notes, model.next_title)
 	_add_continue(notes, model).grab_focus()
-
-
-func _build_ordinary(parent: Control, model: Dictionary) -> void:
-	var margin := material_panel(parent, Surface.POSTING, 18 if _compact else 26, 30, 24)
-	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var region := detail_scroll(margin, "MissionSummaryScroll", 104, "Scroll the mission summary")
-	var record := stack(region, 10)
-	record.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_bound_title(strong_text(record, model.mission, 28 if _compact else 37), "DebriefMissionTitle")
-	text(record, model.result_text, 20 if _compact else 24, INK, "display")
-	if not model.next_title.is_empty():
-		space(record, 12 if _compact else 20)
-		rule(record, PRINT_RULE)
-		_add_next_title(record, model.next_title)
-		if model.next_art != null:
-			plate(record, model.next_art, Vector2(0, 167 if _compact else 230))
 
 
 func _add_next_title(parent: Control, title: String) -> void:

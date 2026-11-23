@@ -10,27 +10,12 @@ const Rules = preload("res://rules.gd")
 const DESTINATION_POINTS := 5
 
 
-static func start_adventure(definitions: Dictionary, adventure_id: String, picks: Array,
-		reward_seed: Variant = null) -> Dictionary:
-	if (reward_seed != null and not reward_seed is int) or not Catalog.validate(definitions).is_empty():
-		return {}
-	var entry: Dictionary = definitions.get("adventures", {}).get(adventure_id, {})
-	if not _valid_picks(entry, picks):
-		return {}
-	var outing_seed: int = randi() if reward_seed == null else reward_seed
-	var run := _new_run(definitions, adventure_id, picks, outing_seed, outing_seed)
-	run.mission_ids = entry.missions.duplicate()
-	return run
-
-
 static func start_commission(definitions: Dictionary, offer: Dictionary, picks: Array,
 		reward_seed: Variant = null) -> Dictionary:
 	if (reward_seed != null and not reward_seed is int) or not Catalog.validate(definitions).is_empty() \
 			or not Commissions.valid_offer(definitions, offer):
 		return {}
-	var roster_adventure: String = definitions.commission_settings.roster_adventure
-	var entry: Dictionary = definitions.adventures[roster_adventure]
-	if not _valid_picks(entry, picks):
+	if not _valid_picks(definitions, offer, picks):
 		return {}
 	return _new_commission(definitions, offer, picks, reward_seed)
 
@@ -48,8 +33,7 @@ static func start_guild_commission(definitions: Dictionary, offer: Dictionary, p
 			or offer not in Commissions.board(definitions, board_seed) \
 			or not Catalog.validate_guild_progression(definitions).is_empty():
 		return {}
-	var roster_adventure: String = definitions.commission_settings.roster_adventure
-	if not _valid_picks(definitions.adventures[roster_adventure], picks):
+	if not _valid_picks(definitions, offer, picks):
 		return {}
 	var kits: Dictionary = {}
 	for hero_id in loadouts:
@@ -72,9 +56,8 @@ static func start_guild_commission(definitions: Dictionary, offer: Dictionary, p
 
 static func _new_commission(definitions: Dictionary, offer: Dictionary, picks: Array,
 		reward_seed: Variant) -> Dictionary:
-	var roster_adventure: String = definitions.commission_settings.roster_adventure
 	var outing_seed: int = offer.seed if reward_seed == null else reward_seed
-	var run := _new_run(definitions, roster_adventure, picks, outing_seed, reward_seed)
+	var run := _new_run(definitions, picks, outing_seed, reward_seed)
 	run["destination_id"] = offer.destination_id
 	run["mission_count"] = offer.length
 	run["route_rng_state"] = Commissions.starting_rng_state(offer.seed)
@@ -140,24 +123,26 @@ static func choose_route(run: Dictionary, mission_id: String) -> Dictionary:
 
 
 static func mission_count(run: Dictionary) -> int:
-	return int(run.get("mission_count", run.get("mission_ids", []).size()))
+	return int(run.mission_count)
 
 
-static func _valid_picks(entry: Dictionary, picks: Array) -> bool:
-	if entry.is_empty() or picks.size() != int(entry.party_size):
+static func _valid_picks(definitions: Dictionary, offer: Dictionary, picks: Array) -> bool:
+	var mission: Dictionary = definitions.missions[offer.destination_id]
+	var encounter: Dictionary = definitions.encounters[mission.encounter]
+	if picks.size() != encounter.party_slots.size():
 		return false
 	var seen: Dictionary = {}
 	for id in picks:
-		if not id is String or not id in entry.roster or seen.has(id):
+		if not id is String or not id in definitions.commission_settings.recruitment_roster or seen.has(id):
 			return false
 		seen[id] = true
 	return true
 
 
-static func _new_run(definitions: Dictionary, adventure_id: String, picks: Array,
+static func _new_run(definitions: Dictionary, picks: Array,
 		outing_seed: int, reward_seed: Variant) -> Dictionary:
 	var catalog := Catalog.FrozenCatalog.new(definitions)
-	return {"catalog": catalog, "adventure_id": adventure_id, "phase": "ready",
+	return {"catalog": catalog, "phase": "ready",
 		"mission_ids": [], "mission_index": 0, "party": picks.duplicate(),
 		"mission": {}, "outcome": "ongoing", "carry_by_id": _empty_observation(),
 		"last_result": _empty_observation(), "upgrades_by_id": {}, "reward_offers": [], "chosen_reward": {},
@@ -214,7 +199,7 @@ static func begin_mission(run: Dictionary) -> Dictionary:
 	result.phase = "mission"
 	result.last_result = _empty_observation()
 	result.chosen_reward = {}
-	if result.has("destination_id") and mission.mission_id == result.destination_id:
+	if mission.mission_id == result.destination_id:
 		result.scout_note = ""
 	# Deep duplication of a Godot Dictionary does not preserve its read-only flag.
 	result.carry_by_id = run.carry_by_id
@@ -268,9 +253,6 @@ static func choose_reward(run: Dictionary, hero_id: String, upgrade_id: String) 
 
 
 static func _prepare_next_mission(run: Dictionary) -> void:
-	if not run.has("destination_id"):
-		run.phase = "ready"
-		return
 	var remaining := mission_count(run) - int(run.mission_index)
 	if remaining == 1:
 		run.mission_ids.append(run.destination_id)
@@ -283,16 +265,6 @@ static func _prepare_next_mission(run: Dictionary) -> void:
 	run.route_rng_state = draw.rng_state
 	run.erase("promised_kind")
 	run.phase = "route"
-
-
-static func return_to_guild(run: Dictionary) -> Dictionary:
-	if run.get("phase") != "finished":
-		return run
-	return {"catalog": run.catalog, "adventure_id": run.adventure_id, "phase": "guild",
-		"mission_ids": [] if run.has("destination_id") else run.mission_ids.duplicate(),
-		"mission_index": 0, "party": [],
-		"mission": {}, "outcome": "ongoing", "carry_by_id": _empty_observation(),
-		"last_result": _empty_observation(), "upgrades_by_id": {}, "reward_offers": [], "chosen_reward": {}}
 
 
 static func _is_active_result(run: Dictionary, committed: Dictionary) -> bool:

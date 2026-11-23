@@ -10,8 +10,12 @@ func _initialize() -> void:
 	_check(not loaded.has("error"), "built-in manifest loads")
 	if not loaded.has("error"):
 		var defs: Dictionary = loaded.definitions
-		_check(defs.missions.bridge_patrol.encounter == "road_patrol", "adventure mission references assembled encounter")
-		_check(defs.encounters.company_crossing.board == "bridge", "adventure references shared board")
+		_check(defs.missions.bridge_patrol.encounter == "road_patrol", "mission references assembled encounter")
+		_check(defs.encounters.company_crossing.board == "bridge", "encounter references shared board")
+		_check(defs.commission_settings.recruitment_roster == [
+			"knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard"],
+			"assembled commission roster retains all recruits in order")
+		_check(not defs.has("adventures"), "built-in catalog has no fixed routes")
 		var deployed := Catalog.build(defs, "bridge_patrol", ["knight", "healer", "alchemist"])
 		_check(deployed.units.size() == 5, "assembled party and enemies deploy")
 		_check(deployed.objective.team == "enemies", "combat target team materializes its default")
@@ -62,14 +66,17 @@ func _test_duplicate_parts() -> void:
 
 
 func _test_reachable_content(defs: Dictionary) -> void:
-	var reachable := {}
-	for adventure in defs.adventures.values():
-		for mission in adventure.missions:
-			reachable[mission] = true
-	for mission in defs.get("mission_reports", {}):
-		reachable[mission] = true
+	var retained_missions := [
+		"bridge_patrol", "company_rescue", "goblin_mob", "harpoon_squad", "unwelcome_guest",
+		"shield_wall", "wrong_side_of_the_door", "cowardly_captain", "explosive_situation",
+		"bridge_is_out", "last_wagon", "duelists", "great_sheep_escape", "odd_couple",
+		"unfortunate_healer", "dont_wake_the_giant", "hold_the_line", "last_one_standing",
+		"unfortunate_ritual", "mirror_company",
+	]
+	for mission in retained_missions:
+		_check(defs.missions.has(mission), "retained mission is assembled: " + mission)
 	for mission in defs.missions:
-		_check(reachable.has(mission), "shipped mission is reachable: " + mission)
+		_check(defs.mission_reports.has(mission), "shipped mission has a commission report: " + mission)
 	var encounters := {}
 	for mission in defs.missions.values():
 		encounters[mission.encounter] = true
@@ -114,7 +121,7 @@ func _test_invalid_full_catalogs(defs: Dictionary) -> void:
 	var path := "user://catalog_bundle_test_invalid.json"
 	var invalid := defs.duplicate(true)
 	invalid.encounters.road_patrol.party_slots.append([0, 0])
-	_check_full_error(path, invalid, "must have exactly 3 party slots", "excess adventure slots")
+	_check_full_error(path, invalid, "must have exactly 3 party slots", "inconsistent commission slots")
 	invalid = defs.duplicate(true)
 	invalid.encounters.company_crossing.deadline = 0
 	_check_full_error(path, invalid, "deadline failure requires a positive encounter deadline", "zero deadline failure")

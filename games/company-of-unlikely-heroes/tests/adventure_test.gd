@@ -1,7 +1,7 @@
 extends SceneTree
 
 # Run: godot --headless --path games/company-of-unlikely-heroes --script res://tests/adventure_test.gd
-# Integration tests use the authored adventure, not test-owned combat tuning.
+# Commission transitions use controlled encounters; standalone recipes exercise authored boards.
 var failures: Array[String] = []
 var adventure: Script
 var catalog: Script
@@ -41,7 +41,24 @@ func _check(condition: bool, message: String) -> void:
 
 
 func _start(picks: Array, reward_seed := 12345) -> Dictionary:
-	return adventure.call("start_adventure", defs, "first_outing", picks, reward_seed)
+	var run := _commission_start(defs, picks, reward_seed)
+	return _choose_first_route(run)
+
+
+func _commission_start(source: Dictionary, picks: Array, reward_seed: int) -> Dictionary:
+	var commissions = load("res://commissions.gd")
+	var offers: Array = commissions.board(source, 101)
+	return adventure.call("start_commission", source, offers[0], picks, reward_seed)
+
+
+func _choose_first_route(run: Dictionary) -> Dictionary:
+	if run.get("phase") != "route" or run.get("reports", []).is_empty():
+		return run
+	return adventure.call("choose_route", run, run.reports[0].mission_id)
+
+
+func _combat_fixture() -> Dictionary:
+	return preload("res://tests/fixtures/controlled_commission.gd").build(defs)
 
 
 func _choose_if_offered(run: Dictionary) -> Dictionary:
@@ -71,7 +88,7 @@ func _test_selection() -> void:
 	_check(run.get("phase") == "ready", "Valid company is ready")
 	_check(run.get("party") == ["alchemist", "wizard", "knight"],
 		"Company preserves the order in which heroes were picked")
-	_check(run.get("mission_ids") == ["bridge_patrol", "company_rescue"], "Mission sequence is ordered")
+	_check(run.get("mission_ids", []).size() == 1, "A selected report supplies the first mission")
 	_check(run.get("mission", {}).is_empty(), "Ready company is not yet deployed")
 	_check(_start(["knight", "healer", "wizard"]).get("phase") == "ready",
 		"A second distinct legal company can embark")
@@ -171,18 +188,18 @@ func _test_invalid_transitions() -> void:
 	var forecast: Dictionary = rules.preview_round(state)
 	_check(adventure.call("settle_mission", run, forecast.get("result", {})) == run,
 		"A forecast is not a committed terminal result")
-	_check(adventure.call("return_to_guild", run) == run, "Active adventure cannot be reset as finished")
+	_check(adventure.call("choose_route", run, "missing") == run, "Active mission cannot select a route")
 
 
 ## Controlled transition fixture: stage terminal boards, then use real round
-## commits. The authored-route test must independently play both missions.
+## commits; commission routing chooses the next encounter.
 func _test_controlled_carry_and_reset(reward_seed: int, force_hp := false) -> void:
 	var picks := ["wizard", "healer", "knight"]
-	var fixture := defs.duplicate(true)
+	var fixture := _combat_fixture()
 	if force_hp:
 		fixture.upgrades = {"wizard_spare_robes": defs.upgrades.wizard_spare_robes.duplicate(true)}
 		fixture.upgrades.wizard_spare_robes.amount = 2
-	var ready: Dictionary = adventure.call("start_adventure", fixture, "first_outing", picks, reward_seed)
+	var ready := _choose_first_route(_commission_start(fixture, picks, reward_seed))
 	if ready.is_empty():
 		_check(false, "Controlled transition company starts")
 		return
@@ -191,6 +208,9 @@ func _test_controlled_carry_and_reset(reward_seed: int, force_hp := false) -> vo
 	if state.is_empty():
 		_check(false, "Controlled transition mission deploys")
 		return
+	_check(state.orders.get("wizard") != "order_blast", "Wizard starts with a different standing order")
+	state = rules.set_order(state, "wizard", "order_blast")
+	_check(state.orders.get("wizard") == "order_blast", "Wizard accepts the nondefault Blast order")
 	for unit in state.units:
 		if rules.entity_profile(state, unit.id).get("team") == "enemies":
 			unit.hp = 0
@@ -211,14 +231,14 @@ func _test_controlled_carry_and_reset(reward_seed: int, force_hp := false) -> vo
 	if force_hp:
 		_check(settled.get("upgrades_by_id", {}).get("wizard", {}).get("wizard_spare_robes") == 1,
 			"Controlled wounded wizard claims the maximum-HP reward")
-	_check(settled.get("phase") == "ready" and settled.get("mission_index") == 1,
+	_check(settled.get("phase") == "route" and settled.get("mission_index") == 1,
 		"First victory advances exactly once")
-	if settled.get("phase") != "ready":
+	if settled.get("phase") != "route":
 		return
 	_check(settled.get("party") == picks and settled.get("mission", {}).is_empty(),
 		"Between missions preserves pick order and clears the old board")
 	var debrief: Dictionary = settled.get("last_result", {})
-	_check(debrief.get("mission_id") == "bridge_patrol" and debrief.get("outcome") == "victory"
+	_check(debrief.get("mission_id") == state.mission_id and debrief.get("outcome") == "victory"
 		and not str(debrief.get("text", "")).is_empty(),
 		"Debrief retains mission identity, outcome and text without the previous board")
 	var debrief_heroes: Dictionary = debrief.get("heroes_by_id", {})
@@ -237,12 +257,14 @@ func _test_controlled_carry_and_reset(reward_seed: int, force_hp := false) -> vo
 	for id in picks:
 		_check(settled.get("carry_by_id", {}).get(id, {}).get("order") == terminal.get("orders", {}).get(id),
 			"Standing order carries for " + id)
-	var second: Dictionary = adventure.call("begin_mission", settled)
+	var second: Dictionary = adventure.call("begin_mission", _choose_first_route(settled))
 	var next: Dictionary = second.get("mission", {})
 	_check(second.get("last_result", {}).is_empty(), "Active departure clears previous debrief")
 	if next.is_empty():
 		_check(false, "Second mission deploys")
 		return
+	_check(next.get("orders", {}).get("wizard") == "order_blast",
+		"Nondefault Blast order carries into the next deployed mission")
 	for index in range(picks.size()):
 		var id: String = picks[index]
 		_check(next.units[index].id == id, "Next mission preserves chosen turn order")
@@ -264,15 +286,11 @@ func _test_controlled_carry_and_reset(reward_seed: int, force_hp := false) -> vo
 	for unit in last.units:
 		if rules.entity_profile(last, unit.id).get("team") == "enemies":
 			unit.hp = 0
-	_entity(last, last.objective.subject).position = last.objective.destination
 	var final_plan: Dictionary = rules.preview_round(last)
 	var final_state: Dictionary = rules.commit_round(last, final_plan)
-	_check(final_state.get("outcome") == "victory", "Controlled final mission commits victory")
-	var finished: Dictionary = adventure.call("settle_mission", second, final_state)
-	_check(finished.get("phase") == "finished" and finished.get("outcome") == "victory",
-		"Final victory finishes adventure")
-	_check(adventure.call("begin_mission", finished) == finished, "Finished adventure cannot repeat a mission")
-	_check_reset(finished, picks, "Victory")
+	_check(final_state.get("outcome") == "victory", "Controlled second mission commits victory")
+	_check(adventure.call("settle_mission", second, final_state).get("mission_index") == 2,
+		"Second victory advances commission")
 
 	var failure_run: Dictionary = adventure.call("begin_mission", _start(picks))
 	var failure_state: Dictionary = failure_run.get("mission", {}).duplicate(true)
@@ -287,13 +305,13 @@ func _test_controlled_carry_and_reset(reward_seed: int, force_hp := false) -> vo
 	var failed: Dictionary = adventure.call("settle_mission", failure_run, defeated)
 	_check(failed.get("phase") == "finished" and failed.get("outcome") == "defeat",
 		"First mission defeat finishes adventure")
-	_check_reset(failed, picks, "Defeat")
+	_check(adventure.call("begin_mission", failed) == failed, "Finished commission cannot repeat a mission")
+	_check_fresh(picks, "Defeat")
 
 
 func _test_authored_patrol_route() -> void:
-	# These recorded routes exercise adventure transitions with the former mix-in.
-	# Freeze its kit in this fixture instead of requiring the current Alchemist
-	# to retain an obsolete action or standing order.
+	# Three historical recipes require the former Mixologist kit. Keep that kit
+	# test-owned; the founder recipe runs against the public standalone catalog.
 	var current_defs := defs
 	defs = defs.duplicate(true)
 	defs.characters.alchemist = {
@@ -313,6 +331,7 @@ func _test_authored_patrol_route() -> void:
 	var routes := [
 		{
 			"party": ["knight", "healer", "wizard"],
+			"rescue_orders": {"wizard": "order_blast"},
 			"patrol": [
 				{"orders": [{"unit": "wizard", "order": "order_blast"}]}, {},
 				{"action": {"unit": "wizard", "ability": "wizard_pull", "target": "raider_two"}}
@@ -321,6 +340,7 @@ func _test_authored_patrol_route() -> void:
 		},
 		{
 			"party": ["wizard", "alchemist", "knight"],
+			"rescue_orders": {"wizard": "order_blast"},
 			"patrol": [
 				{"action": {"unit": "knight", "ability": "knight_push", "target": "alchemist"}},
 				{"orders": [{"unit": "wizard", "order": "order_blast"}],
@@ -334,6 +354,7 @@ func _test_authored_patrol_route() -> void:
 		},
 		{
 			"party": ["healer", "knight", "alchemist"],
+			"rescue_orders": {"alchemist": "order_blast"},
 			"patrol": [
 				{"orders": [{"unit": "alchemist", "order": "order_blast"}]}, {}, {}, {}
 			],
@@ -353,63 +374,31 @@ func _test_authored_patrol_route() -> void:
 			]
 		}
 	]
+	var legacy_defs := defs
 	for fixture in routes:
 		var picks: Array = fixture.party
-		var label := "Authored route %s" % [picks]
-		var run: Dictionary = adventure.call("begin_mission", _start(picks))
-		if run.get("phase") != "mission":
-			_check(false, label + ": patrol deploys")
-			continue
-		var terminal := _play_route(run, fixture.patrol, "victory", label + " patrol")
-		if terminal.get("outcome") != "victory":
-			continue
-		_check(route_hostile_attack, label + ": patrol victory survives an actual hostile attack")
-		var ready: Dictionary = _choose_if_offered(adventure.call("settle_mission", run, terminal))
-		_check(ready.get("phase") == "ready" and ready.get("mission_index") == 1,
-			label + ": patrol opens the second mission")
-		if ready.get("phase") != "ready":
-			continue
-		for id in picks:
-			var hero := _entity(terminal, id)
-			_check(ready.carry_by_id[id].hp == maxi(1, hero.hp), label + ": carries actual HP for " + id)
-		for id in picks:
-			_check(ready.carry_by_id[id].order == terminal.orders[id],
-				label + ": carries standing order for " + id)
-		var second: Dictionary = adventure.call("begin_mission", ready)
-		_check(second.get("mission", {}).get("mission_id") == "company_rescue",
-			label + ": patrol advances to rescue")
-		for index in range(picks.size()):
-			_check(second.mission.units[index].id == picks[index], label + ": rescue retains selected order")
-		var rescued := _play_route(second, fixture.rescue, "victory", label + " rescue")
-		if rescued.get("outcome") != "victory":
-			continue
-		_check(_entity(rescued, rescued.objective.subject).get("position") == rescued.objective.destination,
-			label + ": escort actually reaches its destination")
-		var finished: Dictionary = adventure.call("settle_mission", second, rescued)
-		_check(finished.get("phase") == "finished" and finished.get("outcome") == "victory",
-			label + ": both real mission victories finish the adventure")
-		_check_reset(finished, picks, label + " victory")
+		defs = current_defs if picks == ["knight", "healer", "wizard"] else legacy_defs
+		var label := "Standalone route %s" % [picks]
+		var patrol: Dictionary = rules.open_mission(defs, "bridge_patrol", picks)
+		var terminal := _play_route({"mission": patrol}, fixture.patrol, "victory", label + " patrol")
+		if terminal.get("outcome") == "victory":
+			_check(route_hostile_attack, label + ": patrol victory survives an actual hostile attack")
+		var rescue: Dictionary = rules.open_mission(defs, "company_rescue", picks)
+		# These orders were previously carried from the patrol. Set them on the
+		# fresh opening rather than silently relying on the removed fixed route.
+		for hero in fixture.get("rescue_orders", {}):
+			var order: String = fixture.rescue_orders[hero]
+			rescue = rules.set_order(rescue, hero, order)
+			_check(rescue.orders.get(hero) == order, label + ": rescue starting order is accepted")
+		var rescued := _play_route({"mission": rescue}, fixture.rescue, "victory", label + " rescue")
+		if rescued.get("outcome") == "victory":
+			_check(_entity(rescued, rescued.objective.subject).get("position") == rescued.objective.destination,
+				label + ": escort actually reaches its destination")
 	defs = current_defs
 
 
 func _test_authored_defeat() -> void:
-	var picks := ["knight", "healer", "wizard"]
-	var first: Dictionary = adventure.call("begin_mission", _start(picks))
-	if first.get("phase") != "mission":
-		_check(false, "Authored defeat route deploys patrol")
-		return
-	var patrol := _play_route(first, [
-		{"orders": [{"unit": "wizard", "order": "order_blast"}]}, {},
-		{"action": {"unit": "wizard", "ability": "wizard_pull", "target": "raider_two"}}
-	], "victory", "Authored defeat route patrol")
-	if patrol.get("outcome") != "victory":
-		return
-	var ready: Dictionary = _choose_if_offered(adventure.call("settle_mission", first, patrol))
-	var second: Dictionary = adventure.call("begin_mission", ready)
-	var state: Dictionary = second.get("mission", {}).duplicate(true)
-	if state.is_empty():
-		_check(false, "Authored defeat route deploys rescue")
-		return
+	var state: Dictionary = rules.open_mission(defs, "company_rescue", ["knight", "healer", "wizard"])
 	state = rules.set_order(state, "wizard", "order_cautious")
 	_check(state.orders.get("wizard") == "order_cautious", "Defeat route sets a legal cautious order")
 	for round_index in range(20):
@@ -422,13 +411,7 @@ func _test_authored_defeat() -> void:
 			return
 		state = rules.commit_round(state, plan)
 		_check(_matches_preview(state, plan), "Defeat route commits forecast gameplay")
-	_check(state.get("outcome") == "defeat", "Actual rescue produces defeat")
-	if state.get("outcome") != "defeat":
-		return
-	var finished: Dictionary = adventure.call("settle_mission", second, state)
-	_check(finished.get("phase") == "finished" and finished.get("outcome") == "defeat",
-		"Actual rescue defeat ends adventure")
-	_check_reset(finished, picks, "Authored defeat")
+	_check(state.get("outcome") == "defeat", "Actual standalone rescue produces defeat")
 
 
 ## Route entries contain optional orders [{unit, order}] and optional
@@ -474,18 +457,12 @@ func _play_route(run: Dictionary, route: Array, expected: String, label: String)
 	return state
 
 
-func _check_reset(finished: Dictionary, picks: Array, label: String) -> void:
-	var guild: Dictionary = adventure.call("return_to_guild", finished)
-	_check(guild.get("phase") == "guild", label + ": returns to guild")
-	_check(guild.get("party", []).is_empty() and guild.get("mission", {}).is_empty(),
-		label + ": guild clears company and mission")
-	_check(guild.get("last_result", {}).is_empty() and guild.get("carry_by_id", {}).is_empty(),
-		label + ": guild clears prior result and carried health")
-	_check(guild.get("outcome") == "ongoing", label + ": guild clears outcome")
+func _check_fresh(picks: Array, label: String) -> void:
 	var fresh := _start(picks)
 	_check(fresh.get("phase") == "ready" and fresh.get("mission_index") == 0,
 		label + ": fresh departure begins at first mission")
-	_check(fresh.get("party") == picks and fresh.get("mission", {}).is_empty(),
+	_check(fresh.get("party") == picks and fresh.get("mission", {}).is_empty()
+		and fresh.get("carry_by_id", {}).is_empty() and fresh.get("upgrades_by_id", {}).is_empty(),
 		label + ": fresh departure keeps only newly picked company")
 
 

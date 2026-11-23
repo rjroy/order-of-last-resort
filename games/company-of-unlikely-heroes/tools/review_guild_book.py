@@ -29,7 +29,7 @@ def inventory(content_dir: Path, mapping_path: Path) -> dict[str, list[Entry]]:
     tables: dict[str, dict] = {}
     for part in catalog["parts"]:
         data = json.loads((content_dir / part).read_text())
-        for table in ("characters", "missions", "adventures", "mission_reports", "upgrades"):
+        for table in ("characters", "missions", "mission_reports", "upgrades"):
             tables.setdefault(table, {}).update(data.get(table, {}))
 
     # Presentation includes the non-recruitable smith, which is not a character.
@@ -41,11 +41,9 @@ def inventory(content_dir: Path, mapping_path: Path) -> dict[str, list[Entry]]:
 
     reports = tables["mission_reports"]
     destinations = {key for key, value in reports.items() if "destination_descriptors" in value}
-    destinations.update(
-        adventure["missions"][-1]
-        for adventure in tables["adventures"].values()
-        if adventure.get("missions")
-    )
+    # Retain the packaged paintings made for the retired practice finales.
+    # They remain reviewable even though those missions are no longer finales.
+    destinations.update({"cowardly_captain", "mirror_company", "odd_couple"} & tables["missions"].keys())
     missions = tables["missions"]
     return {
         "classes": [Entry(key, value) for key, value in sorted(labels.items())],
@@ -160,8 +158,8 @@ class ToolTests(unittest.TestCase):
             (root / "catalog.json").write_text('{"parts":["data.json"]}')
             (root / "data.json").write_text(json.dumps({
                 "characters": {"hero": {"guild_portrait": "hero", "label": "Hero"}},
-                "missions": {"a": {"title": "A"}, "b": {"title": "B"}},
-                "adventures": {"trip": {"missions": ["a", "b"]}},
+                "missions": {"a": {"title": "A"}, "b": {"title": "B"},
+                             "odd_couple": {"title": "The Odd Couple"}},
                 "mission_reports": {"a": {}, "b": {"destination_descriptors": []}},
                 "upgrades": {"hero_u": {"label": "Upgrade", "hero_id": "hero"}},
             }))
@@ -169,7 +167,7 @@ class ToolTests(unittest.TestCase):
             mapping.write_text('const CLASS_LABELS := {"smith": "Smith"}')
             items = inventory(root, mapping)
             self.assertEqual([entry.id for entry in items["classes"]], ["hero", "smith"])
-            self.assertEqual([entry.id for entry in items["destinations"]], ["b"])
+            self.assertEqual([entry.id for entry in items["destinations"]], ["b", "odd_couple"])
             self.assertEqual(len(items["reports"]), 2)
             self.assertEqual(items["upgrades"][0].hero, "hero")
             (root / "hero.png").touch()

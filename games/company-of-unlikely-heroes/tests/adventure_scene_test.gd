@@ -6,6 +6,7 @@ extends SceneTree
 var failures: Array[String] = []
 var scene: Node
 var driver
+var profile_path := "user://adventure_scene_%d_%d.json" % [OS.get_process_id(), Time.get_ticks_usec()]
 
 
 func _initialize() -> void:
@@ -13,8 +14,16 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	var file := FileAccess.open(profile_path, FileAccess.WRITE)
+	if file == null:
+		_check(false, "Create isolated legacy guild profile")
+		_finish()
+		return
+	file.store_string('{"version":1,"name":"Scene Test","board_seed":"147258"}')
+	file.close()
 	scene = load("res://main.tscn").instantiate()
-	scene.configure_launch(PackedStringArray(["--fixed-outings"]))
+	scene.configure_launch(PackedStringArray())
+	scene.configure_profile_path(profile_path)
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
@@ -25,7 +34,9 @@ func _run() -> void:
 		_check(false, "Scene must expose the adventure screen and snapshot contract")
 		_finish()
 		return
-	_check(scene.current_screen() == "guild", "Fixed outings launch opens the guild")
+	_check(scene.current_screen() == "commissions", "Normal launch opens commissions")
+	await _press("Commission_0")
+	_check(scene.current_screen() == "guild", "Commission opens recruitment")
 	_check(_node("GuildScreen") != null, "Guild screen is present")
 	_check(_node("ModeDirect") == null and _node("ModeStanding") == null,
 		"Guild has no retired mode selectors")
@@ -59,6 +70,8 @@ func _run() -> void:
 	picks = scene.selected_recruits()
 	_check(picks == ["wizard", "knight", "healer"], "Later changes the selected turn order")
 	await _press("StartAdventure")
+	_check(scene.current_screen() == "routes", "Recruitment opens field reports")
+	await _press("Route_0")
 	if scene.current_screen() != "battle":
 		_check(false, "Starting a full company launches battle")
 		_finish()
@@ -72,7 +85,10 @@ func _run() -> void:
 	if units.size() >= 3:
 		for i in range(3):
 			_check(units[i].get("id") == picks[i], "Deployed turn order follows guild selection")
-			_check(units[i].get("position") == [Vector2i(1, 1), Vector2i(1, 2), Vector2i(1, 3)][i],
+			var defs: Dictionary = scene.get("_definitions")
+			var mission: Dictionary = defs.missions[battle.mission_id]
+			var slot: Array = defs.encounters[mission.encounter].party_slots[i]
+			_check(units[i].get("position") == Vector2i(slot[0], slot[1]),
 				"Selected turn order determines deployed slots")
 	else:
 		_check(false, "Battle deploys all three recruits")
@@ -114,7 +130,6 @@ func _run() -> void:
 				_check(summary != null and summary.is_visible_in_tree()
 					and driver.rules.display_name(scene.battle_snapshot(), "knight") in summary.text,
 					"A different hero can be commanded next round")
-	await _exercise_transition_fixture()
 	await _exercise_bard_guild()
 	_finish()
 
@@ -123,12 +138,14 @@ func _exercise_bard_guild() -> void:
 	scene.queue_free()
 	await process_frame
 	scene = load("res://main.tscn").instantiate()
-	scene.configure_launch(PackedStringArray(["--fixed-outings"]))
+	scene.configure_launch(PackedStringArray())
+	scene.configure_profile_path(profile_path)
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
 	await process_frame
 	driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
+	await _press("Commission_0")
 	var recruit := _node("Recruit_bard") as BaseButton
 	_check(recruit != null and not recruit.disabled, "Guild offers Bard")
 	if recruit == null or recruit.disabled:
@@ -138,6 +155,7 @@ func _exercise_bard_guild() -> void:
 	await _press("Recruit_healer")
 	await _press("Recruit_wizard")
 	await _press("StartAdventure")
+	await _press("Route_0")
 	_check(scene.current_screen() == "battle", "Company with Bard deploys")
 	if scene.current_screen() != "battle":
 		return
@@ -149,131 +167,6 @@ func _exercise_bard_guild() -> void:
 			_check(false, driver.error)
 
 
-func _exercise_transition_fixture() -> void:
-	# Keep the stock catalog and control the transient battle state: Wizard takes
-	# recoil, then Alchemist defeats the remaining fragile foe.
-	var catalog = load("res://content/catalog.gd")
-	var defs: Dictionary = catalog.read_default()
-	scene.queue_free()
-	await process_frame
-	scene = load("res://main.tscn").instantiate()
-	scene.configure_launch(PackedStringArray(["--fixed-outings"]))
-	root.add_child(scene)
-	current_scene = scene
-	await process_frame
-	await process_frame
-	driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
-	for id in ["wizard", "knight", "alchemist"]:
-		await _press("Recruit_" + id)
-	await _press("StartAdventure")
-	var reward_rng := RandomNumberGenerator.new()
-	reward_rng.seed = 12345
-	var outing: Dictionary = scene.get("_run")
-	outing.reward_rng_state = reward_rng.state
-	if scene.current_screen() == "battle":
-		var state: Dictionary = scene.get("_state").duplicate(true)
-		var foe_set := false
-		for unit: Dictionary in state.units:
-			if unit.id == "alchemist":
-				unit.position = Vector2i(3, 1)
-			elif unit.id not in ["wizard", "knight", "alchemist"]:
-				if not foe_set:
-					unit.position = Vector2i(4, 1)
-					unit.hp = 1
-					foe_set = true
-				else:
-					unit.hp = 0
-		_check(foe_set, "Stock patrol supplies a foe for the transition fixture")
-		scene.set("_state", state)
-		scene.set("_planned_state", state.duplicate(true))
-		_check(await driver.order("alchemist", "order_throw_samples"), driver.error)
-		if await driver.command("wizard", "wizard_pull", "knight"):
-			await _press("Commit")
-		else:
-			_check(false, driver.error)
-	_check(scene.current_screen() == "debrief", "Committed fixture victory opens debrief")
-	if scene.current_screen() == "debrief":
-		var report := _node("CarryReport")
-		var wizard_label: String = defs.characters.wizard.label
-		_check(report != null and (wizard_label + "   4/6 HP → 4/6 HP  ·  Wounded") in str(report.text),
-			"Debrief reports the wizard's recoil wound and carry")
-		await process_frame
-		_check(scene.current_screen() == "debrief", "Debrief waits for explicit continuation")
-		var reward := _node("Reward_knight") as BaseButton
-		_check(reward != null and reward.is_visible_in_tree(), "Knight has a visible reward offer")
-		_check(_node("Reward_wizard") != null and _node("Reward_alchemist") != null,
-			"All three eligible heroes have reward offers")
-		var continue_button := _node("ContinueAdventure") as BaseButton
-		_check(continue_button != null and continue_button.disabled, "Continuation requires one reward")
-		var offered_run: Dictionary = scene.get("_run")
-		_check(offered_run.get("phase") == "reward" and offered_run.get("reward_offers", []).size() == 3,
-			"Debrief offers one choice per eligible hero")
-		# A disabled continuation cannot bypass the choice through its public handler.
-		if continue_button != null:
-			_check(continue_button.disabled, "No unchosen reward can be bypassed")
-		if reward != null:
-			await _press("Reward_knight")
-			var chosen_run: Dictionary = scene.get("_run")
-			_check(chosen_run.get("phase") == "ready", "Selecting one reward completes the choice")
-			var next := _node("DebriefNextMission") as Label
-			_check(next != null and next.text == "Next: " + str(defs.missions.company_rescue.title)
-				and next.is_visible_in_tree() and root.get_visible_rect().encloses(next.get_global_rect())
-				and _node("DebriefScoutNote") == null,
-				"Claimed fixed outing shows its known next mission without relying on a scout note")
-			_check(_node("Reward_knight") == null and _node("Reward_wizard") == null
-				and _node("Reward_alchemist") == null,
-				"Claimed debrief exposes no second reward button")
-			var counts: Dictionary = chosen_run.get("upgrades_by_id", {})
-			var count := 0
-			for hero in counts:
-				for value in counts[hero].values():
-					count += int(value)
-			_check(count == 1 and counts.get("alchemist", {}).is_empty(), "Only one eligible hero gains a reward")
-		await _press("ContinueAdventure")
-		_check(scene.current_screen() == "battle", "Continue starts the second mission")
-		if scene.current_screen() == "battle":
-			var second: Dictionary = scene.battle_snapshot()
-			_check(second.get("mission_id") == "company_rescue", "Second mission is the rescue")
-			var run: Dictionary = scene.get("_run")
-			var knight_rewards: Dictionary = run.get("upgrades_by_id", {}).get("knight", {})
-			var loadout := _node("ShowLoadout") as BaseButton
-			_check(loadout != null and loadout.is_visible_in_tree(), "Battle shows outing upgrades control")
-			if loadout != null and not knight_rewards.is_empty():
-				var upgrade_id: String = knight_rewards.keys()[0]
-				var upgrade: Dictionary = defs.upgrades[upgrade_id]
-				await _press("ShowLoadout")
-				var dialog := _node("OutingLoadout") as Window
-				_check(dialog != null and dialog.visible, "Outing loadout opens")
-				if dialog != null:
-					var text := ""
-					for label in dialog.find_children("*", "Label", true, false):
-						text += str(label.text) + "\n"
-					_check(upgrade.label in text and upgrade.description in text and defs.characters.knight.label in text,
-						"Loadout displays the claimed hero, reward and description")
-					dialog.hide()
-			var wizard_hp := -1
-			for unit in second.get("units", []):
-				if unit.get("id") == "wizard":
-					wizard_hp = unit.get("hp", -1)
-			_check(wizard_hp == 4, "Second mission carries the wizard's wound")
-			var final_round: Dictionary = scene.get("_state").duplicate(true)
-			final_round.round = driver.rules.deadline(final_round)
-			scene.set("_state", final_round)
-			scene.set("_planned_state", final_round.duplicate(true))
-			# Refresh the forecast through an ordinary order selection.
-			_check(await driver.order("knight", str(final_round.orders.knight)), driver.error)
-			await _press("Commit")
-			_check(scene.current_screen() == "result", "Deadline defeat ends the adventure")
-			if scene.current_screen() == "result":
-				var outcome := _node("RunOutcome")
-				_check(outcome != null and outcome.get_meta("outcome", "") == "defeat",
-					"Result identifies defeat")
-				await _press("ReturnToGuild")
-				_check(scene.current_screen() == "guild" and scene.selected_recruits().is_empty(),
-					"Returning to guild resets the selection")
-				var guild_run: Dictionary = scene.get("_run")
-				_check(guild_run.get("upgrades_by_id", {}).is_empty() and guild_run.get("reward_offers", []).is_empty(),
-					"Returning after defeat clears rewards")
 func _node(name: String) -> Node:
 	return scene.find_child(name, true, false)
 
@@ -322,6 +215,10 @@ func _check(condition: bool, message: String) -> void:
 
 
 func _finish() -> void:
+	for path in [profile_path, profile_path + ".backup"]:
+		if FileAccess.file_exists(path):
+			_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(path)) == OK,
+				"Remove isolated profile " + path)
 	if failures.is_empty():
 		print("PASS: adventure scene")
 	else:

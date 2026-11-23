@@ -33,7 +33,7 @@ The normal launch opens the illustrated guild book as the game, not a separate m
 
 At each fork, choose between two field reports using **Take Route A** or **Take Route B**. Each describes the immediate mission and hints at the type of mission beyond it, not its exact identity. At the next fork, exactly one report matches the type hinted at by your previous choice. The commission's destination is visible from the start and both choices at the last fork lead there. After each nonfinal victory, choose one temporary hero reward if offered, then continue to the next reports or the finale.
 
-**Guild pay:** Each road victory earns 1 point; winning the destination earns 5 instead. Collect the total on returning to the guild. A defeat or forfeit earns nothing for that mission but keeps earlier wins. Four roads followed by a lost destination pay 4; the same commission completed pays 9. Practice outings and standalone missions do not pay guild points.
+**Guild pay:** Each road victory earns 1 point; winning the destination earns 5 instead. Collect the total on returning to the guild. A defeat or forfeit earns nothing for that mission but keeps earlier wins. Four roads followed by a lost destination pay 4; the same commission completed pays 9. Standalone missions do not pay guild points.
 
 **Guild unlocks:** A new guild starts with the Knight, Healer and Caster. Open **Guild petitions** on the commission board to browse or filter the [26-petition register](../../.lore/work/games/company-of-unlikely-heroes/notes/guild-perk-catalog.md). Selecting a petition previews it; only the purchase button spends points. Recruit the Bad Bard or Daft Dodger for 4 points apiece, the Mixologist for 5, or the Friendly Crypter for 6. The party still has three places. For example:
 
@@ -58,24 +58,21 @@ Migration and all profile updates use an adjacent `<profile filename>.migration-
 
 Before replacing a profile, the game saves and verifies its previous committed bytes as `<profile filename>.backup`. The canonical profile takes precedence when present. If it is missing but a backup exists, the game stops rather than importing an older legacy save or creating a blank guild. Close all game processes, retain copies of both the backup and any other save files, inspect the backup, and copy it to the canonical filename before retrying. The backup represents the state before the most recent update, not necessarily the newest canonical state. This also applies to explicitly configured profile paths.
 
-### Practice outings
+### Explore the missions
 
-The seven original fixed routes are available separately from the normal commission game. Open them directly from the repository root:
-
-```sh
-godot --path games/company-of-unlikely-heroes -- --fixed-outings
-```
-
-Pick an outing, recruit and order your company, and play its missions in sequence. Practice has **20 playable missions**: two in **The company's first outing**, three in **Village Troubles**, and three in each of the five outings below.
-
-**The company's first outing** (`first_outing`) starts with Trouble on the road (`bridge_patrol`) and ends with The last ferryman (`company_rescue`). **Village Troubles** (`village_troubles`) takes the same company through The Goblin Mob (`goblin_mob`), The Harpoon Squad (`harpoon_squad`), and The Unwelcome Guest (`unwelcome_guest`).
+All 20 built-in missions remain available for standalone play. The earlier fixed practice routes have been retired; commissions are the multi-mission mode.
 
 In **Unwelcome Guest**, get the troll outside the marked village square alive. If it dies or your party falls, you lose. There is no deadline. The troll follows the nearest living party hero one tile each time it acts, stopping when adjacent. Your heroes' damaging standing orders remain active, so check and change them as needed. In particular, a carried Bad Bard **Healing Sonnet** can damage or kill the troll even after it crosses the square's edge if the song happens later that round. Read the forecast before committing to see the troll's intended step and any pulls or follow-up actions.
 
-Missions are listed in play order within each outing.
+The groupings below identify missions by their former practice outings; they are not playable routes.
 
-| Outing | Mission | What to watch for |
+| Former grouping | Mission | What to watch for |
 |---|---|---|
+| **The company's first outing** | Trouble on the Road (`bridge_patrol`) | The patrol has no round limit. |
+| | The Last Ferryman (`company_rescue`) | Get the ferryman to the landing before the bridge fails. |
+| **Village Troubles** | The Goblin Mob (`goblin_mob`) | Watch for the skeleton's friendly fire. |
+| | The Harpoon Squad (`harpoon_squad`) | Prevent Hookhand from setting up a Bruiser's strike. |
+| | The Unwelcome Guest (`unwelcome_guest`) | Get the troll outside the village square alive. |
 | **Border Watch** (`border_watch`) | The Shield Wall (`shield_wall`) | Separate the Archer from the Shieldbearers or take out the guards first. |
 | | The Wrong Side of the Door (`wrong_side_of_the_door`) | Get one hero to the exit while another living character, even an enemy, holds the gate open on the plate. |
 | | The Cowardly Captain (`cowardly_captain`) | Grunts hit harder next to the Captain. Split them up or cut off the Captain's retreat. |
@@ -117,6 +114,10 @@ godot --path games/company-of-unlikely-heroes -- --mission=goblin_mob
 godot --path games/company-of-unlikely-heroes -- --mission=harpoon_squad
 godot --path games/company-of-unlikely-heroes -- --mission=unwelcome_guest
 
+# The company's first outing (these missions require an explicit party)
+godot --path games/company-of-unlikely-heroes -- --mission=bridge_patrol --party=knight,healer,wizard
+godot --path games/company-of-unlikely-heroes -- --mission=company_rescue --party=knight,healer,wizard
+
 # Border Watch
 godot --path games/company-of-unlikely-heroes -- --mission=shield_wall
 godot --path games/company-of-unlikely-heroes -- --mission=wrong_side_of_the_door
@@ -153,7 +154,7 @@ These examples use the standalone missions' authored parties and fresh opening p
 
 ### Company and combat
 
-Your deployment order stays fixed for the run. In **The company's first outing**, the patrol has no round limit. In the second mission, get the ferryman to the marked landing before the bridge fails. Clearing the bridge of enemies does not by itself win the rescue.
+Your deployment order stays fixed for the commission. In Trouble on the Road, the patrol has no round limit. In The Last Ferryman, get the ferryman to the marked landing before the bridge fails. Clearing the bridge of enemies does not by itself win the rescue.
 
 Give each hero a standing order. Each round you may replace **one** hero's order. Click the hero and a legal destination to preview a move, or open their **Actions** and choose an ability. Pick a target only if that ability asks for one. Open **Forecast** to see everyone's actions in order. Nothing moves until you commit; you can revise or clear the command first. Everyone else keeps their standing order.
 
@@ -181,7 +182,7 @@ Both summons pursue opponents and, close enough, independently pick a legal gree
 
 The Bad Bard can Move or perform either song as a direct command. It interrupts that Bad Bard's standing order for one round; directly commanding anyone else lets the song continue. Songs choose their own listener from living opponents anywhere on the board, never a crate, ally or corpse. The ordered forecast names the listener and shows whether they lose their turn; refreshing the same forecast never rerolls it. A listener who laughs is immune to more laughter through the entire following round, but the Sonnet still hurts them. With two opponents and no other interference, a standing Melody alternates between them. With one, the Bad Bard sings without an eligible listener every other round.
 
-To try it in the practice patrol, launch `godot --path games/company-of-unlikely-heroes -- --mission=bridge_patrol --party=bard,healer,knight`. Set the Bad Bard's standing order to **Inspiring Melody**, leave the other two on their default orders, and commit three rounds, comparing the listeners. Switch to **Healing Sonnet** for round four to see damage against the raider who just laughed. Before committing, preview a Move for another hero to leave the song in place, then replace the command with a Bad Bard Move to see the song drop out of the forecast.
+To try it in the standalone patrol, launch `godot --path games/company-of-unlikely-heroes -- --mission=bridge_patrol --party=bard,healer,knight`. Set the Bad Bard's standing order to **Inspiring Melody**, leave the other two on their default orders, and commit three rounds, comparing the listeners. Switch to **Healing Sonnet** for round four to see damage against the raider who just laughed. Before committing, preview a Move for another hero to leave the song in place, then replace the command with a Bad Bard Move to see the song drop out of the forecast.
 
 The game collects no playtest telemetry. The question to take away: **Did you enjoy trusting two of these people while you took charge of the third?**
 
@@ -189,13 +190,13 @@ The game collects no playtest telemetry. The question to take away: **Did you en
 
 All 20 stock missions use Blender-rendered sprites for the seven heroes, both undead summons, and the entire field cast: 25 non-party characters and the animated Supply Wagon. A flock shares one Sheep model; the three bandit siblings and the three rival heroes each have their own. The [cast inventory](../../.lore/work/games/company-of-unlikely-heroes/art/non-hero-cast.md) links models to missions. The [runtime manifest](assets/cast/manifest.json) maps performances to packaged sprite sheets. Neither historical renders nor an editor import cache are needed to play.
 
-From the repository root, try `godot --path games/company-of-unlikely-heroes -- --mission=hold_the_line` and commit through round four to see the reserve Archer and War Drummer. Other showcases are `mirror_company` for the rival trio, `great_sheep_escape` for the flock and shepherd, and `last_wagon` for the loaded wagon advancing, stalling, and breaking down. For the Ferryman, launch `--mission=company_rescue --party=knight,healer,wizard`, or use `--fixed-outings` and recruit a team for the patrol and rescue.
+From the repository root, try `godot --path games/company-of-unlikely-heroes -- --mission=hold_the_line` and commit through round four to see the reserve Archer and War Drummer. Other showcases are `mirror_company` for the rival trio, `great_sheep_escape` for the flock and shepherd, and `last_wagon` for the loaded wagon advancing, stalling, and breaking down. For the Ferryman, launch `--mission=company_rescue --party=knight,healer,wizard`.
 
 The [stock scene verification guide](tools/cast/verify_stock_scenes.md) provides one command to reproduce the stock opening and committed-action checks. The seven heroes and both summons retain their prior battle artwork; the original [static summon sources](assets/summons/README.md) are also preserved.
 
 Preview updates the forecast without resolving the round or starting any action clips. Commit resolves the round. Action playback is cosmetic and uses supported actions from the committed round, including standing orders. Not every ability has its own clip. To try the Friendly Crypter, launch `goblin_mob` and follow the opening above.
 
-Use **Forfeit** during an ongoing battle to concede without playing the next round. Confirm to end the mission as a defeat, or cancel to keep your plans. In an outing, defeat ends the outing without a reward; returning to the guild clears its upgrades. In a standalone mission, use **Restart** to try again.
+Use **Forfeit** during an ongoing battle to concede without playing the next round. Confirm to end the mission as a defeat, or cancel to keep your plans. In a commission, defeat ends the run without a reward; returning to the guild clears its upgrades. In a standalone mission, use **Restart** to try again.
 
 ### Rewards between missions
 
@@ -209,7 +210,7 @@ There is no **hero upgrade offer** after a final victory or defeat, or in standa
 
 ### Author a variation
 
-The built-in catalog starts at `content/catalog.json`. Shared definitions and adventure content are authored separately and loaded as one catalog. An adventure references an ordered mission list and an eligible roster. Its missions provide deployment slots rather than prescribing the player's heroes. Placement IDs identify individual NPCs and objects; multiple placements can use the same definition. Character fields override class defaults as whole fields. New mechanics need code; new combinations of existing handlers need only data. Stock and custom standalone missions use the same storybook controls. See the [catalog guide](content/README.md) for custom catalog loading and authoring rules.
+The built-in catalog starts at `content/catalog.json`. Shared definitions and adventure content are authored separately and loaded as one catalog. Commission settings provide the eligible recruitment roster. Reported missions provide deployment slots rather than prescribing the player's heroes. Placement IDs identify individual NPCs and objects; multiple placements can use the same definition. Character fields override class defaults as whole fields. New mechanics need code; new combinations of existing handlers need only data. Stock and custom standalone missions use the same storybook controls. See the [catalog guide](content/README.md) for custom catalog loading and authoring rules.
 
 ### Recheck the build
 
@@ -233,15 +234,12 @@ From the game directory, run the suites with `godot --headless --script res://te
 | `guild_profile_test` | Local profile creation, reload, seed renewal, and invalid data |
 | `content_test` | Extra crate, alternate knight kit and habit, relocated escort destination |
 | `single_battle_ui_test` | Stock and custom standalone missions through the same battle controls |
+| `standalone_victory_test` | Independent winning routes for all 15 frontier missions through public standalone launches, with forecast and commit checked through the scene |
+| `village_outing_scene_test` | Standalone village mission openings and three wins using a bounded forecast-driven scene player |
 | `rules_test` | Ability interactions and command rules |
 | `rescues_test` | Fixed-start rescues, loss, and restart |
-| `adventure_test` | Party selection and formation, deployment, combat and mission transitions |
-| `adventure_scene_test` | Party selection and formation through the controls, one reward choice on the debrief, wound carryover, and guild return |
 | `rewards_test` | Authored hero pools, seeded offers, caps, selection, carryover, and outing reset |
 | `hero_upgrade_effects_test` | Upgrade effects, learned actions and orders, and consistency between preview and commit |
-| `three_mission_test` | Village Troubles mission rules and adventure boundaries |
-| `village_outing_scene_test` | Direct launches and the Village Troubles guild-to-result flow through both reward debriefs |
-| `fixed_outing_victory_test` | Checked-in winning routes for the 15 missions in the five later practice outings |
 | `hook_overlay_scene_test` | Hook landing and earlier movement appear as separate forecast paths |
 | `rogue_test` | Rogue dodge, redirect, retreat, and hybrid forecast consistency |
 | `necromancer_test` | Summons, corpse selection, greetings, round order and forecast consistency, and expedition boundaries |

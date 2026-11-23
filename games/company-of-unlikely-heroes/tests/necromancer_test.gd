@@ -671,7 +671,10 @@ func _wave_hits(plan: Dictionary, target: String) -> bool:
 func _test_adventure_boundaries() -> void:
 	var adventure = preload("res://adventure.gd")
 	var picks := ["necromancer", "healer", "wizard"]
-	var ready: Dictionary = adventure.start_adventure(defs, "first_outing", picks, 12345)
+	var fixture: Dictionary = preload("res://tests/fixtures/controlled_commission.gd").build(defs)
+	var board: Array = preload("res://commissions.gd").board(fixture, 12345)
+	var ready: Dictionary = adventure.start_commission(fixture, board[0], picks, 12345)
+	ready = adventure.choose_route(ready, ready.reports[0].mission_id)
 	_check(ready.get("phase") == "ready" and ready.get("party") == picks,
 		"Necromancer occupies one ordinary company slot")
 	if ready.is_empty():
@@ -698,6 +701,9 @@ func _test_adventure_boundaries() -> void:
 	if victory.get("outcome") != "victory":
 		return
 	var settled: Dictionary = adventure.settle_mission(run, victory)
+	var next_index: int = int(run.mission_index) + 1
+	_check(settled.get("mission_index") == next_index,
+		"Settling victory advances the commission to the next mission index")
 	_check(settled.get("party") == picks and not settled.get("carry_by_id", {}).has("test_skeleton"),
 		"Minion is not a party member or carryover entry")
 	if settled.get("phase") == "reward":
@@ -706,6 +712,16 @@ func _test_adventure_boundaries() -> void:
 			_check(false, "Reward transition provides a selectable offer")
 			return
 		settled = adventure.choose_reward(settled, offers[0].hero_id, offers[0].upgrade_id)
+	if settled.get("phase") != "route" or settled.get("reports", []).is_empty():
+		_check(false, "Next mission offers a route")
+		return
+	var next_id: String = settled.reports[0].mission_id
+	settled = adventure.choose_route(settled, next_id)
 	var next: Dictionary = adventure.begin_mission(settled)
-	_check(_character(next.get("mission", {}), "skeleton").is_empty(),
+	var next_mission: Dictionary = next.get("mission", {})
+	_check(next.get("phase") == "mission" and not next_mission.is_empty()
+		and next.get("mission_index") == next_index and next_mission.get("mission_id") == next_id
+		and not _entity(next_mission, "necromancer").is_empty(),
+		"Chosen next mission deploys at the advanced index with the Necromancer")
+	_check(_character(next_mission, "skeleton").is_empty(),
 		"Minion does not carry into the next mission")

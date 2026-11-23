@@ -1,23 +1,4 @@
 {
-  "adventures": {
-    "first_outing": {
-      "label": "The company's first outing",
-      "roster": [
-        "knight",
-        "healer",
-        "wizard",
-        "alchemist",
-        "rogue",
-        "necromancer",
-        "bard"
-      ],
-      "missions": [
-        "bridge_patrol",
-        "company_rescue"
-      ],
-      "party_size": 3
-    }
-  },
   "missions": {
     "bridge_patrol": {
       "title": "Trouble on the road",

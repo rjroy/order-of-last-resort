@@ -8,8 +8,7 @@ const HOLD_BEHAVIOR := "hold"
 
 static func roster(defs: Dictionary, profile: Dictionary) -> Array[String]:
 	var result: Array[String] = []
-	var roster_id: String = defs.get("commission_settings", {}).get("roster_adventure", "")
-	var authored: Array = defs.get("adventures", {}).get(roster_id, {}).get("roster", [])
+	var authored: Array = defs.get("commission_settings", {}).get("recruitment_roster", [])
 	for id in authored:
 		if id in profile.get("recruited_ids", []) and _kits(defs).has(id):
 			result.append(id)

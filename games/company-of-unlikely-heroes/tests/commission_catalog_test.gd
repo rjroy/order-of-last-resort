@@ -51,11 +51,8 @@ func _fixture() -> Dictionary:
 	]
 	defs.encounters.fixture.party_slots = [[1, 1], [0, 2], [4, 2]]
 	defs.missions.fixture.failures.append({"handler": "party_wiped", "event": "Party lost"})
-	defs.adventures = {"first_outing": {
-		"label": "Test company", "roster": ["knight", "healer", "wizard"],
-		"party_size": 3, "missions": ["fixture"]
-	}}
-	defs.commission_settings = {"roster_adventure": "first_outing"}
+	defs.erase("adventures")
+	defs.commission_settings = {"recruitment_roster": ["knight", "healer", "wizard"]}
 	defs.mission_kinds = {}
 	defs.mission_reports = {}
 	for kind_index in range(3):
@@ -85,13 +82,14 @@ func _test_optional_configuration() -> void:
 
 
 func _test_configuration(defs: Dictionary) -> void:
-	for value in ["missing_adventure", "", 42, null]:
+	for value in [[], ["missing_hero"], ["knight", "knight", "wizard"],
+			["knight", "healer", "ferryman"], "knight", 42, null]:
 		var bad := defs.duplicate(true)
-		bad.commission_settings.roster_adventure = value
-		_invalid(bad, "invalid roster adventure " + str(value))
+		bad.commission_settings.recruitment_roster = value
+		_invalid_at(bad, ["commission_settings.recruitment_roster"], "invalid recruitment roster " + str(value))
 	var missing := defs.duplicate(true)
-	missing.commission_settings.erase("roster_adventure")
-	_invalid(missing, "missing roster adventure")
+	missing.commission_settings.erase("recruitment_roster")
+	_invalid_at(missing, ["commission_settings.recruitment_roster"], "missing recruitment roster")
 
 
 func _test_reports(defs: Dictionary) -> void:
@@ -143,7 +141,7 @@ func _test_pool(defs: Dictionary) -> void:
 
 
 func _test_commission_deployment(defs: Dictionary) -> void:
-	# This encounter and mission are not referenced by the roster adventure.
+	# Change only one reported mission while all other reports keep their slots.
 	var controlled := defs.duplicate(true)
 	controlled.encounters["commission_only"] = controlled.encounters.fixture.duplicate(true)
 	controlled.missions.transit_0_0.encounter = "commission_only"

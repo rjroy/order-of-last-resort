@@ -1,7 +1,7 @@
 extends SceneTree
 
 # Run: godot --headless --path games/company-of-unlikely-heroes --script res://tests/reward_reset_test.gd
-# Four controlled missions and three single-entry pools isolate reset from live tuning.
+# Controlled commission missions and three single-entry pools isolate reset from live tuning.
 var catalog: Script = load("res://content/catalog.gd")
 var adventure: Script = load("res://adventure.gd")
 var rules = preload("res://rules.gd").new()
@@ -59,14 +59,21 @@ func _fixture(source: Dictionary) -> Dictionary:
 	var authored: Dictionary = source.get("upgrades", {}).get("bard_house_lights", {})
 	if authored.has("behavior"):
 		defs.upgrades.reset_lights.behavior = authored.behavior
-	var missions := []
-	for index in range(4):
-		var id := "reset_mission_%d" % index
-		defs.missions[id] = defs.missions.goblin_mob.duplicate(true)
-		missions.append(id)
-	defs.adventures["reset_outing"] = {"label": "Reset fixture", "party_size": 3,
-		"roster": PARTY.duplicate(), "missions": missions}
+	# Every report deploys the same controlled defeat-all encounter.
+	for id in defs.mission_reports:
+		defs.missions[id] = source.missions.goblin_mob.duplicate(true)
 	return defs
+
+
+func _start(defs: Dictionary) -> Dictionary:
+	var board: Array = preload("res://commissions.gd").board(defs, 919)
+	return adventure.call("start_commission", defs, board[0], PARTY, 919)
+
+
+func _deploy(run: Dictionary) -> Dictionary:
+	if run.get("phase") == "route":
+		run = adventure.call("choose_route", run, run.reports[0].mission_id)
+	return adventure.call("begin_mission", run)
 
 
 func _commit_terminal(run: Dictionary, outcome: String) -> Dictionary:
@@ -92,9 +99,9 @@ func _test_reset(source: Dictionary, outcome: String) -> void:
 	_check(errors.is_empty(), outcome + ": test-owned catalog validates: " + str(errors))
 	if not errors.is_empty():
 		return
-	var run: Dictionary = adventure.call("start_adventure", defs, "reset_outing", PARTY, 919)
+	var run := _start(defs)
 	for claim in [["bard", "reset_lights"], ["necromancer", "reset_ribs"], ["knight", "reset_hp"]]:
-		run = adventure.call("begin_mission", run)
+		run = _deploy(run)
 		run = _commit_terminal(run, "victory")
 		var offer := {"hero_id": claim[0], "upgrade_id": claim[1]}
 		_check(offer in run.get("reward_offers", []), outcome + ": real victory offers " + str(offer))
@@ -103,7 +110,7 @@ func _test_reset(source: Dictionary, outcome: String) -> void:
 		run = adventure.call("choose_reward", run, claim[0], claim[1])
 		_check(run.get("upgrades_by_id", {}).get(claim[0], {}).get(claim[1]) == 1,
 			outcome + ": real choice grants " + claim[1])
-	run = adventure.call("begin_mission", run)
+	run = _deploy(run)
 	var active: Dictionary = run.get("mission", {})
 	if active.is_empty():
 		_check(false, outcome + ": upgraded final mission deploys")
@@ -120,16 +127,14 @@ func _test_reset(source: Dictionary, outcome: String) -> void:
 		outcome + ": upgraded standing order is selectable")
 	run.mission = changed
 	var finished := _commit_terminal(run, outcome)
-	_check(finished.get("phase") == "finished", outcome + ": outing ends")
-	var guild: Dictionary = adventure.call("return_to_guild", finished)
-	_check(guild.get("phase") == "guild" and guild.get("upgrades_by_id", {}).is_empty()
-		and guild.get("reward_offers", []).is_empty() and guild.get("chosen_reward", {}).is_empty(),
-		outcome + ": returning to guild clears owned and pending rewards")
-	_check(defs == untouched, outcome + ": guild return does not mutate external catalog")
-	var fresh: Dictionary = adventure.call("start_adventure", defs, "reset_outing", PARTY, 919)
+	if outcome == "victory" and finished.get("phase") == "ready":
+		finished = _commit_terminal(_deploy(finished), "victory")
+	_check(finished.get("phase") == "finished", outcome + ": commission ends")
+	_check(defs == untouched, outcome + ": commission does not mutate external catalog")
+	var fresh := _start(defs)
 	_check(fresh.get("upgrades_by_id", {}).is_empty() and fresh.get("reward_offers", []).is_empty(),
-		outcome + ": new outing starts without counts or offers")
-	fresh = adventure.call("begin_mission", fresh)
+		outcome + ": new commission starts without counts or offers")
+	fresh = _deploy(fresh)
 	var board: Dictionary = fresh.get("mission", {})
 	if board.is_empty():
 		_check(false, outcome + ": fresh outing deploys")

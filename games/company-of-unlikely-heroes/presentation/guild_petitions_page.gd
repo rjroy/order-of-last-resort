@@ -196,7 +196,7 @@ func _build_preview(parent: VBoxContainer, record: Dictionary, balance: int, fee
 	var title := str(record.get("preview_title", record.get("title", "")))
 	var painting := ViewModel.action_plate(str(record.id))
 	if painting != null:
-		_build_preview_heading(body, title)
+		_build_preview_heading(body, title, str(record.get("recipient_label", "")))
 		var print := Prep.action_plate(body, painting)
 		print.name = "PetitionActionPlate"
 		print.custom_minimum_size.y = 145 if _compact else 215

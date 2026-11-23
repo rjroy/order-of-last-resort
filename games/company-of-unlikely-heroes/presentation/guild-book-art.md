@@ -46,8 +46,14 @@ upgrades.
 
 ## Guild petitions
 
-`petitions/bard.png` and `petitions/healer_blast.png` are art-only action plates,
-not portraits or screenshots. Their [source and crop recipe](../assets-source/guild-book/petitions/README.md)
-record the exact approved concept files. The preview lays out the plate, copy,
-and purchase control separately; the summon, battle, and reward art catalogs are
-unaffected.
+All 26 stock petitions have dedicated action plates in `petitions/`. Filenames
+match petition IDs except `recruit_bard`, which uses `bard.png`, and
+`teach_healer_blast`, which uses `healer_blast.png`. The
+[source and crop recipes](../assets-source/guild-book/petitions/README.md)
+record the approved images. Those two legacy filenames are reserved for their
+explicit petition IDs, not implicit matches from other petitions. The preview
+lays out the plate, copy, and purchase
+control separately. If a petition has no plate, its opted-in recipient portrait
+is shown when available; otherwise the preview has no illustration. Register
+headings retain their class portraits. The summon, battle, and reward art
+catalogs are unaffected.

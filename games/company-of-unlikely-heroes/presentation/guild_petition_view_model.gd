@@ -70,8 +70,15 @@ static func rows(definitions: Dictionary, petitions: Array) -> Array:
 
 
 static func action_plate(id: String) -> Texture2D:
-	# The packaged action paintings depict these exact petitions.
-	return Art.petition(str(PRESENTATION.get(id, {}).get("plate_id", "")))
+	# Most plates use the petition ID; the two original crops predate that convention.
+	var display: Dictionary = PRESENTATION.get(id, {})
+	if display.has("plate_id"):
+		return Art.petition(str(display.plate_id))
+	# Explicit aliases belong only to their petitions, not to IDs matching their filenames.
+	for entry: Dictionary in PRESENTATION.values():
+		if entry.get("plate_id", "") == id:
+			return null
+	return Art.petition(id)
 
 
 static func _grant_label(kind: String, grant: Dictionary) -> String:

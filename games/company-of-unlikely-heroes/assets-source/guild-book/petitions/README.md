@@ -2,7 +2,7 @@
 
 `bard.png` shows the Bad Bard playing his fiddle. `healer_blast.png` shows the Unimpressed Healer trying Blast. Both are art-only derivatives of Ronald's approved guild-unlock screen concepts. The source PNGs are under [the game’s concept archive](../../../../../.lore/work/games/company-of-unlikely-heroes/art/concepts/guild-unlock-board/). `recipe.json` pins the native paths, source checksums, and exact `(x, y, width, height)` crop on each 1567 × 1004 original.
 
-The crop keeps the original watercolor and warm paper at native resolution. An 11-pixel alpha feather blends only the outside of each art plate into the live page. No headings, captions, border, pin, or buttons are in the export. Godot loads the two packaged PNGs from `assets/guild-book/petitions`; it does not read the archived concept screens.
+The crop keeps the original watercolor and warm paper at native resolution. An 11-pixel alpha feather blends only the outside of each art plate into the live page. No headings, captions, border, pin, or buttons are in the export. Godot loads these two packaged PNGs and the 24 numbered plates below from `assets/guild-book/petitions`; it does not read the archived concept screens.
 
 To reproduce into an empty inspection directory with Python 3 and ImageMagick 7 (prepared with 7.1.2-34):
 
@@ -21,8 +21,10 @@ The source concepts are approved. The production crops and live page remain cand
 
 Ronald approved the exact 24 numbered review images, including Rescue Line, on
 2026-11-22. The approved bytes are packaged under
-`assets/guild-book/petitions/<id>.png`. This approval is for the artwork, not
-runtime integration or acceptance. The two earlier plates above were not changed.
+`assets/guild-book/petitions/<id>.png`. Approval of the artwork did not itself
+approve runtime integration or acceptance. The plates now appear in selected
+petition previews; live visual acceptance remains separate. The two earlier
+plates above were not changed.
 
 `approved-crops.tsv` records each ID, review label, native master, exact crop,
 and reviewed SHA-256. `masters.sha256` fingerprints the six preserved,

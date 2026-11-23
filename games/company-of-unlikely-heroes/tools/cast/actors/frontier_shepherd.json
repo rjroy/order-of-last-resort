@@ -1,0 +1,64 @@
+{
+  "role": "frontier_shepherd",
+  "master": {
+    "source": "models/frontier_shepherd/frontier_shepherd.blend",
+    "sha256": "8e88d1378b5cf2529ee13c3f4eea8a9777aba51e67c4c69f46eedb9adb5566fd",
+    "rig_name": "Shepherd_Rig",
+    "action_prefix": "Shepherd"
+  },
+  "takes": {
+    "pursuit_step": [
+      "Pursuit step",
+      [
+        1,
+        4,
+        6,
+        9,
+        11,
+        12,
+        15,
+        16,
+        18,
+        21,
+        25
+      ],
+      26,
+      false
+    ],
+    "ready": [
+      "Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21
+      ],
+      25,
+      true
+    ],
+    "scatter_wave": [
+      "Scatter wave",
+      [
+        1,
+        5,
+        6,
+        10,
+        11,
+        15,
+        16,
+        20,
+        21,
+        25,
+        26,
+        29,
+        31,
+        33,
+        36,
+        40
+      ],
+      41,
+      false
+    ]
+  }
+}

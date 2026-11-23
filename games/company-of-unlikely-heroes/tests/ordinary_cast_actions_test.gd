@@ -18,6 +18,7 @@ func _initialize() -> void:
 	_configure(defs, "rival_healer", "frontier_heal", "enemy_heal")
 	_configure(defs, "trickster", "ogre_swap", "swap_ally")
 	_configure(defs, "frontier_war_drummer", "frontier_war_drum", "perform")
+	_configure(defs, "frontier_shepherd", "frontier_shepherd_wave", "attack")
 	_check(Catalog.validate(defs).is_empty(), "All six ordinary handlers validate in their effective kits")
 	_case(defs, "hookhand", "hook_pull", "healer", Vector2i(4, 2), "shift", Vector2i(3, 2), "target")
 	_case(defs, "rival_knight", "knight_push", "healer", Vector2i(3, 2), "shift", Vector2i(4, 2), "target")
@@ -29,6 +30,7 @@ func _initialize() -> void:
 	_case(defs, "frontier_war_drummer", "frontier_war_drum", "healer", Vector2i(4, 2), "hit", Vector2i(4, 2))
 	_resisted_shift(defs, "hookhand", "hook_pull", Vector2i(4, 2))
 	_resisted_shift(defs, "rival_knight", "knight_push", Vector2i(3, 2))
+	_harmless_wave(defs)
 	_recover(defs)
 	defs.characters.hookhand.cast_presentation.actions.hook_pull.handler = "attack"
 	var state := _state(defs, "hookhand", "healer", Vector2i(4, 2))
@@ -103,6 +105,19 @@ func _resisted_shift(defs: Dictionary, caster: String, ability: String, at: Vect
 	_check(cues.size() == 1 and cues[0].unit_id == "caster" and cues[0].target_id == "target" \
 		and cues[0].target_cell == at and cues[0].recipients.is_empty(),
 		"%s still aims at the selected target, with no shift or hit" % ability)
+
+
+func _harmless_wave(defs: Dictionary) -> void:
+	var cell := Vector2i(3, 2)
+	var state := _state(defs, "frontier_shepherd", "frontier_sheep", cell)
+	var plan: Dictionary = rules.preview(state, "caster", "frontier_shepherd_wave", "target")
+	_check(plan.valid and plan.events.any(func(event: Dictionary) -> bool:
+		return event.type == "damage" and event.get("target_id") == "target" and event.get("amount") == 0),
+		"Real Sheep Wave reports the selected target but deals zero damage")
+	var cues := Cues.build(state, plan.result, plan.events)
+	_check(cues.size() == 1 and cues[0].clip == "fixture_take" and cues[0].target_id == "target" \
+		and cues[0].target_cell == cell and cues[0].recipients.is_empty(),
+		"Harmless Wave plays and aims at the sheep without a hit/flash recipient")
 
 
 func _case(defs: Dictionary, caster: String, ability: String, target: String, at: Vector2i,

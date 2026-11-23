@@ -1,0 +1,25 @@
+{
+  "actor": "frontier_shepherd",
+  "case": {
+    "automatic_rounds": 4,
+    "cast_key": "frontier_shepherd",
+    "minimum_opening": 1,
+    "triggers": [
+      {
+        "ability": "frontier_shepherd_wave",
+        "actor_field": "source_id",
+        "clip": "scatter_wave",
+        "id": "wave",
+        "type": "action"
+      },
+      {
+        "ability": "move",
+        "actor_field": "unit_id",
+        "clip": "pursuit_step",
+        "id": "pursuit",
+        "type": "action"
+      }
+    ]
+  },
+  "mission": "great_sheep_escape"
+}

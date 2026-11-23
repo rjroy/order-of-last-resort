@@ -44,9 +44,14 @@ static func cast_key_for(state: Dictionary, unit: Dictionary, profile := {}) -> 
 	# variant takes precedence even if a custom bundle copies the stock record.
 	if profile.get("team") != character.get("cast_team", "heroes") \
 			or character.get("cast_art_key") != profile.get("art_key") \
-			or profile.get("art_variant", "") != character.get("cast_variant", ""):
+			or _cast_variant(profile.get("art_variant", "")) != _cast_variant(character.get("cast_variant", "")):
 		return ""
 	return key
+
+
+static func _cast_variant(value: String) -> String:
+	# Unqualified stock art and the explicit default variant share an identity.
+	return "default" if value.is_empty() else value
 
 
 static func _valid_presentation(value: Variant) -> bool:
@@ -669,7 +674,8 @@ static func _observe_ordinary_strike(cue: Dictionary, event: Dictionary, positio
 				var cell: Variant = positions.get(target)
 				if not cue.has("target_cell"):
 					_aim(cue, target, cell)
-				_recipient(cue, target, cell, "hit")
+				if int(event.get("amount", 0)) > 0:
+					_recipient(cue, target, cell, "hit")
 
 
 static func _observe_heal(cue: Dictionary, event: Dictionary, cell: Variant) -> void:

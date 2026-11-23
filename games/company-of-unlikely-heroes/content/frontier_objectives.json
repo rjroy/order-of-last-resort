@@ -209,8 +209,31 @@
       "class": "civilian", "label": "Sheep", "art_key": "ferryman", "behavior": "hold"
     },
     "frontier_shepherd": {
-      "class": "enemy", "label": "Opposing Shepherd", "art_key": "enemy",
-      "max_hp": 3, "abilities": ["move", "frontier_shepherd_wave"], "behavior": "frontier_shepherd_pursuit"
+      "class": "enemy",
+      "label": "Opposing Shepherd",
+      "art_key": "enemy",
+      "max_hp": 3,
+      "abilities": [
+        "move",
+        "frontier_shepherd_wave"
+      ],
+      "behavior": "frontier_shepherd_pursuit",
+      "cast_key": "frontier_shepherd",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "pursuit_step"
+          },
+          "frontier_shepherd_wave": {
+            "handler": "attack",
+            "clip": "scatter_wave"
+          }
+        }
+      }
     },
     "frontier_wagon": {
       "class": "civilian", "label": "Supply Wagon",

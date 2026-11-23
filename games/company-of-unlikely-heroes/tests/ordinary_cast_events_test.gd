@@ -84,9 +84,9 @@ func _retaliation() -> void:
 
 func _chain_defeat() -> void:
 	_bind("bomber", {"defeat": "boom"})
-	var state := _state([_unit("attacker", "healer", 2, 2), _unit("first", "bomber", 3, 2, 1),
+	var state := _state([_unit("attacker", "wizard", 2, 2), _unit("first", "bomber", 3, 2, 1),
 		_unit("second", "bomber", 4, 2, 1)])
-	var plan: Dictionary = rules.preview(state, "attacker", "healer_bonk", "first")
+	var plan: Dictionary = rules.preview(state, "attacker", "wizard_blast")
 	if not plan.valid:
 		_check(false, "Initiating attack is legal")
 		return
@@ -96,6 +96,21 @@ func _chain_defeat() -> void:
 	_check(first.get("clip") == "boom" and second.get("clip") == "boom" \
 		and second.get("after_cue") == cues.find(first),
 		"Each bomber plays defeat once; secondary bomber is scheduled from the first detonation")
+	var strike := Sprites.Clip.new()
+	strike.total_ms = 300.0
+	strike.source_frames.assign([1, 17])
+	strike.frame_ends.assign([150.0, 300.0])
+	var blast := Sprites.Clip.new()
+	blast.total_ms = 600.0
+	var art := Sprites.new()
+	art.set("_actors", {"fixture_bomber": {"boom": blast}, "wizard": {"blast": strike}})
+	var playback := Playback.new()
+	playback.enqueue(cues, art)
+	var entries: Array = playback.get("_entries").filter(
+		func(entry: Playback.Entry) -> bool: return entry.cue.get("ordinary_role") == "defeat")
+	_check(entries.size() == 2 and entries[0].elapsed_ms < 0.0 \
+		and is_equal_approx(entries[1].elapsed_ms, entries[0].elapsed_ms - entries[0].impact_ms),
+		"Secondary defeat begins exactly at the causing Bomber's detonation beat, not the original strike")
 
 
 func _empowered_actions() -> void:
@@ -203,6 +218,13 @@ func _objectives() -> void:
 
 func _validation() -> void:
 	_check(Catalog.validate(defs).is_empty(), "All test-authored event/hold/bonus bindings validate")
+	var sheep := _unit("sheep", "frontier_sheep", 2, 2)
+	var state := {"catalog": {"defs": defs.duplicate(true)}}
+	state.catalog.defs.characters.frontier_sheep.cast_variant = "default"
+	_check(Cues.cast_key_for(state, sheep) == "fixture_frontier_sheep",
+		"An explicit default cast identity binds when the stock variant is omitted")
+	state.catalog.defs.characters.frontier_sheep.art_variant = "custom"
+	_check(Cues.cast_key_for(state, sheep).is_empty(), "Default cast identity still rejects custom variants")
 	for malformed in [{"events": {"arbitrary_event": "paint"}}, {"holds": {"wagon_wreck": "ready"}},
 			{"actions": {"move": {"handler": "move", "clip": "walk",
 				"bonus": {"stat": "damage", "clip": "bad"}}}}]:

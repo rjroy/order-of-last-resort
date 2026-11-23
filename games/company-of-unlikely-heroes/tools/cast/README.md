@@ -52,7 +52,32 @@ An optional `projectile_tip_offsets` master map records `[x,y]` in capture pixel
 
 `masters.json` pins the approved native rigs under `.lore/work/games/company-of-unlikely-heroes/art/models`. Per-model READMEs there document orientation, approvals, source limitations and actions. The renderer opens each master and checks its SHA-256 before and after, without saving. Two exact strips are reused from the tracked `art/pilots/ferryman-crossing/assets`: Knight Guard and Healer Ally Heal, pinned in `takes.py`. Their original renderer is `art/pilots/ferryman-crossing/authoring/bake_sprites.py` and uses those same two masters. Other drawings come directly from the native files. Render-only review floors and lights are excluded, not unparented character geometry such as the Wizard's hat. The ink-light shader preserves model base color or pigment graphs with the pilot's warm outlined contour, common orthographic projection, deterministic 12-sample CPU Cycles lighting and Standard color transform. Capture padding does not change pixels per metre or actor registration. The optional `capture_anchor_x` reallocates blank space toward a long prop without changing the camera angle, scale, registered pose, or release offset.
 
-`cast/takes.py` defines source frame samples and timings at 24 fps. Sparse holds and source-specific key beats avoid baking every playback frame. Neutral T-poses are setup, not performances. Knight and Healer have no separate ready action; Rogue's retreat doubles as the ready pose at F1. Knight shield-away is the F8 stance with the whole detachable shield hierarchy invisible. No invented attack takes. Wizard Pull ends seated. Bard's duplicate closing loop keys are deliberately omitted.
+`cast/takes.py` defines source frame samples and timings at 24 fps. Sparse holds and source-specific key beats avoid baking every playback frame. Neutral T-poses are setup, not performances. Knight shield-away is the F8 stance with the whole detachable shield hierarchy invisible. Wizard Pull ends seated. Bard's duplicate closing loop keys are deliberately omitted.
+
+### Five guild ready loops
+
+`cast/ready_poses.py` is the editable choreography for Knight, Healer, Wizard, Rogue and Mixologist. `Ready Idle` is a derived bake timeline, not an action stored in the native master. It samples the original native pose and applies small additive turns in memory. The first drawing uses the previous ready pose unmodified, including the exact Knight and Healer pilot frames. It is still the stationary drawing used for the tinted move preview and default prone hold. The sample at the loop boundary is the first drawing again, not a duplicated closing key. No other clips use the overlays.
+
+| Hero | Ready motion | Duration |
+| --- | --- | ---: |
+| Knight | Huddles behind the shield and eases back. Only the planted lead-in of Guard is sampled. | 1750 ms |
+| Healer | Tilts her head skeptically, drops her free elbow, and settles without moving the staff. | 2125 ms |
+| Wizard | Perks up with a small follow-through in the hat tip. | 1500 ms |
+| Rogue | Checks the side, then settles his cap and cape without retreating. | 1833 ms |
+| Mixologist | Checks the stowed bottles and settles her arm without drawing one. | 2000 ms |
+
+To reproduce just these atlases, use an empty, disk-backed staging directory and bounded Blender workers:
+
+```sh
+tools=games/company-of-unlikely-heroes/tools/cast
+scratch="$PWD/.lore/local/cast-bake"
+mkdir -p "$scratch/tmp"
+TMPDIR="$scratch/tmp" MAGICK_TEMPORARY_PATH="$scratch/tmp" \
+  python "$tools/bake_subset.py" "$scratch/guild-ready" knight healer wizard rogue alchemist --threads 3
+python "$tools/verify_cast.py" --assets "$scratch/guild-ready" knight healer wizard rogue alchemist
+```
+
+The full recipe also builds these loops. The staged manifest remains partial; merge only these five entries if publishing a subset. Review the loops at board scale rather than treating multiple packed samples as evidence of readable motion.
 
 **Drawing contract.** `manifest.actors[art_key].clips[name]` gives `path`, `frames`, `anchor` and `loop`; each frame is an atlas `rect: [x,y,width,height]` with `source_frame` and `duration_ms`. Use the root-level `display_scale` (0.375) uniformly. Register the **clip-local** anchor, not the rectangle center, on the actor's ground position. If mirroring, mirror the entire draw around that position. Three clear pixels surround all nonzero alpha in each rectangle, including the warm outline. Rectangles can repeat. On actor drawings the anchor is the projected ground origin, unchanged by the current pose. Thus planted feet stay put; even the Wizard's slip moves relative to a stationary ground point.
 
@@ -64,12 +89,12 @@ The `alchemist` atlas is derived from the [exact accepted Mixologist rig](../../
 
 | Clip | Source and timing |
 | --- | --- |
-| `ready` | Ready F1, held as a one-drawing loop (idle). Prone and fallen use the board's existing drawing treatment, not new native takes. |
+| `ready` | A derived two-second rack-check loop based on Ready F1. Prone and fallen use the board's existing drawing treatment, not new native takes. |
 | `potion` | Healing Potion. The full two-hand offer starts at F17 (667 ms); the bottle is gone at F24 (958 ms). F36 returns to Ready. Total: 1583 ms. |
 | `acid` | Acid Toss. F16 is the final held sample. At F18 (708 ms), the flask is detached and only the actor remains in the take; F32 returns to Ready. Total: 1417 ms. |
 | `acid_flask` | F18, one drawing registered to the authored flask root. The `acid.release` offset places it at that same world-space departure pose (projected offset `[104.975, -165.482]` in atlas pixels). Mirror X around the actor's ground point when the throw faces left. The native flight is not baked; the board can fly this separate drawing to the resolved target. |
 
-The atlas is 864 × 950, 438,207 bytes, SHA-256 `c25ff32a9875447ed00d90c8439af158df4378db654febe72afc5ed6e5334f31`. It has 25 timed samples and 24 packed rectangles. In a Godot 4.7.2 art-only board preview, the PNG and imported texture both loaded, the Ready silhouette fit beside the other playable heroes at 96 × 80 tile scale, and the low offer and overhead release read distinctly. The flask is small at that scale, so its arc and the actor's silhouette carry most of the throw. Both right- and left-facing flights were inspected. Visual runtime acceptance is separate from these checks.
+In the original Godot 4.7.2 art-only board preview, the PNG and imported texture both loaded, the Ready silhouette fit beside the other playable heroes at 96 × 80 tile scale, and the low offer and overhead release read distinctly. The flask is small at that scale, so its arc and the actor's silhouette carry most of the throw. Both right- and left-facing flights were inspected. Visual runtime acceptance is separate from these checks.
 
 ## Harpooner
 

@@ -5,13 +5,16 @@ import json
 import argparse
 import subprocess
 import sys
+from contextlib import contextmanager
+from math import radians
 from pathlib import Path
 import bpy
 from bpy_extras.object_utils import world_to_camera_view
-from mathutils import Vector
+from mathutils import Euler, Vector
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+from ready_poses import READY_IDLES
 from takes import PILOT, RELEASES, TAKES
 from recipe import action_name, capture_config, load_fragment, load_registered, release_prop_hidden, rig_name
 
@@ -144,6 +147,56 @@ def magick(*args):
     subprocess.run(["magick", *map(str, args)], check=True)
 
 
+@contextmanager
+def ready_turns(rig, turns):
+    """Add small model-space turns to a sampled pose; never key the native take."""
+    if not turns:
+        yield
+        return
+    # A still render evaluates animation again. Hold the sampled FK channels
+    # without the native action assigned so that evaluation cannot undo edits.
+    channels = [
+        (bone, bone.location.copy(), bone.rotation_quaternion.copy(), bone.scale.copy())
+        for bone in rig.pose.bones
+    ]
+    offsets = {}
+    for name, angles in turns:
+        axes = rig.pose.bones[name].matrix.to_quaternion()
+        turn = Euler(tuple(map(radians, angles))).to_quaternion()
+        offsets[name] = axes.inverted() @ turn @ axes
+    animation = rig.animation_data
+    native, slot = animation.action, animation.action_slot
+    animation.action = None
+    edited_rotations = []
+    try:
+        for bone, location, rotation, scale in channels:
+            assert bone.rotation_mode == "QUATERNION"
+            bone.location = location
+            turn = offsets.get(bone.name)
+            if turn is not None:
+                edited_rotations.append((bone, rotation))
+            bone.rotation_quaternion = rotation @ turn if turn is not None else rotation
+            bone.scale = scale
+        bpy.context.view_layer.update()
+        yield
+    finally:
+        for bone, rotation in edited_rotations:
+            bone.rotation_quaternion = rotation
+        animation.action = native
+        animation.action_slot = slot
+
+
+def render_ink(scene, raw, out, size):
+    scene.render.filepath = str(raw)
+    bpy.ops.render.render(write_still=True)
+    magick(
+        raw, "-alpha", "extract", "-morphology", "Dilate", "Disk:2",
+        "-write", "mpr:mask", "+delete", "-size", f"{size}x{size}", "xc:#352b28",
+        "mpr:mask", "-compose", "CopyOpacity", "-composite", raw, "-compose",
+        "Over", "-composite", "-strip", f"PNG32:{out}",
+    )
+
+
 def bake(role, work, recipe=None):
     masters, takes, releases = load_registered(
         HERE / "actors", json.loads((HERE / "masters.json").read_text()), TAKES, RELEASES, [role]
@@ -192,12 +245,20 @@ def bake(role, work, recipe=None):
         }
     cache = {}
     data = {}
+    pilot_clip = {"knight": "guard", "healer": "ally_heal"}.get(role)
     for clip, (action, frames, end, loop) in takes[role].items():
-        take = bpy.data.actions[action_name(role, master, action)]
+        idle = READY_IDLES.get(role) if clip == "ready" else None
+        native_action = idle.source_action if idle else action
+        take = bpy.data.actions[action_name(role, master, native_action)]
         rig.animation_data.action = take
-        data[clip] = {"frames": [], "loop": loop, "anchor": anchor, "action": take.name}
+        data[clip] = {
+            "frames": [], "loop": loop, "anchor": anchor,
+            "action": action_name(role, master, action),
+        }
         for i, f in enumerate(frames):
-            s.frame_set(f)
+            pose = idle.poses[i] if idle else None
+            native_frame = pose.source if pose else f
+            s.frame_set(int(native_frame), subframe=native_frame % 1)
             variant = ""
             if role == "knight" and clip == "shield_away":
                 variant = "without_shield"
@@ -233,14 +294,19 @@ def bake(role, work, recipe=None):
                             "offset": [round(a - b, 3) for a, b in zip(px, anchor)],
                             "clip": prop_clip,
                         }
-            key = (action, f, variant)
+            # Hold onto the original neutral drawing for stamps and prone poses.
+            # Do not use a fresh render in place of an exact pilot drawing.
+            turns = pose.turns if pose else ()
+            use_pilot = pilot_clip is not None and (
+                clip == pilot_clip or (idle is not None and i == 0)
+            )
+            key = (native_action, native_frame, variant, turns, use_pilot)
             if key not in cache:
                 out = work / f"{role}-{len(cache):03d}.png"
                 cache[key] = out
-                if role in PILOT and (clip in ("guard", "ally_heal", "ready")):
-                    pilot_clip = "guard" if role == "knight" else "ally_heal"
+                if use_pilot:
                     name = f"{role}_{pilot_clip}"
-                    index = takes[role][pilot_clip][1].index(f)
+                    index = takes[role][pilot_clip][1].index(native_frame)
                     src = ART / "pilots/ferryman-crossing/assets" / f"{name}.png"
                     assert hashlib.sha256(src.read_bytes()).hexdigest() == PILOT[role]
                     magick(
@@ -256,33 +322,8 @@ def bake(role, work, recipe=None):
                         f"PNG32:{out}",
                     )
                 else:
-                    raw = work / f"{role}-raw.png"
-                    s.render.filepath = str(raw)
-                    bpy.ops.render.render(write_still=True)
-                    magick(
-                        raw,
-                        "-alpha",
-                        "extract",
-                        "-morphology",
-                        "Dilate",
-                        "Disk:2",
-                        "-write",
-                        "mpr:mask",
-                        "+delete",
-                        "-size",
-                        f"{size}x{size}",
-                        "xc:#352b28",
-                        "mpr:mask",
-                        "-compose",
-                        "CopyOpacity",
-                        "-composite",
-                        raw,
-                        "-compose",
-                        "Over",
-                        "-composite",
-                        "-strip",
-                        f"PNG32:{out}",
-                    )
+                    with ready_turns(rig, turns):
+                        render_ink(s, work / f"{role}-raw.png", out, size)
             start = frames[0]
             stop = frames[i + 1] if i + 1 < len(frames) else end
             ms = round((stop - start) * 1000 / 24) - round((f - start) * 1000 / 24)

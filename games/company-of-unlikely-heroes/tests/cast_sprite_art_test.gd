@@ -26,6 +26,12 @@ const EXTRA_CLIPS := {
 	"alchemist": ["potion", "acid", "acid_flask"],
 	"harpooner": ["pursue", "close_thrust", "ranged_cast", "hit", "defeat", "harpoon_projectile"],
 }
+const READY_ACTIONS := {
+	"knight": "guard", "healer": "bonk", "wizard": "blast",
+	"rogue": "misdirect", "alchemist": "potion",
+	# Existing animated guild members and an opponent are controls.
+	"bard": "inspiring_melody", "necromancer": "summon_skeleton", "harpooner": "close_thrust",
+}
 
 var board := Board.new()
 var viewport := SubViewport.new()
@@ -89,6 +95,8 @@ func _run() -> void:
 	var shield_away := await _render("knight", {"shield_away": true})
 	_check(_difference(figures["knight"], shield_away) > 10,
 		"Knight must show when the shield is away")
+	for role in READY_ACTIONS:
+		await _check_live_ready(role, READY_ACTIONS[role])
 	if failures == 0:
 		print("Cast sprite art test passed: distinct figures and tactical state remain visible.")
 	quit(1 if failures else 0)
@@ -106,6 +114,68 @@ func _render(role: String, state: Dictionary = {}, overlay: Dictionary = {}) -> 
 	await process_frame
 	await RenderingServer.frame_post_draw
 	return viewport.get_texture().get_image()
+
+
+func _check_live_ready(role: String, action: String) -> void:
+	board.clear_action_playback()
+	board.set("_ready_ms", 0.0)
+	await _render(role)
+	var ready = board.get("_cast").clip_for(role, "ready")
+	if ready == null:
+		_check(false, role + " needs a ready clip")
+		return
+	_check(ready.loop and ready.frames.size() > 1,
+		role + " ready must loop through multiple frames")
+	_check(board.is_processing(), role + " must process its live ready animation")
+	board.set_process(false)
+	if not ready.loop or ready.frames.size() < 2:
+		return
+	await _check_ready_cycles(role, ready)
+
+	board.play_committed_actions([{"unit_id": "unit", "cast_key": role, "clip": action,
+		"source_cell": CELL}])
+	board.set_process(false)
+	var active: Array = board.get("_playback").active()
+	if active.is_empty():
+		_check(false, role + " action enters playback")
+		return
+	board._process((active[0].duration_ms + 1.0) / 1000.0)
+	_check(board.action_playback_snapshot().is_empty(), role + " action completes")
+	_check(board.is_processing(), role + " resumes processing ready after its action")
+	board.set_process(false)
+	await _check_ready_cycles(role + " after action", ready)
+
+
+func _check_ready_cycles(label: String, ready) -> void:
+	# Reset the shared clock so each render samples the midpoint of each actual
+	# frame. Compare pixels, not just frame indices or manifest declarations.
+	board.set("_ready_ms", 0.0)
+	var first_cycle: Array[Image] = []
+	for cycle in 2:
+		var elapsed := 0.0
+		var first: Image
+		var changed := false
+		for index in ready.frames.size():
+			var start: float = 0.0 if index == 0 else ready.frame_ends[index - 1]
+			var sample: float = (start + ready.frame_ends[index]) * 0.5
+			board._process((sample - elapsed) / 1000.0)
+			board.set_process(false)
+			elapsed = sample
+			await process_frame
+			await RenderingServer.frame_post_draw
+			var image := viewport.get_texture().get_image()
+			if index == 0:
+				first = image
+			elif _difference(first, image) > 10:
+				changed = true
+			if cycle == 0:
+				first_cycle.append(image)
+			else:
+				_check(_difference(first_cycle[index], image) == 0,
+					label + " repeats the same rendered frame on its second cycle")
+		_check(changed, "%s visibly animates during ready cycle %d" % [label, cycle + 1])
+		board._process((ready.total_ms - elapsed) / 1000.0)
+		board.set_process(false)
 
 
 func _check_manifest() -> void:

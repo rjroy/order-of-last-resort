@@ -2,10 +2,11 @@
 Times are absolute 24-fps source offsets; held poses need only one drawing.
 """
 
-GUARD = "Wary, plant, cover, settle"
+from ready_poses import GUARD, READY_IDLES
+
 TAKES = {
     "alchemist": {
-        "ready": ("Ready", [1], 25, True),
+        "ready": READY_IDLES["alchemist"].take(),
         "potion": (
             "Healing Potion",
             [1, 4, 7, 10, 13, 17, 20, 23, 24, 28, 32, 36],
@@ -16,7 +17,7 @@ TAKES = {
         "acid_flask": ("Acid Toss", [18], 19, False),
     },
     "knight": {
-        "ready": (GUARD, [8], 32, True),
+        "ready": READY_IDLES["knight"].take(),
         "guard": (GUARD, [8, 14, 20, 25, 31, 35, 39, 44, 51, 65], 78, False),
         "shield_away": (GUARD, [8], 32, True),
     },
@@ -46,18 +47,18 @@ TAKES = {
         "defeat": ("Defeat", [1, 3, 4, 7, 9, 12, 15, 18, 22], 26, False),
     },
     "healer": {
-        "ready": ("Ally Heal", [1], 25, True),
+        "ready": READY_IDLES["healer"].take(),
         "ally_heal": ("Ally Heal", [1, 4, 7, 10, 13, 17, 20, 23, 26, 28], 33, False),
         "self_heal": ("Self Heal", [1, 5, 9, 12, 17, 21, 25, 28], 33, False),
         "bonk": ("Adjacent Bonk", [1, 5, 10, 13, 15, 18, 23, 29], 33, False),
     },
     "wizard": {
-        "ready": ("Ready", [1], 13, True),
+        "ready": READY_IDLES["wizard"].take(),
         "blast": ("Blast", [1, 4, 7, 11, 14, 17, 21, 24, 29, 34], 41, False),
         "pull": ("Pull", [1, 4, 8, 13, 16, 19, 21, 24, 28, 33], 41, False),
     },
     "rogue": {
-        "ready": ("Ready / Retreat", [1], 25, True),
+        "ready": READY_IDLES["rogue"].take(),
         "retreat": ("Ready / Retreat", [1, 5, 9, 13, 17, 21, 26], 30, False),
         "swap": ("Confusing Dodge", [1, 4, 7, 10, 12, 15, 19, 25, 30, 34], 38, False),
         "misdirect": ("Wasn't Me", [1, 5, 9, 14, 36, 42, 47, 50], 54, False),

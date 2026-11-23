@@ -1,0 +1,18 @@
+{
+  "actor": "rival_knight",
+  "case": {
+    "automatic_rounds": 4,
+    "cast_key": "rival_knight",
+    "minimum_opening": 1,
+    "triggers": [
+      {
+        "ability": "knight_push",
+        "actor_field": "unit_id",
+        "clip": "shield_push",
+        "id": "push",
+        "type": "action"
+      }
+    ]
+  },
+  "mission": "mirror_company"
+}

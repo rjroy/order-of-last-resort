@@ -1,0 +1,75 @@
+{
+  "role": "rival_knight",
+  "master": {
+    "source": "models/rival_knight/rival_knight.blend",
+    "sha256": "f7fa59f3fc0e5cb77885b4c93d48f85ab4a57340d93e7b20f086dd3be7c875b8",
+    "rig_name": "Rival_Knight_Rig",
+    "action_prefix": "Rival Knight"
+  },
+  "takes": {
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26
+      ],
+      27,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        6,
+        11,
+        16
+      ],
+      17,
+      false
+    ],
+    "move": [
+      "Move",
+      [
+        1,
+        6,
+        11,
+        16,
+        21
+      ],
+      22,
+      false
+    ],
+    "ready": [
+      "Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31
+      ],
+      33,
+      true
+    ],
+    "shield_push": [
+      "Shield Push",
+      [
+        1,
+        6,
+        10,
+        11,
+        16,
+        21,
+        23
+      ],
+      24,
+      false
+    ]
+  }
+}

@@ -17,8 +17,10 @@
 Character-owned `cast_key`, `cast_art_key`, `cast_team` and `cast_variant`
 bind a packaged cast family only while the effective team, art key and variant
 still match. The `cast_presentation` dictionary optionally maps ability IDs in
-`actions` to `{ "handler": "move" | "attack", "clip": "<clip id>" }`, and
-can name `hit` and `defeat` clips. The ability must be in the effective kit;
+`actions` to `{ "handler": "<rules handler>", "clip": "<clip id>" }`, and
+can name `hit` and `defeat` clips. Supported handlers are `move`, `attack`,
+`hook`, `push`, `blast`, `enemy_heal`, `swap_ally`, and `perform`.
+The ability must be in the effective kit;
 its actual handler must match before the committed action plays. A move needs
 an actual displacement. An optional positive `impact_frame` sets contact on
 that sampled source frame; absent or unsampled frames use the default timing.

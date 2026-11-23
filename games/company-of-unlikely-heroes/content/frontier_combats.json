@@ -673,7 +673,25 @@
         "move",
         "knight_push"
       ],
-      "behavior": "rival_knight_pursuit"
+      "behavior": "rival_knight_pursuit",
+      "cast_key": "rival_knight",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "move"
+          },
+          "knight_push": {
+            "handler": "push",
+            "clip": "shield_push"
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat"
+      }
     },
     "rival_wizard": {
       "class": "enemy",

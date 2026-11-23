@@ -64,7 +64,7 @@ static func _valid_presentation(value: Variant) -> bool:
 		for field in binding:
 			if field not in ["handler", "clip", "impact_frame"]:
 				return false
-		if binding.get("handler") not in ["move", "attack"] or not _presentation_clip(binding.get("clip")):
+		if binding.get("handler") not in Catalog.CAST_ACTION_HANDLERS or not _presentation_clip(binding.get("clip")):
 			return false
 		if binding.has("impact_frame"):
 			var frame: Variant = binding.impact_frame
@@ -249,7 +249,7 @@ static func _start_cue(state: Dictionary, actor: Dictionary, action: Dictionary)
 	if ordinary:
 		var actions: Variant = presentation.get("actions", {})
 		var declared: Variant = actions.get(action.ability_id) if actions is Dictionary else null
-		if declared is Dictionary and declared.get("handler") in ["move", "attack"] \
+		if declared is Dictionary and declared.get("handler") in Catalog.CAST_ACTION_HANDLERS \
 				and declared.get("clip") is String and not declared.clip.is_empty():
 			ordinary_handler = declared.handler
 			binding = [ordinary_handler, declared.clip]
@@ -305,8 +305,7 @@ static func _supports_shape(definitions: Dictionary, ability: Dictionary, clip: 
 
 static func _observe(cue: Dictionary, event: Dictionary, positions: Dictionary) -> void:
 	if cue.get("ordinary_presentation", false):
-		if cue.get("ordinary_handler") == "attack":
-			_observe_ordinary_attack(cue, event, positions)
+		_observe_ordinary_action(cue, event, positions)
 		return
 	var id: String = event.get("target_id", "")
 	var cell: Variant = positions.get(id)
@@ -398,7 +397,62 @@ static func _observe(cue: Dictionary, event: Dictionary, positions: Dictionary) 
 				_recipient(cue, event.summon_id, event.position, "summon")
 
 
-static func _observe_ordinary_attack(cue: Dictionary, event: Dictionary, positions: Dictionary) -> void:
+static func _observe_ordinary_action(cue: Dictionary, event: Dictionary, positions: Dictionary) -> void:
+	var handler: String = cue.ordinary_handler
+	var actor: String = cue.unit_id
+	var target: String = event.get("target_id", "")
+	var cell: Variant = positions.get(target)
+	var owner: String = event.get("unit_id", "")
+	if handler in ["attack", "blast", "push", "perform"]:
+		_observe_ordinary_strike(cue, event, positions)
+	match event.get("type"):
+		"pull":
+			if handler != "hook":
+				return
+			if owner == actor:
+				_aim(cue, target, cell)
+			elif target == actor:
+				# Dig In names the reversing defender as owner; the Hookhand still cast.
+				_aim(cue, owner, positions.get(owner))
+			else:
+				return
+			_observe_shift(cue, target, cell, event.position)
+		"push", "repel":
+			if owner == actor and handler in ["push", "blast"]:
+				if not cue.has("target_cell"):
+					_aim(cue, target, cell)
+				_observe_shift(cue, target, cell, event.position)
+		"swap":
+			if handler == "swap_ally" and owner == actor:
+				_aim(cue, target, cell)
+				_observe_shift(cue, target, cell, event.target_position)
+		"heal":
+			if owner == actor and handler in ["enemy_heal", "perform"]:
+				if not cue.has("target_cell"):
+					_aim(cue, target, cell)
+				if int(event.get("amount", 0)) > 0:
+					_recipient(cue, target, cell, "heal")
+		"performance":
+			if handler == "perform" and owner == actor:
+				_aim(cue, target, cell)
+				if event.has("status_id"):
+					_recipient(cue, target, cell, "status")
+		"status":
+			if handler == "perform" and owner == actor and target != actor:
+				if not cue.has("target_cell"):
+					_aim(cue, target, cell)
+				_recipient(cue, target, cell, "status")
+		"wait":
+			if handler == "push" and owner == actor and not cue.has("target_cell"):
+				_aim(cue, target, cell)
+
+
+static func _observe_shift(cue: Dictionary, target: String, from: Variant, destination: Vector2i) -> void:
+	if destination != from:
+		_recipient(cue, target, destination, "shift")
+
+
+static func _observe_ordinary_strike(cue: Dictionary, event: Dictionary, positions: Dictionary) -> void:
 	match event.get("type"):
 		"body_double":
 			var original: String = event.get("unit_id", "")

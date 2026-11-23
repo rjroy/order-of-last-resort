@@ -4818,6 +4818,357 @@
           "path": "res://assets/cast/bruiser.png"
         }
       }
+    },
+    "rival_knight": {
+      "source": "art/models/rival_knight/rival_knight.blend",
+      "sha256": "f7fa59f3fc0e5cb77885b4c93d48f85ab4a57340d93e7b20f086dd3be7c875b8",
+      "clips": {
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                576,
+                0,
+                167,
+                198
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                743,
+                0,
+                167,
+                198
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                203,
+                167,
+                198
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                167,
+                203,
+                167,
+                198
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                334,
+                203,
+                167,
+                198
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 41,
+              "rect": [
+                501,
+                203,
+                167,
+                198
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            67,
+            184
+          ],
+          "action": "Rival Knight | Defeat",
+          "path": "res://assets/cast/rival_knight.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                668,
+                203,
+                153,
+                191
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                401,
+                153,
+                191
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                153,
+                401,
+                153,
+                191
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                668,
+                203,
+                153,
+                191
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            66,
+            177
+          ],
+          "action": "Rival Knight | Hit",
+          "path": "res://assets/cast/rival_knight.png"
+        },
+        "move": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                0,
+                144,
+                203
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                144,
+                0,
+                144,
+                203
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                288,
+                0,
+                144,
+                203
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                432,
+                0,
+                144,
+                203
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                0,
+                144,
+                203
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            59,
+            179
+          ],
+          "action": "Rival Knight | Move",
+          "path": "res://assets/cast/rival_knight.png"
+        },
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                781,
+                143,
+                189
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                143,
+                781,
+                143,
+                189
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                286,
+                781,
+                143,
+                189
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                429,
+                781,
+                143,
+                189
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                572,
+                781,
+                143,
+                189
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                715,
+                781,
+                143,
+                189
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                970,
+                143,
+                189
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            58,
+            175
+          ],
+          "action": "Rival Knight | Ready",
+          "path": "res://assets/cast/rival_knight.png"
+        },
+        "shield_push": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                306,
+                401,
+                208,
+                189
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 167,
+              "rect": [
+                514,
+                401,
+                208,
+                189
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                592,
+                208,
+                189
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                208,
+                592,
+                208,
+                189
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                416,
+                592,
+                208,
+                189
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 84,
+              "rect": [
+                624,
+                592,
+                208,
+                189
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 41,
+              "rect": [
+                306,
+                401,
+                208,
+                189
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            76,
+            175
+          ],
+          "action": "Rival Knight | Shield Push",
+          "path": "res://assets/cast/rival_knight.png"
+        }
+      }
     }
   }
 }

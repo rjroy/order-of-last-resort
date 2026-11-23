@@ -23,6 +23,7 @@ const ABILITY_TARGETING := {
 const ABILITY_EVENTS := {"swap_furthest": ["swap"], "swap_ally": ["swap"], "misdirect": ["misdirect_mark"],
 	"sweep": ["sweep"], "stop_target": ["stop_target"], "repel": ["repel"],
 	"perform": ["performance_dry"], "hook": ["hook_pull"]}
+const CAST_ACTION_HANDLERS := ["move", "attack", "hook", "push", "blast", "enemy_heal", "swap_ally", "perform"]
 const STATUS_EXPIRY := {"reflect": "actor_turn_start", "skip_action": "consume_action",
 	"retarget": "actor_turn_end", "misdirect": "consume_attack", "stop_move": "actor_turn_end",
 	"block_voluntary_move": "consume_move"}
@@ -878,7 +879,7 @@ class Validator:
 			for field in binding:
 				if field not in ["handler", "clip", "impact_frame"]:
 					_error(action_path + "." + str(field), "unknown binding field")
-			_choice(binding.get("handler"), ["move", "attack"], action_path + ".handler")
+			_choice(binding.get("handler"), CAST_ACTION_HANDLERS, action_path + ".handler")
 			if binding.get("handler") == "move" and "mobile" not in capabilities:
 				_error(action_path, "move presentation requires the mobile capability")
 			if _text(binding.get("clip"), action_path + ".clip") and binding.clip == "ready":

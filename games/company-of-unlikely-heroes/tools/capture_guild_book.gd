@@ -4,6 +4,7 @@ extends "res://tests/village_outing_scene_test.gd"
 ## Opening spread only: add --guild-creation-only and use an output directory
 ## under .lore/local/release-polish/after/ instead.
 ## Commission board only: add --commission-board-only and use that same output root.
+## Recruitment only: add --recruitment-only and use that same output root.
 ## The output directory must be new or empty. It contains the isolated profile.
 ## A seeded stock commission is played by the checked-in forecast-based test driver.
 ## That battle driver uses mouse input for board choices and emits menu signals for
@@ -25,9 +26,9 @@ func _initialize() -> void:
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
 	var mode := args[1] if args.size() == 2 else ""
-	var focused := mode in ["--guild-creation-only", "--commission-board-only"]
+	var focused := mode in ["--guild-creation-only", "--commission-board-only", "--recruitment-only"]
 	if (args.size() != 1 and not focused) or not args[0].begins_with("--output="):
-		_finish_capture("Supply --output=<absolute directory> and optionally --guild-creation-only or --commission-board-only.")
+		_finish_capture("Supply --output=<absolute directory> and optionally one documented capture mode.")
 		return
 	output = args[0].trim_prefix("--output=").simplify_path()
 	var location := "release-polish/after" if focused else "guild-book-review"
@@ -61,6 +62,9 @@ func _run() -> void:
 	root.add_child(viewport)
 	if mode == "--commission-board-only":
 		_finish_capture(await _capture_commission_board())
+		return
+	if mode == "--recruitment-only":
+		_finish_capture(await _capture_recruitment_states())
 		return
 	scene = load("res://main.tscn").instantiate()
 	if not scene.has_method("configure_launch") or not scene.has_method("configure_profile_path"):
@@ -232,6 +236,76 @@ func _capture_commission_board() -> String:
 		return "Keyboard did not accept the first commission."
 	print("Captured and accepted the seed-%d board." % BOARD_REVIEW_SEED)
 	return ""
+
+
+func _capture_recruitment_states() -> String:
+	var store = load("res://guild_profile.gd")
+	var fixture = load("res://tests/guild_petitions_domain_test.gd").new()
+	var path := output.path_join("profile.json")
+	var profile: Dictionary = store.create(path, "The Review Company", fixture.SEED)
+	if profile.has("error"):
+		fixture.free()
+		return str(profile.error)
+	# Settle four controlled road wins so the real teaching petition can be bought.
+	var defs: Dictionary = load("res://content/catalog.gd").read_default()
+	var run: Dictionary = fixture._run_commission(defs, profile, 4, 0)
+	fixture.free()
+	if run.is_empty():
+		return "Could not earn points for the loadout fixture."
+	profile = store.settle_return(path, profile, run, BOARD_REVIEW_SEED)
+	if profile.has("error"):
+		return str(profile.error)
+	profile = store.purchase(path, profile, defs, "teach_healer_blast")
+	if profile.has("error"):
+		return str(profile.error)
+	scene = load("res://main.tscn").instantiate()
+	scene.configure_launch(PackedStringArray())
+	scene.configure_profile_path(path)
+	viewport.add_child(scene)
+	await process_frame
+	await process_frame
+
+	if not await _activate_with_key("Commission_0") or not _screen_is("guild") \
+			or not await _save_capture("01-recruitment-empty"):
+		return failure
+	for id in FOUNDERS:
+		if not await _activate_with_key("Recruit_" + id):
+			return failure
+	if scene.selected_recruits() != FOUNDERS or not await _save_capture("02-recruitment-filled"):
+		return "Keyboard did not recruit the founders in order. " + failure
+	if not await _activate_with_key("PartyEarlier_healer") \
+			or scene.selected_recruits() != ["healer", "knight", "wizard"] \
+			or not await _save_capture("03-recruitment-reordered"):
+		return "Keyboard did not move the Healer earlier. " + failure
+	if not await _activate_with_key("PartyLater_healer") or scene.selected_recruits() != FOUNDERS:
+		return "Keyboard did not restore the original order. " + failure
+	if not await _activate_with_key("EditHero_healer") or not await _activate_with_key("Offense_wizard_blast"):
+		return failure
+	var lock := scene.find_child("Order_order_aggressive", true, false) as BaseButton
+	var support := scene.find_child("Order_order_support", true, false) as BaseButton
+	if lock == null or not lock.disabled or lock.text != "Requires Bonk" or support == null or support.disabled:
+		return "Blast should leave Support available and Pursue and bonk locked by Bonk."
+	var later := scene.find_child("PartyLater_healer", true, false) as BaseButton
+	later.grab_focus()
+	if not await _save_capture("04-recruitment-loadout"):
+		return failure
+	if not await _activate_with_key("StartAdventure") or not _screen_is("routes"):
+		return failure
+	var started: Dictionary = scene.get("_run")
+	if started.get("party", []) != FOUNDERS:
+		return "The route did not retain the deployment order."
+	print("Captured recruitment and opened field reports using keyboard actions.")
+	return ""
+
+
+func _activate_with_key(node_name: String) -> bool:
+	var control := scene.find_child(node_name, true, false) as BaseButton
+	if control == null or control.disabled or not control.is_visible_in_tree():
+		failure = node_name + " is not available."
+		return false
+	control.grab_focus()
+	await _key(KEY_ENTER)
+	return true
 
 
 func _capture_creation_states() -> String:

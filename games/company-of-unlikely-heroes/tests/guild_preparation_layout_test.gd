@@ -3,6 +3,7 @@ extends SceneTree
 ## godot --headless --path games/company-of-unlikely-heroes --script res://tests/guild_preparation_layout_test.gd
 
 const Book = preload("res://presentation/guild_book_page.gd")
+const BoundPage = preload("res://presentation/guild_bound_page.gd")
 const Art = preload("res://presentation/guild_book_art.gd")
 const Petitions = preload("res://presentation/guild_petitions_page.gd")
 const Recruitment = preload("res://presentation/guild_recruitment_page.gd")
@@ -36,13 +37,15 @@ func _run() -> void:
 
 func _check_deployment(count: int) -> void:
 	var presenter := Recruitment.new()
-	var page := _new_book()
+	var page := _new_book(BoundPage.new())
 	var heroes := _founders()
 	var party := heroes.slice(0, count)
 	presenter.build(_book, page, {"commission_title": "The last ferryman", "mission_count": 5,
 		"party": party, "heroes": heroes, "party_size": 3, "folio": "recruits",
 		"can_depart": count == 3, "depart_blocked_reason": "Choose 3 recruits." if count < 3 else ""})
 	await _layout()
+	_expect(_book.get_global_rect().is_equal_approx(Rect2(Vector2.ZERO, Vector2(_viewport.size))),
+		"Recruitment binding fits the viewport")
 	var scenario := "%s, %d selected" % [_viewport.size, count]
 	var scroll := _control("DeploymentScroll") as ScrollContainer
 	if scroll == null:
@@ -131,7 +134,7 @@ func _check_petition(id: String) -> void:
 
 func _check_loadout(compact: bool) -> void:
 	var presenter := Recruitment.new()
-	var page := _new_book()
+	var page := _new_book(BoundPage.new())
 	var party := _founders()
 	presenter.build(_book, page, {"commission_title": "The last ferryman", "mission_count": 5,
 		"party": party, "heroes": party, "party_size": 3, "selected_hero_id": "healer",
@@ -147,8 +150,19 @@ func _check_loadout(compact: bool) -> void:
 		"Equipped Blast is shown before Bonk")
 	_expect(_book.get_global_rect().encloses(_bounds("StartAdventure")), "Departure remains on the leaf")
 	var pursuit := _control("Order_order_aggressive") as Button
+	var support := _control("Order_order_support") as Button
 	_expect(pursuit != null and pursuit.disabled and pursuit.text == "Requires Bonk",
 		"Incompatible pursuit displays the specific requirement")
+	_expect(support != null and not support.disabled and support.text == "Selected",
+		"Support remains the selected and available order")
+	var editing := _control("EditingLoadout_healer")
+	var later := _control("PartyLater_healer") as Button
+	_expect(editing != null and _control("EditHero_healer") == null and _control("EditHero_knight") != null,
+		"Only the active folio hero shows the persistent Editing loadout state")
+	if later != null:
+		later.grab_focus()
+		_expect(later.has_focus() and editing != null and editing.is_visible_in_tree(),
+			"Keyboard focus on a reorder button does not replace the editing state")
 	if compact:
 		var scroll := _control("LoadoutScroll") as ScrollContainer
 		_expect(scroll != null and scroll.follow_focus, "Compact loadout scrolls to keyboard focus")
@@ -160,11 +174,11 @@ func _check_loadout(compact: bool) -> void:
 	_expect(_visible_in("Order_order_aggressive", "LoadoutScroll"), "Pursuit and its lock reason are readable")
 
 
-func _new_book() -> VBoxContainer:
+func _new_book(book: Book = null) -> VBoxContainer:
 	if is_instance_valid(_book):
 		_viewport.remove_child(_book)
 		_book.queue_free()
-	_book = Book.new()
+	_book = Book.new() if book == null else book
 	_viewport.add_child(_book)
 	return _book.build(-1.0)
 

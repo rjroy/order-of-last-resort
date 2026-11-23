@@ -20,12 +20,7 @@ func _run() -> void:
 	if not await _choose_posting_with_keyboard():
 		_cleanup()
 		return
-	for id in FOUNDER_PARTY:
-		await _press("Recruit_" + id)
-	_check(scene.selected_recruits() == FOUNDER_PARTY, "Selected party order is retained")
-	await _press("StartAdventure")
-	if scene.current_screen() != "routes":
-		_check(false, "Recruitment opens the route choice")
+	if not await _deploy_with_keyboard():
 		_cleanup()
 		return
 	var run: Dictionary = scene.get("_run")
@@ -164,6 +159,45 @@ func _choose_posting_with_keyboard() -> bool:
 	var success: bool = scene.current_screen() == "guild" and selected == offers[1]
 	_check(success, "Keyboard acceptance opens recruitment for the focused posting")
 	return success
+
+
+func _deploy_with_keyboard() -> bool:
+	var initial := ["knight", "healer", "wizard"]
+	var depart := _node("StartAdventure") as Button
+	var context := _node("CommissionContext") as Label
+	var commission: Dictionary = scene.get("_commission")
+	var defs: Dictionary = scene.get("_definitions")
+	var destination: String = defs.missions[commission.destination_id].title
+	_check(context != null and destination in context.text and "%d missions" % commission.length in context.text,
+		"Recruitment names the accepted destination and mission count")
+	_check(depart != null and depart.disabled and scene.selected_recruits().is_empty(),
+		"An empty company cannot depart")
+	for index in initial.size():
+		var recruit := _node("Recruit_" + initial[index]) as Button
+		if recruit == null or not recruit.has_focus():
+			_check(false, "Keyboard reaches Recruit for " + initial[index])
+			return false
+		await _key_in_window(KEY_ENTER)
+		_check(scene.selected_recruits() == initial.slice(0, index + 1), "Enter recruits " + initial[index])
+		if index + 1 < initial.size():
+			await _key_in_window(KEY_TAB)
+	var earlier := _node("PartyEarlier_healer") as Button
+	if earlier == null or earlier.disabled:
+		_check(false, "Healer can move earlier from the second position")
+		return false
+	earlier.grab_focus()
+	await _key_in_window(KEY_ENTER)
+	var later := _node("PartyLater_healer") as Button
+	_check(scene.selected_recruits() == FOUNDER_PARTY and later != null and later.has_focus(),
+		"Enter moves the Healer first and focus falls back to the legal Later action")
+	depart = _node("StartAdventure") as Button
+	if depart == null or depart.disabled:
+		_check(false, "A full compatible company can depart")
+		return false
+	depart.grab_focus()
+	await _key_in_window(KEY_ENTER)
+	_check(scene.current_screen() == "routes", "Keyboard departure opens the route choice")
+	return scene.current_screen() == "routes"
 
 
 func _key_in_window(code: int, unicode := 0, shift := false) -> void:

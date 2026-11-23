@@ -14,6 +14,7 @@ const Progression = preload("res://guild_progression.gd")
 const GuildBookPage = preload("res://presentation/guild_book_page.gd")
 const GuildBookArt = preload("res://presentation/guild_book_art.gd")
 const GuildCreationPage = preload("res://presentation/guild_creation_page.gd")
+const GuildBoundPage = preload("res://presentation/guild_bound_page.gd")
 const CommissionBoardPage = preload("res://presentation/commission_board_page.gd")
 const GuildPetitionViewModel = preload("res://presentation/guild_petition_view_model.gd")
 const DEFAULT_ADVENTURE := "first_outing"
@@ -569,7 +570,23 @@ func _hero_row(id: String) -> Dictionary:
 	var hero := Catalog.profile(_definitions, id)
 	var portrait := GuildBookArt.class_portrait(_portrait_identity(id))
 	return {"id": id, "name": str(hero.get("label", id)), "portrait": portrait,
-		"summary": str(hero.get("description", "")), "selected": id in _picked_recruits}
+		"summary": _recruit_summary(hero, id), "selected": id in _picked_recruits}
+
+
+func _recruit_summary(hero: Dictionary, id: String) -> String:
+	var summary := str(hero.get("description", ""))
+	if not summary.is_empty():
+		return summary
+	var loadout: Dictionary = _loadouts.get(id, {})
+	if loadout.is_empty():
+		loadout = GuildProfile.default_loadout(_definitions, _guild_profile, id)
+	var labels := PackedStringArray()
+	for slot in ["offense", "utility"]:
+		var ability_id: String = loadout.get("slots", {}).get(slot, "")
+		var ability: Dictionary = _definitions.abilities.get(ability_id, {})
+		if not ability.is_empty():
+			labels.append(str(ability.get("label", ability_id)))
+	return " · ".join(labels)
 
 
 func _loadout_for(id: String) -> Dictionary:
@@ -594,7 +611,12 @@ func _option_row(id: String, selected: bool, enabled := true, reason := "", orde
 
 
 func _show_recruitment(focus_name := "") -> void:
-	var page := _book_page("guild")
+	var previous_scroll: ScrollContainer
+	if _screen == "guild":
+		previous_scroll = _screen_root.find_child("RecruitScroll", true, false) as ScrollContainer
+	var roster_position := previous_scroll.scroll_vertical if previous_scroll != null else 0
+	var book := GuildBoundPage.new()
+	var page := _book_page("guild", -1.0, book)
 	var available: Array = GuildProfile.roster(_definitions, _guild_profile)
 	var heroes: Array = []
 	var party: Array = []
@@ -644,7 +666,7 @@ func _show_recruitment(focus_name := "") -> void:
 	_recruitment_page.utility_requested.connect(_change_utility)
 	_recruitment_page.order_requested.connect(_change_guild_order)
 	_recruitment_page.depart_requested.connect(_start_guild_commission)
-	_recruitment_page.build(_book, page, {
+	_recruitment_page.build(book, page, {
 		"commission": _commission, "commission_title": _mission_title_for(_commission.destination_id),
 		"guild_name": str(_guild_profile.name), "mission_count": int(_commission.length),
 		"party_size": int(_adventure.party_size), "party": party, "heroes": heroes,
@@ -652,11 +674,24 @@ func _show_recruitment(focus_name := "") -> void:
 		"offense": offense, "utility": utility, "orders": orders,
 		"can_depart": blocked.is_empty(), "depart_blocked_reason": blocked, "feedback": _guild_feedback,
 	})
-	_focus_presenter(_recruitment_page, focus_name if not focus_name.is_empty() else
+	var focused := _focus_presenter(_recruitment_page, focus_name if not focus_name.is_empty() else
 		("Recruit_" + str(available[0]) if not available.is_empty() else "BackToCommissions"))
+	var roster_scroll := book.find_child("RecruitScroll", true, false) as ScrollContainer
+	if roster_scroll != null and focused != null and roster_scroll.is_ancestor_of(focused):
+		_reveal_rebuilt_recruit(roster_scroll, focused, roster_position)
 
 
-func _focus_presenter(presenter, control_name: String) -> void:
+func _reveal_rebuilt_recruit(scroll: ScrollContainer, focused: Control, position: int) -> void:
+	# Follow-focus runs when focus is grabbed, before the rebuilt roster has bounds.
+	var tree := get_tree()
+	await tree.process_frame
+	await tree.process_frame
+	if is_instance_valid(scroll) and scroll.is_inside_tree() \
+			and is_instance_valid(focused) and focused.has_focus():
+		_restore_book_scroll(scroll, position, focused)
+
+
+func _focus_presenter(presenter, control_name: String) -> Control:
 	var control: Control = presenter.focus_control(control_name)
 	if control is BaseButton and control.disabled:
 		if control_name.begins_with("PartyEarlier_"):
@@ -669,6 +704,7 @@ func _focus_presenter(presenter, control_name: String) -> void:
 		control = null
 	if control != null:
 		control.grab_focus()
+	return control
 
 
 func _guild_toggle_recruit(id: String) -> void:

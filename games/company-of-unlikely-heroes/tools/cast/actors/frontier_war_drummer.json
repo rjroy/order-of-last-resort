@@ -1,0 +1,73 @@
+{
+  "role": "frontier_war_drummer",
+  "master": {
+    "source": "models/frontier_war_drummer/frontier_war_drummer-pigment.blend",
+    "sha256": "bce0e78136d3284b9d213731355402f7711e6c2c85b4064b10936157f0fa492e",
+    "rig_name": "frontier_war_drummer \u2022 armature",
+    "action_prefix": ""
+  },
+  "takes": {
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        24
+      ],
+      25,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        6,
+        11,
+        14
+      ],
+      15,
+      false
+    ],
+    "ready": [
+      "Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21
+      ],
+      25,
+      true
+    ],
+    "reserve_arrival": [
+      "Reserve arrival",
+      [
+        1,
+        6,
+        11,
+        16,
+        21
+      ],
+      22,
+      false
+    ],
+    "war_drum_pulse": [
+      "War drum pulse",
+      [
+        1,
+        6,
+        11,
+        14,
+        16,
+        21,
+        24
+      ],
+      25,
+      false
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "actor": "frontier_war_drummer",
+  "case": {
+    "automatic_rounds": 6,
+    "cast_key": "frontier_war_drummer",
+    "minimum_opening": 0,
+    "triggers": [
+      {
+        "ability": "frontier_war_drum",
+        "actor_field": "unit_id",
+        "clip": "war_drum_pulse",
+        "id": "drum",
+        "type": "action"
+      },
+      {
+        "actor_field": "unit_id",
+        "clip": "reserve_arrival",
+        "id": "reserve_arrival",
+        "type": "reserve_arrival"
+      }
+    ]
+  },
+  "mission": "hold_the_line"
+}

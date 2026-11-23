@@ -202,8 +202,32 @@
   },
   "characters": {
     "frontier_war_drummer": {
-      "class": "enemy", "label": "War Drummer", "art_key": "enemy", "max_hp": 3,
-      "abilities": ["frontier_war_drum"], "behavior": "frontier_drum_beat"
+      "class": "enemy",
+      "label": "War Drummer",
+      "art_key": "enemy",
+      "max_hp": 3,
+      "abilities": [
+        "frontier_war_drum"
+      ],
+      "behavior": "frontier_drum_beat",
+      "cast_key": "frontier_war_drummer",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "frontier_war_drum": {
+            "handler": "perform",
+            "clip": "war_drum_pulse",
+            "impact_frame": 14
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat",
+        "events": {
+          "reserve_arrival": "reserve_arrival"
+        }
+      }
     },
     "frontier_sheep": {
       "class": "civilian", "label": "Sheep", "art_key": "ferryman", "behavior": "hold"

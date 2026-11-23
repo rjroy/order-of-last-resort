@@ -160,7 +160,11 @@ The game collects no playtest telemetry. The question to take away: **Did you en
 
 ### Cast sprites in battle
 
-The battle board in commissions, practice outings, and standalone missions uses sprites rendered from Blender for seven heroes (Anxious Knight, Unimpressed Healer, Enthusiastic Caster, Mixologist, Daft Dodger, Friendly Crypter, and Bad Bard) and both summons (Skeleton and Zombie). The [cast manifest](assets/cast/manifest.json) lists the packaged sprite sheets and clips. The original summon sprites were rendered from static Blender models based on the approved *First Greetings* concept. Those [models and sprites](assets/summons/README.md) are still in the game directory; the rigged summons were built from those models.
+All 20 stock missions use Blender-rendered sprites for the seven heroes, both undead summons, and the entire field cast: 25 non-party characters and the animated Supply Wagon. A flock shares one Sheep model; the three bandit siblings and the three rival heroes each have their own. The [cast inventory](../../.lore/work/games/company-of-unlikely-heroes/art/non-hero-cast.md) links models to missions. The [runtime manifest](assets/cast/manifest.json) maps performances to packaged sprite sheets. Neither historical renders nor an editor import cache are needed to play.
+
+From the repository root, try `godot --path games/company-of-unlikely-heroes -- --mission=hold_the_line` and commit through round four to see the reserve Archer and War Drummer. Other showcases are `mirror_company` for the rival trio, `great_sheep_escape` for the flock and shepherd, and `last_wagon` for the loaded wagon advancing, stalling, and breaking down. For the Ferryman, use `--fixed-outings`, choose **The company's first outing**, and recruit a team for the patrol and rescue.
+
+The [stock scene verification guide](tools/cast/verify_stock_scenes.md) provides one command to reproduce the stock opening and committed-action checks. The seven heroes and both summons retain their prior battle artwork; the original [static summon sources](assets/summons/README.md) are also preserved.
 
 Preview updates the forecast without resolving the round or starting any action clips. Commit resolves the round. Action playback is cosmetic and uses supported actions from the committed round, including standing orders. Not every ability has its own clip. To try the Friendly Crypter, launch `goblin_mob` and follow the opening above.
 

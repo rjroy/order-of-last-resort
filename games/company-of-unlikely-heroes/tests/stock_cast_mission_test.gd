@@ -428,6 +428,11 @@ func _sample_queue(board: Node, round_number: int) -> void:
 		sampled[clip] = true
 		print("CUE round=%d unit=%s clip=%s" % [round_number, cue.unit_id, clip])
 		await _capture("round-%02d-%s-%s.png" % [round_number, cue.unit_id, clip])
+		await _sample_case_detail(board, round_number, entry)
+
+
+func _sample_case_detail(_board: Node, _round_number: int, _entry: Variant) -> void:
+	pass
 
 
 func _capture(name: String) -> void:

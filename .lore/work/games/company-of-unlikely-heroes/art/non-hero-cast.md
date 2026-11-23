@@ -37,6 +37,10 @@ Prefer a distinct silhouette, posture, kit and characteristic motion per identit
 
 ## Already delivered and scope boundaries
 
+**Delivery verified on `art/non-hero-mission-cast`.** At the final actor checkpoint (`82e3379`), the cast comprised all 26 identities above. The final all-integrated graphical run passed 56 checks: all 20 stock mission openings, 24 actor action cases, 10 variants, and the two rescue replays. These checks use the actual battle renderer, including deferred reserve arrivals and held terminal poses. All 35 packaged cast source hashes matched their manifest entries, and the seven hero and two summon atlas PNGs and manifest entries remained unchanged from `f4d274c`.
+
+To repeat the stock inventories and action cases from a fresh checkout, follow the [graphical verification guide](../../../../../games/company-of-unlikely-heroes/tools/cast/verify_stock_scenes.md); run the [Harpooner](../../../../../games/company-of-unlikely-heroes/tests/harpooner_rescue_scene_test.md) and [Ferryman](../../../../../games/company-of-unlikely-heroes/tests/ferryman_rescue_scene_test.md) routes for the two rescue replays. A separate mechanical comparison found no unexpected differences over 437 committed rounds and 2,712 ordered events. This is evidence for the sampled routes, not a claim about every possible round.
+
 For the cast that follows the rescue pair, the [accepted model roster](concepts/non-hero-cast/accepted-roster.json) identifies the exact approved Blender sources and the five superseded versions. A roster entry records approval, not delivery. For each delivered actor below, launch its listed stock mission normally or run the [stock graphical regression](../../../../../games/company-of-unlikely-heroes/tests/stock_cast_mission_test.md) with its mission and character IDs and a fresh local capture directory.
 
 - **Goblin (`goblin`, xmy.3):** `goblin_mob` fields five copies of the same [approved rig](models/goblin/README.md). Legal committed rounds exercise scamper and jab through the actual battle UI. Run the graphical regression with `--mission=goblin_mob --actor=goblin`.

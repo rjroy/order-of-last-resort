@@ -122,6 +122,23 @@ Each configured trigger
 must occur at least once; each observed cue-bearing subject must have its own
 matching cue. Different triggers may occur for the same subject in one round.
 
+## Archer's detached arrow
+
+With the stock Archer atlas installed, run the normal **Hold the Line** route
+with the flight checkpoint. Choose a new or empty output directory.
+
+```sh
+godot --path games/company-of-unlikely-heroes \
+  --script res://tests/archer_projectile_scene_test.gd -- \
+  --mission=hold_the_line --actor=archer \
+  --output="$PWD/.lore/local/stock-cast-archer-flight"
+```
+
+In addition to the stock reserve arrival and shot, this checks the native
+detached arrow at midflight on the real board: the authored hand origin,
+point-first orientation, tip at the resolved target, and visible pixels from
+the detached atlas. It saves a `round-*-arrow-midflight.png` capture.
+
 ## Stock opening inventory
 
 For each mission, launch separately with `--mission=<id> --inventory

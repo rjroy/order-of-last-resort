@@ -277,8 +277,26 @@
       }
     },
     "frontier_wagon": {
-      "class": "civilian", "label": "Supply Wagon",
-      "art_key": "obstacle", "max_hp": 6, "behavior": "hold"
+      "class": "civilian",
+      "label": "Supply Wagon",
+      "art_key": "obstacle",
+      "max_hp": 6,
+      "behavior": "hold",
+      "cast_key": "frontier_wagon",
+      "cast_art_key": "obstacle",
+      "cast_team": "civilian",
+      "cast_variant": "default",
+      "cast_presentation": {
+        "actions": {},
+        "defeat": "destroyed",
+        "events": {
+          "wagon_advance": "advance",
+          "wagon_stall": "stall"
+        },
+        "holds": {
+          "wagon_wreck": "destroyed"
+        }
+      }
     },
     "frontier_wagon_raider": {
       "class": "enemy",

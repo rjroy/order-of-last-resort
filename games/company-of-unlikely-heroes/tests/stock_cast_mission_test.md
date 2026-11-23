@@ -114,7 +114,11 @@ requires its actual objective move across the pen boundary; the later
 and remains there, with no later movement that round. It is a state assertion,
 then checks `penned` at most once per sheep after that state is reached; it does
 not repeatedly interpret every wait as a new settle. Wagon destruction requires the objective
-subject and zero HP, not an unrelated defeat or timeout. Each configured trigger
+subject and zero HP, not an unrelated defeat or timeout. After playback drains,
+the fixture checks the actual hold selector and compares the subject's cell to
+the same figure explicitly rendered at Ready. This also works when a defeated
+wagon's lifecycle fallback uses the same `destroyed` clip as its wreck hold.
+Each configured trigger
 must occur at least once; each observed cue-bearing subject must have its own
 matching cue. Different triggers may occur for the same subject in one round.
 

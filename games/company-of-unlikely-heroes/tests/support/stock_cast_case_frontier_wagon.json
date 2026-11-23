@@ -1,0 +1,30 @@
+{
+  "actor": "frontier_wagon",
+  "case": {
+    "automatic_rounds": 5,
+    "cast_key": "frontier_wagon",
+    "minimum_opening": 1,
+    "triggers": [
+      {
+        "actor_field": "unit_id",
+        "clip": "advance",
+        "id": "advance",
+        "type": "wagon_advance"
+      },
+      {
+        "actor_field": "unit_id",
+        "clip": "stall",
+        "id": "stall",
+        "type": "wagon_stall"
+      },
+      {
+        "actor_field": "target_id",
+        "clip": "destroyed",
+        "hold": "destroyed",
+        "id": "destroy",
+        "type": "wagon_destroy"
+      }
+    ]
+  },
+  "mission": "last_wagon"
+}

@@ -14376,6 +14376,416 @@
           "path": "res://assets/cast/frontier_sheep.png"
         }
       }
+    },
+    "frontier_wagon": {
+      "source": "art/models/frontier_wagon/frontier_wagon-candidate.blend",
+      "sha256": "24168deae79baf9324fb933fd714f443f38ede0f3e38d2c621cc0bbabfd425fb",
+      "clips": {
+        "advance": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                606,
+                244,
+                185
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                244,
+                606,
+                244,
+                185
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                488,
+                606,
+                244,
+                185
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 83,
+              "rect": [
+                732,
+                606,
+                244,
+                185
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                791,
+                244,
+                185
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                244,
+                791,
+                244,
+                185
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                488,
+                791,
+                244,
+                185
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 83,
+              "rect": [
+                732,
+                791,
+                244,
+                185
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                976,
+                244,
+                185
+              ]
+            },
+            {
+              "source_frame": 33,
+              "duration_ms": 42,
+              "rect": [
+                244,
+                976,
+                244,
+                185
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            113,
+            145
+          ],
+          "action": "Wagon | Advance",
+          "path": "res://assets/cast/frontier_wagon.png"
+        },
+        "destroyed": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                0,
+                244,
+                202
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 41,
+              "rect": [
+                244,
+                0,
+                244,
+                202
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                488,
+                0,
+                244,
+                202
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                732,
+                0,
+                244,
+                202
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                202,
+                244,
+                202
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                244,
+                202,
+                244,
+                202
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                488,
+                202,
+                244,
+                202
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 83,
+              "rect": [
+                732,
+                202,
+                244,
+                202
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                404,
+                244,
+                202
+              ]
+            },
+            {
+              "source_frame": 36,
+              "duration_ms": 209,
+              "rect": [
+                244,
+                404,
+                244,
+                202
+              ]
+            },
+            {
+              "source_frame": 41,
+              "duration_ms": 41,
+              "rect": [
+                488,
+                404,
+                244,
+                202
+              ]
+            },
+            {
+              "source_frame": 42,
+              "duration_ms": 42,
+              "rect": [
+                732,
+                404,
+                244,
+                202
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            113,
+            140
+          ],
+          "action": "Wagon | Destroyed",
+          "path": "res://assets/cast/frontier_wagon.png"
+        },
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                488,
+                1344,
+                243,
+                180
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                488,
+                1344,
+                243,
+                180
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                488,
+                1344,
+                243,
+                180
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                488,
+                1344,
+                243,
+                180
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                488,
+                1344,
+                243,
+                180
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            113,
+            140
+          ],
+          "action": "Wagon | Ready",
+          "path": "res://assets/cast/frontier_wagon.png"
+        },
+        "stall": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                488,
+                976,
+                244,
+                183
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 41,
+              "rect": [
+                732,
+                976,
+                244,
+                183
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                1161,
+                244,
+                183
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                244,
+                1161,
+                244,
+                183
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                488,
+                1161,
+                244,
+                183
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 84,
+              "rect": [
+                732,
+                1161,
+                244,
+                183
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                1344,
+                244,
+                183
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 41,
+              "rect": [
+                244,
+                1344,
+                244,
+                183
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                488,
+                976,
+                244,
+                183
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            113,
+            143
+          ],
+          "action": "Wagon | Stall",
+          "path": "res://assets/cast/frontier_wagon.png"
+        }
+      }
     }
   }
 }

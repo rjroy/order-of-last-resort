@@ -6,6 +6,7 @@ const Catalog = preload("res://content/catalog.gd")
 const Driver = preload("res://tests/support/storybook_driver.gd")
 const Triggers = preload("res://tests/support/stock_cast_triggers.gd")
 const CastCues = preload("res://presentation/cast_cues.gd")
+const BridgeBoard = preload("res://bridge_art.gd")
 
 var output := ""
 var mission := ""
@@ -227,7 +228,7 @@ func _run() -> void:
 		if not events_only:
 			var cues: Array = board.call("action_playback_snapshot")
 			for trigger: Dictionary in case.triggers:
-				if trigger.has("hold"):
+				if trigger.has("hold") and trigger.get("clip") != trigger.hold:
 					_check(not cues.any(func(cue): return known_ids.has(cue.get("unit_id")) \
 						and cue.get("cast_key") == case.get("cast_key") \
 						and cue.get("clip") == trigger.hold),
@@ -369,7 +370,8 @@ func _check_held_figure(board: Node, id: String, hold: String, round_number: int
 	if cast == null or cast.clip_for(str(figure.get("cast_key", "")), hold) == null:
 		return
 	# Compare the live, normally rendered hold with the same board at ready.
-	# Only this subject's hold selector changes; no actor or geometry is removed.
+	# Force Ready for this subject in the comparison only. Removing the hold
+	# would still draw the defeat fallback when wreck and defeat share a clip.
 	board.set_process(false)
 	await process_frame
 	await RenderingServer.frame_post_draw
@@ -381,15 +383,21 @@ func _check_held_figure(board: Node, id: String, hold: String, round_number: int
 	var ready_units: Array = units.duplicate(true)
 	for unit: Dictionary in ready_units:
 		if unit.get("id") == id:
-			unit.erase("cast_hold")
+			unit["cast_hold"] = "ready"
 	board.call("set_render_state", cells, ready_units, overlay)
 	board.set_process(false)
 	await process_frame
 	await RenderingServer.frame_post_draw
 	var ready_image := viewport.get_texture().get_image()
 	var changed := 0
-	for y in held_image.get_height():
-		for x in held_image.get_width():
+	var local_origin: Vector2 = board.get("_map_origin") \
+		+ board.call("_tile_origin", figure.cell) * float(board.get("_map_scale"))
+	var transform: Transform2D = board.get_global_transform_with_canvas()
+	var cell_rect := Rect2(transform * local_origin,
+		transform.basis_xform(BridgeBoard.TILE * float(board.get("_map_scale")))).abs()
+	var pixels := Rect2i(cell_rect).intersection(Rect2i(0, 0, held_image.get_width(), held_image.get_height()))
+	for y in range(pixels.position.y, pixels.end.y):
+		for x in range(pixels.position.x, pixels.end.x):
 			var delta := held_image.get_pixel(x, y) - ready_image.get_pixel(x, y)
 			if maxf(absf(delta.r), maxf(absf(delta.g), absf(delta.b))) > 4.0 / 255.0:
 				changed += 1

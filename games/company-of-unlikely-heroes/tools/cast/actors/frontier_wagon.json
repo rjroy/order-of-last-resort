@@ -1,0 +1,75 @@
+{
+  "role": "frontier_wagon",
+  "master": {
+    "source": "models/frontier_wagon/frontier_wagon-candidate.blend",
+    "sha256": "24168deae79baf9324fb933fd714f443f38ede0f3e38d2c621cc0bbabfd425fb",
+    "rig_name": "Wagon_Rig",
+    "action_prefix": "Wagon"
+  },
+  "takes": {
+    "advance": [
+      "Advance",
+      [
+        1,
+        6,
+        11,
+        16,
+        18,
+        21,
+        26,
+        29,
+        31,
+        33
+      ],
+      34,
+      false
+    ],
+    "destroyed": [
+      "Destroyed",
+      [
+        1,
+        5,
+        6,
+        11,
+        16,
+        21,
+        26,
+        29,
+        31,
+        36,
+        41,
+        42
+      ],
+      43,
+      false
+    ],
+    "ready": [
+      "Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21
+      ],
+      25,
+      true
+    ],
+    "stall": [
+      "Stall",
+      [
+        1,
+        5,
+        6,
+        11,
+        16,
+        21,
+        23,
+        26,
+        27
+      ],
+      28,
+      false
+    ]
+  }
+}

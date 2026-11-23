@@ -2108,7 +2108,7 @@ func _refresh_board() -> void:
 			if not before.is_empty() and moves.size() == 1 and before.position != moves[0].position:
 				var destination: Vector2i = moves[0].position
 				ink["move"] = {"from": before.position, "to": destination,
-					"cast_key": _rules.entity_profile(_state, hero).get("art_key", "")}
+					"cast_key": CastCues.cast_key_for(_state, _find(hero), _rules.entity_profile(_state, hero))}
 				ink["context_cell"] = destination
 				ink["context_text"] = "Move to " + BridgeArt.coordinate(destination)
 	if _uses_builtin_catalog and _state.board_id == "frontier_gate_board" and _state.objective.handler == "pressure_gate":

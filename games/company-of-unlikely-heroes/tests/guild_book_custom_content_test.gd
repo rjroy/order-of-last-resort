@@ -12,6 +12,7 @@ func _run() -> void:
 	root.add_child(container)
 	var catalog = load("res://content/catalog.gd")
 	var defs: Dictionary = catalog.read_default()
+	_check(not defs.has("adventures"), "Commission catalog has no fixed routes")
 	defs.classes.wizard["guild_portrait"] = "rogue"
 	defs.characters["test_custom"] = defs.characters.rogue.duplicate(true)
 	defs.characters.test_custom.erase("guild_portrait")
@@ -22,8 +23,7 @@ func _run() -> void:
 	defs.characters.test_opted_in["guild_portrait"] = "rogue"
 	var long_hero_name := "The Healer of the Long and Winding Road and the Lantern at the End of It"
 	defs.characters.healer.label = long_hero_name
-	var roster_id: String = defs.commission_settings.roster_adventure
-	defs.adventures[roster_id].roster.append_array(["test_custom", "test_namesake", "test_opted_in"])
+	defs.commission_settings.recruitment_roster.append_array(["test_custom", "test_namesake", "test_opted_in"])
 	for id in defs.missions:
 		defs.missions[id].title = "Custom mission " + id
 	var long_mission_title := "The commission whose name is written in a very long hand. ".repeat(59).left(3323)
@@ -97,6 +97,7 @@ func _run() -> void:
 			"Explicit identity selects the declared class portrait")
 	for id in PARTY:
 		await _press("Recruit_" + id)
+	_check(scene.selected_recruits() == PARTY, "Route-free catalog recruits the company in order")
 	await _press("StartAdventure")
 	var run: Dictionary = scene.get("_run")
 	if scene.current_screen() == "routes":

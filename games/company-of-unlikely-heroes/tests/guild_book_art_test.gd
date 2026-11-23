@@ -16,7 +16,7 @@ func _initialize() -> void:
 		for method in ["class_portrait", "destination", "report", "upgrade"]:
 			_check(art.has_method(method), "Artwork resolver exposes " + method)
 		if ["class_portrait", "destination", "report", "upgrade"].all(func(method): return art.has_method(method)):
-			for id in defs.adventures.first_outing.roster:
+			for id in defs.commission_settings.recruitment_roster:
 				var portrait_id: String = defs.characters[id].get("guild_portrait", "")
 				_check(not portrait_id.is_empty(), "Recruit %s opts into a portrait identity" % id)
 				_check_texture(art.call("class_portrait", portrait_id), "classes", portrait_id)
@@ -26,10 +26,6 @@ func _initialize() -> void:
 				if defs.mission_reports[id].has("destination_descriptors"):
 					destinations[id] = true
 				_check_texture(art.call("report", id), "reports", id)
-			for adventure in defs.adventures.values():
-				var missions: Array = adventure.missions
-				if not missions.is_empty():
-					destinations[missions.back()] = true
 			for id in destinations:
 				_check_texture(art.call("destination", id), "destinations", id)
 			for id in defs.get("upgrades", {}):

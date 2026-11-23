@@ -180,10 +180,11 @@ func _test_upgrade_pool() -> void:
 			entries.append(upgrade)
 	_check(not entries.is_empty(), "Alchemist has an adventure upgrade pool")
 	var adventure = preload("res://adventure.gd")
-	var fresh: Dictionary = adventure.start_adventure(defs, "first_outing",
+	var board: Array = preload("res://commissions.gd").board(defs, 12345)
+	var fresh: Dictionary = adventure.start_commission(defs, board[0],
 		["alchemist", "healer", "wizard"], 12345)
-	_check(fresh.get("phase") == "ready" and fresh.get("upgrades_by_id", {}).get("alchemist", {}).is_empty(),
-		"Fresh adventures recruit Alchemist without carried upgrades")
+	_check(fresh.get("phase") == "route" and fresh.get("upgrades_by_id", {}).get("alchemist", {}).is_empty(),
+		"Fresh commissions recruit Alchemist without carried upgrades")
 
 
 func _test_pursuit() -> void:

@@ -17,7 +17,7 @@ func _initialize() -> void:
 		_test_instances()
 		_test_escort()
 		_test_authored_deadline()
-		_test_adventure_content()
+		_test_commission_content()
 	if failures.is_empty():
 		print("PASS: authored content variations")
 	else:
@@ -164,24 +164,18 @@ func _test_authored_deadline() -> void:
 	_check(not result.has("victory") and not result.has("defeat"), "Outcome remains the only result authority")
 
 
-func _test_adventure_content() -> void:
+func _test_commission_content() -> void:
 	var definitions: Dictionary = catalog.read_default()
-	var adventure: Dictionary = definitions.get("adventures", {}).get("first_outing", {})
-	_check(not adventure.is_empty(), "First outing is authored")
-	if adventure.is_empty():
-		return
-	_check(adventure.get("roster", []) == ["knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard"],
-		"First outing offers the seven named heroes")
-	_check(adventure.get("party_size") == 3, "First outing requires exactly three heroes")
-	_check(adventure.get("missions", []) == ["bridge_patrol", "company_rescue"],
-		"First outing has the two ordered missions")
+	var settings: Dictionary = definitions.get("commission_settings", {})
+	_check(settings.get("recruitment_roster", []) == ["knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard"],
+		"Commission recruitment offers the seven named heroes")
 	var missions: Dictionary = definitions.get("missions", {})
 	var patrol: Dictionary = missions.get("bridge_patrol", {})
 	var rescue: Dictionary = missions.get("company_rescue", {})
 	_check(patrol.get("objective", {}).get("handler") == "defeat_all",
 		"Patrol victory requires eliminating all enemies")
 	_check(rescue.get("objective", {}).get("handler") == "escort",
-		"Second mission retains its escort objective")
+		"Rescue retains its escort objective")
 	var failures_found := false
 	for failure in patrol.get("failures", []):
 		if failure.get("handler") == "party_wiped":
@@ -191,7 +185,7 @@ func _test_adventure_content() -> void:
 	for mission in [patrol, rescue]:
 		var encounter: Dictionary = definitions.get("encounters", {}).get(mission.get("encounter", ""), {})
 		_check(encounter.get("party_slots", []).size() == 3,
-			"Adventure encounter provides three ordered party slots")
+			"Stock encounter provides three ordered party slots")
 
 
 func _matches_preview(committed: Dictionary, plan: Dictionary) -> bool:

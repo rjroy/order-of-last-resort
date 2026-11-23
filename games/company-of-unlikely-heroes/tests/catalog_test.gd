@@ -22,7 +22,7 @@ func _initialize() -> void:
 		_test_capability_opt_out()
 		_test_reflect_capability_filter()
 		_test_summon_ownership_boundaries()
-		_test_adventure_wipe_boundary()
+		_test_commission_wipe_boundary()
 		_test_optional_descriptions()
 	if failures.is_empty():
 		print("PASS: catalog boundaries")
@@ -136,8 +136,8 @@ func _test_malformed_team_diagnostics() -> void:
 	_check("characters.bard.team" in text, "Malformed Bard team reports its field")
 	_check("missions.unwelcome_guest.default_party" in text and "ferryman" in text,
 		"Malformed Bard team does not suppress the other bad default-party member")
-	_check("adventures.village_troubles.roster" in text and "bard" in text,
-		"Malformed Bard team does not suppress its adventure roster diagnostic")
+	_check("commission_settings.recruitment_roster" in text and "bard" in text,
+		"Malformed Bard team does not suppress its commission roster diagnostic")
 
 
 func _test_handler_event_requirements() -> void:
@@ -178,9 +178,9 @@ func _test_summon_ownership_boundaries() -> void:
 		"Catalog rejects a summon greeting on a summoned minion, even when owned by its kit")
 
 
-func _test_adventure_wipe_boundary() -> void:
+func _test_commission_wipe_boundary() -> void:
 	var defs: Dictionary = catalog.read_default()
-	_check(catalog.validate(defs).is_empty(), "Authored adventure wipe rules validate")
+	_check(catalog.validate(defs).is_empty(), "Authored commission wipe rules validate")
 	for mission_id in ["bridge_patrol", "company_rescue"]:
 		var invalid := defs.duplicate(true)
 		var retained := []
@@ -189,13 +189,12 @@ func _test_adventure_wipe_boundary() -> void:
 				retained.append(failure)
 		invalid.missions[mission_id].failures = retained
 		_check(not catalog.validate(invalid).is_empty(),
-			"Adventure rejects mission %s without party_wiped, even if a summon survives" % mission_id)
+			"Commission rejects mission %s without party_wiped, even if a summon survives" % mission_id)
 	var standalone := defs.duplicate(true)
-	standalone.adventures.first_outing.missions.erase("bridge_patrol")
 	standalone.mission_reports.erase("bridge_patrol")
 	standalone.missions.bridge_patrol.failures = []
 	_check(catalog.validate(standalone).is_empty(),
-		"A mission not used by an adventure or commission may omit party_wiped")
+		"A mission not used by a commission may omit party_wiped")
 
 
 func _test_optional_descriptions() -> void:

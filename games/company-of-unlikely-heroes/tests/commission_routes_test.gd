@@ -68,7 +68,8 @@ func _fixture() -> Dictionary:
 			"descriptors": ["test immediate " + id],
 			"destination_descriptors": ["test destination %d" % index]
 		}
-	defs["commission_settings"] = {"roster_adventure": "first_outing"}
+	defs.erase("adventures")
+	defs["commission_settings"] = {"recruitment_roster": PARTY.duplicate()}
 	return defs
 
 

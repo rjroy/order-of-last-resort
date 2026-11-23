@@ -3,7 +3,6 @@ extends SceneTree
 # Run: godot --headless --path games/company-of-unlikely-heroes --script res://tests/three_mission_test.gd
 # Integration checks use the shipped mission catalog and actual forecast/commit APIs.
 const Catalog = preload("res://content/catalog.gd")
-const Adventure = preload("res://adventure.gd")
 const Board = preload("res://rules/board.gd")
 var rules = preload("res://rules.gd").new()
 var defs: Dictionary
@@ -13,9 +12,7 @@ const MISSIONS := ["goblin_mob", "harpoon_squad", "unwelcome_guest"]
 
 func _initialize() -> void:
 	defs = Catalog.read_default()
-	_test_selection()
 	_test_openings()
-	_test_sequence()
 	_test_goblins()
 	_test_goblin_pack_bonus()
 	_test_squad()
@@ -32,17 +29,6 @@ func _initialize() -> void:
 func _check(ok: bool, message: String) -> void:
 	if not ok:
 		failures.append(message)
-
-
-func _choose_if_offered(run: Dictionary) -> Dictionary:
-	if run.get("phase") != "reward":
-		return run
-	var offers: Array = run.get("reward_offers", [])
-	var script: Script = load("res://adventure.gd")
-	if offers.is_empty() or not script.has_method("choose_reward"):
-		_check(false, "Reward transition provides a selectable offer")
-		return run
-	return script.call("choose_reward", run, offers[0].hero_id, offers[0].upgrade_id)
 
 
 func _entity(state: Dictionary, id: String) -> Dictionary:
@@ -75,34 +61,6 @@ func _round(state: Dictionary, label: String) -> Dictionary:
 	return {"state": committed, "events": plan.get("events", [])}
 
 
-func _test_selection() -> void:
-	var outing: Dictionary = defs.get("adventures", {}).get("village_troubles", {})
-	_check(not outing.is_empty(), "Village Troubles outing exists")
-	if outing.is_empty():
-		return
-	_check(outing.get("missions") == MISSIONS, "Outing has the fixed three-mission sequence")
-	var roster: Array = outing.get("roster", [])
-	var previous: Array = defs.get("adventures", {}).get("first_outing", {}).get("roster", []).duplicate()
-	var sorted_roster := roster.duplicate()
-	sorted_roster.sort()
-	previous.sort()
-	_check(sorted_roster == previous,
-		"New outing uses the same roster")
-	for first in roster:
-		for second in roster:
-			for third in roster:
-				if first == second or first == third or second == third:
-					continue
-				var picks := [first, second, third]
-				var run: Dictionary = Adventure.start_adventure(defs, "village_troubles", picks)
-				_check(run.get("phase") == "ready" and run.get("party") == picks
-					and run.get("mission_ids") == MISSIONS, "Ordered company starts: %s" % [picks])
-	for picks in [[], ["knight", "wizard"], ["knight", "knight", "wizard"],
-			["knight", "wizard", "missing"]]:
-		_check(Adventure.start_adventure(defs, "village_troubles", picks).is_empty(),
-			"Invalid company is rejected: %s" % [picks])
-
-
 func _test_openings() -> void:
 	for party in [["knight", "healer", "wizard"], ["necromancer", "rogue", "bard"]]:
 		for mission in MISSIONS:
@@ -117,84 +75,17 @@ func _test_openings() -> void:
 			_round(state, mission + " opening")
 
 
-func _test_sequence() -> void:
-	var party := ["healer", "knight", "bard"]
-	var run: Dictionary = Adventure.start_adventure(defs, "village_troubles", party, 12345)
-	if run.is_empty():
-		return
-	for index in range(MISSIONS.size()):
-		run = Adventure.begin_mission(run)
-		var state: Dictionary = run.get("mission", {}).duplicate(true)
-		_check(run.get("phase") == "mission" and state.get("mission_id") == MISSIONS[index],
-			"Sequence deploys mission %d in order" % (index + 1))
-		if state.is_empty():
-			return
-		if index < 2:
-			# Controlled terminal board for expedition transitions, not a played route.
-			for unit in state.units:
-				if rules.entity_profile(state, unit.id).get("team") == "enemies":
-					unit.hp = 0
-		else:
-			var trolls := _characters(state, "village_troll")
-			if trolls.is_empty():
-				return
-			var selected: Dictionary = rules.choose_manual(state, "knight", "knight_push", trolls[0].id)
-			state = selected
-		var result := _round(state, "Sequence mission %d" % (index + 1))
-		if result.is_empty() or result.state.get("outcome") != "victory":
-			_check(false, "Sequence mission %d commits victory" % (index + 1))
-			return
-		run = _choose_if_offered(Adventure.settle_mission(run, result.state))
-		if index < 2:
-			_check(run.get("phase") == "ready" and run.get("mission_index") == index + 1,
-				"Victory advances exactly one mission")
-			_check(run.get("party") == party, "Transition preserves selected party order")
-		else:
-			_check(run.get("phase") == "finished" and run.get("outcome") == "victory",
-				"Third victory finishes the outing")
-
-
 func _test_persistent_sonnet_on_troll() -> void:
 	var party: Array = defs.missions.unwelcome_guest.default_party
 	_check("bard" in party, "The guest mission's default company includes Bard")
 	if "bard" not in party:
 		return
-	var run: Dictionary = Adventure.start_adventure(defs, "village_troubles", party, 12345)
-	_check(not run.is_empty(), "Sonnet carry company starts")
-	if run.is_empty():
-		return
-	for index in range(2):
-		run = Adventure.begin_mission(run)
-		var state: Dictionary = run.get("mission", {}).duplicate(true)
-		if state.is_empty():
-			_check(false, "Sonnet carry mission deploys")
-			return
-		if index == 0:
-			state = rules.set_order(state, "bard", "order_healing_sonnet")
-			_check(state.orders.get("bard") == "order_healing_sonnet", "Bard accepts persistent Sonnet order")
-		else:
-			_check(state.orders.get("bard") == "order_healing_sonnet", "Sonnet deploys into second mission")
-		# Stage only terminal enemies; expedition transitions and carry use real commits.
-		for unit in state.units:
-			if rules.entity_profile(state, unit.id).get("team") == "enemies":
-				unit.hp = 0
-		var result := _round(state, "Sonnet carry mission %d" % (index + 1))
-		if result.is_empty() or result.state.get("outcome") != "victory":
-			_check(false, "Sonnet carry mission commits victory")
-			return
-		run = _choose_if_offered(Adventure.settle_mission(run, result.state))
-		_check(run.get("phase") == "ready"
-			and run.get("carry_by_id", {}).get("bard", {}).get("order") == "order_healing_sonnet",
-			"Sonnet remains active between missions")
-		if run.get("phase") != "ready":
-			return
-	run = Adventure.begin_mission(run)
-	var guest: Dictionary = run.get("mission", {})
+	var guest: Dictionary = _open("unwelcome_guest", party)
 	if guest.is_empty():
-		_check(false, "Sonnet carry reaches the guest mission")
+		_check(false, "Sonnet fixture opens the guest mission")
 		return
-	_check(guest.orders.get("bard") == "order_healing_sonnet",
-		"Carried Sonnet remains active in the troll mission")
+	guest = rules.set_order(guest, "bard", "order_healing_sonnet")
+	_check(guest.orders.get("bard") == "order_healing_sonnet", "Bard accepts persistent Sonnet order")
 	var trolls := _characters(guest, "village_troll")
 	if trolls.size() != 1:
 		_check(false, "Sonnet fixture has one troll")

@@ -21,8 +21,8 @@ or change the roster.
 `destinations/`: `bridge_is_out`, `company_rescue`, `cowardly_captain`,
 `dont_wake_the_giant`, `great_sheep_escape`, `hold_the_line`, `last_wagon`,
 `mirror_company`, `odd_couple`, `unfortunate_ritual`, `unwelcome_guest`,
-`wrong_side_of_the_door`. This is the union of the nine commission destinations
-and the seven fixed-practice finales, four of which overlap. Each destination
+`wrong_side_of_the_door`. Nine are commission destinations; the remaining
+three paintings are retained from retired practice finales. Each destination
 uses the same file wherever it recurs.
 
 ## Field reports

@@ -299,11 +299,6 @@ class Validator:
 		_each("boards", _check_board)
 		_each("encounters", _check_encounter)
 		_each("missions", _check_mission)
-		if _defs.has("adventures"):
-			var adventures := _dictionary(_defs.adventures, "adventures")
-			for id in adventures:
-				_text(str(id), "adventures ID")
-				_check_adventure(_dictionary(adventures[id], "adventures." + str(id)), "adventures." + str(id))
 		if COMMISSION_TABLES.any(func(table: String) -> bool: return _defs.has(table)):
 			_check_commissions()
 		if _defs.has("reward_weights"):
@@ -328,9 +323,8 @@ class Validator:
 		var kits := _dictionary(guild.get("kits"), path + ".kits")
 		var petitions := _dictionary(guild.get("petitions"), path + ".petitions")
 		var starting := _dictionary(guild.get("starting_habits", {}), path + ".starting_habits")
-		var roster_id: Variant = _record(_defs, "commission_settings").get("roster_adventure")
 		var roster: Variant = playtest_roster if playtest_roster != null else \
-			_record(_record(_defs, "adventures"), roster_id if roster_id is String else "").get("roster")
+			_record(_defs, "commission_settings").get("recruitment_roster")
 		if not roster is Array:
 			_error(path, "requires a commission roster")
 			return _errors
@@ -1244,30 +1238,6 @@ class Validator:
 					_error(failure_path, "subject_dead requires an escort, leave_zone, or wagon objective")
 			_text(failure.get("event"), failure_path + ".event")
 
-	func _check_adventure(adventure: Dictionary, path: String) -> void:
-		_text(adventure.get("label"), path + ".label")
-		_integer(adventure.get("party_size"), path + ".party_size", 1)
-		var roster := _id_list(adventure.get("roster"), path + ".roster", "characters")
-		var missions := _id_list(adventure.get("missions"), path + ".missions", "missions")
-		if missions.is_empty():
-			_error(path + ".missions", "requires at least one mission")
-		var party_size: Variant = adventure.get("party_size")
-		if not _is_integer(party_size, 1):
-			return
-		if roster.size() < int(party_size):
-			_error(path + ".roster", "roster is smaller than party size")
-		for id in roster:
-			if id is String and _defs.characters.has(id):
-				var hero := _effective_profile(_defs.characters[id])
-				var capabilities: Variant = hero.get("capabilities")
-				if not is_same(hero.get("team"), "heroes") or not capabilities is Array or "commandable" not in capabilities:
-					_error(path + ".roster", "character '%s' is not a commandable hero" % id)
-		for index in missions.size():
-			var id: Variant = missions[index]
-			if not id is String or not _defs.missions.has(id):
-				continue
-			_check_deployment(id, int(party_size), roster, "%s.missions[%d]" % [path, index])
-
 	func _check_deployment(id: String, party_size: int, roster: Array, path: String) -> void:
 		var mission: Dictionary = _defs.missions[id]
 		var failures: Variant = mission.get("failures")
@@ -1298,7 +1268,21 @@ class Validator:
 		if _errors.size() != start_errors:
 			return
 
-		var adventure := _check_commission_settings(settings)
+		var roster := _check_commission_settings(settings)
+		var party_size := 0
+		for id in reports:
+			var report := _record(reports, id)
+			if not report.has("destination_descriptors"):
+				continue
+			var mission := _record(_record(_defs, "missions"), id)
+			var encounter_id: Variant = mission.get("encounter")
+			var encounter := _record(_record(_defs, "encounters"), encounter_id if encounter_id is String else "")
+			var slots: Variant = encounter.get("party_slots")
+			if slots is Array and not slots.is_empty():
+				party_size = slots.size()
+				break
+		if party_size > 0 and roster.size() < party_size:
+			_error("commission_settings.recruitment_roster", "roster is smaller than party size")
 		for id in kinds:
 			var path := "mission_kinds." + str(id)
 			_text(id, path)
@@ -1329,28 +1313,30 @@ class Validator:
 				destination_count += 1
 			elif kind is String:
 				transit_kinds[kind] = true
-			if known_mission and _is_integer(adventure.get("party_size"), 1) and adventure.get("roster") is Array:
-				_check_deployment(id, int(adventure.party_size), adventure.roster, path)
+			if known_mission and party_size > 0:
+				_check_deployment(id, party_size, roster, path)
 
 		if _errors.size() != start_errors:
 			return
 		if destination_count < 3:
 			_error("mission_reports", "requires at least three distinct destinations for the commission board")
+		if party_size == 0:
+			_error("mission_reports", "requires a destination with at least one party slot")
 		# Repeat visits are allowed whenever the unplayed pool cannot supply a fork.
 		if transit_kinds.size() < 2:
 			_error("mission_reports", "requires transit missions from at least two different kinds")
 
-	func _check_commission_settings(settings: Dictionary) -> Dictionary:
-		_check_commission_fields(settings, ["roster_adventure"], "commission_settings")
-		var path := "commission_settings.roster_adventure"
-		var id: Variant = settings.get("roster_adventure")
-		if not _text(id, path):
-			return {}
-		var adventures := _record(_defs, "adventures")
-		if not adventures.has(id):
-			_error(path, "unknown adventures ID '%s'" % id)
-			return {}
-		return _record(adventures, id)
+	func _check_commission_settings(settings: Dictionary) -> Array:
+		_check_commission_fields(settings, ["recruitment_roster"], "commission_settings")
+		var path := "commission_settings.recruitment_roster"
+		var roster := _id_list(settings.get("recruitment_roster"), path, "characters")
+		for id in roster:
+			if id is String and _defs.characters.has(id):
+				var hero := _effective_profile(_defs.characters[id])
+				var capabilities: Variant = hero.get("capabilities")
+				if not is_same(hero.get("team"), "heroes") or not capabilities is Array or "commandable" not in capabilities:
+					_error(path, "character '%s' is not a commandable hero" % id)
+		return roster
 
 	func _check_commission_fields(record: Dictionary, fields: Array, path: String) -> void:
 		for field in record:

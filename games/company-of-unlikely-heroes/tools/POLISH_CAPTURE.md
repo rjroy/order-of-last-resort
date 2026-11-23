@@ -1,7 +1,7 @@
 # Graphical screen-polish captures
 
 Run these from the repository root with Godot 4 and a working graphical display.
-The three scripts render live scenes at 1280×820 and fail nonzero if a required
+The two scripts render live scenes at 1280×820 and fail nonzero if a required
 state or capture is unavailable. Use new, empty output directories; do not
 point them at an existing guild profile.
 Run the editor import once in a fresh checkout before capture:
@@ -14,14 +14,11 @@ godot --path games/company-of-unlikely-heroes \
 godot --path games/company-of-unlikely-heroes \
   --script res://tools/capture_polish_gaps.gd -- \
   --output="$PWD/.lore/local/release-polish/after/gaps"
-godot --path games/company-of-unlikely-heroes \
-  --script res://tools/capture_ordinary_debrief.gd -- \
-  --output="$PWD/.lore/local/release-polish/after/ordinary-extra"
 ```
 
 The full guild-book capture's output path must be below `.lore/local/guild-book-review`.
-The supplement and ordinary-debrief drivers accept paths below `.lore/local`.
-All three reject symbolic-link components. Do not copy a disposable profile
+The supplement accepts paths below `.lore/local`.
+Both reject symbolic-link components. Do not copy a disposable profile
 into another run. The first full-run board and the long-name commission
 screenshot use the game's random board. Subsequent stock outings use board
 seed 6; the full driver also fixes its reward RNG.
@@ -41,11 +38,8 @@ seed 6; the full driver also fixes its reward RNG.
   seed 6 before deployment. The long name is injected into the field; battle
   action selection emits the existing test driver's menu signal. Other
   navigation uses the existing capture driver's input helpers.
-* [`capture_ordinary_debrief.gd`](CAPTURE_ORDINARY_DEBRIEF.md): the separate
-  **Mission cleared** page after a committed fixed-outing victory in a
-  disposable external catalog with no optional upgrades. It writes
-  `ordinary-mission-cleared.png`; it does not replace the pending or claimed
-  reward captures from the full run.
+The retired practice-only no-reward debrief is not part of commission flow.
+Commission road victories with no reward continue without that page.
 
 The scripts assert state transitions and PNG writes, not visual quality.
 Inspect every image for clipping, missing content, and other presentation
@@ -60,14 +54,12 @@ in `.lore/local/release-polish/`:
 ```text
 ordinary/                              Full guild-book capture PNGs
 gaps/                                  Supplemental capture PNGs
-ordinary-extra/ordinary-mission-cleared.png
 ```
 
 Copy the full-run PNGs from the required `guild-book-review` output directory
 into `after/ordinary/`, and keep disposable profiles and catalogs out of the
 comparison. If regenerating a missing baseline, use the corresponding
-pre-polish revision, not the current implementation; the ordinary-debrief
-guide records its exact baseline revision. Then run:
+pre-polish revision, not the current implementation. Then run:
 
 ```sh
 python3 games/company-of-unlikely-heroes/tools/build_polish_review.py \

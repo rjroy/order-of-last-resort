@@ -17,11 +17,14 @@ blast, wait. Both actors are visible at opening; the capture skips placeholder
 art if either actor fails to bind. It checks committed movement and the
 victory event's actual subject and destination, including the terminal clip.
 
-The outing capture recruits the stock party, plays the patrol, chooses an
-offered reward, and continues into the rescue through the ordinary UI. It
-observes the retained final-action board at normal real-time playback speed
-through its natural closure, without seeking or disabling the board process.
-It checks that the entire safe-bank clip plays, not just that it was queued.
+The commission capture copies the stock catalog to its output directory and
+removes the rescue report's destination flag, making the unchanged rescue
+eligible as a road mission. It finds a board seed offering that report,
+creates an isolated guild, recruits Knight, Healer and Wizard, and selects the
+rescue through the commission UI. It observes the retained final-action board
+at normal real-time playback speed through its natural closure, without seeking
+or disabling the board process. It checks that the entire safe-bank clip plays,
+not just that it was queued.
 The rule-emitted reaction test uses controlled positions and real potion,
 Harpoon, movement and Wizard Blast resolutions. It checks flinch, lethal down,
 knockdown and subsequent recovery, a Boot Toffee blocked move and Pocket

@@ -1,6 +1,6 @@
 {
   "commission_settings": {
-    "roster_adventure": "first_outing"
+    "recruitment_roster": ["knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard"]
   },
   "mission_kinds": {
     "skirmish": {

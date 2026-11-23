@@ -28,7 +28,7 @@ func _run() -> void:
 			"Commission %d shows destination artwork" % i)
 	await _press("Commission_0")
 	var defs: Dictionary = scene.get("_definitions")
-	var roster: Array = scene.get("_adventure").roster
+	var roster: Array = defs.commission_settings.recruitment_roster
 	_check(roster.size() == 7 and "blacksmith" not in roster,
 		"Artwork does not add Hobby Smith to the seven-person roster")
 	_check(_node("Recruit_blacksmith") == null, "Hobby Smith is absent from the legacy recruit controls")

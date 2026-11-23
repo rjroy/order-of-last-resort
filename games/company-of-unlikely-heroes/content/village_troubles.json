@@ -1,12 +1,4 @@
 {
-  "adventures": {
-    "village_troubles": {
-      "label": "Village Troubles",
-      "roster": ["knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard"],
-      "missions": ["goblin_mob", "harpoon_squad", "unwelcome_guest"],
-      "party_size": 3
-    }
-  },
   "missions": {
     "goblin_mob": {
       "title": "The Goblin Mob",

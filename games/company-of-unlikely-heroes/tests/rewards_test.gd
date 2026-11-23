@@ -40,6 +40,18 @@ func _check(ok: bool, message: String) -> void:
 		failures.append(message)
 
 
+func _start(source: Dictionary, party: Array, seed_value: int) -> Dictionary:
+	var fixture: Dictionary = preload("res://tests/fixtures/controlled_commission.gd").build(source)
+	var board: Array = preload("res://commissions.gd").board(fixture, 12345)
+	return _route(adventure.call("start_commission", fixture, board[0], party, seed_value))
+
+
+func _route(run: Dictionary) -> Dictionary:
+	if run.get("phase") == "route":
+		return adventure.call("choose_route", run, run.reports[0].mission_id)
+	return run
+
+
 func _test_content() -> void:
 	var upgrades: Dictionary = defs.get("upgrades", {})
 	_check(upgrades.size() == 55, "Seven shipped hero pools contain exactly 55 entries")
@@ -59,7 +71,7 @@ func _test_content() -> void:
 
 
 func _victory(run: Dictionary) -> Dictionary:
-	var deployed: Dictionary = adventure.call("begin_mission", run)
+	var deployed: Dictionary = adventure.call("begin_mission", _route(run))
 	var state: Dictionary = deployed.get("mission", {}).duplicate(true)
 	if state.is_empty():
 		_check(false, "Reward fixture deploys")
@@ -78,7 +90,7 @@ func _test_offers() -> void:
 		_check(false, "Offer tests require the authored upgrade table")
 		return
 	var party := ["knight", "healer", "alchemist"]
-	var run: Dictionary = adventure.call("start_adventure", defs, "village_troubles", party, 12345)
+	var run := _start(defs, party, 12345)
 	if run.is_empty():
 		_check(false, "Reward outing starts")
 		return
@@ -93,7 +105,7 @@ func _test_offers() -> void:
 		_check(hero in party and hero not in seen, "Offer belongs to a distinct eligible hero")
 		seen.append(hero)
 		_check(defs.get("upgrades", {}).get(id, {}).get("hero_id") == hero, "Offer belongs to its hero's pool")
-	var again := _victory(adventure.call("start_adventure", defs, "village_troubles", party, 12345))
+	var again := _victory(_start(defs, party, 12345))
 	_check(offers == again.get("reward_offers", []), "The same seed and run reproduce offers")
 	if not adventure.has_method("choose_reward"):
 		_check(false, "Adventure exposes choose_reward")
@@ -111,7 +123,7 @@ func _test_offers() -> void:
 			"A reward cannot be claimed for the wrong hero")
 	var chosen: Dictionary = adventure.call("choose_reward", settled, offer.hero_id, offer.upgrade_id)
 	_check(settled == before, "Choosing does not mutate the offered snapshot")
-	_check(chosen.get("phase") == "ready", "Exactly one choice allows continuation")
+	_check(chosen.get("phase") == "route", "Exactly one choice allows continuation")
 	_check(chosen.get("upgrades_by_id", {}).get(offer.hero_id, {}).get(offer.upgrade_id) == 1,
 		"Chosen reward is granted once to its owner")
 	for other in offers:
@@ -120,17 +132,17 @@ func _test_offers() -> void:
 				"Passing on another hero's offer consumes nothing")
 	_check(adventure.call("choose_reward", chosen, offer.hero_id, offer.upgrade_id) == chosen,
 		"A second selection is rejected")
-	var next: Dictionary = adventure.call("begin_mission", chosen)
+	var next: Dictionary = adventure.call("begin_mission", _route(chosen))
 	for unit in next.get("mission", {}).get("units", []):
 		if unit.get("id") == offer.hero_id:
 			_check(unit.get("upgrades", {}).get(offer.upgrade_id) == 1, "Chosen upgrade carries into next mission")
 	var no_table := defs.duplicate(true)
 	no_table.erase("upgrades")
-	var legacy: Dictionary = adventure.call("start_adventure", no_table, "village_troubles", party, 12345)
+	var legacy := _start(no_table, party, 12345)
 	_check(not legacy.is_empty(), "Catalog without optional upgrades remains usable")
 	if not legacy.is_empty():
 		var legacy_result := _victory(legacy)
-		_check(legacy_result.get("phase") == "ready" and legacy_result.get("reward_offers", []).is_empty(),
+		_check(legacy_result.get("phase") == "route" and legacy_result.get("reward_offers", []).is_empty(),
 			"Catalog without rewards continues without a choice")
 
 
@@ -153,7 +165,7 @@ func _test_caps_and_rarities() -> void:
 	_check(available.size() == 4, "Fixture has all four Knight rarities")
 	var draws := {}
 	for seed_value in range(1, 33):
-		var sampled: Dictionary = adventure.call("start_adventure", defs, "village_troubles", ["knight", "healer", "alchemist"], seed_value)
+		var sampled := _start(defs, ["knight", "healer", "alchemist"], seed_value)
 		var sampled_result := _victory(sampled)
 		for offer in sampled_result.get("reward_offers", []):
 			if offer.get("hero_id") == "knight":
@@ -166,20 +178,20 @@ func _test_caps_and_rarities() -> void:
 			break
 	if not healer_id.is_empty() and available.has("common"):
 		var knight_id: String = available.common
-		var passing: Dictionary = adventure.call("start_adventure", defs, "village_troubles", ["knight", "healer", "alchemist"], 33)
+		var passing := _start(defs, ["knight", "healer", "alchemist"], 33)
 		passing.upgrades_by_id = spent.duplicate(true)
 		passing.upgrades_by_id.knight[knight_id] = int(upgrades[knight_id].cap) - 1
 		passing.upgrades_by_id.healer[healer_id] = int(upgrades[healer_id].cap) - 1
 		var first := _victory(passing)
 		_check(first.get("reward_offers", []).size() == 2, "Both last available entries are offered")
 		var selected: Dictionary = adventure.call("choose_reward", first, "knight", knight_id)
-		if selected.get("phase") == "ready":
+		if selected.get("phase") == "route":
 			var next_offer := _victory(selected)
 			_check(next_offer.get("reward_offers", []) == [{"hero_id": "healer", "upgrade_id": healer_id}],
 				"Passed reward remains available on the next victory")
 	for rarity in available:
 		var id: String = available[rarity]
-		var run: Dictionary = adventure.call("start_adventure", defs, "village_troubles", ["knight", "healer", "alchemist"], 777)
+		var run := _start(defs, ["knight", "healer", "alchemist"], 777)
 		run.upgrades_by_id = spent.duplicate(true)
 		run.upgrades_by_id.knight[id] = int(upgrades[id].cap) - 1
 		var settled := _victory(run)
@@ -192,10 +204,10 @@ func _test_caps_and_rarities() -> void:
 		_check(chosen.get("upgrades_by_id", {}).get("knight", {}).get(id) == int(upgrades[id].cap),
 			"Last acquisition reaches its cap")
 		# Replay the same first-mission setup with that inventory to isolate the draw.
-		var exhausted: Dictionary = adventure.call("start_adventure", defs, "village_troubles", ["knight", "healer", "alchemist"], 777)
+		var exhausted := _start(defs, ["knight", "healer", "alchemist"], 777)
 		exhausted.upgrades_by_id = chosen.upgrades_by_id.duplicate(true)
 		var no_offers := _victory(exhausted)
-		_check(no_offers.get("phase") == "ready" and no_offers.get("reward_offers", []).is_empty(),
+		_check(no_offers.get("phase") == "route" and no_offers.get("reward_offers", []).is_empty(),
 			"Spent rewards disappear and a fully exhausted company continues without a choice")
 
 
@@ -203,13 +215,25 @@ func _test_terminal_boundaries() -> void:
 	if defs.get("upgrades", {}).is_empty() or not adventure.has_method("choose_reward"):
 		return
 	var party := ["knight", "healer", "wizard"]
-	var run: Dictionary = adventure.call("start_adventure", defs, "first_outing", party, 42)
+	var run := _start(defs, party, 42)
 	var settled := _victory(run)
 	var offers: Array = settled.get("reward_offers", [])
 	if offers.is_empty():
 		_check(false, "Terminal boundary fixture has an offer")
 		return
 	var chosen: Dictionary = adventure.call("choose_reward", settled, offers[0].hero_id, offers[0].upgrade_id)
+	for _step in range(4):
+		if chosen.get("phase") != "route":
+			break
+		var intermediate := _victory(chosen)
+		var intermediate_offers: Array = intermediate.get("reward_offers", [])
+		if intermediate_offers.is_empty():
+			chosen = intermediate
+		else:
+			chosen = adventure.call("choose_reward", intermediate, intermediate_offers[0].hero_id, intermediate_offers[0].upgrade_id)
+	_check(chosen.get("phase") == "ready", "Commission reaches its final mission")
+	if chosen.get("phase") != "ready":
+		return
 	var second: Dictionary = adventure.call("begin_mission", chosen)
 	var board: Dictionary = second.get("mission", {}).duplicate(true)
 	if board.is_empty():
@@ -218,8 +242,6 @@ func _test_terminal_boundaries() -> void:
 	for unit in board.units:
 		if rules.entity_profile(board, unit.id).get("team") == "enemies":
 			unit.hp = 0
-		if unit.id == board.objective.subject:
-			unit.position = board.objective.destination
 	var terminal: Dictionary = rules.commit_round(board, rules.preview_round(board))
 	_check(terminal.get("outcome") == "victory", "Final fixture commits victory")
 	var won: Dictionary = adventure.call("settle_mission", second, terminal)
@@ -243,7 +265,7 @@ func _test_terminal_boundaries() -> void:
 
 func _test_alchemist_acquisition() -> void:
 	var party := ["knight", "healer", "alchemist"]
-	var run: Dictionary = adventure.call("start_adventure", defs, "first_outing", party, 42)
+	var run := _start(defs, party, 42)
 	var settled := _victory(run)
 	var offer := {}
 	for candidate in settled.get("reward_offers", []):
@@ -256,7 +278,7 @@ func _test_alchemist_acquisition() -> void:
 	var chosen: Dictionary = adventure.call("choose_reward", settled, "alchemist", offer.upgrade_id)
 	_check(chosen.get("upgrades_by_id", {}).get("alchemist", {}).get(offer.upgrade_id) == 1,
 		"Choosing Alchemist's offered upgrade records one acquisition")
-	var deployed: Dictionary = adventure.call("begin_mission", chosen)
+	var deployed: Dictionary = adventure.call("begin_mission", _route(chosen))
 	var board: Dictionary = deployed.get("mission", {}).duplicate(true)
 	var brewer := {}
 	for unit in board.get("units", []):
@@ -273,20 +295,28 @@ func _test_alchemist_acquisition() -> void:
 				unit.hp = 0
 			elif outcome == "victory" and rules.entity_profile(terminal_board, unit.id).get("team") == "enemies":
 				unit.hp = 0
-			if outcome == "victory" and unit.id == terminal_board.objective.get("subject"):
-				unit.position = terminal_board.objective.destination
 		var terminal: Dictionary = rules.commit_round(terminal_board, rules.preview_round(terminal_board))
 		_check(terminal.get("outcome") == outcome, "Alchemist reset fixture reaches " + outcome)
 		if terminal.get("outcome") != outcome:
 			continue
 		var finished: Dictionary = adventure.call("settle_mission", deployed, terminal)
+		for _step in range(8):
+			if finished.get("phase") not in ["route", "reward"]:
+				break
+			if finished.phase == "reward":
+				var offers: Array = finished.reward_offers
+				if offers.is_empty():
+					break
+				finished = adventure.call("choose_reward", finished, offers[0].hero_id, offers[0].upgrade_id)
+			else:
+				finished = _victory(finished)
+		if finished.get("phase") == "ready":
+			finished = _victory(finished)
 		_check_reset(finished, party, "Alchemist reward " + outcome)
 
 
 func _check_reset(finished: Dictionary, party: Array, label: String) -> void:
-	var guild: Dictionary = adventure.call("return_to_guild", finished)
-	_check(guild.get("phase") == "guild" and guild.get("upgrades_by_id", {}).is_empty()
-		and guild.get("reward_offers", []).is_empty(), label + " clears outing rewards at guild")
-	var fresh: Dictionary = adventure.call("start_adventure", defs, "first_outing", party, 42)
+	_check(finished.get("phase") == "finished", label + " ends the commission")
+	var fresh := _start(defs, party, 42)
 	_check(fresh.get("upgrades_by_id", {}).is_empty() and fresh.get("reward_offers", []).is_empty(),
 		label + " starts the next outing without rewards")

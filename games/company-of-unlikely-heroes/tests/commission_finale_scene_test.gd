@@ -1,8 +1,9 @@
-extends "res://tests/village_outing_scene_test.gd"
+extends "res://tests/support/scene_fixture.gd"
 
 # Run: godot --headless --path games/company-of-unlikely-heroes --script res://tests/commission_finale_scene_test.gd
 # Every fixture encounter has one adjacent, one-HP opponent. Battles are still
 # won through the normal command editor and committed round, not state edits.
+const PARTY := ["healer", "knight", "bard"]
 const BOARD_SEED := 147258
 const TERMINAL_EVENT := "The last opponent yielded. "
 var fixture_path := "user://commission_finale_catalog_%d.json" % OS.get_process_id()

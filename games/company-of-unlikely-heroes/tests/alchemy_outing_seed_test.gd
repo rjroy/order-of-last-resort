@@ -1,8 +1,7 @@
 extends SceneTree
 
 # Run: godot --headless --path games/company-of-unlikely-heroes --script res://tests/alchemy_outing_seed_test.gd
-# Deployment and settlement use the real adventure path; the board, missions,
-# occurrence sequence, and outing seeds belong to this test.
+# Deployment and settlement use commissions; the encounter and seeds belong to this test.
 const Catalog = preload("res://content/catalog.gd")
 const Adventure = preload("res://adventure.gd")
 var rules = preload("res://rules.gd").new()
@@ -38,13 +37,11 @@ func _fixture() -> Dictionary:
 	defs.encounters["seed_fixture"] = {"board": "seed_fixture",
 		"party_slots": [[1, 1], [2, 1], [1, 2]],
 		"placements": [{"id": "foe", "character": "harpooner", "at": [5, 5]}]}
-	for id in ["seed_first", "seed_second"]:
+	for id in defs.mission_reports:
 		defs.missions[id] = {"title": "Seed fixture", "encounter": "seed_fixture",
 			"objective": {"handler": "defeat_all", "text": "Defeat the foe.",
 				"victory_text": "Won.", "defeat_text": "Lost.", "victory_event": "Won."},
 			"failures": [{"handler": "party_wiped", "event": "Lost."}], "tier": 1}
-	defs.adventures["seed_outing"] = {"label": "Seed fixture", "party_size": 3,
-		"roster": PARTY.duplicate(), "missions": ["seed_first", "seed_second"]}
 	return defs
 
 
@@ -93,12 +90,14 @@ func _dose_sequence(opening: Dictionary, label: String) -> Array:
 
 
 func _run_outing(defs: Dictionary, seed_value: int) -> Array:
-	var run: Dictionary = Adventure.start_adventure(defs, "seed_outing", PARTY, seed_value)
-	_check(run.get("phase") == "ready", "Outing %d starts" % seed_value)
-	if run.get("phase") != "ready":
+	var offers: Array = preload("res://commissions.gd").board(defs, 12345)
+	var run: Dictionary = Adventure.start_commission(defs, offers[0], PARTY, seed_value)
+	_check(run.get("phase") == "route", "Commission %d starts" % seed_value)
+	if run.get("phase") != "route":
 		return []
 	var sequences := []
 	for index in range(2):
+		run = Adventure.choose_route(run, run.reports[0].mission_id)
 		run = Adventure.begin_mission(run)
 		var state: Dictionary = run.get("mission", {})
 		_check(run.get("phase") == "mission" and not state.is_empty(),
@@ -118,8 +117,8 @@ func _run_outing(defs: Dictionary, seed_value: int) -> Array:
 			if terminal.get("outcome") != "victory":
 				return []
 			run = Adventure.settle_mission(run, terminal)
-			_check(run.get("phase") == "ready", "Victory advances to the next occurrence")
-			if run.get("phase") != "ready":
+			_check(run.get("phase") == "route", "Victory advances to the next occurrence")
+			if run.get("phase") != "route":
 				return []
 	return sequences
 

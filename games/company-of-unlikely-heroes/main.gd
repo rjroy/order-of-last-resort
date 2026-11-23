@@ -22,7 +22,6 @@ const RunResultPage = preload("res://presentation/run_result_page.gd")
 const DiagnosticBookPage = preload("res://presentation/diagnostic_book_page.gd")
 const ReceiptCopy = preload("res://presentation/guild_receipt_copy.gd")
 const GuildPetitionViewModel = preload("res://presentation/guild_petition_view_model.gd")
-const DEFAULT_ADVENTURE := "first_outing"
 const TERMINAL_REPLAY_STALL_MS := 3200
 
 const PAPER := Color("#f1dfb8")
@@ -36,7 +35,6 @@ const DARK_TEXT := Color("#2f281e")
 var _rules = Rules.new()
 var _definitions: Dictionary
 var _adventure: Dictionary
-var _adventure_id := DEFAULT_ADVENTURE
 var _run: Dictionary
 var _picked_recruits: Array = []
 var _screen := ""
@@ -115,17 +113,11 @@ func _ready() -> void:
 	if not _uses_builtin_catalog and not _profile_path_configured:
 		_profile_path = GuildProfile.CUSTOM_PATH
 	_fixed_mission = launch.mission
-	var adventures: Dictionary = _definitions.get("adventures", {})
-	if not adventures.is_empty() and not adventures.has(_adventure_id):
-		var ids: Array = adventures.keys()
-		ids.sort()
-		_adventure_id = ids[0]
-	_adventure = adventures.get(_adventure_id, {})
-	if _fixed_mission.is_empty() and _adventure.is_empty() and not launch.content.is_empty() \
-			and (launch.fixed_outings or _definitions.get("commission_settings", {}).is_empty()):
+	if _fixed_mission.is_empty() and not launch.content.is_empty() \
+			and _definitions.get("commission_settings", {}).is_empty():
 		var standalone: Array = _definitions.missions.keys().filter(func(id: String) -> bool: return not _requires_party(id))
 		if standalone.size() != 1:
-			_show_launch_error("This content has no adventure. " + _fixed_mission_help())
+			_show_launch_error("This content has no commissions and no single mission with an authored party. " + _fixed_mission_help())
 			return
 		_fixed_mission = standalone[0]
 	if not _fixed_mission.is_empty():
@@ -149,13 +141,10 @@ func _ready() -> void:
 			return
 		_show_battle(_opening_state.duplicate(true))
 		return
-	if not launch.fixed_outings and not _definitions.get("commission_settings", {}).is_empty():
+	if not _definitions.get("commission_settings", {}).is_empty():
 		_open_commission_hub()
 		return
-	if _adventure.is_empty():
-		_show_launch_error("The content has no first_outing adventure. " + _fixed_mission_help())
-		return
-	_show_guild()
+	_show_launch_error("The content has no commissions. " + _fixed_mission_help())
 
 
 func _requires_party(mission_id: String) -> bool:
@@ -243,7 +232,7 @@ func battle_snapshot() -> Dictionary:
 
 
 func _read_launch_options(args: PackedStringArray) -> Dictionary:
-	var launch := {"content": "", "mission": "", "fixed_outings": false, "storybook": false, "loadouts": {}}
+	var launch := {"content": "", "mission": "", "storybook": false, "loadouts": {}}
 	var seen: Dictionary = {}
 	for arg in args:
 		var key := arg.get_slice("=", 0).trim_prefix("--")
@@ -255,10 +244,7 @@ func _read_launch_options(args: PackedStringArray) -> Dictionary:
 		if arg.begins_with("--") and key == "test-ui":
 			return {"error": "--test-ui is no longer supported. Launch without it to use the battle book."}
 		if arg.begins_with("--") and key == "fixed-outings":
-			if arg != "--fixed-outings" or launch.fixed_outings:
-				return {"error": "Use --fixed-outings once, without a value."}
-			launch.fixed_outings = true
-			continue
+			return {"error": "--fixed-outings is no longer supported. Launch a commission or standalone mission."}
 		if not arg.begins_with("--") or key not in ["content", "mission", "party", "loadout"]:
 			continue
 		var value := arg.substr(arg.find("=") + 1) if "=" in arg else ""
@@ -409,7 +395,9 @@ func _show_commissions(board_refresh_failed := false) -> void:
 
 func _select_commission(offer: Dictionary) -> void:
 	_commission = offer
-	_adventure = _definitions.adventures[_definitions.commission_settings.roster_adventure]
+	var mission: Dictionary = _definitions.missions[offer.destination_id]
+	_adventure = {"roster": _definitions.commission_settings.recruitment_roster,
+		"party_size": _definitions.encounters[mission.encounter].party_slots.size()}
 	if _uses_builtin_catalog:
 		_picked_recruits.clear()
 		_loadouts.clear()
@@ -809,16 +797,13 @@ func _show_guild(focus_name := "") -> void:
 	var previous_slots := find_child("DeploymentScroll", true, false) as ScrollContainer if _screen == "guild" else null
 	var slot_position := previous_slots.scroll_vertical if previous_slots != null else 0
 	var page := _book_page("guild", 0.64)
-	if _commission.is_empty():
-		_build_practice_itinerary(page)
-	else:
-		_book_heading(page, "Choose your company",
-			"%s  ·  %s  ·  %d missions" % [
-				_guild_profile.name, _mission_title_for(_commission.destination_id), _commission.length],
-			"BackToCommissions", "Commission board", _open_commission_hub)
+	_book_heading(page, "Choose your company",
+		"%s  ·  %s  ·  %d missions" % [
+			_guild_profile.name, _mission_title_for(_commission.destination_id), _commission.length],
+		"BackToCommissions", "Commission board", _open_commission_hub)
 	var leaves := _book.spread(page, 0.64, 42)
 	var roster := leaves[0]
-	_book.text(roster, "Choose your company" if _commission.is_empty() else "Available recruits",
+	_book.text(roster, "Available recruits",
 		28, GuildBookPage.INK, "display")
 	_book.text(roster, "Take %d recruits. Each round, you command one hero; the others follow standing orders." % _adventure.party_size,
 		15, GuildBookPage.SUBTLE)
@@ -844,16 +829,14 @@ func _show_guild(focus_name := "") -> void:
 	slots.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for slot in range(_adventure.party_size):
 		_build_party_slot(slots, slot)
-	if not _commission.is_empty() and _adventure.party_size <= 3:
+	if _adventure.party_size <= 3:
 		var landscape := _destination_plate(str(_commission.destination_id))
 		if landscape != null:
 			_book.plate(marching, landscape, Vector2(0, 130))
 			_book.text(marching, _mission_title_for(_commission.destination_id), 17,
 				GuildBookPage.SUBTLE, "italic")
 	_book.rule(marching)
-	var departure := "Read field reports" if not _commission.is_empty() else "Depart on practice outing"
-	var start := _book.button(marching, "StartAdventure", departure, "ClothButton")
-	start.accessibility_description = "Depart for " + _mission_title_for(_adventure.missions[0]) if _commission.is_empty() else ""
+	var start := _book.button(marching, "StartAdventure", "Read field reports", "ClothButton")
 	_book.set_disabled(start, _picked_recruits.size() != _adventure.party_size)
 	start.pressed.connect(_start_adventure)
 	var focus: Control
@@ -865,7 +848,7 @@ func _show_guild(focus_name := "") -> void:
 		if focus is BaseButton and not focus.disabled:
 			focus.grab_focus()
 	else:
-		var first_action := "Recruit_" + str(_adventure.roster[0]) if not _commission.is_empty() else "AdventureSelect"
+		var first_action := "Recruit_" + str(_adventure.roster[0])
 		focus = find_child(first_action, true, false) as Control
 		if focus != null:
 			focus.grab_focus()
@@ -879,44 +862,6 @@ func _restore_book_scroll(scroll: ScrollContainer, position: int, focus: Control
 	scroll.scroll_vertical = position
 	if scroll.follow_focus and is_instance_valid(focus) and focus.has_focus() and scroll.is_ancestor_of(focus):
 		scroll.ensure_control_visible(focus)
-
-
-func _build_practice_itinerary(page: VBoxContainer) -> void:
-	_book_heading(page, "Practice outings", str(ProjectSettings.get_setting("application/config/name")))
-	var itinerary := _book.row(page, 21)
-	var destination: String = _adventure.missions.back()
-	var painting := _destination_plate(destination)
-	if painting != null:
-		_book.plate(itinerary, painting, Vector2(250, 106))
-	var selection := _book.stack(itinerary, 5)
-	selection.custom_minimum_size.x = 310
-	_book.text(selection, "Adventure", 15, GuildBookPage.SUBTLE)
-	var adventure_select := _picker(selection, "AdventureSelect")
-	adventure_select.custom_minimum_size.y = 42
-	adventure_select.accessibility_name = "Practice adventure"
-	for id in _definitions.get("adventures", {}):
-		_add_choice(adventure_select, _definitions.adventures[id].label, id)
-	_pick(adventure_select, _adventure_id)
-	adventure_select.tooltip_text = _adventure.label
-	adventure_select.item_selected.connect(_select_adventure.bind(adventure_select))
-	var route := _book.stack(itinerary, 4)
-	route.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_book.text(route, _mission_title_for(destination), 25, GuildBookPage.INK, "display")
-	_book.text(route, "%d missions" % _adventure.missions.size() if _adventure.missions.size() != 1 else "1 mission",
-		15, GuildBookPage.FOREST)
-	_book.text(route, _route_titles(), 14, GuildBookPage.SUBTLE)
-	_book.rule(page)
-
-
-func _select_adventure(index: int, selector: OptionButton) -> void:
-	var id := str(selector.get_item_metadata(index))
-	if id == _adventure_id or not _definitions.adventures.has(id):
-		return
-	_adventure_id = id
-	_adventure = _definitions.adventures[id]
-	_picked_recruits = _picked_recruits.filter(func(recruit: String) -> bool: return recruit in _adventure.roster)
-	_picked_recruits.resize(mini(_picked_recruits.size(), int(_adventure.party_size)))
-	_show_guild("AdventureSelect")
 
 
 func _build_recruit(parent: GridContainer, id: String) -> void:
@@ -1020,13 +965,6 @@ func _move_recruit(id: String, delta: int, focus_name: String) -> void:
 	_show_guild(focus_name)
 
 
-func _route_titles() -> String:
-	var titles: PackedStringArray = []
-	for mission_id in _adventure.missions:
-		titles.append(_mission_title_for(mission_id))
-	return "  →  ".join(titles)
-
-
 func _mission_title_for(mission_id: String) -> String:
 	return _definitions.missions[mission_id].title
 
@@ -1050,14 +988,9 @@ func _portrait_subtitle(character_id: String, character_label: String) -> String
 
 
 func _start_adventure() -> void:
-	if not _commission.is_empty():
-		_run = Adventure.start_commission(_definitions, _commission, _picked_recruits)
-		if _run.get("phase") == "route":
-			_show_routes()
-		return
-	_run = Adventure.start_adventure(_definitions, _adventure_id, _picked_recruits)
-	if not _run.is_empty():
-		_begin_mission()
+	_run = Adventure.start_commission(_definitions, _commission, _picked_recruits)
+	if _run.get("phase") == "route":
+		_show_routes()
 
 
 func _show_routes() -> void:
@@ -1102,9 +1035,7 @@ func _show_debrief() -> void:
 	var result: Dictionary = _run.last_result
 	var pending: bool = _run.phase == "reward"
 	var next_mission := ""
-	if _commission.is_empty():
-		next_mission = str(_run.mission_ids[_run.mission_index])
-	elif _run.phase == "ready":
+	if _run.phase == "ready":
 		next_mission = str(_run.destination_id)
 	var chosen: Dictionary = _run.get("chosen_reward", {})
 	var offers: Array[Dictionary] = []
@@ -1115,15 +1046,13 @@ func _show_debrief() -> void:
 	var page := _book_page("debrief", -1.0, book)
 	book.populate(page, {
 		"mission": _mission_title_for(result.mission_id),
-		"result_text": str(result.get("text", "")),
 		"pending": pending,
 		"offers": offers,
 		"claimed": {} if chosen.is_empty() else _debrief_reward(chosen),
-		"receipt": _receipt_summary(Adventure.receipt(_run)) if _uses_builtin_catalog and not _commission.is_empty() else "",
+		"receipt": _receipt_summary(Adventure.receipt(_run)) if _uses_builtin_catalog else "",
 		"carry": _debrief_carry_lines(pending),
 		"scout_note": str(_run.get("scout_note", "")),
 		"next_title": "" if next_mission.is_empty() else _mission_title_for(next_mission),
-		"next_art": _destination_plate(next_mission) if not pending and chosen.is_empty() and not next_mission.is_empty() else null,
 		"next_is_fork": _run.phase == "route",
 		"can_continue": _run.phase in ["ready", "route"],
 		"advance": _continue_after_debrief,
@@ -1195,20 +1124,19 @@ func _show_result() -> void:
 	var result: Dictionary = _run.last_result
 	var painting := _destination_plate(str(result.mission_id))
 	var image := painting if painting != null else _report_plate(str(result.mission_id))
-	var commission := not _commission.is_empty()
 	var book := RunResultPage.new()
 	var page := _book_page("result", -1.0, book)
 	book.populate(page, {
 		"outcome": result.outcome,
-		"outing": "Commission" if commission else "Adventure",
+		"outing": "Commission",
 		"mission_title": _mission_title_for(str(result.mission_id)),
 		"mission_text": str(result.get("text", "")),
 		"image": image,
 		"sketch": painting == null,
-		"receipt": ReceiptCopy.rows(Adventure.receipt(_run)) if commission and _uses_builtin_catalog else [],
-		"guild_name": str(_guild_profile.get("name", "")) if commission else "",
-		"return_error": _return_error if commission and _uses_builtin_catalog else "",
-		"conflict": _return_conflict if commission and _uses_builtin_catalog else false,
+		"receipt": ReceiptCopy.rows(Adventure.receipt(_run)) if _uses_builtin_catalog else [],
+		"guild_name": str(_guild_profile.get("name", "")),
+		"return_error": _return_error if _uses_builtin_catalog else "",
+		"conflict": _return_conflict if _uses_builtin_catalog else false,
 		"return": _return_to_guild,
 		"discard": _discard_conflicted_return,
 	})
@@ -1252,12 +1180,6 @@ func _return_to_guild() -> void:
 			print_verbose("Commission board refreshed.")
 		_open_commission_hub(renewed.has("error"))
 		return
-	var guild := Adventure.return_to_guild(_run)
-	if guild.phase != "guild":
-		return
-	_run = guild
-	_picked_recruits.clear()
-	_show_guild()
 
 
 func _discard_conflicted_return() -> void:
@@ -1742,10 +1664,7 @@ func _show_settled_mission() -> void:
 		"route":
 			_show_routes()
 		"ready":
-			if _commission.is_empty():
-				_show_debrief()
-			else:
-				_begin_mission()
+			_begin_mission()
 		"finished":
 			_show_result()
 
@@ -2490,32 +2409,9 @@ func _primary_button(parent: Control, node_name: String, title: String) -> Butto
 	return result
 
 
-func _picker(parent: Control, node_name: String) -> OptionButton:
-	var result := OptionButton.new()
-	result.name = node_name
-	result.fit_to_longest_item = false
-	result.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	result.custom_minimum_size.y = 34
-	parent.add_child(result)
-	return result
-
-
 func _presentation(art_key: String, fallback: String) -> String:
 	return _presentation_entry(art_key).get("label", fallback)
 
 
 func _presentation_entry(art_key: String) -> Dictionary:
 	return _rules.definitions(_state).get("presentation", {}).get(art_key, {})
-
-
-func _add_choice(picker: OptionButton, text: String, key: String) -> void:
-	picker.add_item(text)
-	picker.set_item_metadata(picker.item_count - 1, key)
-
-
-func _pick(picker: OptionButton, key: String) -> void:
-	for index in range(picker.item_count):
-		if picker.get_item_metadata(index) == key:
-			picker.select(index)
-			return
-	picker.select(0 if picker.item_count > 0 else -1)

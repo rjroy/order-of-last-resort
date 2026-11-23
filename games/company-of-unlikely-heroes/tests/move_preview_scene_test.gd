@@ -20,7 +20,7 @@ func _initialize() -> void:
 func _run() -> void:
 	root.size = Vector2i(1280, 820)
 	var defs: Dictionary = Catalog.read_default()
-	var roster: Array = defs.adventures[defs.commission_settings.roster_adventure].roster
+	var roster: Array = defs.commission_settings.recruitment_roster
 	_check(roster.size() >= 3, "Commission roster has at least three playable heroes")
 	# Rotate the whole roster through three deployment slots. Consecutive staging
 	# exercises replacement of an earlier hero's command without committing.

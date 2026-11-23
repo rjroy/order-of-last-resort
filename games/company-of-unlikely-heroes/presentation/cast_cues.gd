@@ -198,8 +198,18 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 			reactions.append_array(event_cues)
 			if event.get("type") == "damage":
 				var victim: String = event.get("target_id", "")
+				var source: String = event.get("source_id", "")
+				var cause: String = event.get("damage_cause", "")
+				var amount := int(event.get("amount", 0))
+				var dependency := -1
+				match cause:
+					"retaliate":
+						dependency = int(retaliations.get(source, -1))
+					"death_blast":
+						dependency = int(detonations.get(source, -1))
+				if dependency >= 0 and amount > 0:
+					_recipient(reactions[dependency], victim, positions.get(victim), "hit")
 				if health.has(victim):
-					var amount := int(event.get("amount", 0))
 					var was_alive: bool = int(health[victim]) > 0
 					health[victim] = maxi(0, int(health[victim]) - amount)
 					var target: Dictionary = actors.get(victim, {})
@@ -215,12 +225,8 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 								"was_prone": bool(prone.get(victim, false)),
 								"source_cell": positions.get(victim), "actor_cell": positions.get(victim),
 								"target_id": "", "recipients": []}
-							var source: String = event.get("source_id", "")
-							var cause: String = event.get("damage_cause", "")
-							var dep: int = retaliations.get(source, -1) if cause == "retaliate" \
-								else detonations.get(source, -1) if cause == "death_blast" else -1
-							if dep >= 0:
-								reaction["after_reaction"] = dep
+							if dependency >= 0:
+								reaction["after_reaction"] = dependency
 							if health[victim] <= 0:
 								detonations[victim] = reactions.size()
 							reactions.append(reaction)
@@ -230,15 +236,15 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 							and (key != "ferryman" or not prone.get(victim, false)):
 						var down: bool = health[victim] <= 0 or (key == "ferryman" \
 							and knocked)
-						reactions.append({"unit_id": victim, "cast_key": key,
+						var reaction := {"unit_id": victim, "cast_key": key,
 							"clip": ("defeat" if down else "hit") if key == "harpooner" else ("down" if down else "flinch"),
 							"source_cell": positions.get(victim), "actor_cell": positions.get(victim),
-							"target_id": "", "recipients": []})
+							"target_id": "", "recipients": []}
+						if dependency >= 0:
+							reaction["after_reaction"] = dependency
+						reactions.append(reaction)
 					if Statuses.is_knockdown(after, event.get("status_id", "")) or health[victim] <= 0:
 						prone[victim] = true
-				if event.get("damage_cause") == "retaliate" and retaliations.has(event.get("source_id")):
-					var strike: Dictionary = reactions[retaliations[event.source_id]]
-					_recipient(strike, victim, positions.get(victim), "hit")
 			elif event.get("type") == "heal":
 				var healed: String = event.get("target_id", "")
 				if health.has(healed):

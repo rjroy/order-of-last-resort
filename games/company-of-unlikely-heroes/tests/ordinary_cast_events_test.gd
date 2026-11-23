@@ -85,7 +85,8 @@ func _retaliation() -> void:
 func _chain_defeat() -> void:
 	_bind("bomber", {"defeat": "boom"})
 	var state := _state([_unit("attacker", "wizard", 2, 2), _unit("first", "bomber", 3, 2, 1),
-		_unit("second", "bomber", 4, 2, 1)])
+		_unit("second", "bomber", 4, 2, 1), _unit("harpoon", "harpooner", 3, 3),
+		_unit("fallen_harpoon", "harpooner", 3, 1, 1), _unit("knight", "knight", 4, 3)])
 	var plan: Dictionary = rules.preview(state, "attacker", "wizard_blast")
 	if not plan.valid:
 		_check(false, "Initiating attack is legal")
@@ -96,6 +97,26 @@ func _chain_defeat() -> void:
 	_check(first.get("clip") == "boom" and second.get("clip") == "boom" \
 		and second.get("after_cue") == cues.find(first),
 		"Each bomber plays defeat once; secondary bomber is scheduled from the first detonation")
+	for spec in [["harpoon", "hit"], ["fallen_harpoon", "defeat"]]:
+		var reaction := cues.filter(func(cue): return cue.unit_id == spec[0])
+		_check(reaction.size() == 1 and reaction[0].clip == spec[1] \
+			and reaction[0].get("after_cue") == cues.find(first),
+			"Legacy %s reacts once at the causing first Bomber's impact" % spec[1])
+	var blasts := {"first": first, "second": second}
+	for owner in blasts:
+		var expected := []
+		for event: Dictionary in plan.events:
+			if event.type == "damage" and event.get("damage_cause") == "death_blast" \
+					and event.source_id == owner and event.amount > 0:
+				for victim: Dictionary in state.units:
+					if victim.id == event.target_id:
+						expected.append({"id": victim.id, "cell": victim.position, "kind": "hit"})
+		_check(not expected.is_empty() and blasts[owner].get("recipients") == expected,
+			"%s detonation alone marks its actual positive damage recipients once at their event cells" % owner)
+	_check({"id": "knight", "cell": Vector2i(4, 3), "kind": "hit"} in second.get("recipients", []),
+		"Second Bomber marks the adjacent non-animated Knight's hit")
+	_check(cues[0].get("recipients") == [{"id": "first", "cell": Vector2i(3, 2), "kind": "hit"}],
+		"Original Wizard action marks only its own hit, not either Bomber's recipients")
 	var strike := Sprites.Clip.new()
 	strike.total_ms = 300.0
 	strike.source_frames.assign([1, 17])

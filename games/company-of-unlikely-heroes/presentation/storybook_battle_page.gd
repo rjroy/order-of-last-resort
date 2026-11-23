@@ -8,6 +8,7 @@ signal clear_requested
 signal commit_requested
 signal restart_requested
 signal forfeit_requested
+signal grid_visibility_changed(shown: bool)
 
 const Ink := preload("res://presentation/storybook_battle_ink.gd")
 const Surround := preload("res://presentation/storybook_battle_surround.gd")
@@ -67,6 +68,7 @@ var _ink: Ink
 var _title: Label
 var _round: Label
 var _objective: Label
+var _grid_toggle: Button
 var _restart: Button
 var _upgrades: Button
 var _forfeit: Button
@@ -217,6 +219,11 @@ func is_forfeit_confirmation_open() -> bool:
 	return is_instance_valid(_forfeit_modal) and _forfeit_modal.is_visible_in_tree()
 
 
+func set_grid_visible(shown: bool) -> void:
+	_build()
+	_grid_toggle.set_pressed_no_signal(shown)
+
+
 func render_ink(cues: Dictionary) -> void:
 	if is_instance_valid(_ink):
 		_ink.render(cues)
@@ -315,6 +322,14 @@ func _build_header() -> void:
 	_header.add_child(_round)
 	_objective = _label("", 15, PARCHMENT)
 	_header.add_child(_objective)
+	_grid_toggle = _button("GridVisibility", "Show grid")
+	_grid_toggle.toggle_mode = true
+	_grid_toggle.set_pressed_no_signal(true)
+	_grid_toggle.tooltip_text = "Show or hide battlefield tile outlines"
+	_style_rail_button(_grid_toggle, true)
+	_grid_toggle.custom_minimum_size = Vector2(104, 41)
+	_header.add_child(_grid_toggle)
+	_grid_toggle.toggled.connect(_toggle_grid)
 	_restart = _button("Restart", "Restart mission")
 	_restart.custom_minimum_size.x = 141.0
 	_header.add_child(_restart)
@@ -471,6 +486,13 @@ func _confirm_forfeit() -> void:
 func _request_battle_action(intent: Signal) -> void:
 	if not is_forfeit_confirmation_open():
 		intent.emit()
+
+
+func _toggle_grid(shown: bool) -> void:
+	if is_forfeit_confirmation_open():
+		_grid_toggle.set_pressed_no_signal(not shown)
+		return
+	grid_visibility_changed.emit(shown)
 
 
 func _dismiss_battle_popups() -> void:
@@ -910,7 +932,7 @@ func _layout_header() -> void:
 	var round_width := maxf(103.0, _round.get_theme_font("font").get_string_size(
 		_round.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 19).x + 2.0)
 	var text_edge := width
-	for button: Button in [_forfeit, _restart, _upgrades]:
+	for button: Button in [_forfeit, _restart, _upgrades, _grid_toggle]:
 		if not button.visible:
 			continue
 		var button_width := button.get_combined_minimum_size().x

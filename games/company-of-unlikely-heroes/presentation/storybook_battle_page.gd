@@ -9,6 +9,9 @@ signal commit_requested
 signal restart_requested
 signal forfeit_requested
 signal grid_visibility_changed(shown: bool)
+signal nameplate_visibility_changed(shown: bool)
+
+enum DisplayOption { GRID, NAMEPLATES }
 
 const Ink := preload("res://presentation/storybook_battle_ink.gd")
 const Surround := preload("res://presentation/storybook_battle_surround.gd")
@@ -68,7 +71,8 @@ var _ink: Ink
 var _title: Label
 var _round: Label
 var _objective: Label
-var _grid_toggle: Button
+var _options: MenuButton
+var _pending_display_option := -1
 var _restart: Button
 var _upgrades: Button
 var _forfeit: Button
@@ -219,9 +223,11 @@ func is_forfeit_confirmation_open() -> bool:
 	return is_instance_valid(_forfeit_modal) and _forfeit_modal.is_visible_in_tree()
 
 
-func set_grid_visible(shown: bool) -> void:
+func set_display_options(grid_shown: bool, nameplates_shown: bool) -> void:
 	_build()
-	_grid_toggle.set_pressed_no_signal(shown)
+	var popup := _options.get_popup()
+	popup.set_item_checked(popup.get_item_index(DisplayOption.GRID), grid_shown)
+	popup.set_item_checked(popup.get_item_index(DisplayOption.NAMEPLATES), nameplates_shown)
 
 
 func render_ink(cues: Dictionary) -> void:
@@ -322,14 +328,19 @@ func _build_header() -> void:
 	_header.add_child(_round)
 	_objective = _label("", 15, PARCHMENT)
 	_header.add_child(_objective)
-	_grid_toggle = _button("GridVisibility", "Show grid")
-	_grid_toggle.toggle_mode = true
-	_grid_toggle.set_pressed_no_signal(true)
-	_grid_toggle.tooltip_text = "Show or hide battlefield tile outlines"
-	_style_rail_button(_grid_toggle, true)
-	_grid_toggle.custom_minimum_size = Vector2(104, 41)
-	_header.add_child(_grid_toggle)
-	_grid_toggle.toggled.connect(_toggle_grid)
+	_options = _menu("Options", "Options")
+	_options.accessibility_description = "Show or hide the battlefield grid and unit nameplates."
+	_style_rail_button(_options)
+	_options.custom_minimum_size = Vector2(104, 41)
+	_header.add_child(_options)
+	var options_popup := _options.get_popup()
+	options_popup.add_check_item("Show Grid", DisplayOption.GRID)
+	options_popup.add_check_item("Show Nameplates", DisplayOption.NAMEPLATES)
+	options_popup.hide_on_checkable_item_selection = false
+	options_popup.visibility_changed.connect(_battle_popup_visibility_changed.bind(options_popup))
+	options_popup.popup_hide.connect(_restore_options_focus)
+	options_popup.id_pressed.connect(_queue_display_option)
+	options_popup.window_input.connect(_handle_options_window_input)
 	_restart = _button("Restart", "Restart mission")
 	_restart.custom_minimum_size.x = 141.0
 	_header.add_child(_restart)
@@ -488,15 +499,50 @@ func _request_battle_action(intent: Signal) -> void:
 		intent.emit()
 
 
-func _toggle_grid(shown: bool) -> void:
-	if is_forfeit_confirmation_open():
-		_grid_toggle.set_pressed_no_signal(not shown)
+func _queue_display_option(option: int) -> void:
+	# Godot emits id_pressed before window_input. Wait for the originating
+	# event; assistive activation has no window event and uses the deferred call.
+	_apply_display_option()
+	_pending_display_option = option
+	_apply_display_option.call_deferred()
+
+
+func _handle_options_window_input(event: InputEvent) -> void:
+	if event.is_echo() and event.is_action_pressed("ui_accept", true):
+		_pending_display_option = -1
+	else:
+		_apply_display_option()
+
+
+func _apply_display_option() -> void:
+	var option := _pending_display_option
+	_pending_display_option = -1
+	if option < 0:
 		return
-	grid_visibility_changed.emit(shown)
+	var popup := _options.get_popup()
+	if not popup.visible or not _battle_popup_accepts_selection(popup):
+		return
+	var index := popup.get_item_index(option)
+	if index < 0:
+		return
+	var shown := not popup.is_item_checked(index)
+	popup.set_item_checked(index, shown)
+	match option:
+		DisplayOption.GRID:
+			grid_visibility_changed.emit(shown)
+		DisplayOption.NAMEPLATES:
+			nameplate_visibility_changed.emit(shown)
+
+
+func _restore_options_focus() -> void:
+	_pending_display_option = -1
+	if not is_forfeit_confirmation_open() and _options.is_visible_in_tree():
+		_options.grab_focus()
 
 
 func _dismiss_battle_popups() -> void:
 	_upgrade_dialog.hide()
+	_options.get_popup().hide()
 	_actions.get_popup().hide()
 	_targets.get_popup().hide()
 	for widgets: Dictionary in _order_widgets.values():
@@ -716,6 +762,15 @@ func _input(event: InputEvent) -> void:
 	if is_forfeit_confirmation_open():
 		_forfeit_input(event)
 		return
+	var options_popup := _options.get_popup()
+	if options_popup.visible:
+		# The menu gets its own input. Dismiss events reaching the board must
+		# not select a cell or fall through to Escape's clear-command shortcut.
+		if event.is_action_pressed("ui_cancel") or (event is InputEventMouseButton and event.pressed
+				and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]):
+			get_viewport().set_input_as_handled()
+			options_popup.hide()
+			return
 	if not _expanded.is_empty() and event.is_action_pressed("ui_cancel"):
 		var source := _orders if _expanded == "orders" else _forecast
 		var focused := get_viewport().gui_get_focus_owner()
@@ -932,7 +987,7 @@ func _layout_header() -> void:
 	var round_width := maxf(103.0, _round.get_theme_font("font").get_string_size(
 		_round.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 19).x + 2.0)
 	var text_edge := width
-	for button: Button in [_forfeit, _restart, _upgrades, _grid_toggle]:
+	for button: Button in [_forfeit, _restart, _upgrades, _options]:
 		if not button.visible:
 			continue
 		var button_width := button.get_combined_minimum_size().x

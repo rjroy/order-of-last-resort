@@ -42,51 +42,7 @@ func _run() -> void:
 		if entry != null:
 			_check(DISPLAY_NAMES[id] in _text_in(entry),
 				"Recruit %s shows its requested class name" % id)
-	# Practice content is deliberately unrestricted, so custom identities can be
-	# tested without adding invented recruits to a persisted normal guild.
-	await _press("BackToCommissions")
-	await _press("PracticeOutings")
-	defs = scene.get("_definitions")
-	roster = scene.get("_adventure").roster
-	# A custom person's proper name is not a class identity, even if it matches
-	# an existing class label or inherits the wizard rules mix-in.
-	defs.characters["test_edda"] = defs.characters.rogue.duplicate(true)
-	defs.characters.test_edda.label = "Edda"
-	defs.characters.test_edda.erase("guild_portrait")
-	defs.characters["test_namesake"] = defs.characters.test_edda.duplicate(true)
-	defs.characters.test_namesake.label = "Bad Bard"
-	defs.characters["test_opted_in"] = defs.characters.test_edda.duplicate(true)
-	defs.characters.test_opted_in.label = "Edda"
-	defs.characters.test_opted_in["guild_portrait"] = "rogue"
-	roster.append_array(["test_edda", "test_namesake", "test_opted_in"])
-	scene.call("_show_guild")
-	await process_frame
-	for id in ["test_edda", "test_namesake"]:
-		var button := _node("Recruit_" + id) as Control
-		if button == null:
-			_check(false, "Custom recruit %s is displayed" % id)
-			continue
-		var entry := _item_card(button, "RecruitCard_" + id)
-		if entry == null:
-			_check(false, "Custom recruit has a distinct card: " + id)
-			continue
-		_check(defs.characters[id].label in _text_in(entry), "Custom proper name remains visible")
-		_check(_textures_in(entry).is_empty(), "Custom name and inherited mix-in do not select a stock portrait")
-		_check("Enthusiastic Caster" not in _text_in(entry), "Rules mix-in is not displayed as character class")
-	var opted_in := _node("Recruit_test_opted_in") as Control
-	var opted_card := _item_card(opted_in, "RecruitCard_test_opted_in")
-	if opted_card != null:
-		var text := _text_in(opted_card)
-		_check("Edda" in text and "Daft Dodger" in text,
-			"Explicit identity adds a class subtitle without replacing the proper name")
-	else:
-		_check(false, "Opted-in custom recruit is displayed")
-	roster.erase("test_edda")
-	roster.erase("test_namesake")
-	roster.erase("test_opted_in")
-	# Return to the legacy normal guild for the party cap and route artwork.
-	await _launch_normal()
-	await _press("Commission_0")
+	# Continue through the stock commission recruitment page.
 	for id in PARTY:
 		await _press("Recruit_" + id)
 	var extra := _node("Recruit_wizard") as BaseButton

@@ -17,11 +17,30 @@ func _run() -> void:
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	container.add_child(viewport)
 	root.add_child(container)
+	await _test_corrupt_profile()
 	await _test_changed_profile()
 	await _test_missing_profile()
 	_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(fixture_path)) == OK,
 		"Removed test-owned catalog")
 	_cleanup()
+
+
+func _test_corrupt_profile() -> void:
+	var file := FileAccess.open(profile_path, FileAccess.WRITE)
+	if file == null:
+		_check(false, "Create disposable corrupt profile")
+		return
+	file.store_string("{ invalid json")
+	file.close()
+	await _launch_normal()
+	_check(scene.current_screen() == "profile_error", "Corrupt profile opens recovery")
+	_check_no_practice("Corrupt profile recovery")
+	_check(_reload_button() != null, "Corrupt profile recovery offers reload")
+	_check(FileAccess.get_file_as_string(profile_path) == "{ invalid json",
+		"Recovery preserves corrupt profile for repair")
+	await _press("ReloadGuild")
+	_check(scene.current_screen() == "profile_error", "Reload keeps reporting an unrepaired profile")
+	_check_no_practice("Corrupt profile recovery after retry")
 
 
 func _write_fixture() -> bool:
@@ -142,6 +161,7 @@ func _test_changed_profile() -> void:
 			return
 		await _press("ReloadGuild")
 	_check(scene.current_screen() == "commissions", "Reload opens the latest commission board")
+	_check_no_practice("Board after profile conflict recovery")
 	_check(store.load_profile(profile_path) == latest, "Reload leaves the newest saved profile unchanged")
 	if scene.current_screen() != "commissions":
 		return
@@ -173,6 +193,7 @@ func _test_missing_profile() -> void:
 			return
 		await _press("ReloadGuild")
 	_check(scene.current_screen() == "guild_creation", "Missing profile leads to guild creation")
+	_check_no_practice("Missing profile recovery")
 	_check(not FileAccess.file_exists(profile_path), "Recovery does not silently recreate the missing profile")
 
 

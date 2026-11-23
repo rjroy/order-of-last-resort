@@ -54,7 +54,6 @@ var _return_seed: Variant = null
 var _loadouts: Dictionary = {}
 var _selected_hero_id := ""
 var _recruitment_folio := "recruits"
-var _practice_from_guild := false
 var _fixed_mission := ""
 var _storybook_page: Control
 var _storybook_inspection := ""
@@ -354,7 +353,6 @@ func _cover_leaf(parent: Control) -> VBoxContainer:
 
 
 func _open_commission_hub(board_refresh_failed := false) -> void:
-	_practice_from_guild = false
 	_commission = {}
 	_picked_recruits.clear()
 	_run = {}
@@ -376,8 +374,7 @@ func _open_commission_hub(board_refresh_failed := false) -> void:
 
 func _show_profile_error(message: String) -> void:
 	var page := _book_page("profile_error")
-	_book_heading(page, "Could not open the guild", "The saved profile hasn’t been changed.",
-		"PracticeOutings", "Practice outings", _open_practice_outings)
+	_book_heading(page, "Could not open the guild", "The saved profile hasn’t been changed.")
 	_book.text(page, message, 17, GuildBookPage.RUST)
 	_book.text(page, "Check the guild profile file and try again:", 16)
 	_book.text(page, ProjectSettings.globalize_path(_profile_path), 15, GuildBookPage.SUBTLE)
@@ -425,9 +422,6 @@ func _show_guild_creation(after_missing_profile := false) -> void:
 		_book.text(form, "The previous guild profile could not be found. Create a guild to choose another commission.", 16, GuildBookPage.RUST)
 	_book.space(form, 32, true)
 	_book.rule(form)
-	var practice := _book.button(form, "PracticeOutings", "Practice without a guild", "QuietButton")
-	practice.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	practice.pressed.connect(_open_practice_outings)
 	input.text_changed.connect(func(value: String) -> void:
 		_book.set_disabled(create, value.strip_edges().is_empty())
 		feedback.hide())
@@ -457,8 +451,7 @@ func _show_commissions(board_refresh_failed := false) -> void:
 	var compact := _uses_builtin_catalog and _book.get_viewport_rect().size.x < 1100
 	if _uses_builtin_catalog:
 		page.add_theme_constant_override("separation", 11 if compact else 12)
-	_book_heading(page, "Commission board", str(_guild_profile.name),
-		"PracticeOutings", "Practice outings", _open_practice_outings)
+	_book_heading(page, "Commission board", str(_guild_profile.name))
 	if board_refresh_failed:
 		_book.text(page, "The board wasn’t refreshed. These commissions are from the current saved guild.", 16, GuildBookPage.RUST)
 	if _uses_builtin_catalog:
@@ -894,20 +887,6 @@ func _start_guild_commission() -> void:
 	_show_routes()
 
 
-func _open_practice_outings() -> void:
-	_practice_from_guild = true
-	if _uses_builtin_catalog:
-		_commission = {}
-		_run = {}
-		_loadouts.clear()
-		_selected_hero_id = ""
-		_recruitment_folio = "recruits"
-		_guild_feedback = ""
-	_picked_recruits.clear()
-	_adventure = _definitions.adventures[_adventure_id]
-	_show_guild()
-
-
 func _show_guild(focus_name := "") -> void:
 	_state = {}
 	var previous_scroll := find_child("RecruitScroll", true, false) as ScrollContainer if _screen == "guild" else null
@@ -988,11 +967,7 @@ func _restore_book_scroll(scroll: ScrollContainer, position: int, focus: Control
 
 
 func _build_practice_itinerary(page: VBoxContainer) -> void:
-	var link := Callable()
-	if _practice_from_guild:
-		link = _open_commission_hub
-	_book_heading(page, "Practice outings", str(ProjectSettings.get_setting("application/config/name")),
-		"BackToCommissions", "Back to guild", link)
+	_book_heading(page, "Practice outings", str(ProjectSettings.get_setting("application/config/name")))
 	var itinerary := _book.row(page, 21)
 	var destination: String = _adventure.missions.back()
 	var painting := _destination_plate(destination)

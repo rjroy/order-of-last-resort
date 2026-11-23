@@ -28,8 +28,13 @@ godot --path games/company-of-unlikely-heroes --script res://tools/capture_guild
   -- --output="$PWD/.lore/local/guild-book-review/<new-directory>"
 ```
 
-This requires a graphical renderer. The tool uses an isolated profile and plays
-Village Troubles with a test driver; the commission defeat is controlled.
+This requires a graphical renderer. The tool uses an isolated profile, captures
+a controlled commission defeat, then plays a seeded stock commission with a
+forecast-based test driver. The driver may fail to win, in which case the tool
+reports the failure rather than manufacturing a victory.
+The played commission uses board seed `6`, the first offer and first road at
+each fork, with Unwelcome Guest as its destination. Reward seed `12345` fixes
+the offers; the driver chooses the first available founder reward.
 Captures document technical behavior and layout, not player enjoyment or
 approval of the candidate artwork. For a human review, launch the game normally
 and inspect the art in context as well as the generated sheets.

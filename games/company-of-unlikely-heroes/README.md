@@ -60,7 +60,7 @@ Before replacing a profile, the game saves and verifies its previous committed b
 
 ### Practice outings
 
-The seven original fixed routes are available under **Practice outings**, or you can open them directly from the repository root:
+The seven original fixed routes are available separately from the normal commission game. Open them directly from the repository root:
 
 ```sh
 godot --path games/company-of-unlikely-heroes -- --fixed-outings

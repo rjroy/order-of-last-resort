@@ -2,12 +2,14 @@ extends "res://tests/village_outing_scene_test.gd"
 ## Graphical capture. From the repository root:
 ## godot --path games/company-of-unlikely-heroes --script res://tools/capture_guild_book.gd -- --output="$PWD/.lore/local/guild-book-review/<new-directory>"
 ## The output directory must be new or empty. It contains the isolated profile.
-## Stock Village Troubles is played by the checked-in forecast-based test driver.
+## A seeded stock commission is played by the checked-in forecast-based test driver.
 ## That battle driver uses mouse input for board choices and emits menu signals for
 ## battle action/target menus. Nonbattle controls use mouse or keyboard input.
 ## The commission defeat is controlled: party HP is set to zero before commit.
 
 const SIZE := Vector2i(1280, 820)
+const BOARD_SEED := 6
+const FOUNDERS := ["knight", "healer", "wizard"]
 var output := ""
 var failure := ""
 
@@ -76,8 +78,8 @@ func _run() -> void:
 			or not await _save_capture("02-commissions"):
 		_finish_capture(failure)
 		return
-	if not await _press_button("PracticeOutings") or not _screen_is("guild") \
-			or not await _save_capture("03-practice-adventure-selection") \
+	if not await _press_button("Commission_0") or not _screen_is("guild") \
+			or not await _save_capture("03-commission-selected") \
 			or not await _press_button("BackToCommissions") or not _screen_is("commissions") \
 			or not await _press_button("Commission_0") or not _screen_is("guild") \
 			or not await _save_capture("04-recruitment"):
@@ -120,36 +122,57 @@ func _run() -> void:
 			or not await _save_capture("09-return-after-defeat"):
 		_finish_capture(failure)
 		return
-	if not await _press_button("PracticeOutings") or not _screen_is("guild") \
-			or not await _choose_village():
+	# Fix the second board so the stock commission and battle driver are repeatable.
+	var store = load("res://guild_profile.gd")
+	var renewed: Dictionary = store.renew(output.path_join("profile.json"), scene.get("_guild_profile"), BOARD_SEED)
+	if renewed.has("error"):
+		_finish_capture("Could not seed the capture board: " + str(renewed.error))
+		return
+	scene.queue_free()
+	await process_frame
+	scene = load("res://main.tscn").instantiate()
+	scene.configure_launch(PackedStringArray())
+	scene.configure_profile_path(output.path_join("profile.json"))
+	viewport.add_child(scene)
+	await process_frame
+	await process_frame
+	if not _screen_is("commissions") or not await _press_button("Commission_0") \
+			or not _screen_is("guild") or not await _save_capture("10-commission-selected"):
 		_finish_capture(failure)
 		return
-	if not await _save_capture("10-village-practice-selected"):
-		_finish_capture(failure)
-		return
-	for id in ["knight", "healer", "bard"]:
+	for id in FOUNDERS:
 		if not await _press_button("Recruit_" + id):
 			_finish_capture(failure)
 			return
 	if not await _press_button("PartyEarlier_healer") \
-			or scene.selected_recruits() != PARTY or not await _press_button("StartAdventure"):
-		_finish_capture("Could not start the stock Village Troubles outing: " + failure)
+			or scene.selected_recruits() != ["healer", "knight", "wizard"] \
+			or not await _press_button("StartAdventure") or not _screen_is("routes"):
+		_finish_capture("Could not start the stock commission: " + failure)
 		return
-	# Match the deterministic stock outing regression's reward stream.
+	# Match the deterministic commission regression's reward stream.
 	var reward_rng := RandomNumberGenerator.new()
 	reward_rng.seed = 12345
 	var outing: Dictionary = scene.get("_run")
 	outing.reward_rng_state = reward_rng.state
 	driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
-	for index in MISSIONS.size():
-		if not _screen_is("battle") or scene.battle_snapshot().get("mission_id") != MISSIONS[index]:
-			_finish_capture("Unexpected practice mission: " + failure)
+	var mission_count := int(outing.get("mission_count", 0))
+	if mission_count < 2:
+		_finish_capture("Commission has no road and destination.")
+		return
+	for index in mission_count:
+		if index < mission_count - 1:
+			if not _screen_is("routes") or not await _press_button("Route_0"):
+				_finish_capture(failure)
+				return
+		if not _screen_is("battle"):
+			_finish_capture("Expected commission battle: " + failure)
 			return
-		await _play_battle(MISSIONS[index])
+		var mission_id := str(scene.battle_snapshot().get("mission_id", ""))
+		await _play_battle(mission_id)
 		if not failures.is_empty():
 			_finish_capture("Stock battle driver failed: " + str(failures))
 			return
-		if index < MISSIONS.size() - 1:
+		if index < mission_count - 1:
 			if not _screen_is("debrief"):
 				_finish_capture(failure)
 				return
@@ -157,7 +180,7 @@ func _run() -> void:
 				_finish_capture(failure)
 				return
 			var chosen := false
-			for id in ["knight", "healer", "bard"]:
+			for id in FOUNDERS:
 				var reward := scene.find_child("Reward_" + id, true, false) as BaseButton
 				if reward != null and reward.is_visible_in_tree() and not reward.disabled:
 					chosen = await _press_button(str(reward.name))
@@ -169,7 +192,7 @@ func _run() -> void:
 		else:
 			if not _screen_is("result") or not _outcome_is("victory") \
 					or not await _save_capture("13-played-victory") \
-					or not await _press_button("ReturnToGuild") or not _screen_is("guild") \
+					or not await _press_button("ReturnToGuild") or not _screen_is("commissions") \
 					or not await _save_capture("14-return-after-victory"):
 				_finish_capture(failure)
 				return
@@ -188,34 +211,6 @@ func _outcome_is(expected: String) -> bool:
 	var outcome := scene.find_child("RunOutcome", true, false)
 	if outcome == null or outcome.get_meta("outcome", "") != expected:
 		failure = "Expected result outcome " + expected
-		return false
-	return true
-
-
-func _choose_village() -> bool:
-	var picker := scene.find_child("AdventureSelect", true, false) as OptionButton
-	if picker == null or picker.disabled:
-		failure = "Practice adventure picker is missing."
-		return false
-	var target := -1
-	for index in picker.item_count:
-		if str(picker.get_item_metadata(index)) == "village_troubles":
-			target = index
-	if target < 0:
-		failure = "Village Troubles is not selectable."
-		return false
-	await _click(picker.get_global_transform_with_canvas() * (picker.size * 0.5))
-	var popup := picker.get_popup()
-	if not popup.visible:
-		failure = "Practice adventure menu did not open."
-		return false
-	var point := Vector2(popup.position) + Vector2(popup.size.x * 0.5,
-		popup.size.y * (target + 0.5) / picker.item_count)
-	await _click(point)
-	await process_frame
-	var updated := scene.find_child("AdventureSelect", true, false) as OptionButton
-	if updated == null or str(updated.get_item_metadata(updated.selected)) != "village_troubles":
-		failure = "Keyboard practice adventure selection failed."
 		return false
 	return true
 

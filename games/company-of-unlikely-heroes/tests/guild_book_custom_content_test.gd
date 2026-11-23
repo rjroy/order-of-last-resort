@@ -16,7 +16,12 @@ func _run() -> void:
 	defs.characters["test_custom"] = defs.characters.rogue.duplicate(true)
 	defs.characters.test_custom.erase("guild_portrait")
 	defs.characters.test_custom.label = "Edda"
-	defs.adventures.first_outing.roster.append("test_custom")
+	defs.characters["test_namesake"] = defs.characters.test_custom.duplicate(true)
+	defs.characters.test_namesake.label = "Bad Bard"
+	defs.characters["test_opted_in"] = defs.characters.test_custom.duplicate(true)
+	defs.characters.test_opted_in["guild_portrait"] = "rogue"
+	var roster_id: String = defs.commission_settings.roster_adventure
+	defs.adventures[roster_id].roster.append_array(["test_custom", "test_namesake", "test_opted_in"])
 	for id in defs.missions:
 		defs.missions[id].title = "Custom mission " + id
 	for id in defs.upgrades:
@@ -63,12 +68,25 @@ func _run() -> void:
 		_check(card != null and _textures_in(card).is_empty(),
 			"External destination %d does not inherit stock art from a colliding ID" % i)
 	await _press("Commission_0")
-	var custom := _item_card(_node("Recruit_test_custom") as Control, "RecruitCard_test_custom")
-	_check(custom != null and "Edda" in _text_in(custom), "Custom wizard-based character is visible")
-	_check(custom != null and _textures_in(custom).is_empty(),
-		"Base-class guild_portrait does not opt a character into that portrait")
-	if custom != null:
-		_check("Daft Dodger" not in _text_in(custom), "Base-class portrait does not assign a class subtitle")
+	_check(scene.current_screen() == "guild", "External commission opens custom recruitment")
+	for id in ["test_custom", "test_namesake"]:
+		var custom := _item_card(_node("Recruit_" + id) as Control, "RecruitCard_" + id)
+		_check(custom != null, "Custom recruit %s is visible" % id)
+		if custom == null:
+			continue
+		_check(defs.characters[id].label in _text_in(custom), "Custom proper name remains visible")
+		_check(_textures_in(custom).is_empty(),
+			"Names and inherited base-class portrait do not select stock artwork")
+		_check("Daft Dodger" not in _text_in(custom) and "Enthusiastic Caster" not in _text_in(custom),
+			"Base-class portrait does not assign a class subtitle")
+	var opted := _item_card(_node("Recruit_test_opted_in") as Control, "RecruitCard_test_opted_in")
+	_check(opted != null, "Explicitly identified custom recruit is visible")
+	if opted != null:
+		var portrait: Texture2D = load("res://presentation/guild_book_art.gd").class_portrait("rogue")
+		_check("Edda" in _text_in(opted) and "Daft Dodger" in _text_in(opted),
+			"Explicit identity adds a class subtitle without replacing the proper name")
+		_check(portrait != null and portrait in _textures_in(opted),
+			"Explicit identity selects the declared class portrait")
 	for id in PARTY:
 		await _press("Recruit_" + id)
 	await _press("StartAdventure")

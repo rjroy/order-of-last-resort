@@ -30,6 +30,7 @@ func _run() -> void:
 		_cleanup()
 		return
 	_check(GAME_TITLE in _visible_text(), "Guild creation displays the game title")
+	_check_no_practice("Guild creation")
 	var input := _node("GuildName") as LineEdit
 	_check(input != null and input.is_visible_in_tree(), "Guild name is editable")
 	if input == null:
@@ -40,15 +41,13 @@ func _run() -> void:
 	await process_frame
 	await _press("CreateGuild")
 	_check(scene.current_screen() == "commissions", "Creating a guild opens commissions")
+	_check_no_practice("New commission board")
 	if scene.current_screen() != "commissions":
 		_cleanup()
 		return
-	if not await _test_practice_after_commission_back():
+	if not await _test_commission_back_and_forfeit():
 		_cleanup()
 		return
-	await _press("PracticeOutings")
-	_check(GAME_TITLE in _visible_text(), "Practice outings displays the game title")
-	await _press("BackToCommissions")
 	var store = load("res://guild_profile.gd")
 	var saved: Dictionary = store.load_profile(profile_path)
 	_check(saved.get("name") == GUILD_NAME, "Creation persists the entered name")
@@ -56,6 +55,7 @@ func _run() -> void:
 	store.renew(profile_path, saved, BOARD_SEED)
 	await _launch_normal()
 	_check(scene.current_screen() == "commissions", "Reloading the saved guild opens its board")
+	_check_no_practice("Reloaded commission board")
 	_check(store.load_profile(profile_path).get("name") == GUILD_NAME, "Reload retains the guild name")
 	_check(store.load_profile(profile_path).get("board_seed") == BOARD_SEED, "Reload retains the controlled board seed")
 	for board_size in [Vector2i(1280, 820), Vector2i(960, 615)]:
@@ -88,6 +88,7 @@ func _run() -> void:
 		_check(_commission_snapshot(i) == board_offers[i], "Reload preserves commission %d" % i)
 	await _press("Commission_0")
 	_check(scene.current_screen() == "guild", "Accepting a commission opens recruitment")
+	_check_no_practice("Commission recruitment")
 	run = scene.get("_run")
 	_check(run.get("reports", []).is_empty(), "Reports remain hidden until the company is recruited")
 	_check(_node("Route_0") == null and _node("Route_1") == null,
@@ -224,6 +225,7 @@ func _run() -> void:
 		var old_seed: int = store.load_profile(profile_path).get("board_seed", -1)
 		await _press("ReturnToGuild")
 		_check(scene.current_screen() == "commissions", "Returning after a terminal outing refreshes the board")
+		_check_no_practice("Board after terminal outing")
 		var refreshed: Dictionary = store.load_profile(profile_path)
 		_check(refreshed.get("name") == GUILD_NAME and refreshed.get("board_seed", -1) != old_seed,
 			"Return persists the same guild name with a fresh board seed")
@@ -271,13 +273,13 @@ func _check_petitions_entry(scenario: String) -> void:
 		if ancestor is Control and ancestor.clip_contents:
 			_check(ancestor.get_global_rect().encloses(bounds), context + ": petitions button is not clipped")
 		ancestor = ancestor.get_parent()
-	for name in ["PracticeOutings", "CommissionCard_0", "CommissionCard_1", "CommissionCard_2"]:
+	for name in ["CommissionCard_0", "CommissionCard_1", "CommissionCard_2"]:
 		var other := _node(name) as Control
 		if other != null and other.is_visible_in_tree():
 			_check(not bounds.intersects(other.get_global_rect()),
 				context + ": petitions does not overlap " + name)
 	if viewport.get_parent() is SubViewportContainer:
-		await _practice_window_click(button)
+		await _window_click(button)
 	else:
 		var point := bounds.get_center()
 		var motion := InputEventMouseMotion.new()
@@ -298,92 +300,68 @@ func _check_petitions_entry(scenario: String) -> void:
 		context + ": clicking the actual board entry opens petitions")
 
 
-func _test_practice_after_commission_back() -> bool:
+func _check_no_practice(context: String) -> void:
+	var practice := _node("PracticeOutings") as Control
+	_check(practice == null or not practice.is_visible_in_tree(), context + ": no practice entry")
+	_check("practice" not in _visible_text().to_lower(), context + ": no visible practice navigation")
+
+
+func _test_commission_back_and_forfeit() -> bool:
 	var store = load("res://guild_profile.gd")
 	var before: Dictionary = store.load_profile(profile_path)
-	if before.is_empty() or before.has("error"):
-		_check(false, "Fresh guild profile is available before practice: " + str(before))
-		return false
-	var original_bytes := FileAccess.get_file_as_bytes(profile_path)
 	await _press("Commission_0")
 	if scene.current_screen() != "guild":
 		_check(false, "Commission recruitment opens before returning to the board")
 		return false
+	_check_no_practice("Recruitment before back")
 	await _press("BackToCommissions")
 	if scene.current_screen() != "commissions":
 		_check(false, "Recruitment returns to the commission board")
 		return false
-	await _press("PracticeOutings")
-	var selector := _node("AdventureSelect") as OptionButton
-	var start := _node("StartAdventure") as Button
-	if scene.current_screen() != "guild" or selector == null or not selector.is_visible_in_tree() \
-			or selector.disabled or start == null or not start.is_visible_in_tree():
-		_check(false, "Practice after commission back exposes its normal selector and departure")
-		return false
-	_check(start.disabled and start.text == "Depart on practice outing",
-		"Practice departure is initially disabled and identifies the practice outing")
-	if not await _select_id(selector, "first_outing"):
-		return false
-	for id in ["knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard"]:
-		var recruit := _node("Recruit_" + id) as BaseButton
-		_check(recruit != null and recruit.is_visible_in_tree() and not recruit.disabled,
-			"Practice offers unrestricted recruit " + id)
-	for id in ["knight", "healer", "bard"]:
+	_check_no_practice("Board after recruitment back")
+	_check(store.load_profile(profile_path) == before, "Backing out does not change the profile")
+	await _press("Commission_0")
+	for id in FOUNDER_PARTY:
 		await _press("Recruit_" + id)
-	start = _node("StartAdventure") as Button
-	if start == null or start.disabled:
-		_check(false, "Practice party enables departure")
-		return false
 	await _press("StartAdventure")
-	if scene.current_screen() != "battle":
-		_check(false, "Practice departure starts a battle, not commission reports")
+	if scene.current_screen() != "routes":
+		_check(false, "Commission departure opens route reports")
 		return false
-	_check(scene.battle_snapshot().get("party") == ["knight", "healer", "bard"],
-		"Practice deploys the selected unrestricted company")
-	# The battle page was just built; let its containers finish layout before
-	# the GUI driver derives a click position from the forfeit button.
+	await _press("Route_0")
+	if scene.current_screen() != "battle":
+		_check(false, "Commission route starts a battle")
+		return false
+	_check(scene.battle_snapshot().get("party") == FOUNDER_PARTY,
+		"Commission deploys the selected company")
 	await process_frame
 	var controls = load("res://tests/forfeit_controls.gd")
 	var forfeit: BaseButton = controls.button(viewport, ["forfeit"])
 	if forfeit == null:
-		_check(false, "Practice battle offers forfeit")
+		_check(false, "Commission battle offers forfeit")
 		return false
-	var forfeit_rect := forfeit.get_global_rect()
-	if forfeit_rect.size.x <= 0 or forfeit_rect.size.y <= 0 \
-			or not Rect2(Vector2.ZERO, Vector2(VIEWPORT_SIZE)).encloses(forfeit_rect):
-		_check(false, "Practice forfeit button has a reachable laid-out rectangle: " + str(forfeit_rect))
-		return false
-	await _practice_window_click(forfeit)
+	await _window_click(forfeit)
 	var cancel: BaseButton = controls.button(viewport, ["cancel"])
 	var confirm: BaseButton = controls.button(viewport, ["forfeit mission"], forfeit)
 	if cancel == null or confirm == null:
-		_check(false, "Practice forfeit requires confirmation and offers cancel (button rect: %s)" % str(forfeit_rect))
+		_check(false, "Commission forfeit requires confirmation and offers cancel")
 		return false
-	await _practice_window_click(confirm)
+	await _window_click(confirm)
 	var outcome := _node("RunOutcome")
 	if scene.current_screen() != "result" or outcome == null:
-		_check(false, "Practice forfeit opens the ordinary defeat result")
+		_check(false, "Commission forfeit opens the ordinary defeat result")
 		return false
-	_check(outcome.get_meta("outcome", "") == "defeat", "Practice forfeit settles as defeat")
+	_check(outcome.get_meta("outcome", "") == "defeat", "Commission forfeit settles as defeat")
+	_check_no_practice("Forfeit result")
 	await _press("ReturnToGuild")
-	_check(scene.current_screen() == "guild" and _node("AdventureSelect") != null,
-		"Returning after practice defeat opens practice recruitment")
-	var after: Dictionary = store.load_profile(profile_path)
-	_check(after == before and FileAccess.get_file_as_bytes(profile_path) == original_bytes,
-		"Practice defeat does not settle or change the guild profile, seed, or points")
-	if scene.current_screen() != "guild" or _node("AdventureSelect") == null:
-		return false
-	await _press("BackToCommissions")
-	if scene.current_screen() != "commissions":
-		_check(false, "Practice returns to the commission board")
-		return false
-	return true
+	_check(scene.current_screen() == "commissions", "Returning after forfeit opens the commission board")
+	_check_no_practice("Board after forfeit")
+	return scene.current_screen() == "commissions"
 
 
-func _practice_window_click(control: Control) -> void:
+func _window_click(control: Control) -> void:
 	var container := viewport.get_parent() as SubViewportContainer
 	if container == null:
-		_check(false, "Practice click requires the scaled viewport container")
+		_check(false, "Window click requires the scaled viewport container")
 		return
 	var point := container.get_global_transform_with_canvas() * control.get_global_rect().get_center()
 	var motion := InputEventMouseMotion.new()

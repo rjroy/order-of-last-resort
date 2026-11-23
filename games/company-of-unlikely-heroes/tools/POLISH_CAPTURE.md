@@ -43,3 +43,31 @@ The scripts assert state transitions and PNG writes, not visual quality.
 Inspect every image for clipping, missing content, and other presentation
 regressions; a zero exit is not a visual approval. A missing or changed
 interaction must fail rather than silently omit a capture.
+
+## Build a local comparison
+
+After both complete capture runs, arrange their PNGs in matching
+`.lore/local/release-polish/{before,after}/{ordinary,gaps}/` directories.
+In particular, copy the ordinary after-run PNGs from its required
+`guild-book-review` output directory into `after/ordinary/`; keep profiles out
+of the comparison. Then run:
+
+```sh
+python3 games/company-of-unlikely-heroes/tools/build_polish_review.py \
+  --output "$PWD/.lore/local/release-polish/review.html"
+```
+
+Open the resulting HTML locally. It groups all ten beads and their alternate
+states, with before/after images and the exact approved concept. Images are
+linked in place, never copied into runtime assets. The builder checks every
+required PNG container and each approved concept's recorded SHA-256 before
+writing anything. It fails if any final capture is missing or damaged, if a
+concept differs, or if the output already exists. Choose a new output filename
+for another run. The output must be under `.lore/local/`.
+
+Use `--before`, `--after`, or `--concepts` to override input roots. For a
+technical smoke test, mirror the baseline PNG directories into a separate
+scratch `after` directory, pass that directory with `--after`, and add
+`--technical-demo`. This labels the page **not a candidate**; it is not
+evidence of an after-run. The approved concept describes direction, not
+acceptance, and the generated page does not judge visual quality.

@@ -542,7 +542,29 @@
           "protects": "archer",
           "reduction": 1
         }
-      ]
+      ],
+      "cast_key": "shieldbearer",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "advance"
+          },
+          "shield_bash": {
+            "handler": "attack",
+            "clip": "shield_bash",
+            "impact_frame": 9
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat",
+        "events": {
+          "adjacent_guard": "guard"
+        }
+      }
     },
     "archer": {
       "class": "enemy",

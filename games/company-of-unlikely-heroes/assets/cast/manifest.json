@@ -7798,6 +7798,488 @@
           "path": "res://assets/cast/bomber.png"
         }
       }
+    },
+    "shieldbearer": {
+      "source": "art/models/shieldbearer/shieldbearer-candidate.blend",
+      "sha256": "cf0967f444f5a1caf40b4e19b5c05b5ac76a2b209e0d814cffbfdcebbafaf515",
+      "clips": {
+        "advance": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                438,
+                426,
+                145,
+                208
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                583,
+                426,
+                145,
+                208
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                728,
+                426,
+                145,
+                208
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                873,
+                426,
+                145,
+                208
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                638,
+                145,
+                208
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 41,
+              "rect": [
+                145,
+                638,
+                145,
+                208
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                438,
+                426,
+                145,
+                208
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            75,
+            183
+          ],
+          "action": "Shieldbearer | Advance",
+          "path": "res://assets/cast/shieldbearer.png"
+        },
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                0,
+                158,
+                214
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                158,
+                0,
+                158,
+                214
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                316,
+                0,
+                158,
+                214
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                474,
+                0,
+                158,
+                214
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                632,
+                0,
+                158,
+                214
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                632,
+                0,
+                158,
+                214
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 41,
+              "rect": [
+                632,
+                0,
+                158,
+                214
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            77,
+            183
+          ],
+          "action": "Shieldbearer | Defeat",
+          "path": "res://assets/cast/shieldbearer.png"
+        },
+        "guard": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                290,
+                638,
+                137,
+                207
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 42,
+              "rect": [
+                427,
+                638,
+                137,
+                207
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 167,
+              "rect": [
+                564,
+                638,
+                137,
+                207
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                701,
+                638,
+                137,
+                207
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                427,
+                638,
+                137,
+                207
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                838,
+                638,
+                137,
+                207
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                846,
+                137,
+                207
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 42,
+              "rect": [
+                290,
+                638,
+                137,
+                207
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            75,
+            183
+          ],
+          "action": "Shieldbearer | Guard",
+          "path": "res://assets/cast/shieldbearer.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                845,
+                214,
+                146,
+                212
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                426,
+                146,
+                212
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                146,
+                426,
+                146,
+                212
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                292,
+                426,
+                146,
+                212
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 41,
+              "rect": [
+                845,
+                214,
+                146,
+                212
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            82,
+            189
+          ],
+          "action": "Shieldbearer | Hit",
+          "path": "res://assets/cast/shieldbearer.png"
+        },
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                137,
+                846,
+                137,
+                207
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                274,
+                846,
+                137,
+                207
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                411,
+                846,
+                137,
+                207
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                548,
+                846,
+                137,
+                207
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                685,
+                846,
+                137,
+                207
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                822,
+                846,
+                137,
+                207
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                1053,
+                137,
+                207
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            75,
+            184
+          ],
+          "action": "Shieldbearer | Ready",
+          "path": "res://assets/cast/shieldbearer.png"
+        },
+        "shield_bash": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                790,
+                0,
+                169,
+                212
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                214,
+                169,
+                212
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 84,
+              "rect": [
+                169,
+                214,
+                169,
+                212
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                338,
+                214,
+                169,
+                212
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                507,
+                214,
+                169,
+                212
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                676,
+                214,
+                169,
+                212
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 41,
+              "rect": [
+                790,
+                0,
+                169,
+                212
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            107,
+            183
+          ],
+          "action": "Shieldbearer | Shield Bash",
+          "path": "res://assets/cast/shieldbearer.png"
+        }
+      }
     }
   }
 }

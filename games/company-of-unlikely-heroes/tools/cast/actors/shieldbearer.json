@@ -1,0 +1,94 @@
+{
+  "role": "shieldbearer",
+  "master": {
+    "source": "models/shieldbearer/shieldbearer-candidate.blend",
+    "sha256": "cf0967f444f5a1caf40b4e19b5c05b5ac76a2b209e0d814cffbfdcebbafaf515",
+    "rig_name": "Shieldbearer_Rig",
+    "action_prefix": "Shieldbearer"
+  },
+  "takes": {
+    "advance": [
+      "Advance",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        27
+      ],
+      28,
+      false
+    ],
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        29
+      ],
+      30,
+      false
+    ],
+    "guard": [
+      "Guard",
+      [
+        1,
+        6,
+        7,
+        11,
+        16,
+        21,
+        26,
+        28
+      ],
+      29,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        6,
+        11,
+        16,
+        17
+      ],
+      18,
+      false
+    ],
+    "ready": [
+      "Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31
+      ],
+      33,
+      true
+    ],
+    "shield_bash": [
+      "Shield Bash",
+      [
+        1,
+        6,
+        9,
+        11,
+        16,
+        21,
+        26
+      ],
+      27,
+      false
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "actor": "shieldbearer",
+  "case": {
+    "automatic_rounds": 4,
+    "cast_key": "shieldbearer",
+    "minimum_opening": 2,
+    "triggers": [
+      {
+        "actor_field": "unit_id",
+        "clip": "guard",
+        "event": "adjacent_guard",
+        "id": "guard",
+        "type": "event"
+      }
+    ]
+  },
+  "mission": "shield_wall"
+}

@@ -47,10 +47,15 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 		var key := str(value.get("clip", ""))
 		var clip := art.clip_for(role, key)
 		var ordinary: bool = value.get("ordinary_presentation", false)
+		if ordinary and clip == null and value.get("fallback_clip") is String:
+			key = value.fallback_clip
+			clip = art.clip_for(role, key)
 		if clip == null or key == "ready" \
 				or (not ordinary and key in ["gift", "acid_flask", "harpoon_projectile"]):
 			continue
 		var cue: Dictionary = value.duplicate(true)
+		cue["clip"] = key
+		cue.erase("fallback_clip")
 		cue["target_id"] = str(cue.get("target_id", ""))
 		var entry := Entry.new()
 		entry.cue = cue
@@ -91,13 +96,14 @@ func remaining_ms() -> float:
 
 
 func actor_cell(unit_id: String, fallback: Vector2i) -> Vector2i:
-	# The first queued action describes where this actor is until that action
-	# begins. Movement cues use their committed destination as actor_cell.
+	# A waiting move still occupies its source. A playing move lands at its
+	# destination, while actions/damage reactions use their action-time cells.
 	for entry in _entries:
 		if entry.cue.get("unit_id") != unit_id:
 			continue
 		var cell: Variant = entry.cue.get("actor_cell")
-		if entry.cue.get("clip") == "travel" and entry.elapsed_ms < 0.0:
+		if (entry.cue.get("clip") == "travel" or entry.cue.get("ordinary_presentation", false)) \
+				and entry.elapsed_ms < 0.0:
 			cell = entry.cue.get("source_cell", cell)
 		if cell is Vector2i:
 			return cell

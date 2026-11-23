@@ -134,12 +134,36 @@ func _run() -> void:
 	var already_prone := await _image()
 	_check(_difference(_figure(already_prone), _figure(waiting_already_prone)) == 0,
 		"An actor already prone before the hit does not stand up while waiting")
+	await _test_hold(alive)
 	if failures.is_empty():
 		print("PASS: ordinary actor renderer with in-memory atlas")
 	else:
 		for failure in failures:
 			push_error("FAIL: " + failure)
 	quit(0 if failures.is_empty() else 1)
+
+
+func _test_hold(alive: Dictionary) -> void:
+	board.clear_action_playback()
+	var penned := alive.merged({"cast_hold": "penned"}, true)
+	await _set_state(penned)
+	board.play_committed_actions([_cue("poke", "sheep_entry")])
+	board.set_process(false)
+	var settling := await _image()
+	_check(_blue_pixels(_figure(settling)) == 0, "The settle gesture takes precedence over the held pose")
+	board._process(1.0)
+	board.set_process(false)
+	var held := await _image()
+	_check(board.action_playback_snapshot().is_empty() and _blue_pixels(_figure(held)) > 20,
+		"The contextual pose renders in the live board after the queue drains")
+	await _set_state(alive)
+	var ready := await _image()
+	await _set_state(alive.merged({"cast_hold": "missing"}, true))
+	var unavailable := await _image()
+	_check(_difference(_figure(ready), _figure(unavailable)) == 0,
+		"A missing contextual atlas take falls back to ordinary ready")
+	_check(_difference(_figure(ready), _figure(held)) > 20,
+		"Removing the contextual state restores the original ready pose")
 
 
 func _install_test_atlas() -> void:
@@ -162,6 +186,7 @@ func _install_test_atlas() -> void:
 		clips[["ready", "poke", "fall"][i]] = clip
 	board.get("_cast").get("_actors")["fixture_actor"] = clips
 	clips["flinch"] = clips["poke"]
+	clips["penned"] = clips["fall"]
 
 
 func _set_state(unit: Dictionary) -> void:

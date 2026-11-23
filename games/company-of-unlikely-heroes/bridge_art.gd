@@ -437,11 +437,12 @@ func _draw_figures() -> void:
 		var key := str(original.get("cast_key", ""))
 		var id := str(original.get("id", ""))
 		var ordinary_defeat := _ordinary_defeat_clip(original)
-		if key == "ferryman" and not original.has("cast_lifecycle"):
+		if key == "ferryman" or original.has("cast_lifecycle"):
 			var cell := _playback.actor_cell(id, original.cell)
 			if cell != original.cell:
 				occupant = original.duplicate()
 				occupant["cell"] = cell
+				occupant.erase("cast_hold")
 		if original.has("cast_lifecycle") and int(original.get("hp", 1)) > 0 \
 				and bool(original.get("prone", false)) and _playback.has_waiting_upright_hit(id):
 			if occupant == original:
@@ -475,6 +476,8 @@ func _draw_figures() -> void:
 			var before_ordinary_defeat := not ordinary_defeat.is_empty() \
 				and _playback.has_pending_ordinary_role(id, "defeat")
 			var ordinary_hit := _ordinary_hit_gesture(unit, entry)
+			var ordinary_recover: bool = entry.cue.get("ordinary_presentation", false) \
+				and entry.cue.get("ordinary_role") == "recover"
 			var legacy_lifecycle := not unit.has("cast_lifecycle")
 			var harpoon_reaction: bool = legacy_lifecycle and entry.cue.cast_key == "harpooner" \
 				and entry.cue.clip in ["hit", "defeat"]
@@ -487,7 +490,7 @@ func _draw_figures() -> void:
 				continue
 			if bool(unit.get("prone", false)) and not _is_wizard_pull(entry) and not dose_gesture \
 					and not harpoon_reaction and not before_harpoon_defeat and not ferryman_reaction \
-					and not before_ordinary_defeat and not ordinary_hit:
+					and not before_ordinary_defeat and not ordinary_hit and not ordinary_recover:
 				continue
 			# A previous shield throw cannot remove a shield that has since been recovered.
 			if not entry.cue.get("ordinary_presentation", false) and entry.cue.clip == "shield_away" \
@@ -880,6 +883,7 @@ func _draw_cast(unit: Dictionary, foot: Vector2, facing: float, prone: bool, act
 	var time_ms := _ready_ms
 	var turned_down := prone and not bool(unit.get("pre_defeat", false))
 	var defeat_tail := _ordinary_defeat_tail(unit)
+	var held := _cast.clip_for(cast_key, str(unit.get("cast_hold", "")))
 	if not unit.has("cast_lifecycle") and cast_key == "knight" and bool(unit.get("shield_away", false)):
 		# Equipment is authoritative. Never show a second shield on the unit.
 		key = "shield_away"
@@ -899,6 +903,10 @@ func _draw_cast(unit: Dictionary, foot: Vector2, facing: float, prone: bool, act
 		time_ms = INF
 		turned_down = false
 		facing = _wizard_pull_facing[unit.id]
+	elif held != null and not bool(unit.get("pre_defeat", false)):
+		key = unit.cast_hold
+		time_ms = _ready_ms if held.loop else INF
+		turned_down = false
 	elif not _ordinary_defeat_clip(unit).is_empty() and int(unit.get("hp", 1)) <= 0 \
 			and not bool(unit.get("pre_defeat", false)):
 		key = _ordinary_defeat_clip(unit)
@@ -992,7 +1000,8 @@ func _sync_playback_geometry() -> void:
 		# Actors render at the committed board position, or at actor_cell when
 		# represented by a transient figure after removal. Keep the launch on
 		# that figure while retaining action-time geometry for facing and impact.
-		var rendered_cell: Variant = unit.get("cell", entry.cue.get("actor_cell", source))
+		var rendered_cell: Variant = entry.cue.get("actor_cell", source) if entry.cue.get("ordinary_presentation", false) \
+			else unit.get("cell", entry.cue.get("actor_cell", source))
 		if not rendered_cell is Vector2i:
 			continue
 		var nudge := entry.clip.release_offset * Vector2(entry.facing, 1.0) * entry.clip.scale

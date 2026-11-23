@@ -1,0 +1,31 @@
+{
+  "actor": "bomber",
+  "case": {
+    "automatic_rounds": 4,
+    "cast_key": "bomber",
+    "minimum_opening": 2,
+    "triggers": [
+      {
+        "ability": "bomber_strike",
+        "actor_field": "source_id",
+        "clip": "close_strike",
+        "id": "strike",
+        "type": "action"
+      }
+    ],
+    "variants": {
+      "chain": {
+        "automatic_rounds": 4,
+        "triggers": [
+          {
+            "actor_field": "unit_id",
+            "clip": "detonate_on_defeat",
+            "id": "chain_detonation",
+            "type": "chain_blast"
+          }
+        ]
+      }
+    }
+  },
+  "mission": "explosive_situation"
+}

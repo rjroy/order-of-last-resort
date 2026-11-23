@@ -7467,6 +7467,337 @@
           "path": "res://assets/cast/frontier_wagon_raider.png"
         }
       }
+    },
+    "bomber": {
+      "source": "art/models/bomber/bomber-pigment.blend",
+      "sha256": "d1e366646d96277503a120ead851c08fabb5f1c7abaa9fe9fd4a67282e10ee13",
+      "clips": {
+        "close_strike": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                0,
+                152,
+                201
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                152,
+                0,
+                152,
+                201
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                304,
+                0,
+                152,
+                201
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                456,
+                0,
+                152,
+                201
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 84,
+              "rect": [
+                608,
+                0,
+                152,
+                201
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 41,
+              "rect": [
+                760,
+                0,
+                152,
+                201
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            76,
+            183
+          ],
+          "action": "Close strike",
+          "path": "res://assets/cast/bomber.png"
+        },
+        "detonate_on_defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                556,
+                396,
+                196,
+                193
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                590,
+                196,
+                193
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                196,
+                590,
+                196,
+                193
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                392,
+                590,
+                196,
+                193
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 125,
+              "rect": [
+                588,
+                590,
+                196,
+                193
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                783,
+                196,
+                193
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            128,
+            176
+          ],
+          "action": "Detonate on defeat",
+          "path": "res://assets/cast/bomber.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                201,
+                145,
+                195
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                145,
+                201,
+                145,
+                195
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 125,
+              "rect": [
+                290,
+                201,
+                145,
+                195
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 41,
+              "rect": [
+                435,
+                201,
+                145,
+                195
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            76,
+            176
+          ],
+          "action": "Hit",
+          "path": "res://assets/cast/bomber.png"
+        },
+        "move": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                580,
+                201,
+                139,
+                194
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                719,
+                201,
+                139,
+                194
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                396,
+                139,
+                194
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                139,
+                396,
+                139,
+                194
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 125,
+              "rect": [
+                278,
+                396,
+                139,
+                194
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 42,
+              "rect": [
+                417,
+                396,
+                139,
+                194
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            66,
+            176
+          ],
+          "action": "Move",
+          "path": "res://assets/cast/bomber.png"
+        },
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                196,
+                783,
+                131,
+                193
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                327,
+                783,
+                131,
+                193
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                458,
+                783,
+                131,
+                193
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                589,
+                783,
+                131,
+                193
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                720,
+                783,
+                131,
+                193
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            62,
+            176
+          ],
+          "action": "Ready",
+          "path": "res://assets/cast/bomber.png"
+        }
+      }
     }
   }
 }

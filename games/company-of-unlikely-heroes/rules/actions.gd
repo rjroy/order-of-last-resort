@@ -417,7 +417,7 @@ static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictio
 			var direction := -_pull_step(actor, target)
 			var destination: Vector2i = target.position + direction
 			if Board.can_enter(state, destination):
-				if Movement.blocks_forced(state, target, events):
+				if _blocks_aimed_shift(state, target, target, events):
 					return true
 				destination = Movement.forced_destination(state, target, destination, direction, events)
 				target.position = destination
@@ -498,6 +498,7 @@ static func _move_step(state: Dictionary, actor: Dictionary, action: Dictionary,
 		template = action.get("follow_event", "follow_party")
 	if action.get("tactical_retreat", false):
 		actor["last_retreat_round"] = state.round
+		data["tactical_retreat"] = true
 		Board.event(events, "move", "%s retreats to %s and cannot retreat next round." % [
 			copy.actor, Board.coordinate(position)], data)
 	else:
@@ -555,7 +556,7 @@ static func _pull(state: Dictionary, actor: Dictionary, target: Dictionary, id: 
 		var direction := -_pull_step(actor, target)
 		var destination := origin + direction
 		if Board.capable(state, actor, "pullable") and Board.is_vacant(state, destination):
-			if Movement.blocks_forced(state, actor, events):
+			if _blocks_aimed_shift(state, actor, target, events):
 				return
 			actor.position = Movement.forced_destination(state, actor, destination, direction, events)
 		Board.event(events, "pull", "Dig In: %s reverses %s's pull%s." % [target_name, name,
@@ -564,7 +565,7 @@ static func _pull(state: Dictionary, actor: Dictionary, target: Dictionary, id: 
 		if actor.position != origin:
 			Shield.retrieve(state, actor, events)
 	elif ability.handler == "hook":
-		if Movement.blocks_forced(state, target, events):
+		if _blocks_aimed_shift(state, target, target, events):
 			return
 		target.position = Movement.forced_destination(state, target, choice.destination, _pull_step(actor, target), events)
 		Board.authored_event(state, events, "pull", "hook_pull",
@@ -591,6 +592,15 @@ static func _pull(state: Dictionary, actor: Dictionary, target: Dictionary, id: 
 			Board.event(events, "status", "Braced Casting keeps %s upright." % name, {"unit_id": actor.id})
 		Combat.hurt(state, actor, actor, int(ability.params.recoil_damage),
 			Board.text(state, "recoil_source"), status_id, events)
+
+
+static func _blocks_aimed_shift(state: Dictionary, mover: Dictionary, intended: Dictionary, events: Array) -> bool:
+	if not Movement.blocks_forced(state, mover, events):
+		return false
+	# The resistance belongs to the would-be mover. The gesture still aims
+	# at the action's selected target, even when Dig In reversed the pull.
+	events.back()["resisted_target_id"] = intended.id
+	return true
 
 
 static func _swap(state: Dictionary, actor: Dictionary, target: Dictionary, events: Array) -> void:

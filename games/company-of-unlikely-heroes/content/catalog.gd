@@ -24,7 +24,11 @@ const ABILITY_EVENTS := {"swap_furthest": ["swap"], "swap_ally": ["swap"], "misd
 	"sweep": ["sweep"], "stop_target": ["stop_target"], "repel": ["repel"],
 	"perform": ["performance_dry"], "hook": ["hook_pull"]}
 const CAST_ACTION_HANDLERS := ["move", "attack", "hook", "push", "blast", "enemy_heal", "swap_ally", "perform"]
-const CAST_EVENTS := ["recover"]
+const CAST_EVENTS := ["recover", "adjacent_guard", "adjacent_damage_bonus", "ally_death_guard",
+	"retaliate", "swapped", "displaced", "reserve_arrival", "tactical_retreat",
+	"sheep_flee", "sheep_entry", "wagon_advance", "wagon_stall", "leave_zone"]
+const CAST_HOLDS := ["sheep_penned", "wagon_wreck"]
+const CAST_BONUS_STATS := {"attack": "damage", "move": "movement"}
 const STATUS_EXPIRY := {"reflect": "actor_turn_start", "skip_action": "consume_action",
 	"retarget": "actor_turn_end", "misdirect": "consume_attack", "stop_move": "actor_turn_end",
 	"block_voluntary_move": "consume_move"}
@@ -869,15 +873,10 @@ class Validator:
 			_text(character.cast_variant, path + ".cast_variant", true)
 		var presentation := _dictionary(character.cast_presentation, path + ".cast_presentation")
 		for field in presentation:
-			if field not in ["actions", "hit", "defeat", "events"]:
+			if field not in ["actions", "hit", "defeat", "events", "holds"]:
 				_error(path + ".cast_presentation." + str(field), "unknown presentation field")
-		var events_path := path + ".cast_presentation.events"
-		var events := _dictionary(presentation.get("events", {}), events_path)
-		for kind in events:
-			var event_path := events_path + "." + str(kind)
-			_choice(kind, CAST_EVENTS, event_path)
-			if _text(events[kind], event_path) and events[kind] == "ready":
-				_error(event_path, "ready is reserved for idle presentation")
+		_check_cast_clips(presentation.get("events", {}), CAST_EVENTS, path + ".cast_presentation.events")
+		_check_cast_clips(presentation.get("holds", {}), CAST_HOLDS, path + ".cast_presentation.holds")
 		var actions := _dictionary(presentation.get("actions", {}), path + ".cast_presentation.actions")
 		for id in actions:
 			var action_path := path + ".cast_presentation.actions." + str(id)
@@ -885,7 +884,7 @@ class Validator:
 				_error(action_path, "ability is not in the character's effective kit")
 			var binding := _dictionary(actions[id], action_path)
 			for field in binding:
-				if field not in ["handler", "clip", "impact_frame"]:
+				if field not in ["handler", "clip", "impact_frame", "bonus"]:
 					_error(action_path + "." + str(field), "unknown binding field")
 			_choice(binding.get("handler"), CAST_ACTION_HANDLERS, action_path + ".handler")
 			if binding.get("handler") == "move" and "mobile" not in capabilities:
@@ -894,13 +893,32 @@ class Validator:
 				_error(action_path + ".clip", "ready is reserved for idle presentation")
 			if binding.has("impact_frame"):
 				_integer(binding.impact_frame, action_path + ".impact_frame", 1)
+			if binding.has("bonus"):
+				var bonus_path := action_path + ".bonus"
+				var bonus := _dictionary(binding.bonus, bonus_path)
+				for field in bonus:
+					if field not in ["stat", "clip"]:
+						_error(bonus_path + "." + str(field), "unknown bonus field")
+				var stat: String = CAST_BONUS_STATS.get(binding.get("handler"), "")
+				if stat.is_empty() or bonus.get("stat") != stat:
+					_error(bonus_path + ".stat", "stat does not apply to this handler")
+				_check_cast_clip(bonus.get("clip"), bonus_path + ".clip")
 		for field in ["hit", "defeat"]:
 			if presentation.has(field):
 				if "damageable" not in capabilities:
 					_error(path + ".cast_presentation." + field, "requires the damageable capability")
-				if _text(presentation[field], path + ".cast_presentation." + field) \
-						and presentation[field] == "ready":
-					_error(path + ".cast_presentation." + field, "ready is reserved for idle presentation")
+				_check_cast_clip(presentation[field], path + ".cast_presentation." + field)
+
+	func _check_cast_clips(value: Variant, kinds: Array, path: String) -> void:
+		var clips := _dictionary(value, path)
+		for kind in clips:
+			var clip_path := path + "." + str(kind)
+			_choice(kind, kinds, clip_path)
+			_check_cast_clip(clips[kind], clip_path)
+
+	func _check_cast_clip(value: Variant, path: String) -> void:
+		if _text(value, path) and value == "ready":
+			_error(path, "ready is reserved for idle presentation")
 
 	func _effective_profile(character: Dictionary) -> Dictionary:
 		return _defs.classes.get(character.get("class"), {}).merged(character, true)

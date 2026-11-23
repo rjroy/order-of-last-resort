@@ -604,7 +604,25 @@
           "damage": 2,
           "range": 1
         }
-      ]
+      ],
+      "cast_key": "bomber",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "move"
+          },
+          "bomber_strike": {
+            "handler": "attack",
+            "clip": "close_strike"
+          }
+        },
+        "hit": "hit",
+        "defeat": "detonate_on_defeat"
+      }
     },
     "enemy_healer": {
       "class": "enemy",

@@ -5,6 +5,7 @@ const Catalog = preload("res://content/catalog.gd")
 const Actions = preload("res://rules/actions.gd")
 const Behaviors = preload("res://rules/behaviors.gd")
 const Board = preload("res://rules/board.gd")
+const FrontierCombat = preload("res://rules/frontier_combat.gd")
 const FrontierObjectives = preload("res://rules/frontier_objectives.gd")
 const Shield = preload("res://rules/shield.gd")
 const Statuses = preload("res://rules/statuses.gd")
@@ -358,6 +359,13 @@ func _execute_action(state: Dictionary, actor: Dictionary, action: Dictionary, e
 	var first := events.size()
 	var origin: Variant = actor.get("position")
 	var ability := Actions.owned_ability(state, actor, action.ability_id)
+	var bonus_stat := ""
+	match ability.get("handler"):
+		"move":
+			bonus_stat = "movement"
+		"attack":
+			bonus_stat = "damage"
+	var fallen_bonus := FrontierCombat.ally_death_bonus(state, actor, bonus_stat) if not bonus_stat.is_empty() else 0
 	var recipe: String = actor.get("bottled_reaction", {}).get("recipe", "") \
 		if ability.get("handler") == "repeat_batch" else ""
 	if not Actions.execute(state, actor, action, events):
@@ -369,6 +377,8 @@ func _execute_action(state: Dictionary, actor: Dictionary, action: Dictionary, e
 			"source_cell": origin, "actor_cell": actor.position, "event_count": events.size() - first}
 		if not recipe.is_empty():
 			events[first].resolved_action["recipe_id"] = recipe
+		if fallen_bonus > 0:
+			events[first].resolved_action["ally_death_bonus"] = bonus_stat
 	match state.objective.handler:
 		"pressure_gate":
 			FrontierObjectives.report_gate_change(state, actor, gate_was_open, events)

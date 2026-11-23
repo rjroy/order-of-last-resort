@@ -2244,6 +2244,9 @@ func _refresh_board() -> void:
 			var presentation := CastCues.presentation_for(_state, unit, profile)
 			if CastCues.has_presentation(_state, unit):
 				figure["cast_lifecycle"] = presentation
+				var held := CastCues.held_clip_for(_state, unit, presentation)
+				if not held.is_empty():
+					figure["cast_hold"] = held
 		if "minion" in profile.capabilities:
 			var directed := _find(_rules.nominated_target(_state, unit.id))
 			if not directed.is_empty() and directed.position.x != unit.position.x:

@@ -149,7 +149,8 @@ static func _retaliate(state: Dictionary, attacker: Dictionary, defender: Dictio
 			name, Board.display_name(state, attacker), amount],
 			{"unit_id": defender.id, "source_id": defender.id, "target_id": attacker.id,
 				"amount": amount, "range": reach})
-		_hurt_and_chain(state, defender, attacker, amount, name + "’s retaliation", "", events, {})
+		_hurt_and_chain(state, defender, attacker, amount, name + "’s retaliation", "", events,
+			{"data": {"damage_cause": "retaliate"}, "copy": {}})
 
 
 static func _hurt_and_chain(state: Dictionary, source: Dictionary, target: Dictionary, damage: int,
@@ -171,7 +172,8 @@ static func _hurt_and_chain(state: Dictionary, source: Dictionary, target: Dicti
 		for victim in Board.occupants(state, {"capabilities": ["damageable"]}):
 			var distance := Board.distance(blast.position, victim.position)
 			if distance > 0 and distance <= blast.range:
-				_apply_hit(state, bomber, victim, blast.damage, name + "’s explosion", "", events, {}, blasts)
+				_apply_hit(state, bomber, victim, blast.damage, name + "’s explosion", "", events,
+					{"data": {"damage_cause": "death_blast"}, "copy": {}}, blasts)
 		index += 1
 	return amount
 

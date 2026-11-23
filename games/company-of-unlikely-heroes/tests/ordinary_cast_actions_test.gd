@@ -27,6 +27,8 @@ func _initialize() -> void:
 	_case(defs, "rival_healer", "frontier_heal", "ogre", Vector2i(3, 2), "heal", Vector2i(3, 2))
 	_case(defs, "trickster", "ogre_swap", "ogre", Vector2i(3, 2), "shift", Vector2i(2, 2))
 	_case(defs, "frontier_war_drummer", "frontier_war_drum", "healer", Vector2i(4, 2), "hit", Vector2i(4, 2))
+	_resisted_shift(defs, "hookhand", "hook_pull", Vector2i(4, 2))
+	_resisted_shift(defs, "rival_knight", "knight_push", Vector2i(3, 2))
 	_recover(defs)
 	defs.characters.hookhand.cast_presentation.actions.hook_pull.handler = "attack"
 	var state := _state(defs, "hookhand", "healer", Vector2i(4, 2))
@@ -82,6 +84,25 @@ func _recover(defs: Dictionary) -> void:
 	_check(recovered.size() == 1 and recovered[0].unit_id == "target" and recovered[0].clip == "get_up" \
 		and recovered[0].source_cell == Vector2i(3, 2) and not rules.knocked_down(plan.result, "target"),
 		"Only the owner of a real knockdown recovery gets its authored cue")
+
+
+func _resisted_shift(defs: Dictionary, caster: String, ability: String, at: Vector2i) -> void:
+	var state := _state(defs, caster, "healer", at)
+	state.units[1]["alchemy_statuses"] = {"cork_soles": {"expires_after_round": state.round}}
+	var plan: Dictionary = rules.preview(state, "caster", ability, "target")
+	_check(plan.valid and plan.events.size() == 1, "%s consumed Cork Soles without moving or damaging" % ability)
+	if not plan.valid or plan.events.size() != 1:
+		return
+	var resisted: Dictionary = plan.events[0]
+	_check(resisted.type == "status" and resisted.reaction_id == "cork_soles" \
+		and resisted.unit_id == "target" and resisted.target_id == "target" \
+		and resisted.resisted_target_id == "target" and resisted.resolved_action.unit_id == "caster" \
+		and plan.result.units[1].position == at,
+		"%s preserves actual resistance ownership and the intended target" % ability)
+	var cues := Cues.build(state, plan.result, plan.events)
+	_check(cues.size() == 1 and cues[0].unit_id == "caster" and cues[0].target_id == "target" \
+		and cues[0].target_cell == at and cues[0].recipients.is_empty(),
+		"%s still aims at the selected target, with no shift or hit" % ability)
 
 
 func _case(defs: Dictionary, caster: String, ability: String, target: String, at: Vector2i,

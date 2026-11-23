@@ -1,0 +1,73 @@
+{
+  "role": "bomber",
+  "master": {
+    "source": "models/bomber/bomber-pigment.blend",
+    "sha256": "d1e366646d96277503a120ead851c08fabb5f1c7abaa9fe9fd4a67282e10ee13",
+    "rig_name": "bomber \u2022 armature",
+    "action_prefix": ""
+  },
+  "takes": {
+    "close_strike": [
+      "Close strike",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        23
+      ],
+      24,
+      false
+    ],
+    "detonate_on_defeat": [
+      "Detonate on defeat",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        24
+      ],
+      25,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        6,
+        11,
+        14
+      ],
+      15,
+      false
+    ],
+    "move": [
+      "Move",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        24
+      ],
+      25,
+      false
+    ],
+    "ready": [
+      "Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21
+      ],
+      25,
+      true
+    ]
+  }
+}

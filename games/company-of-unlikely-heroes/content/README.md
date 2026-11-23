@@ -24,13 +24,28 @@ The ability must be in the effective kit;
 its actual handler must match before the committed action plays. A move needs
 an actual displacement. An optional positive `impact_frame` sets contact on
 that sampled source frame; absent or unsampled frames use the default timing.
-`hit` and `defeat` require a damageable character and work even without action
-mappings. The optional `events.recover` clip plays when its living owner really
-gets up from knockdown, not on a wait or an unrelated skipped action.
+An `attack` or `move` binding may provide `bonus: { "stat": "damage" |
+"movement", "clip": "<clip id>" }` for the corresponding activated fallen-ally
+trait. The move must actually take multiple steps. A missing alternate clip
+falls back to the normal action clip.
+
+`hit` and `defeat` require a damageable character and work without action mappings.
+Optional `events` maps these event keys to clip IDs:
+
+| Keys | Plays on |
+|---|---|
+| `adjacent_guard`, `adjacent_damage_bonus`, `ally_death_guard`, `retaliate` | The character who actually provides the trait effect, not the character whose action triggered it. |
+| `swapped`, `displaced` | The recipient of a committed swap or forced move. |
+| `recover`, `reserve_arrival` | A living character's knockdown recovery or an actual reserve's entry onto the board. |
+| `tactical_retreat` | A character's actual tactical retreat, instead of its normal move. |
+| `sheep_flee`, `sheep_entry`, `wagon_advance`, `wagon_stall`, `leave_zone` | Matching objective events, only for the subject in that objective. |
+
+Optional `holds` maps `sheep_penned` or `wagon_wreck` to a clip ID. These pose
+selectors come from the committed pen position or destroyed wagon, never queued
+wait actions. A looping hold animates; a non-looping hold uses its final frame.
 `ready` is reserved for idle. The metadata selects
 artwork only; missing clips and changed custom art use existing fallbacks and
-never alter rules. Goblin currently declares `move`, `jab`, `hit` and `defeat`,
-but its cast atlas is not yet registered or approved for runtime integration.
+never alters rules.
 
 ## Guild petitions and equipped kits
 

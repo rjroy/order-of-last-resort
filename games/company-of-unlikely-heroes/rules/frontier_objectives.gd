@@ -258,7 +258,8 @@ static func _flee_sheep(state: Dictionary, events: Array) -> void:
 			var cell_name := Board.coordinate(best)
 			var text := "%s sidesteps toward the pen at %s." % [sheep_name, cell_name] if sidestepping \
 				else "%s flees from %s to %s." % [sheep_name, Board.display_name(state, threat), cell_name]
-			Board.event(events, "move", text, {"unit_id": id, "target_id": threat.id, "position": best})
+			Board.event(events, "move", text, {"unit_id": id, "target_id": threat.id, "position": best,
+				"objective_movement": "sheep_flee"})
 
 
 static func _sheep_sidestep(state: Dictionary, position: Vector2i, pen: Array) -> Vector2i:
@@ -345,16 +346,19 @@ static func _advance_wagon(state: Dictionary, events: Array) -> void:
 		return
 	var data := {"unit_id": wagon.id, "position": wagon.position}
 	if _enemy_adjacent(state, wagon):
+		data["objective_movement"] = "wagon_stall"
 		Board.event(events, "wait", "An adjacent enemy stalls the wagon.", data)
 		return
 	var step := Board.step_toward(state, wagon, objective.destination, 0)
 	if step == wagon.position:
+		data["objective_movement"] = "wagon_stall"
 		Board.event(events, "wait", "The wagon's route is blocked.", data)
 		return
 	if Movement.blocks_voluntary(state, wagon, events):
 		return
 	wagon.position = step
 	data.position = step
+	data["objective_movement"] = "wagon_advance"
 	Board.event(events, "move", "The wagon advances to %s." % Board.coordinate(step), data)
 
 

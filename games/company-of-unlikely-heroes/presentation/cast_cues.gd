@@ -3,6 +3,7 @@ extends RefCounted
 ## The caller owns the commit boundary; inspecting a forecast never plays it.
 
 const Catalog = preload("res://content/catalog.gd")
+const Board = preload("res://rules/board.gd")
 const Statuses = preload("res://rules/statuses.gd")
 # [expected rules handler, clip]. Catalog authors can redefine an ability ID.
 const CLIPS := {
@@ -52,14 +53,11 @@ static func _valid_presentation(value: Variant) -> bool:
 	if not value is Dictionary:
 		return false
 	for field in value:
-		if field not in ["actions", "hit", "defeat", "events"]:
+		if field not in ["actions", "hit", "defeat", "events", "holds"]:
 			return false
-	var events: Variant = value.get("events", {})
-	if not events is Dictionary:
+	if not _valid_clip_map(value.get("events", {}), Catalog.CAST_EVENTS) \
+			or not _valid_clip_map(value.get("holds", {}), Catalog.CAST_HOLDS):
 		return false
-	for kind in events:
-		if kind not in Catalog.CAST_EVENTS or not _presentation_clip(events[kind]):
-			return false
 	var actions: Variant = value.get("actions", {})
 	if not actions is Dictionary:
 		return false
@@ -68,7 +66,7 @@ static func _valid_presentation(value: Variant) -> bool:
 		if not id is String or id.strip_edges().is_empty() or not binding is Dictionary:
 			return false
 		for field in binding:
-			if field not in ["handler", "clip", "impact_frame"]:
+			if field not in ["handler", "clip", "impact_frame", "bonus"]:
 				return false
 		if binding.get("handler") not in Catalog.CAST_ACTION_HANDLERS or not _presentation_clip(binding.get("clip")):
 			return false
@@ -77,8 +75,23 @@ static func _valid_presentation(value: Variant) -> bool:
 			if not (frame is int or frame is float) or not is_finite(float(frame)) \
 					or frame < 1 or frame > 2147483647 or floorf(frame) != frame:
 				return false
+		if binding.has("bonus"):
+			var bonus: Variant = binding.bonus
+			if not bonus is Dictionary or bonus.size() != 2 \
+					or not _presentation_clip(bonus.get("clip")) \
+					or bonus.get("stat") != Catalog.CAST_BONUS_STATS.get(binding.handler):
+				return false
 	for field in ["hit", "defeat"]:
 		if value.has(field) and not _presentation_clip(value[field]):
+			return false
+	return true
+
+
+static func _valid_clip_map(value: Variant, kinds: Array) -> bool:
+	if not value is Dictionary:
+		return false
+	for kind in value:
+		if kind not in kinds or not _presentation_clip(value[kind]):
 			return false
 	return true
 
@@ -104,6 +117,18 @@ static func has_presentation(state: Dictionary, unit: Dictionary) -> bool:
 	return character.has("cast_presentation")
 
 
+## A held pose is derived from the current committed objective, not a queued event.
+static func held_clip_for(state: Dictionary, owner: Dictionary, presentation: Dictionary) -> String:
+	var holds: Dictionary = presentation.get("holds", {})
+	var objective: Dictionary = state.get("objective", {})
+	if int(owner.get("hp", 0)) > 0 and _sheep_in_pen(objective, owner.id, owner.position):
+		return holds.get("sheep_penned", "")
+	if objective.get("handler") == "wagon" and objective.get("subject") == owner.get("id") \
+			and int(owner.get("hp", 1)) <= 0:
+		return holds.get("wagon_wreck", "")
+	return ""
+
+
 static func build(before: Dictionary, after: Dictionary, events: Array) -> Array:
 	if events.is_empty():
 		return []
@@ -119,6 +144,7 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 		health[unit.id] = int(unit.hp)
 		prone[unit.id] = int(unit.hp) <= 0 or Statuses.knocked_down(before, unit)
 	var cues := []
+	var last_shift := {}
 	var index := 0
 	while index < events.size():
 		var action: Dictionary = events[index].get("resolved_action", {})
@@ -130,13 +156,20 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 			return []
 		var echo_started := false
 		var reactions := []
-		var travelled := false
+		var steps := 0
+		var moved := {}
+		var retaliations := {}
+		var detonations := {}
 		while index < end:
 			var event: Dictionary = events[index]
 			if event.get("type") == "move" and event.get("unit_id") == action.get("unit_id") \
 					and event.get("position") is Vector2i \
 					and event.get("position") != positions.get(action.get("unit_id")):
-				travelled = true
+				steps += 1
+				if event.get("tactical_retreat", false) and cue.get("ordinary_handler") == "move":
+					_replace_clip(cue, _event_clip(after, actor, "tactical_retreat"))
+					if cue.has("fallback_clip"):
+						cue["ordinary_role"] = "tactical_retreat"
 			if not echo_started and event.get("song_echo", false):
 				# Weaving is one rules action, but the two songs have distinct poses and recipients.
 				if not cue.is_empty():
@@ -147,6 +180,17 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 				echo_started = true
 			if not cue.is_empty():
 				_observe(cue, event, positions)
+			var position_changes := _position_changes(event, positions)
+			moved.merge(position_changes, true)
+			var event_cues := _ordinary_events(after, event, action, actors, positions,
+				health, position_changes, cue)
+			if event.get("type") == "retaliate":
+				var retaliator: String = event.unit_id
+				if event_cues.is_empty():
+					retaliations.erase(retaliator)
+				else:
+					retaliations[retaliator] = reactions.size()
+			reactions.append_array(event_cues)
 			if event.get("type") == "damage":
 				var victim: String = event.get("target_id", "")
 				if health.has(victim):
@@ -160,12 +204,21 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 							and "damageable" in Catalog.profile(after.catalog.defs, target.get("character_id", "")).get("capabilities", []):
 						var reaction_clip: Variant = presentation.get("defeat" if health[victim] <= 0 else "hit")
 						if reaction_clip is String and not reaction_clip.is_empty():
-							reactions.append({"unit_id": victim, "cast_key": key, "clip": reaction_clip,
+							var reaction := {"unit_id": victim, "cast_key": key, "clip": reaction_clip,
 								"ordinary_presentation": true,
 								"ordinary_role": "defeat" if health[victim] <= 0 else "hit",
 								"was_prone": bool(prone.get(victim, false)),
 								"source_cell": positions.get(victim), "actor_cell": positions.get(victim),
-								"target_id": "", "recipients": []})
+								"target_id": "", "recipients": []}
+							var source: String = event.get("source_id", "")
+							var cause: String = event.get("damage_cause", "")
+							var dep: int = retaliations.get(source, -1) if cause == "retaliate" \
+								else detonations.get(source, -1) if cause == "death_blast" else -1
+							if dep >= 0:
+								reaction["after_reaction"] = dep
+							if health[victim] <= 0:
+								detonations[victim] = reactions.size()
+							reactions.append(reaction)
 					var knocked := key == "ferryman" and Statuses.is_knockdown(after, event.get("status_id", ""))
 					if not has_presentation(after, target) and key in ["harpooner", "ferryman"] \
 							and (amount > 0 or knocked) \
@@ -178,6 +231,9 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 							"target_id": "", "recipients": []})
 					if Statuses.is_knockdown(after, event.get("status_id", "")) or health[victim] <= 0:
 						prone[victim] = true
+				if event.get("damage_cause") == "retaliate" and retaliations.has(event.get("source_id")):
+					var strike: Dictionary = reactions[retaliations[event.source_id]]
+					_recipient(strike, victim, positions.get(victim), "hit")
 			elif event.get("type") == "heal":
 				var healed: String = event.get("target_id", "")
 				if health.has(healed):
@@ -223,13 +279,17 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 					reactions.append({"unit_id": subject, "cast_key": "ferryman", "clip": "safe_bank",
 						"source_cell": target.position, "actor_cell": target.position,
 						"target_id": "", "recipients": []})
-			_trace_position(event, positions)
+			positions.merge(position_changes, true)
 			index += 1
 		if not cue.is_empty() and not cue.get("ordinary_presentation", false) \
-				and cue.clip == "travel" and not travelled:
+				and cue.clip == "travel" and steps == 0:
 			cue.clear()
-		if not cue.is_empty() and cue.get("ordinary_handler") == "move" and not travelled:
+		if cue.get("ordinary_handler") == "move" and steps == 0:
 			cue.clear()
+		var bonus: String = action.get("ally_death_bonus", "")
+		if bonus == "damage" or (bonus == "movement" and steps > 1):
+			_replace_clip(cue, str(cue.get("bonus_clip", "")))
+		cue.erase("bonus_clip")
 		if not cue.is_empty() and not cue.get("ordinary_presentation", false) \
 				and cue.cast_key == "harpooner" and cue.clip == "ranged_cast" \
 				and cue.get("target_cell") is Vector2i:
@@ -240,23 +300,136 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 		if not cue.is_empty():
 			parent_index = cues.size()
 			cues.append(cue)
+		var first_reaction := cues.size()
 		for reaction in reactions:
-			if parent_index >= 0:
+			if reaction.has("after_reaction"):
+				reaction["after_cue"] = first_reaction + int(reaction.after_reaction)
+				reaction.erase("after_reaction")
+			elif parent_index >= 0:
 				reaction["after_cue"] = parent_index
+			if reaction.has("after_movement"):
+				var mover: String = reaction.get("unit_id", "")
+				var movement: int = last_shift.get(mover, -1)
+				if movement >= 0 and not reaction.has("after_cue"):
+					reaction["after_cue"] = movement
+				reaction.erase("after_movement")
+			if reaction.get("source_cell") != reaction.get("actor_cell") \
+					or reaction.get("ordinary_role") == "reserve_arrival":
+				last_shift[reaction.unit_id] = cues.size()
 			cues.append(reaction)
+		for id in moved:
+			if not reactions.any(func(reaction): return reaction.get("unit_id") == id \
+					and reaction.get("actor_cell") == moved[id] \
+					and reaction.get("actor_cell") != reaction.get("source_cell")):
+				if parent_index >= 0:
+					last_shift[id] = parent_index
+				else:
+					last_shift.erase(id)
 	return cues
+
+
+static func _replace_clip(cue: Dictionary, replacement: String) -> void:
+	if not cue.is_empty() and not replacement.is_empty() and cue.clip != replacement:
+		if not cue.has("fallback_clip"):
+			cue["fallback_clip"] = cue.clip
+		cue.clip = replacement
+
+
+static func _event_clip(state: Dictionary, owner: Dictionary, kind: String) -> String:
+	if owner.is_empty():
+		return ""
+	return presentation_for(state, owner).get("events", {}).get(kind, "")
 
 
 static func _event_cue(state: Dictionary, owner: Dictionary, kind: String, cell: Variant) -> Dictionary:
 	if not cell is Vector2i:
 		return {}
-	var presentation := presentation_for(state, owner)
-	var clip: String = presentation.get("events", {}).get(kind, "")
+	var clip := _event_clip(state, owner, kind)
 	if clip.is_empty():
 		return {}
 	return {"unit_id": owner.id, "cast_key": cast_key_for(state, owner), "clip": clip,
 		"ordinary_presentation": true, "ordinary_role": kind, "source_cell": cell, "actor_cell": cell,
 		"target_id": "", "recipients": []}
+
+
+static func _ordinary_events(state: Dictionary, event: Dictionary, action: Dictionary, actors: Dictionary,
+		positions: Dictionary, health: Dictionary, shifts: Dictionary, action_cue: Dictionary) -> Array:
+	var result := []
+	var owner: String = event.get("unit_id", "")
+	var target: String = event.get("target_id", "")
+	var objective: Dictionary = state.get("objective", {})
+	var kind: String = event.get("type", "")
+	match kind:
+		"adjacent_guard", "adjacent_damage_bonus", "ally_death_guard", "retaliate":
+			var cue := _event_cue(state, actors.get(owner, {}), kind, positions.get(owner))
+			if not cue.is_empty():
+				_aim(cue, target, positions.get(target))
+				var feedback := "guard" if kind in ["adjacent_guard", "ally_death_guard"] else "status"
+				# Retaliation damage has a separate event; mark its actual hit there.
+				if kind != "retaliate":
+					_recipient(cue, target, positions.get(target), feedback)
+				result.append(cue)
+		"reserve_arrival":
+			if objective.get("handler") == "survive" and not positions.has(owner):
+				var cue := _event_cue(state, actors.get(owner, {}), kind, event.get("position"))
+				if not cue.is_empty():
+					result.append(cue)
+		"victory":
+			var at: Variant = positions.get(target)
+			if objective.get("handler") == "leave_zone" and objective.get("subject") == target \
+					and state.get("outcome") == "victory" and int(health.get(target, 0)) > 0 \
+					and at is Vector2i and event.get("position") == at \
+					and not Board.in_zone(state, objective.zone, at):
+				var cue := _event_cue(state, actors.get(target, {}), "leave_zone", at)
+				if not cue.is_empty():
+					cue["after_movement"] = true
+					result.append(cue)
+		"move":
+			var movement: String = event.get("objective_movement", "")
+			if shifts.has(owner):
+				if action.is_empty() and (_is_wagon(objective, owner, movement, "wagon_advance") \
+						or (movement == "sheep_flee" and _is_sheep(objective, owner))):
+					_append_motion(result, state, actors, positions, owner, movement, shifts[owner])
+				elif action_cue.is_empty() and event.get("tactical_retreat", false) \
+						and action.get("unit_id") == owner:
+					_append_motion(result, state, actors, positions, owner, "tactical_retreat", shifts[owner])
+		"wait":
+			if action.is_empty() and _is_wagon(objective, owner, event.get("objective_movement", ""), "wagon_stall"):
+				var cue := _event_cue(state, actors.get(owner, {}), "wagon_stall", positions.get(owner))
+				if not cue.is_empty():
+					result.append(cue)
+		"push", "pull", "repel", "swap":
+			var reaction := "swapped" if kind == "swap" else "displaced"
+			if shifts.has(target):
+				_append_motion(result, state, actors, positions, target, reaction, shifts[target])
+	for id in shifts:
+		if int(health.get(id, 0)) > 0 and _sheep_in_pen(objective, id, shifts[id]) \
+				and not _sheep_in_pen(objective, id, positions.get(id)):
+			var settle := _event_cue(state, actors.get(id, {}), "sheep_entry", shifts[id])
+			if not settle.is_empty():
+				result.append(settle)
+	return result
+
+
+static func _append_motion(cues: Array, state: Dictionary, actors: Dictionary, positions: Dictionary,
+		owner: String, kind: String, destination: Vector2i) -> void:
+	var cue := _event_cue(state, actors.get(owner, {}), kind, positions.get(owner))
+	if not cue.is_empty():
+		cue["actor_cell"] = destination
+		_aim(cue, "", destination)
+		cues.append(cue)
+
+
+static func _is_sheep(objective: Dictionary, id: String) -> bool:
+	return objective.get("handler") == "herd_sheep" and id in objective.get("subjects", [])
+
+
+static func _sheep_in_pen(objective: Dictionary, id: String, position: Variant) -> bool:
+	return _is_sheep(objective, id) and position in objective.get("pen", [])
+
+
+static func _is_wagon(objective: Dictionary, owner: String, movement: String, expected: String) -> bool:
+	return objective.get("handler") == "wagon" and objective.get("subject") == owner and movement == expected
 
 
 static func _start_cue(state: Dictionary, actor: Dictionary, action: Dictionary) -> Dictionary:
@@ -298,6 +471,9 @@ static func _start_cue(state: Dictionary, actor: Dictionary, action: Dictionary)
 		cue["ordinary_role"] = "action"
 		if impact_frame != null:
 			cue["impact_frame"] = int(impact_frame)
+		var action_bonus: Dictionary = presentation.actions[action.ability_id].get("bonus", {})
+		if action.get("ally_death_bonus", "") == action_bonus.get("stat"):
+			cue["bonus_clip"] = action_bonus.clip
 		if ordinary_handler == "move":
 			cue["target_cell"] = action.actor_cell
 	elif clip == "retreat":
@@ -464,6 +640,9 @@ static func _observe_ordinary_action(cue: Dictionary, event: Dictionary, positio
 				if not cue.has("target_cell"):
 					_aim(cue, target, cell)
 				_recipient(cue, target, cell, "status")
+			elif handler in ["push", "hook"] and event.get("reaction_id") == "cork_soles":
+				var intended: String = event.get("resisted_target_id", "")
+				_aim(cue, intended, positions.get(intended))
 		"wait":
 			if handler == "push" and owner == actor and not cue.has("target_cell"):
 				_aim(cue, target, cell)
@@ -485,7 +664,7 @@ static func _observe_ordinary_strike(cue: Dictionary, event: Dictionary, positio
 				_aim(cue, ward, positions.get(ward))
 			_recipient(cue, ward, positions.get(ward), "guard")
 		"damage":
-			if event.get("source_id") == cue.unit_id:
+			if event.get("source_id") == cue.unit_id and not event.has("damage_cause"):
 				var target: String = event.get("target_id", "")
 				var cell: Variant = positions.get(target)
 				if not cue.has("target_cell"):
@@ -523,18 +702,23 @@ static func _has_recipient(cue: Dictionary, kind: String) -> bool:
 	return cue.recipients.any(func(recipient: Dictionary) -> bool: return recipient.kind == kind)
 
 
-static func _trace_position(event: Dictionary, positions: Dictionary) -> void:
-	match event.type:
-		"move":
-			positions[event.unit_id] = event.position
+static func _position_changes(event: Dictionary, positions: Dictionary) -> Dictionary:
+	var changes := {}
+	match event.get("type"):
+		"move", "reserve_arrival":
+			changes[event.unit_id] = event.position
 		"push", "repel":
-			positions[event.target_id] = event.position
+			changes[event.target_id] = event.position
 		"pull":
-			positions[event.target_id] = event.position
+			changes[event.target_id] = event.position
 			if event.has("recoil_position"):
-				positions[event.unit_id] = event.recoil_position
+				changes[event.unit_id] = event.recoil_position
 		"swap":
-			positions[event.unit_id] = event.position
-			positions[event.target_id] = event.target_position
+			changes[event.unit_id] = event.position
+			changes[event.target_id] = event.target_position
 		"summon":
-			positions[event.summon_id] = event.position
+			changes[event.summon_id] = event.position
+	for id in changes.keys():
+		if changes[id] == positions.get(id):
+			changes.erase(id)
+	return changes

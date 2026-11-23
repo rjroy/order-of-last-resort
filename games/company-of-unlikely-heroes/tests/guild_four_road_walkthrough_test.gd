@@ -92,17 +92,26 @@ func _run() -> void:
 		and receipt.get("destination_outcome") == "forfeit"
 		and receipt.get("destination_points") == 0 and receipt.get("points") == 4,
 		"Four real road wins and destination forfeit produce 4 + 0")
-	var text := _visible_text().to_lower()
-	_check("4" in text and "point" in text, "Actual return receipt displays earned points")
+	var road := _node("ReceiptRoad")
+	var destination := _node("ReceiptDestination")
+	var total := _node("ReceiptTotal")
+	for row_data in [[road, "Road (4 wins)", "4 points"], [destination, "Destination (forfeited)", "0 points"],
+			[total, "Total", "4 points"]]:
+		var entry: Node = row_data[0]
+		var heading := entry.get_node("ReceiptLabel") as Label if entry != null else null
+		var amount := entry.get_node("ReceiptValue") as Label if entry != null else null
+		_check(_reachable(heading) and _reachable(amount) and heading.text == row_data[1] and amount.text == row_data[2],
+			"Actual return receipt prints %s and %s" % [row_data[1], row_data[2]])
 	await _capture("four_roads_actual_receipt")
 	var return_button := _node("ReturnToGuild") as BaseButton
-	if return_button == null or not return_button.is_visible_in_tree() or return_button.disabled:
+	if not _reachable(return_button) or return_button.disabled:
 		_check(false, "Actual receipt permits return")
 		_cleanup()
 		return
 	await ForfeitControls.click(self, return_button)
 	var settled: Dictionary = store.load_profile(profile_path)
-	_check(store.call("balance", settled) == 4, "Actual return banks exactly four points")
+	_check(store.call("balance", settled) == 4 and settled.get("last_receipt", {}) == receipt,
+		"Actual return banks exactly the four points printed on its receipt")
 	await _capture("four_roads_actual_balance")
 	await _launch_normal()
 	_check(store.call("balance", store.load_profile(profile_path)) == 4,

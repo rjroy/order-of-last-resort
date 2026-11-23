@@ -65,6 +65,7 @@ func _run() -> void:
 		_cleanup_conflict(absolute_dir)
 		return
 	await _check_transient_write_failure(absolute_dir, original)
+	await _check_long_return_diagnostic()
 	# Another instance advances the exact same guild while this result waits.
 	var latest: Dictionary = store.renew(profile_path, original, BOARD_SEED + 1)
 	if latest.has("error"):
@@ -74,6 +75,8 @@ func _run() -> void:
 	var latest_bytes := FileAccess.get_file_as_bytes(profile_path)
 	await _press("ReturnToGuild")
 	_check(scene.current_screen() == "result", "Superseded outing cannot silently settle")
+	var ordinary_return := _node("ReturnToGuild") as BaseButton
+	_check(ordinary_return == null or ordinary_return.disabled, "Conflict has no actionable normal return")
 	_check(store.load_profile(profile_path) == latest and FileAccess.get_file_as_bytes(profile_path) == latest_bytes,
 		"Conflict does not overwrite or credit the newer ledger")
 	var text := _visible_text().to_lower()
@@ -81,7 +84,7 @@ func _run() -> void:
 		and ("discard" in text or "abandon" in text or "lost" in text),
 		"Result visibly explains the conflict and that the outing payout will not be credited")
 	var reload := _node("ReloadGuild") as BaseButton
-	if reload == null or not reload.is_visible_in_tree() or reload.disabled:
+	if reload == null or not _reachable(reload) or reload.disabled or not reload.has_focus():
 		_check(false, "Conflict offers an explicit action to abandon and reload the current ledger")
 		_cleanup_conflict(absolute_dir)
 		return
@@ -117,7 +120,7 @@ func _check_transient_write_failure(directory: String, original: Dictionary) -> 
 	_check(scene.current_screen() == "result" and store.load_profile(profile_path) == original,
 		"Transient write failure retains the result and original ledger")
 	var retry := _node("ReturnToGuild") as BaseButton
-	_check(retry != null and retry.is_visible_in_tree() and not retry.disabled,
+	_check(retry != null and _reachable(retry) and not retry.disabled and retry.has_focus() and retry.text == "Retry return",
 		"Transient write failure retains an enabled retry")
 	_check(FileAccess.set_unix_permissions(directory, permissions) == OK, "Restore directory permissions")
 
@@ -138,34 +141,87 @@ func _check_return_displays(profile: Dictionary) -> void:
 			"Returned ledger shows receipt total and current balance for " + expected)
 
 
+func _check_long_return_diagnostic() -> void:
+	var original: String = scene.get("_return_error")
+	var diagnostic := "Could not write /" + "test-owned/subdirectory/".repeat(145) + "profile.json."
+	scene.set("_return_error", diagnostic)
+	scene.call("_show_result")
+	for frame in 3:
+		await process_frame
+	var title := _node("ReturnNotSaved") as Label
+	var copy := _node("ReturnDiagnostic") as Label
+	var scroller := _node("ResultDetailsScroll") as ScrollContainer
+	var retry := _node("ReturnToGuild") as Button
+	_check(_reachable(title) and title.text == "Return not saved" and _reachable(retry) and retry.has_focus(),
+		"Long write diagnostic keeps its heading and the focused retry on screen")
+	_check(copy != null and copy.text.begins_with(diagnostic) and scroller != null
+		and scroller.get_global_rect().has_point(copy.get_global_rect().position + Vector2.ONE),
+		"Long diagnostic begins on screen and preserves the full error")
+	if scroller != null:
+		var bar := scroller.get_v_scroll_bar()
+		_check(bar.focus_mode == Control.FOCUS_ALL, "Overflowing return diagnostic is keyboard reachable")
+		bar.grab_focus()
+		var down := InputEventAction.new()
+		down.action = "ui_down"
+		down.pressed = true
+		viewport.push_input(down, true)
+		await process_frame
+		_check(scroller.scroll_vertical > 0, "Keyboard scroll moves the return diagnostic")
+	scene.set("_return_error", original)
+	scene.call("_show_result")
+	await process_frame
+
+
 func _check_result_displays() -> void:
 	var adventure = load("res://adventure.gd")
 	var original: Dictionary = scene.get("_run")
-	var summaries: Array[String] = []
+	var samples := {
+		"victory": [4, "won", "4 points", "5 points", "9 points"],
+		"defeat": [4, "lost", "4 points", "0 points", "4 points"],
+		"forfeit": [4, "forfeited", "4 points", "0 points", "4 points"],
+		"not_reached": [0, "not reached", "0 points", "0 points", "0 points"],
+	}
 	for outcome: String in ["victory", "defeat", "forfeit", "not_reached"]:
 		var fixture := original.duplicate(true)
+		var expected: Array = samples[outcome]
+		fixture.mission_index = expected[0]
 		fixture.mission.mission_id = "shield_wall" if outcome == "not_reached" else fixture.destination_id
-		fixture.mission.outcome = "defeat" if outcome in ["defeat", "forfeit"] else "victory"
+		fixture.mission.outcome = "victory" if outcome == "victory" else "defeat"
 		fixture.mission["_voluntary_defeat"] = outcome == "forfeit"
 		fixture.outcome = fixture.mission.outcome
 		fixture.last_result.outcome = fixture.outcome
+		fixture.last_result.mission_id = fixture.mission.mission_id
 		var receipt: Dictionary = adventure.receipt(fixture)
 		_check(receipt.get("destination_outcome") == outcome, "Result fixture represents " + outcome)
 		scene.set("_run", fixture)
 		scene.call("_show_result")
-		await process_frame
-		var summary: String = scene.call("_receipt_summary", receipt)
-		_check(not summary.is_empty() and summary in _visible_text(),
-			"Result renders the actual receipt for " + outcome)
-		_check(_mentions_destination(summary.to_lower(), outcome),
-			"Result distinguishes destination " + outcome.replace("_", " "))
-		_check("total" in summary.to_lower() and str(receipt.points) in summary,
-			"Result retains the receipt total for " + outcome)
-		_check(summary not in summaries, "Destination outcomes have distinct summaries")
-		summaries.append(summary)
+		for frame in 3:
+			await process_frame
+		_check_receipt_row("Road", "Road (%d wins)" % expected[0], expected[2])
+		_check_receipt_row("Destination", "Destination (%s)" % expected[1], expected[3])
+		_check_receipt_row("Total", "Total", expected[4])
+		var title := _node("ResultMissionTitle") as Label
+		var defs: Dictionary = scene.get("_definitions")
+		_check(title != null and title.text == defs.missions[fixture.mission.mission_id].title,
+			"Result identifies the terminal mission, not merely the commission destination")
+		var art = load("res://presentation/guild_book_art.gd")
+		var image: Texture2D = art.destination(fixture.mission.mission_id)
+		if image == null:
+			image = art.report(fixture.mission.mission_id)
+		var frame := _node("ResultMissionArt")
+		var prints := frame.find_children("*", "TextureRect", true, false) if frame != null else []
+		_check(prints.size() == 1 and prints[0].texture == image, "Terminal mission uses its own packaged art")
 	scene.set("_run", original)
 	scene.call("_show_result")
 	await process_frame
+
+
+func _check_receipt_row(id: String, caption: String, amount: String) -> void:
+	var entry := _node("Receipt" + id)
+	var label := entry.find_child("ReceiptLabel", true, false) as Label if entry != null else null
+	var value := entry.find_child("ReceiptValue", true, false) as Label if entry != null else null
+	_check(label != null and value != null and label.text == caption and value.text == amount
+		and _reachable(label) and _reachable(value), "Receipt prints %s: %s" % [caption, amount])
 
 
 func _mentions_destination(text: String, outcome: String) -> bool:

@@ -18,6 +18,8 @@ const GuildBoundPage = preload("res://presentation/guild_bound_page.gd")
 const CommissionBoardPage = preload("res://presentation/commission_board_page.gd")
 const FieldReportsPage = preload("res://presentation/field_reports_page.gd")
 const MissionDebriefPage = preload("res://presentation/mission_debrief_page.gd")
+const RunResultPage = preload("res://presentation/run_result_page.gd")
+const ReceiptCopy = preload("res://presentation/guild_receipt_copy.gd")
 const GuildPetitionViewModel = preload("res://presentation/guild_petition_view_model.gd")
 const DEFAULT_ADVENTURE := "first_outing"
 const TERMINAL_REPLAY_STALL_MS := 3200
@@ -440,20 +442,7 @@ func _select_commission(offer: Dictionary) -> void:
 
 
 func _receipt_summary(receipt: Dictionary) -> String:
-	if receipt.is_empty():
-		return ""
-	var outcome := "not reached"
-	match str(receipt.get("destination_outcome", "not_reached")):
-		"victory":
-			outcome = "won"
-		"defeat":
-			outcome = "lost"
-		"forfeit":
-			outcome = "forfeited"
-	return "Road: %d points (%d wins)  ·  Destination: %d points (%s)  ·  Total: %d points" % [
-		int(receipt.get("road_points", 0)), int(receipt.get("road_wins", 0)),
-		int(receipt.get("destination_points", 0)), outcome,
-		int(receipt.get("points", 0))]
+	return ReceiptCopy.summary(receipt)
 
 
 func _show_petitions(focus_name := "") -> void:
@@ -1225,59 +1214,25 @@ func _debrief_carry_lines(compact: bool) -> String:
 
 func _show_result() -> void:
 	var result: Dictionary = _run.last_result
-	var page := _book_page("result", 0.55)
-	var success: bool = result.outcome == "victory"
-	var outing := "Adventure" if _commission.is_empty() else "Commission"
-	var leaves := _book.spread(page, 0.55, 45)
-	var front := _book.inset(leaves[0], GuildBookPage.FOREST if success else Color("#583c32"),
-		GuildBookPage.BRASS, 31, 28)
-	front.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var closing := _book.stack(front, 17)
-	_book.rule(closing, GuildBookPage.BRASS)
-	var outcome := _book.text(closing, "%s %s" % [outing, "complete" if success else "failed"],
-		52, GuildBookPage.CREAM, "display")
-	outcome.name = "RunOutcome"
-	outcome.set_meta("outcome", result.outcome)
-	_book.text(closing, _mission_title_for(result.mission_id), 28, GuildBookPage.CREAM, "italic")
 	var painting := _destination_plate(str(result.mission_id))
 	var image := painting if painting != null else _report_plate(str(result.mission_id))
-	if image != null:
-		var plate := _book.plate(closing, image, Vector2(0, 292),
-			"study" if painting == null else "crop")
-		plate.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	else:
-		_book.space(closing, 90, true)
-	_book.rule(closing, GuildBookPage.BRASS)
-	var account := leaves[1]
-	_book.space(account, 87)
-	_book.text(account, "Back at the guild", 41, GuildBookPage.INK, "display")
-	_book.rule(account)
-	if not result.text.is_empty():
-		_book.text(account, result.text, 19)
-	_book.space(account, 7)
-	if _commission.is_empty():
-		_book.text(account, "Return to the guild to recruit a fresh party.", 17, GuildBookPage.SUBTLE)
-	else:
-		_book.text(account, "Return to %s for a fresh commission board." % _guild_profile.name, 17, GuildBookPage.SUBTLE)
-		if _uses_builtin_catalog:
-			_book.text(account, _receipt_summary(Adventure.receipt(_run)), 17, GuildBookPage.FOREST)
-			if not _return_error.is_empty():
-				var message := "Return not saved: " + _return_error + " Try returning again."
-				if _return_conflict:
-					message = "The guild or its current board changed. This return was not saved. Discard this outing to load the current ledger; its pending payout will not be credited."
-				_book.text(account, message, 16, GuildBookPage.RUST)
-	_book.space(account, 10)
-	var return_button := _book.button(account, "ReturnToGuild", "Return to guild", "ClothButton")
-	return_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	_book.set_disabled(return_button, _return_conflict)
-	return_button.pressed.connect(_return_to_guild)
-	if _return_conflict:
-		var reload := _book.button(account, "ReloadGuild", "Discard outing and load current guild", "QuietButton")
-		reload.pressed.connect(_discard_conflicted_return)
-		reload.grab_focus()
-	else:
-		return_button.grab_focus()
-	_book.space(account, 12, true)
+	var commission := not _commission.is_empty()
+	var book := RunResultPage.new()
+	var page := _book_page("result", -1.0, book)
+	book.populate(page, {
+		"outcome": result.outcome,
+		"outing": "Commission" if commission else "Adventure",
+		"mission_title": _mission_title_for(str(result.mission_id)),
+		"mission_text": str(result.get("text", "")),
+		"image": image,
+		"sketch": painting == null,
+		"receipt": ReceiptCopy.rows(Adventure.receipt(_run)) if commission and _uses_builtin_catalog else [],
+		"guild_name": str(_guild_profile.get("name", "")) if commission else "",
+		"return_error": _return_error if commission and _uses_builtin_catalog else "",
+		"conflict": _return_conflict if commission and _uses_builtin_catalog else false,
+		"return": _return_to_guild,
+		"discard": _discard_conflicted_return,
+	})
 
 
 func _return_to_guild() -> void:

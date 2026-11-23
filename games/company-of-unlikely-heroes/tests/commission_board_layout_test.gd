@@ -28,7 +28,7 @@ func _run() -> void:
 		_cleanup()
 		return
 	var offers := Commissions.board(defs, REVIEW_SEED)
-	var summary: String = scene.call("_receipt_summary", settled.last_receipt)
+	var summary := "Road: 1 point (1 win)  ·  Destination: 0 points (not reached)  ·  Total: 1 point"
 	for failed_refresh in [false, true]:
 		# Exercise the combined presentation state without manufacturing an I/O error.
 		if failed_refresh:

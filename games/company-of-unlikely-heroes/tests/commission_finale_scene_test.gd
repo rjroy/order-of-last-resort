@@ -4,6 +4,7 @@ extends "res://tests/village_outing_scene_test.gd"
 # Every fixture encounter has one adjacent, one-HP opponent. Battles are still
 # won through the normal command editor and committed round, not state edits.
 const BOARD_SEED := 147258
+const TERMINAL_EVENT := "The last opponent yielded. "
 var fixture_path := "user://commission_finale_catalog_%d.json" % OS.get_process_id()
 var profile_path := "user://commission_finale_profile_%d.json" % OS.get_process_id()
 
@@ -31,7 +32,8 @@ func _run() -> void:
 	for index in 8:
 		var id := "finale_destination_%d" % index
 		defs.missions[id] = mission.duplicate(true)
-		defs.missions[id].title = "Destination %d" % index
+		defs.missions[id].title = "Destination %d: " % index + "The far wall beyond the lantern road. ".repeat(87)
+		defs.missions[id].objective.victory_event = TERMINAL_EVENT.repeat(85)
 		defs.mission_reports[id] = {
 			"kind": "finale_kind_%d" % (index % 4),
 			"descriptors": ["Report " + id], "destination_descriptors": ["Contract " + id]
@@ -63,6 +65,7 @@ func _run() -> void:
 func _journey(defs: Dictionary, offer_index: int) -> void:
 	var store = load("res://guild_profile.gd")
 	store.create(profile_path, "Finale Test", BOARD_SEED)
+	var previous: Dictionary = store.load_profile(profile_path)
 	if is_instance_valid(scene):
 		scene.queue_free()
 		await process_frame
@@ -120,8 +123,35 @@ func _journey(defs: Dictionary, offer_index: int) -> void:
 			run = scene.get("_run")
 			_check(run.get("reward_offers", []).is_empty(), label + ": no completion payout")
 			_check(_node("Reward_" + PARTY[0]) == null, label + ": no completion reward UI")
-			await _press("ReturnToGuild")
+			for frame in 3:
+				await process_frame
+			var heading := _node("ResultMissionTitle") as Label
+			_check(heading != null and heading.text == title and heading.accessibility_name == title
+				and heading.tooltip_text == title and heading.get_visible_line_count() <= 2 and _reachable(heading),
+				label + ": a long authored title stays bounded with full accessible text")
+			var copy := _node("ResultMissionText") as Label
+			var scroll := _node("ResultDetailsScroll") as ScrollContainer
+			_check(copy != null and copy.text == TERMINAL_EVENT.repeat(85)
+				and scroll != null and scroll.get_v_scroll_bar().max_value > scroll.get_v_scroll_bar().page,
+				label + ": complete authored ending remains scrollable")
+			_check(_node("ReceiptRoad") == null and _node("ResultMissionArt") == null,
+				label + ": custom ending does not claim a stock payout or borrow stock mission art")
+			var leave := _node("ReturnToGuild") as Button
+			_check(_reachable(leave) and leave.has_focus(), label + ": long title and ending keep focused return on screen")
+			if leave == null or not leave.has_focus():
+				return
+			for pressed in [true, false]:
+				var key := InputEventKey.new()
+				key.keycode = KEY_ENTER
+				key.pressed = pressed
+				viewport.push_input(key, true)
+				await process_frame
 			_check(scene.current_screen() == "commissions", label + ": return opens commissions, not fixed guild")
+			var returned: Dictionary = store.load_profile(profile_path)
+			_check(returned.get("points", -1) == 0
+				and returned.get("board_generation", -1) == previous.get("board_generation", -1) + 1
+				and returned.get("last_receipt", {}).is_empty(),
+				label + ": custom return advances the board without credit or receipt")
 			return
 		if scene.current_screen() != "debrief":
 			_check(false, label + ": stage %d victory opens debrief" % step)

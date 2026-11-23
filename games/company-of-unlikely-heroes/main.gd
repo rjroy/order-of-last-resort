@@ -582,10 +582,11 @@ func _option_row(id: String, selected: bool, enabled := true, reason := "", orde
 
 
 func _show_recruitment(focus_name := "") -> void:
+	var folio_scroll_name := "LoadoutScroll" if _recruitment_folio == "loadout" else "RecruitScroll"
 	var previous_scroll: ScrollContainer
 	if _screen == "guild":
-		previous_scroll = _screen_root.find_child("RecruitScroll", true, false) as ScrollContainer
-	var roster_position := previous_scroll.scroll_vertical if previous_scroll != null else 0
+		previous_scroll = _screen_root.find_child(folio_scroll_name, true, false) as ScrollContainer
+	var folio_position := previous_scroll.scroll_vertical if previous_scroll != null else 0
 	var book := GuildBoundPage.new()
 	var page := _book_page("guild", -1.0, book)
 	var available: Array = GuildProfile.roster(_definitions, _guild_profile)
@@ -647,16 +648,14 @@ func _show_recruitment(focus_name := "") -> void:
 	})
 	var focused := _focus_presenter(_recruitment_page, focus_name if not focus_name.is_empty() else
 		("Recruit_" + str(available[0]) if not available.is_empty() else "BackToCommissions"))
-	var roster_scroll := book.find_child("RecruitScroll", true, false) as ScrollContainer
-	if roster_scroll != null and focused != null and roster_scroll.is_ancestor_of(focused):
-		_reveal_rebuilt_recruit(roster_scroll, focused, roster_position)
+	var folio_scroll := book.find_child(folio_scroll_name, true, false) as ScrollContainer
+	if folio_scroll != null and focused != null and folio_scroll.is_ancestor_of(focused):
+		_reveal_rebuilt_folio_focus(folio_scroll, focused, folio_position)
 
 
-func _reveal_rebuilt_recruit(scroll: ScrollContainer, focused: Control, position: int) -> void:
-	# Follow-focus runs when focus is grabbed, before the rebuilt roster has bounds.
-	var tree := get_tree()
-	await tree.process_frame
-	await tree.process_frame
+func _reveal_rebuilt_folio_focus(scroll: ScrollContainer, focused: Control, position: int) -> void:
+	# Follow-focus runs before the rebuilt folio has bounds.
+	await get_tree().process_frame
 	if is_instance_valid(scroll) and scroll.is_inside_tree() \
 			and is_instance_valid(focused) and focused.has_focus():
 		_restore_book_scroll(scroll, position, focused)

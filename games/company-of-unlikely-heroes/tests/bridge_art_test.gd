@@ -84,6 +84,26 @@ func _run() -> void:
 	_check(_same_tile(tinted, first, EXIT_ART_CELL) and _same_tile(tinted, moved, EXIT_ART_CELL),
 		"Changing the objective must not affect decorative exit art")
 
+	# This board has no painting. Compare fixed interior and edge regions rather
+	# than whole-board differences, which cannot distinguish a fill change from
+	# the intended removal of tile outlines.
+	board.set_grid_visible(true)
+	var grid_shown := await _render(CELLS)
+	board.set_grid_visible(false)
+	var grid_hidden := await _render(CELLS)
+	for cell in [STONE_CELL, CUSTOM_CELL, Vector2i(3, 1)]:
+		var origin := Vector2i(board.cell_center(cell) - Board.TILE * 0.5)
+		var interior := Rect2i(origin + Vector2i(12, 12), Vector2i(72, 56))
+		var top_edge := Rect2i(origin + Vector2i(8, 2), Vector2i(80, 7))
+		_check(_changed_region_fraction(grid_shown, grid_hidden, interior) < 0.01,
+			"Hiding the grid preserves the tinted %s tile interior" % CELLS[cell])
+		_check(_changed_region_fraction(grid_shown, grid_hidden, top_edge) > 0.05,
+			"Hiding the grid removes the %s tile outline" % CELLS[cell])
+	board.set_grid_visible(true)
+	var grid_restored := await _render(CELLS)
+	_check(grid_shown.get_data() == grid_restored.get_data(),
+		"Showing the grid restores the procedural board rendering")
+
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("--capture="):
 			_save_comparison([plain, first, moved], argument.trim_prefix("--capture="))
@@ -110,7 +130,10 @@ func _same_tile(first: Image, second: Image, cell: Vector2i) -> bool:
 
 
 func _changed_fraction(first: Image, second: Image, cell: Vector2i) -> float:
-	var region := _tile_region(cell)
+	return _changed_region_fraction(first, second, _tile_region(cell))
+
+
+func _changed_region_fraction(first: Image, second: Image, region: Rect2i) -> float:
 	var changed := 0
 	for y in range(region.position.y, region.end.y):
 		for x in range(region.position.x, region.end.x):

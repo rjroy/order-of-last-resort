@@ -48,6 +48,7 @@ var _overlay: Dictionary = {}
 var _objective_zone: Dictionary[Vector2i, bool] = {}
 var _pen_zone: Dictionary[Vector2i, bool] = {}
 var _painting: BoardPainting.Plate
+var _grid_visible := true
 var _bounds := Rect2i()
 var _hover: Variant = null
 var _map_origin := Vector2.ZERO
@@ -88,6 +89,12 @@ func _ready() -> void:
 func set_painting(board_id: String) -> void:
 	_painting = BoardPainting.open(board_id) if not board_id.is_empty() else null
 	queue_redraw()
+
+
+func set_grid_visible(shown: bool) -> void:
+	if _grid_visible != shown:
+		_grid_visible = shown
+		queue_redraw()
 
 
 ## Set only while a replacement pressure-gate prop is actually installed.
@@ -369,7 +376,7 @@ func _draw() -> void:
 			_draw_exit()
 		if gate.get("cell") == cell and not _pressure_gate_prop_installed:
 			_draw_pressure_gate(gate.open)
-	if painted:
+	if painted and _grid_visible:
 		for cell: Vector2i in cells:
 			_at(_tile_origin(cell))
 			_draw_painted_grid(cell)
@@ -687,7 +694,7 @@ func _draw_tile(cell: Vector2i) -> void:
 	_rng.seed = hash(cell) + 991
 	var terrain := str(_cells[cell])
 	if terrain == "water":
-		_draw_water_cell()
+		_draw_water_grid_marks()
 		return
 	if terrain == "broken":
 		_draw_broken()
@@ -697,10 +704,14 @@ func _draw_tile(cell: Vector2i) -> void:
 		base = BRIDGE
 	elif terrain == "safe" or terrain == "exit":
 		base = SAFE
-	base = base.lerp(INK if _rng.randf() < 0.50 else PARCHMENT, _rng.randf_range(0.02, 0.13))
-	_piece(TILE_FACE, base, Color("#514b3e"), 1.3)
-	_line([Vector2(4, 7), Vector2(26, 4), Vector2(56, 5), Vector2(88, 4)], Color(PARCHMENT, 0.50), 1.4)
-	_line([Vector2(5, 75), Vector2(34, 73), Vector2(62, 76), Vector2(88, 74)], Color(INK, 0.30), 1.3)
+	var tile_tint := base.lerp(INK if _rng.randf() < 0.50 else PARCHMENT, _rng.randf_range(0.02, 0.13))
+	if _grid_visible:
+		_piece(TILE_FACE, tile_tint, Color("#514b3e"), 1.3)
+		_line([Vector2(4, 7), Vector2(26, 4), Vector2(56, 5), Vector2(88, 4)], Color(PARCHMENT, 0.50), 1.4)
+		_line([Vector2(5, 75), Vector2(34, 73), Vector2(62, 76), Vector2(88, 74)], Color(INK, 0.30), 1.3)
+	else:
+		# Keep the terrain tint while filling the inset gaps left by the grid.
+		draw_rect(Rect2(Vector2.ZERO, TILE), tile_tint)
 	for i in range(12):
 		var p := Vector2(_rng.randf_range(5, 72), _rng.randf_range(7, 69))
 		var tint := Color(PARCHMENT, _rng.randf_range(0.06, 0.20)) if i % 3 > 0 else Color(INK, 0.11)
@@ -717,8 +728,10 @@ func _draw_tile(cell: Vector2i) -> void:
 			_draw_masonry(terrain == "bridge")
 
 
-func _draw_water_cell() -> void:
+func _draw_water_grid_marks() -> void:
 	# A mapped water cell has a faint survey mark; unmapped river has no tile.
+	if not _grid_visible:
+		return
 	_line([Vector2(4, 15), Vector2(4, 4), Vector2(17, 4)], Color(FOAM, 0.39), 1.0)
 	_line([Vector2(79, 76), Vector2(92, 76), Vector2(92, 65)], Color(FOAM, 0.39), 1.0)
 
@@ -744,7 +757,7 @@ func _draw_masonry(bridge: bool) -> void:
 
 
 func _draw_broken() -> void:
-	_draw_water_cell()
+	_draw_water_grid_marks()
 	var chip := _rng.randf_range(-10, 13)
 	_piece([Vector2(2, 3), Vector2(37 + chip, 3), Vector2(34 + chip, 10), Vector2(44 + chip, 15),
 		Vector2(27, 19), Vector2(24, 31), Vector2(15, 32), Vector2(17, 46),

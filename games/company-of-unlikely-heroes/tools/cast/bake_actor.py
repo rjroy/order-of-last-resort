@@ -294,6 +294,7 @@ def bake(role, work, recipe=None):
             without_shield = role == "knight" and clip in (
                 "shield_away", "rescue_line_unshielded", "bonk_unshielded",
                 "down_unshielded", "recover_unshielded",
+                "defeat_unshielded",
             )
             if without_shield:
                 variant = "without_shield"

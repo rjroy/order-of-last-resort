@@ -42,6 +42,8 @@ func _run() -> void:
 	for hero in ["wizard", "alchemist"]:
 		for facing in [-1, 1]:
 			await _pull_recovery(hero, facing)
+			await _seated_pull_then_lethal(hero, facing)
+			await _self_lethal_pull(hero, facing)
 	for hero in ["rogue", "alchemist"]:
 		_jelly_after_action(hero)
 	_laughter_excluded()
@@ -266,6 +268,189 @@ func _pull_recovery(hero: String, facing: int) -> void:
 				await _render_pull_recovery(hero, own[0], recovery_cue, facing, queued, legacy)
 		await _recovery_before_queued_pull(hero, own[0], rise, facing)
 		await _intervening_blast(hero, facing, down, own[0])
+
+
+func _seated_pull_then_lethal(hero: String, facing: int) -> void:
+	var label := "%s seated Pull facing %d" % [hero, facing]
+	var before := _fixture(hero)
+	_entity(before, "victim").hp = 5
+	_entity(before, "attacker").character_id = "wizard"
+	_entity(before, "attacker").position = Vector2i(3 + 3 * facing, 3)
+	var pull_plan: Dictionary = rules.preview(before, "victim", "wizard_pull", "attacker")
+	if not pull_plan.get("valid", false):
+		_check(false, label + ": real own Pull resolves")
+		return
+	var down: Dictionary = rules.apply_plan(before, pull_plan)
+	var pull := _cue(Cues.build(before, down, pull_plan.events), hero, "pull", label)
+	var hit: Dictionary = rules.preview(down, "attacker", "wizard_blast")
+	if pull.is_empty() or not hit.get("valid", false):
+		_check(false, label + ": subsequent real Blast resolves")
+		return
+	var dead: Dictionary = rules.apply_plan(down, hit)
+	var hit_cues: Array = Cues.build(down, dead, hit.events)
+	var deaths := hit_cues.filter(func(cue): return cue.get("unit_id") == "victim" \
+		and cue.get("hero_defeat", false))
+	_check(_entity(down, "victim").hp > 0 and rules.knocked_down(down, "victim") \
+		and _entity(dead, "victim").hp == 0 and deaths.size() == 1 \
+		and deaths[0].get("was_prone", false), label + ": real Pull recoil precedes lethal Blast")
+	if deaths.size() != 1:
+		return
+	board.clear_action_playback()
+	var unit := {"id": "victim", "art_key": hero, "cast_key": hero, "cell": CELL,
+		"facing": 1, "hp": _entity(down, "victim").hp, "max_hp": 20, "prone": true,
+		"guild_knockdown_art": true, "transient": true}
+	board.set_render_state(CELLS, [unit])
+	board.play_committed_actions([pull])
+	board.set_process(false)
+	var active: Array = board.get("_playback").active()
+	if active.size() != 1:
+		_check(false, label + ": own Pull animates")
+		return
+	board._process((active[0].duration_ms + 1.0) / 1000.0)
+	board.set_process(false)
+	var seated := await _capture()
+	_check(board.get("_pull_facing").get("victim") == float(facing),
+		label + ": own Pull establishes an oriented seated hold")
+	unit.hp = 0
+	unit["visual_defeat"] = true
+	board.set_render_state(CELLS, [unit])
+	board.play_committed_actions(hit_cues)
+	board.set_process(false)
+	active = board.get("_playback").active()
+	_check(active.any(func(entry): return entry.cue.get("unit_id") == "attacker" \
+		and entry.cue.get("clip") == "blast") \
+		and not active.any(func(entry): return entry.cue.get("hero_defeat", false)),
+		label + ": lethal defeat waits for actual attack impact")
+	var waiting := await _capture()
+	_check(_difference(seated, waiting) == 0,
+		label + ": waiting for lethal impact preserves the actual seated hold")
+	var attack := active.filter(func(entry): return entry.cue.get("unit_id") == "attacker")
+	var impact_frame: Image
+	if attack.size() == 1:
+		board._process(maxf(0.0, attack[0].impact_ms - 1.0) / 1000.0)
+		board.set_process(false)
+		_check(_difference(seated, await _capture()) == 0,
+			label + ": seated hold remains until immediately before impact")
+		board._process(0.002)
+		board.set_process(false)
+		_check(board.get("_playback").active().any(func(entry): return entry.cue.get("hero_defeat", false)),
+			label + ": defeat begins at impact")
+		impact_frame = await _capture()
+	board._process((board.action_playback_remaining_ms() + 1.0) / 1000.0)
+	board.set_process(false)
+	var defeated := await _capture()
+	_check(_difference(defeated, seated) > 30, label + ": lethal impact settles to defeat, not seating")
+	_check(board.get("_defeat_facing").get("victim") == float(facing),
+		label + ": the final hold retains its lethal-transition facing")
+	unit.hp = 1
+	unit.erase("visual_defeat")
+	board.set_render_state(CELLS, [unit])
+	board.set_process(false)
+	var later_down := await _capture()
+	_check(_difference(later_down, seated) > 30 and not board.get("_pull_facing").has("victim"),
+		label + ": no stale seating survives into a later unrelated down")
+	if impact_frame != null:
+		await _oriented_defeat_reference(hero, facing, impact_frame, defeated, label)
+
+
+func _self_lethal_pull(hero: String, facing: int) -> void:
+	var label := "%s self-lethal Pull facing %d" % [hero, facing]
+	var before := _fixture(hero)
+	_entity(before, "victim").hp = 2
+	_entity(before, "attacker").position = Vector2i(3 + 3 * facing, 3)
+	var staged: Dictionary = rules.choose_manual(before, "victim", "wizard_pull", "attacker")
+	var plan: Dictionary = rules.preview_round(staged)
+	if not plan.get("valid", false):
+		_check(false, label + ": committed round is valid")
+		return
+	var after: Dictionary = rules.commit_round(staged, plan)
+	var unit_after := _entity(after, "victim")
+	var own_events: Array = plan.events.filter(func(event): return event.get("type") == "damage" \
+		and event.get("target_id") == "victim" and event.get("source_id") == "victim")
+	_check(unit_after.hp == 0 and own_events.size() == 1 and int(own_events[0].amount) == 2 \
+		and not unit_after.get("statuses", {}).has("knockdown"),
+		label + ": actual recoil is lethal without adding a knockdown status")
+	var cues: Array = Cues.build(before, after, plan.events)
+	var own: Array = cues.filter(func(cue): return cue.get("unit_id") == "victim" \
+		and cue.get("cast_key") == hero)
+	_check(own.size() == 2 and own[0].get("clip") == "pull" and own[1].get("clip") == "defeat" \
+		and own[1].get("hero_defeat", false),
+		label + ": exactly one own Pull precedes one defeat")
+	if own.size() != 2 or own[0].get("clip") != "pull" or own[1].get("clip") != "defeat":
+		return
+	board.clear_action_playback()
+	var unit := {"id": "victim", "art_key": hero, "cast_key": hero, "cell": CELL,
+		"facing": 1, "hp": 0, "max_hp": 20, "prone": true, "visual_defeat": true,
+		"guild_knockdown_art": true, "transient": true}
+	board.set_render_state(CELLS, [unit])
+	board.play_committed_actions(own)
+	board.set_process(false)
+	var active: Array = board.get("_playback").active()
+	if active.size() != 1 or active[0].cue.get("clip") != "pull":
+		_check(false, label + ": actual Pull plays before collapse")
+		return
+	var pull = active[0]
+	_check(pull.facing == float(facing), label + ": Pull faces the actual target")
+	board._process((pull.clip.total_ms - 1.0) / 1000.0)
+	board.set_process(false)
+	var seated := await _capture()
+	board._process((pull.duration_ms - pull.elapsed_ms) / 1000.0)
+	board.set_process(false)
+	active = board.get("_playback").active()
+	if active.size() != 1 or active[0].cue.get("clip") != "defeat":
+		_check(false, label + ": defeat follows the completed Pull")
+		return
+	var defeat = active[0]
+	_check(is_equal_approx(defeat.sample_offset_ms, defeat.clip.time_at_source_frame(16)) \
+		and defeat.facing == float(facing),
+		label + ": collapse begins grounded and retains Pull facing")
+	var collapse := await _capture()
+	_check(_difference(seated, collapse) > 30, label + ": defeat advances beyond the seated Pull")
+	board._process((defeat.duration_ms + 1.0) / 1000.0)
+	board.set_process(false)
+	var final := await _capture()
+	_check(_difference(collapse, final) > 30,
+		label + ": grounded collapse ends at the defeat hold")
+	_check(board.get("_defeat_facing").get("victim") == float(facing),
+		label + ": the final hold retains the Pull's facing")
+	board.set_render_state(CELLS, [])
+	_check(not board.get("_defeat_facing").has("victim"),
+		label + ": removing the visual row clears its stored facing")
+	board.play_committed_actions([own[1]])
+	board.set_process(false)
+	board._process(0.01)
+	_check(not board.get("_defeat_facing").has("victim"),
+		label + ": an absent actor cannot seed a facing for a later board")
+	await _oriented_defeat_reference(hero, facing, collapse, final, label)
+
+
+func _oriented_defeat_reference(hero: String, facing: int, actual_start: Image, actual_end: Image,
+		label: String) -> void:
+	# Registered actor clip sampled directly at floor contact and at its final
+	# frame. Explicit facing here is independent of the actual committed cue.
+	board.clear_action_playback()
+	var reference := {"id": "victim", "art_key": hero, "cast_key": hero, "cell": CELL,
+		"facing": facing, "hp": 0, "max_hp": 20, "prone": true, "visual_defeat": true,
+		"guild_knockdown_art": true, "transient": true}
+	board.set_render_state(CELLS, [reference])
+	board.play_committed_actions([{"unit_id": "victim", "cast_key": hero, "clip": "defeat",
+		"source_cell": CELL, "actor_cell": CELL, "hero_defeat": true, "was_prone": true,
+		"facing": facing}])
+	board.set_process(false)
+	var expected_start := await _capture()
+	_check(_difference(actual_start, expected_start) == 0,
+		label + ": actual grounded defeat matches its oriented registered contact frame")
+	board.clear_action_playback()
+	board.set_render_state(CELLS, [reference])
+	board.set_process(false)
+	var expected_end := await _capture()
+	_check(_difference(actual_end, expected_end) == 0,
+		label + ": actual final hold matches its oriented registered final frame")
+	reference.facing = -facing
+	board.set_render_state(CELLS, [reference])
+	board.set_process(false)
+	_check(_difference(expected_end, await _capture()) > 30,
+		label + ": opposite-facing reference is visibly asymmetric")
 
 
 func _recovery_before_queued_pull(hero: String, pull: Dictionary, rise: Dictionary, facing: int) -> void:

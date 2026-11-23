@@ -13,7 +13,9 @@ func _initialize() -> void:
 		"wizard": {"blast": _clip([1, 17], [500.0, 500.0])},
 		"rogue": {"potion": _clip([1, 15], [600.0, 400.0]),
 			"down": _clip([1, 16, 24], [625.0, 333.0, 167.0]),
-			"recover": _clip([1, 22, 26], [875.0, 167.0, 125.0])},
+			"recover": _clip([1, 22, 26], [875.0, 167.0, 125.0]),
+			"defeat": _clip([1, 4, 8, 12, 16, 20, 24],
+				[125.0, 167.0, 166.0, 167.0, 167.0, 166.0, 167.0])},
 	})
 	var timeline := Playback.new()
 	timeline.enqueue([
@@ -60,6 +62,18 @@ func _initialize() -> void:
 	timeline.advance(1.0)
 	_check(timeline.active().size() == 1 and timeline.active()[0].cue.clip == "down",
 		"Same-round later knockdown follows recovery exactly once")
+	timeline.clear()
+	timeline.enqueue([
+		{"unit_id": "caster", "cast_key": "wizard", "clip": "blast"},
+		{"unit_id": "target", "cast_key": "rogue", "clip": "defeat",
+			"hero_defeat": true, "was_prone": true, "after_cue": 0},
+	], art)
+	timeline.advance(500.0)
+	active = timeline.active()
+	var defeats := active.filter(func(entry): return entry.cue.get("hero_defeat", false))
+	_check(defeats.size() == 1 and is_equal_approx(defeats[0].sample_offset_ms, 625.0) \
+		and defeats[0].clip.source_frames[defeats[0].clip.frame_index(defeats[0].sample_offset_ms)] == 16,
+		"A lethal hit on a down hero starts the collapse at floor contact, never upright")
 	for message in failures:
 		push_error("FAIL: " + message)
 	if failures.is_empty():

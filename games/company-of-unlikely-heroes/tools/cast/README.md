@@ -127,6 +127,12 @@ To rebuild just these actors, use the disk-backed subset recipe above with `knig
 
 Use the same disk-backed subset command with `knight healer wizard rogue bard necromancer alchemist`. Compare ground-registered drawings for all three seams: Ready into fall, the down-to-recover hold, and return to Ready. These are living performances, not defeat art.
 
+## Guild defeat
+
+`cast/defeat_poses.py` bakes separate unsupported falls on the seven unchanged guild rigs. Each `defeat` begins on the original Ready drawing, contacts the floor at F16 (625 ms), and settles in the final F24 drawing (958 ms). The take is non-looping and ends at 1125 ms. The Knight’s `defeat_unshielded` hides the full detachable shield throughout. As the Bard’s arms go slack, the fiddle follows its sampled hand grip rather than staying across the chest. Defeat artwork stays registered to the tile and does not imply a rules occupant.
+
+Rebuild with the same seven-role disk-backed subset command. Check the final prone silhouette against the corresponding living hold, plus clearance of attached kit and the exact registered pixels of all previous clips.
+
 **Drawing contract.** `manifest.actors[art_key].clips[name]` gives `path`, `frames`, `anchor` and `loop`; each frame is an atlas `rect: [x,y,width,height]` with `source_frame` and `duration_ms`. Use the root-level `display_scale` (0.375) uniformly. Register the **clip-local** anchor, not the rectangle center, on the actor's ground position. If mirroring, mirror the entire draw around that position. Three clear pixels surround all nonzero alpha in each rectangle, including the warm outline. Rectangles can repeat. On actor drawings the anchor is the projected ground origin, unchanged by the current pose. Thus planted feet stay put; even the Wizard's slip moves relative to a stationary ground point.
 
 At Zombie Offer Flower's `release.time_ms` (875 ms; F22), stop drawing a held gift. The baked actor already has an empty hand on this and every subsequent drawing. Start the separate `gift` clip at actor ground position plus `release.offset * display_scale`, mirroring the horizontal component when the actor faces the other way. The gift clip anchor locates its **stone root**, not its feet or bounds center. Its offset comes from the evaluated authored prop root at the marker. Draw flight to the chosen target; the model's review trajectory is deliberately absent. Only a switch back to Ready restores the held gift after the throw. For a shot sequence stay on its final empty frame until that transition.
@@ -141,7 +147,7 @@ The `alchemist` atlas is derived from the [exact accepted Mixologist rig](../../
 
 | Clip | Source and timing |
 | --- | --- |
-| `ready` | A derived two-second rack-check loop based on Ready F1. Prone and fallen use the board's existing drawing treatment, not new native takes. |
+| `ready` | A derived two-second rack-check loop based on Ready F1. See the separate living knockdown and defeat recipes above. |
 | `potion` | Healing Potion. The full two-hand offer starts at F17 (667 ms); the bottle is gone at F24 (958 ms). F36 returns to Ready. Total: 1583 ms. |
 | `acid` | Acid Toss. F16 is the final held sample. At F18 (708 ms), the flask is detached and only the actor remains in the take; F32 returns to Ready. Total: 1417 ms. |
 | `acid_flask` | F18, one drawing registered to the authored flask root. The `acid.release` offset places it at that same world-space departure pose (projected offset `[104.975, -165.482]` in atlas pixels). Mirror X around the actor's ground point when the throw faces left. The native flight is not baked; the board can fly this separate drawing to the resolved target. |

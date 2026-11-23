@@ -66,7 +66,12 @@ func _run() -> void:
 	_check(_unit(fallen, "knight").hp == 0, "Second Blast takes the Knight from 3 to zero")
 	var cues: Array = Cues.build(before, fallen, first.events + second.events)
 	_check(not cues.any(func(cue): return cue.get("unit_id") == "knight" \
-		and not cue.has("hero_knockdown")), "The fallen Knight has no committed action in this batch")
+		and not cue.has("hero_knockdown") and not cue.get("hero_defeat", false)),
+		"The fallen Knight has no committed action in this batch")
+	var defeats := cues.filter(func(cue): return cue.get("unit_id") == "knight" \
+		and cue.get("hero_defeat", false) and cue.get("clip") == "defeat")
+	_check(defeats.size() == 1 and defeats[0].get("was_prone", false),
+		"A real lethal hit on an already down Knight queues one prone defeat")
 	var downs := cues.filter(func(cue): return cue.get("unit_id") == "knight" \
 		and cue.get("hero_knockdown") == "down")
 	_check(downs.size() == 1, "Real committed Blast batch includes the Knight's living down reaction")
@@ -94,6 +99,10 @@ func _run() -> void:
 			and cue.get("clip") == "rescue_line")
 		_check(_unit(final, "knight").hp == 0 and actions.size() == 1,
 			"Real Rescue Line precedes the two fatal Blasts")
+		var death := performed.filter(func(cue): return cue.get("unit_id") == "knight" \
+			and cue.get("hero_defeat", false))
+		_check(actions.size() == 1 and death.size() == 1 and performed.find(actions[0]) < performed.find(death[0]),
+			"Fallen Knight's actual action remains ahead of exactly one defeat")
 		if actions.size() == 1:
 			var empty := await _image([], [])
 			var acting := await _image([], [actions[0]])

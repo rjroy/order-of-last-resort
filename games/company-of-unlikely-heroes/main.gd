@@ -1988,7 +1988,9 @@ func _refresh_board() -> void:
 	for unit in _state.units:
 		var is_objective: bool = unit.id == _state.objective.get("subject") \
 			or unit.id in _state.objective.get("subjects", [])
-		if unit.hp <= 0 and not is_objective:
+		var visual_defeat: bool = unit.hp <= 0 and not is_objective \
+			and not CastCues.guild_hero_key(_state, unit).is_empty()
+		if unit.hp <= 0 and not is_objective and not visual_defeat:
 			continue
 		var profile: Dictionary = _rules.entity_profile(_state, unit.id)
 		var show_label: bool = "commandable" in profile.capabilities or "minion" in profile.capabilities
@@ -2001,6 +2003,9 @@ func _refresh_board() -> void:
 			"prone": unit.hp <= 0 or _rules.knocked_down(_state, unit.id),
 			"guarded": _rules.has_status_handler(_state, unit.id, "reflect"),
 			"shield_away": _rules.shield_position(_state, unit.id) is Vector2i}
+		if visual_defeat:
+			figure["visual_defeat"] = true
+			figure["label"] = ""
 		var cast_key := CastCues.cast_key_for(_state, unit, profile)
 		if not cast_key.is_empty():
 			figure["cast_key"] = cast_key

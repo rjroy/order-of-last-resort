@@ -179,8 +179,12 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 		var moved := {}
 		var retaliations := {}
 		var detonations := {}
+		var pull_recoil_pending := false
 		while index < end:
 			var event: Dictionary = events[index]
+			if event.get("type") == "pull" and event.get("unit_id") == action.get("unit_id") \
+					and event.get("recoil_position") is Vector2i and action.get("ability_id") == "wizard_pull":
+				pull_recoil_pending = true
 			if event.get("type") == "move" and event.get("unit_id") == action.get("unit_id") \
 					and event.get("position") is Vector2i \
 					and event.get("position") != positions.get(action.get("unit_id")):
@@ -215,6 +219,15 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 				var source: String = event.get("source_id", "")
 				var cause: String = event.get("damage_cause", "")
 				var amount := int(event.get("amount", 0))
+				var lethal_pull_recoil: bool = pull_recoil_pending and victim == cue.get("unit_id") \
+					and source == victim and cause.is_empty() and cue.get("cast_key") in ["wizard", "alchemist"] \
+					and cue.get("clip") == "pull" and int(health.get(victim, 0)) > 0 \
+					and amount >= int(health[victim])
+				if lethal_pull_recoil:
+					# Lethal recoil cannot apply the living knockdown status,
+					# but the committed Pull still finishes in its seated pose.
+					cue["pull_recoil_happened"] = true
+					pull_recoil_pending = false
 				if not cue.get("ordinary_presentation", false) \
 						and cue.get("cast_key") in ["wizard", "alchemist"] and cue.get("clip") == "pull" \
 						and victim == cue.get("unit_id") and source == victim \
@@ -239,6 +252,23 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 					var key := cast_key_for(after, target)
 					var presentation := presentation_for(after, target)
 					var hero_key := guild_hero_key(after, target)
+					if was_alive and amount > 0 and int(health[victim]) <= 0 and not hero_key.is_empty():
+						var defeat := _guild_reaction(victim, hero_key, "defeat", positions.get(victim),
+							bool(shield_away.get(victim, false)))
+						defeat.erase("hero_knockdown")
+						defeat["hero_defeat"] = true
+						defeat["was_prone"] = bool(prone.get(victim, false))
+						if lethal_pull_recoil:
+							defeat["start_grounded"] = true
+							var source_cell: Variant = cue.get("source_cell")
+							var target_cell: Variant = cue.get("target_cell")
+							if source_cell is Vector2i and target_cell is Vector2i \
+									and source_cell.x != target_cell.x:
+								defeat["facing"] = signi(target_cell.x - source_cell.x)
+						if dependency >= 0:
+							defeat["after_reaction"] = dependency
+						detonations[victim] = reactions.size()
+						reactions.append(defeat)
 					var new_knockdown: bool = Statuses.is_knockdown(after, event.get("status_id", "")) \
 						and not prone.get(victim, false) and int(health[victim]) > 0
 					var own_pull: bool = event.get("presentation_cause") == "pull_recoil" \

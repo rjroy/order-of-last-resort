@@ -65,6 +65,7 @@ var _ready_clips: Array[CastSprites.Clip] = []
 var _ready_ms := 0.0
 var _pull_facing: Dictionary[String, float] = {}
 var _pull_recovery_facing: Dictionary[String, float] = {}
+var _defeat_facing: Dictionary[String, float] = {}
 var _pressure_gate_prop_installed := false
 
 
@@ -119,6 +120,13 @@ func set_render_state(cells: Dictionary, units: Array, overlay: Dictionary = {})
 	for id in previous_units:
 		var previous: Dictionary = previous_units[id]
 		var current: Dictionary = _units_by_id.get(id, {})
+		if int(previous.get("hp", 1)) > 0 and int(current.get("hp", 1)) <= 0 \
+				and current.get("visual_defeat", false) and _pull_facing.has(id):
+			# The refreshed board is already dead, but the lethal cue can still
+			# be waiting for its attacker's impact.
+			_defeat_facing[id] = _pull_facing[id]
+		elif current.is_empty() or int(current.get("hp", 1)) > 0:
+			_defeat_facing.erase(id)
 		if bool(previous.get("prone", false)) \
 				and (not bool(current.get("prone", false)) or int(current.get("hp", 1)) <= 0):
 			if not current.is_empty() and int(current.get("hp", 1)) > 0:
@@ -133,6 +141,9 @@ func set_render_state(cells: Dictionary, units: Array, overlay: Dictionary = {})
 		if not bool(unit.get("prone", false)) or int(unit.get("hp", 1)) <= 0:
 			_pull_facing.erase(id)
 			_playback.clear_pull_recoil(id)
+	for id in _defeat_facing.keys():
+		if not _units_by_id.get(id, {}).get("visual_defeat", false):
+			_defeat_facing.erase(id)
 	_set_ready_clips()
 	_objective_zone.clear()
 	for at in _overlay.get("objective_zone", []):
@@ -165,6 +176,14 @@ func play_committed_actions(cues: Array) -> void:
 			if cue.get("control") == "clear_pull_recoil":
 				_remember_pull_recovery_facing(id)
 				_pull_facing.erase(id)
+				_defeat_facing.erase(id)
+			elif cue.get("hero_defeat", false) and _units_by_id.get(id, {}).get("visual_defeat", false):
+				var facing: Variant = cue.get("facing")
+				if (facing is int or facing is float) and absf(float(facing)) == 1.0:
+					_defeat_facing[id] = float(facing)
+				elif _defeat_facing.has(id):
+					cue = cue.duplicate(true)
+					cue["facing"] = _defeat_facing[id]
 			elif cue.get("hero_knockdown") == "seated_recover":
 				var facing: Variant = cue.get("facing")
 				if not ((facing is int or facing is float) and absf(float(facing)) == 1.0) \
@@ -185,6 +204,7 @@ func clear_action_playback() -> void:
 	_playback.clear()
 	_pull_facing.clear()
 	_pull_recovery_facing.clear()
+	_defeat_facing.clear()
 	_set_processing()
 	_figures.queue_redraw()
 
@@ -228,6 +248,10 @@ func _process(delta: float) -> void:
 	if redraw:
 		_playback.advance(delta * 1000.0)
 		_sync_playback_geometry()
+		for entry in _playback.active():
+			if entry.cue.get("hero_defeat", false) and entry.facing != 0.0 \
+					and _units_by_id.get(entry.cue.unit_id, {}).get("visual_defeat", false):
+				_defeat_facing[entry.cue.unit_id] = entry.facing
 		_set_processing()
 	else:
 		for clip in _ready_clips:
@@ -477,6 +501,7 @@ func _draw_figures() -> void:
 		var key := str(original.get("cast_key", ""))
 		var id := str(original.get("id", ""))
 		var ordinary_defeat := _ordinary_defeat_clip(original)
+		var hero_defeat: Dictionary = _playback.pending_hero_defeat(id)
 		var cell: Vector2i = original.cell
 		if key == "ferryman" or original.has("cast_lifecycle"):
 			cell = _playback.actor_cell(id, cell)
@@ -492,7 +517,8 @@ func _draw_figures() -> void:
 			if occupant == original:
 				occupant = original.duplicate()
 			occupant["prone"] = false
-		if (not ordinary_defeat.is_empty() and int(original.get("hp", 1)) <= 0 \
+		if (original.get("visual_defeat", false) and not hero_defeat.is_empty()) \
+				or (not ordinary_defeat.is_empty() and int(original.get("hp", 1)) <= 0 \
 				and _playback.has_pending_ordinary_role(id, "defeat")) \
 				or (not original.has("cast_lifecycle") and key == "harpooner" and int(original.get("hp", 1)) <= 0 \
 				and _playback.has_pending_clip(id, "defeat")) \
@@ -504,6 +530,8 @@ func _draw_figures() -> void:
 				occupant = original.duplicate()
 			occupant["pre_defeat"] = true
 			occupant["label"] = ""
+			if not hero_defeat.is_empty():
+				occupant["prone"] = bool(hero_defeat.get("was_prone", false))
 		occupants.append(occupant)
 	for entry in active:
 		if entry.elapsed_ms >= entry.clip.total_ms:
@@ -523,6 +551,9 @@ func _draw_figures() -> void:
 			var ordinary_recover: bool = entry.cue.get("ordinary_presentation", false) \
 				and entry.cue.get("ordinary_role") == "recover"
 			var hero_reaction := _is_guild_reaction(entry)
+			var hero_defeat: bool = entry.cue.get("hero_defeat", false)
+			var before_hero_defeat: bool = unit.get("visual_defeat", false) \
+				and not _playback.pending_hero_defeat(id).is_empty()
 			var before_hero_down: bool = unit.get("guild_knockdown_art", false) \
 				and _playback.hero_pending_pose(id) == "ready"
 			var legacy_lifecycle := not unit.has("cast_lifecycle")
@@ -533,12 +564,13 @@ func _draw_figures() -> void:
 			var ferryman_reaction: bool = legacy_lifecycle and entry.cue.cast_key == "ferryman" \
 				and (entry.cue.clip in ["flinch", "down", "recover"] or _playback.has_pending_clip(id, "down"))
 			if int(unit.get("hp", 1)) <= 0 and not dose_gesture and not harpoon_reaction \
-					and not before_harpoon_defeat and not ferryman_reaction and not before_ordinary_defeat:
+					and not before_harpoon_defeat and not ferryman_reaction and not before_ordinary_defeat \
+					and not before_hero_defeat and not hero_defeat:
 				continue
 			if bool(unit.get("prone", false)) and not _is_pull_gesture(entry) and not dose_gesture \
 					and not harpoon_reaction and not before_harpoon_defeat and not ferryman_reaction \
 					and not before_ordinary_defeat and not ordinary_hit and not ordinary_recover \
-					and not hero_reaction and not before_hero_down:
+					and not hero_reaction and not before_hero_down and not hero_defeat and not before_hero_defeat:
 				continue
 			# A previous shield throw cannot remove a shield that has since been recovered.
 			if not entry.cue.get("ordinary_presentation", false) and entry.cue.clip == "shield_away" \
@@ -558,13 +590,16 @@ func _draw_figures() -> void:
 	for index in occupants.size():
 		var occupant: Dictionary = occupants[index]
 		var action: CastPlayback.Entry = actions.get(occupant.id)
-		if action != null and action.is_shield_throw():
+		if action != null and _uses_action_cell(occupant, action):
 			var cast_cell: Variant = action.cue.get("actor_cell", action.cue.get("source_cell"))
 			if cast_cell is Vector2i and cast_cell != occupant.cell:
 				occupant = occupant.duplicate()
 				occupant["cell"] = cast_cell
 				occupants[index] = occupant
-	occupants.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _reading_order(a.cell, b.cell))
+	occupants.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		if bool(a.get("visual_defeat", false)) != bool(b.get("visual_defeat", false)):
+			return bool(a.get("visual_defeat", false))
+		return _reading_order(a.cell, b.cell))
 	for unit in occupants:
 		if _cells.has(unit.cell):
 			_draw_unit_shadow(unit)
@@ -575,7 +610,7 @@ func _draw_figures() -> void:
 		_draw_committed_feedback(entry)
 	# Draw identifiers over all figures so a tall neighbor cannot cover a name.
 	for unit in occupants:
-		if _cells.has(unit.cell) and not unit.get("transient", false):
+		if _cells.has(unit.cell) and not unit.get("transient", false) and not unit.get("visual_defeat", false):
 			_at(_tile_origin(unit.cell))
 			var action: CastPlayback.Entry = actions.get(unit.id)
 			var down := bool(unit.get("prone", false)) or int(unit.get("hp", 1)) <= 0
@@ -904,7 +939,8 @@ func _draw_unit_shadow(unit: Dictionary) -> void:
 
 func _draw_unit(unit: Dictionary, action: CastPlayback.Entry) -> void:
 	var role := str(unit.art_key)
-	var prone := bool(unit.get("prone", false)) or int(unit.get("hp", 1)) <= 0
+	var prone: bool = bool(unit.get("prone", false)) or (int(unit.get("hp", 1)) <= 0 \
+		and not unit.get("pre_defeat", false))
 	var foot := _unit_foot(unit.cell)
 	var facing := _unit_facing(unit)
 	if _draw_cast(unit, foot, facing, prone, action):
@@ -948,20 +984,28 @@ func _draw_cast(unit: Dictionary, foot: Vector2, facing: float, prone: bool, act
 	var pending_hero_pose := _playback.hero_pending_pose(str(unit.get("id", "")))
 	var hero_hold := str(pending_hero_pose)
 	if hero_hold.is_empty() and prone:
-		hero_hold = "seated" if _pull_facing.has(unit.id) and cast_key in ["wizard", "alchemist"] else "down"
+		var seated := _pull_facing.has(unit.id) or (bool(unit.get("pre_defeat", false)) \
+			and _defeat_facing.has(unit.id))
+		hero_hold = "seated" if seated and cast_key in ["wizard", "alchemist"] else "down"
 	var hold_key := "pull" if hero_hold == "seated" else "down"
 	if cast_key == "knight" and bool(unit.get("shield_away", false)):
 		hold_key = "down_unshielded"
-	var can_hold_hero := bool(unit.get("guild_knockdown_art", false)) and int(unit.get("hp", 1)) > 0 \
+	var can_hold_hero := bool(unit.get("guild_knockdown_art", false)) \
+		and (int(unit.get("hp", 1)) > 0 or bool(unit.get("pre_defeat", false))) \
 		and action == null and not hero_hold.is_empty() \
 		and (hero_hold == "ready" or _cast.clip_for(cast_key, hold_key) != null)
-	if action != null and _is_guild_reaction(action):
+	if action != null and (_is_guild_reaction(action) or action.cue.get("hero_defeat", false)):
 		key = action.cue.clip
 		if cast_key == "knight" and bool(action.cue.get("shield_away", false)):
 			key += "_unshielded"
-		time_ms = action.elapsed_ms
+		time_ms = action.elapsed_ms + action.sample_offset_ms
 		turned_down = false
 		facing = action.facing if action.facing != 0.0 else facing
+	elif bool(unit.get("visual_defeat", false)) and not bool(unit.get("pre_defeat", false)):
+		key = "defeat_unshielded" if cast_key == "knight" and bool(unit.get("shield_away", false)) else "defeat"
+		time_ms = INF
+		turned_down = false
+		facing = _defeat_facing.get(unit.id, facing)
 	elif can_hold_hero:
 		if hero_hold == "ready":
 			key = "shield_away" if cast_key == "knight" and bool(unit.get("shield_away", false)) else "ready"
@@ -969,7 +1013,7 @@ func _draw_cast(unit: Dictionary, foot: Vector2, facing: float, prone: bool, act
 			key = hold_key
 			time_ms = INF
 			if hero_hold == "seated":
-				facing = _pull_facing.get(unit.id, facing)
+				facing = _pull_facing.get(unit.id, _defeat_facing.get(unit.id, facing))
 		turned_down = false
 	elif not unit.has("cast_lifecycle") and cast_key == "knight" and bool(unit.get("shield_away", false)):
 		# Equipment is authoritative. Never show a second shield on the unit.
@@ -1087,6 +1131,15 @@ func _is_dose_gesture(entry: CastPlayback.Entry) -> bool:
 		or (entry.cue.cast_key == "rogue" and entry.cue.clip == "potion"))
 
 
+func _uses_action_cell(unit: Dictionary, entry: CastPlayback.Entry) -> bool:
+	# The retained hero row is already at the death cell. Move only its
+	# earlier gesture, not the defeat or the held pose that follows it.
+	return entry.is_shield_throw() \
+		or (unit.get("visual_defeat", false) and unit.get("cast_key") == entry.cue.cast_key \
+			and not entry.cue.get("hero_defeat", false) \
+			and not _playback.pending_hero_defeat(entry.cue.unit_id).is_empty())
+
+
 func _sync_playback_geometry() -> void:
 	for entry in _playback.active():
 		var unit: Dictionary = _units_by_id.get(entry.cue.unit_id, {})
@@ -1106,10 +1159,9 @@ func _sync_playback_geometry() -> void:
 		if entry.gift == null or entry.gift_from != null or entry.flight_progress() < 0.0 \
 				or not target is Vector2i:
 			continue
-		# Actors render at the committed board position, or at actor_cell when
-		# represented by a transient figure after removal. Keep the launch on
-		# that figure while retaining action-time geometry for facing and impact.
-		var rendered_cell: Variant = entry.cue.get("actor_cell", source) if entry.is_shield_throw() \
+		# Keep the launch on the rendered hand, including an earlier gesture
+		# using its action cell rather than the retained hero's death cell.
+		var rendered_cell: Variant = entry.cue.get("actor_cell", source) if _uses_action_cell(unit, entry) \
 				or entry.cue.get("ordinary_presentation", false) \
 			else unit.get("cell", entry.cue.get("actor_cell", source))
 		if not rendered_cell is Vector2i:

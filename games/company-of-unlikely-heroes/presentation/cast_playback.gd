@@ -38,6 +38,7 @@ class Entry:
 	var gift_point_first := false
 	var facing: float
 	var waits_for_throw := false
+	var sample_offset_ms := 0.0
 
 	func progress() -> float:
 		return (elapsed_ms - impact_ms) / FEEDBACK_MS
@@ -66,7 +67,10 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 			continue
 		var role := str(value.get("cast_key", ""))
 		var key := str(value.get("clip", ""))
-		var clip := art.clip_for(role, key)
+		var rendered_key := key
+		if role == "knight" and value.get("hero_defeat", false) and value.get("shield_away", false):
+			rendered_key = "defeat_unshielded"
+		var clip := art.clip_for(role, rendered_key)
 		var ordinary: bool = value.get("ordinary_presentation", false)
 		if ordinary and clip == null and value.get("fallback_clip") is String:
 			key = value.fallback_clip
@@ -87,8 +91,13 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 		var beat: int = LEARNER_BEATS.get(role, {}).get(key, ACTION_BEATS.get(key, -1))
 		if cue.get("hero_knockdown") in GUILD_REACTION_BEATS:
 			beat = GUILD_REACTION_BEATS[cue.hero_knockdown]
+		if cue.get("hero_defeat", false):
+			beat = 16
+			if cue.get("was_prone", false) or cue.get("start_grounded", false):
+				entry.sample_offset_ms = clip.time_at_source_frame(16)
 		entry.impact_ms = clip.time_at_source_frame(beat) \
 			if not ordinary and beat >= 0 else clip.total_ms * 0.48
+		entry.impact_ms = maxf(0.0, entry.impact_ms - entry.sample_offset_ms)
 		if ordinary and cue.get("impact_frame") is int and cue.impact_frame in clip.source_frames:
 			entry.impact_ms = clip.time_at_source_frame(cue.impact_frame)
 		if key != "etching_paste" and not (role == "rogue" and key == "potion") \
@@ -97,7 +106,7 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 			entry.gift = art.clip_for(role, clip.release_clip)
 			if entry.gift != null:
 				entry.impact_ms = clip.release_ms + GIFT_FLIGHT_MS
-		entry.duration_ms = maxf(clip.total_ms, entry.impact_ms + FEEDBACK_MS)
+		entry.duration_ms = maxf(clip.total_ms - entry.sample_offset_ms, entry.impact_ms + FEEDBACK_MS)
 		var start := float(tails.get(cue.unit_id, 0.0))
 		var parent: Variant = added.get(int(cue.get("after_cue", -1)))
 		if parent != null:
@@ -218,6 +227,13 @@ func actor_cell(unit_id: String, fallback: Vector2i) -> Vector2i:
 func has_pending_clip(unit_id: String, key: String) -> bool:
 	return _entries.any(func(entry: Entry): return entry.cue.get("unit_id") == unit_id \
 		and entry.cue.get("clip") == key)
+
+
+func pending_hero_defeat(unit_id: String) -> Dictionary:
+	for entry in _entries:
+		if entry.cue.get("unit_id") == unit_id and entry.cue.get("hero_defeat", false):
+			return entry.cue
+	return {}
 
 
 func has_pending_ordinary_role(unit_id: String, role: String) -> bool:

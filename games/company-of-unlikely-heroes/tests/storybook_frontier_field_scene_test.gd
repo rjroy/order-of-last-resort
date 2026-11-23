@@ -14,6 +14,7 @@ var failures: Array[String] = []
 var scene: Node
 var board: Control
 var field_surround: Texture2D
+var viewport: SubViewport
 
 
 func _initialize() -> void:
@@ -25,7 +26,10 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	root.size = Vector2i(1280, 820)
+	viewport = SubViewport.new()
+	viewport.size = Vector2i(1280, 820)
+	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	root.add_child(viewport)
 	_check(FileAccess.file_exists(FIELD_SURROUND), "Approved field surround is packaged in the game")
 	var packaged_surround := CastSprites.load_texture(FIELD_SURROUND)
 	for id in MISSIONS:
@@ -69,6 +73,7 @@ func _run() -> void:
 		if id == "shield_wall":
 			if scenery != null and scenery.texture != null:
 				await _check_rendered_surround(scenery)
+				await _check_registered_field_with_orders(scenery, state)
 			await _exercise_combat(state)
 
 	await _launch(PackedStringArray(["--mission=not_a_mission"]))
@@ -81,11 +86,11 @@ func _run() -> void:
 
 func _check_rendered_surround(scenery: TextureRect) -> void:
 	await RenderingServer.frame_post_draw
-	var with_surround := root.get_texture().get_image()
+	var with_surround := viewport.get_texture().get_image()
 	scenery.visible = false
 	await process_frame
 	await RenderingServer.frame_post_draw
-	var without_surround := root.get_texture().get_image()
+	var without_surround := viewport.get_texture().get_image()
 	scenery.visible = true
 	var changed := 0
 	if with_surround.get_size() == without_surround.get_size():
@@ -98,14 +103,117 @@ func _check_rendered_surround(scenery: TextureRect) -> void:
 	await process_frame
 
 
+func _check_registered_field_with_orders(scenery: TextureRect, state: Dictionary) -> void:
+	if not await _button("StandingOrders"):
+		return
+	var leaf := scene.find_child("ExtraDetails", true, false) as Control
+	_check(leaf != null and leaf.is_visible_in_tree() and not leaf.get_global_rect().intersects(board.get_global_rect()),
+		"Standing orders keeps the painted Field and its gutters exposed")
+	var with_art := await _frame()
+	scenery.hide()
+	var without_art := await _frame()
+	scenery.show()
+	var figures := board.get_node("CastAndUnitMarkers") as CanvasItem
+	figures.hide()
+	var without_figures := await _frame()
+	figures.show()
+	var tx := board.get_global_transform_with_canvas()
+	var step: Vector2 = (tx * board.cell_center(Vector2i.ONE)) - (tx * board.cell_center(Vector2i.ZERO))
+	var first: Vector2 = tx * board.cell_center(Vector2i.ZERO)
+	var last: Vector2 = tx * board.cell_center(Vector2i(state.width - 1, state.height - 1))
+	var field := Rect2i(Rect2(first - step * 0.45, last - first + step * 0.9))
+	_check(_changed_samples(with_art, without_art, field) == 0,
+		"Field surround leaves the refitted tactical aperture transparent, including occupied cells")
+	for unit: Dictionary in state.units:
+		var center: Vector2 = tx * board.cell_center(unit.position)
+		var region := Rect2i(Rect2(center - step * 0.45, step * 0.9))
+		_check(_changed_samples(with_art, without_figures, region) > 4,
+			"Living %s is visibly rendered with Standing orders open" % unit.id)
+	if leaf != null and leaf.is_visible_in_tree():
+		await _check_visible_order_rows(leaf, state)
+	await _button("StandingOrders")
+
+
+func _check_visible_order_rows(leaf: Control, state: Dictionary) -> void:
+	var page: Control = scene.get("_storybook_page")
+	var scroll: ScrollContainer = page.get("_orders_scroll")
+	var bar := scroll.get_v_scroll_bar()
+	var instructions: Label = page.get("_order_instructions")
+	var rows: Dictionary = page.get("_order_widgets")
+	_check(rows.size() == 3 and not bar.is_visible_in_tree(),
+		"All three stock Standing orders fit at 1280×820 without a scrollbar")
+	_check(instructions.is_visible_in_tree()
+		and leaf.get_global_rect().encloses(instructions.get_global_rect())
+		and instructions.get_visible_line_count() == instructions.get_line_count(),
+		"Standing orders instructions are shown in full")
+	for unit: Dictionary in state.units:
+		if not rows.has(unit.id):
+			continue
+		var widgets: Dictionary = rows[unit.id]
+		var hp: Label = widgets.detail
+		var order: OptionButton = widgets.picker
+		_check(hp.text == "%d/%d HP" % [unit.hp, unit.max_hp],
+			"Standing orders shows the actual HP for %s" % unit.id)
+		_check(_fully_visible_in_orders(hp, scroll) and _fully_visible_in_orders(order, scroll),
+			"Standing orders shows the full HP and order picker for %s, including the bottom edge" % unit.id)
+	var last := scene.find_child("WizardOrder", true, false) as OptionButton
+	if last == null:
+		_check(false, "Standing orders has the Caster's picker")
+		return
+	await _click(last.get_global_rect().get_center())
+	var popup := last.get_popup()
+	_check(popup.visible and scene.battle_snapshot() == state,
+		"The fully visible Caster picker opens by click without changing the order")
+	popup.hide()
+
+	# A short viewport exercises the same native overflow path used by longer custom order lists.
+	var normal_size := viewport.size
+	viewport.size = Vector2i(normal_size.x, 600)
+	await _frame()
+	_check(bar.is_visible_in_tree() and not _fully_visible_in_orders(last, scroll)
+		and not leaf.get_global_rect().intersects(board.get_global_rect()),
+		"A short viewport scrolls Standing orders rather than covering the board")
+	var first := scene.find_child("KnightOrder", true, false) as OptionButton
+	if first != null:
+		first.grab_focus()
+		await process_frame
+	last.grab_focus()
+	await _frame()
+	_check(bar.value > 0.0 and _fully_visible_in_orders(last, scroll),
+		"Focusing the bottom order scrolls it fully into view when space is constrained")
+	viewport.size = normal_size
+	await _frame()
+	_check(not bar.is_visible_in_tree() and _fully_visible_in_orders(last, scroll),
+		"Returning to play size restores the full list without scrolling")
+
+
+func _fully_visible_in_orders(control: Control, scroll: ScrollContainer) -> bool:
+	return control.is_visible_in_tree() and scroll.get_global_rect().encloses(control.get_global_rect())
+
+
+func _frame() -> Image:
+	await process_frame
+	await RenderingServer.frame_post_draw
+	return viewport.get_texture().get_image()
+
+
+func _changed_samples(first: Image, second: Image, region: Rect2i) -> int:
+	var changed := 0
+	for y in range(region.position.y, region.end.y, 4):
+		for x in range(region.position.x, region.end.x, 4):
+			var delta := first.get_pixel(x, y) - second.get_pixel(x, y)
+			if maxf(absf(delta.r), maxf(absf(delta.g), absf(delta.b))) > 8.0 / 255.0:
+				changed += 1
+	return changed
+
+
 func _launch(args: PackedStringArray) -> void:
 	if is_instance_valid(scene):
 		scene.queue_free()
 		await process_frame
 	scene = load("res://main.tscn").instantiate()
 	scene.configure_launch(args)
-	root.add_child(scene)
-	current_scene = scene
+	viewport.add_child(scene)
 	await process_frame
 	await process_frame
 
@@ -191,7 +299,7 @@ func _click(point: Vector2) -> void:
 		event.position = point
 		event.global_position = point
 		event.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0
-		root.push_input(event, true)
+		viewport.push_input(event, true)
 		await process_frame
 
 

@@ -7,8 +7,6 @@ const BoardRules = preload("res://rules/board.gd")
 const MISSION := "wrong_side_of_the_door"
 const B4 := Vector2i(1, 3)
 const A5 := Vector2i(0, 4)
-# Includes the reported overlap at (380, 506) in the 1280 x 820 Gate layout.
-const B4_INK_REGION := Rect2i(315, 490, 130, 65)
 
 var failures: Array[String] = []
 var scene: Node
@@ -89,7 +87,7 @@ func _run() -> void:
 					"Open gate art contributes to the actual board composition")
 
 	await _launch()
-	await _forecast_covers_board_ink()
+	await _leaves_keep_board_exposed()
 	_finish()
 
 
@@ -121,12 +119,13 @@ func _check_gate_art(open: bool, props: Dictionary) -> void:
 		"Actual gate selects loaded " + key + " art")
 
 
-func _forecast_covers_board_ink() -> void:
+func _leaves_keep_board_exposed() -> void:
 	var forecast := scene.find_child("ForecastDetails", true, false) as BaseButton
+	var orders := scene.find_child("StandingOrders", true, false) as BaseButton
 	var leaf := scene.find_child("ExtraDetails", true, false) as Control
-	if board == null or ink == null or forecast == null or leaf == null \
+	if board == null or ink == null or forecast == null or orders == null or leaf == null \
 			or not forecast.is_visible_in_tree() or forecast.disabled:
-		_check(false, "Normal Gate provides a live board, ink and Forecast control")
+		_check(false, "Normal Gate provides a live board, ink and details controls")
 		return
 	var before: Dictionary = scene.battle_snapshot()
 	if not await _move("wizard", B4):
@@ -136,43 +135,54 @@ func _forecast_covers_board_ink() -> void:
 	if not leaf.is_visible_in_tree() or not forecast.button_pressed:
 		_check(false, "Clicking Forecast opens the details sheet")
 		return
-	var sheet_rect := Rect2i(leaf.get_global_rect()).grow(-2)
-	var overlap := sheet_rect.intersection(B4_INK_REGION)
-	var a5_point := _cell_point(A5)
-	if not overlap.has_point(Vector2i(380, 506)) or not sheet_rect.has_point(Vector2i(a5_point)):
-		_check(false, "The open sheet covers the reported B4 ink overlap and board cell A5 (sheet: %s, A5: %s)"
-			% [sheet_rect, a5_point])
-		return
-
+	var sheet_rect := leaf.get_global_rect()
+	var board_rect := board.get_global_rect()
+	_check(not sheet_rect.intersects(board_rect),
+		"Forecast leaves the whole Gate board, including its gutters, exposed")
+	var b4 := _gate_region(B4)
 	var open_with_ink := await _capture()
 	var open_without_ink := await _capture_without_ink()
-	var leaked := _difference(open_with_ink, open_without_ink, overlap)
-	_check(leaked == 0.0, "Forecast covers the B4 ink (%0.2f%% of overlap changed with ink)" % (100 * leaked))
-	var outside := _gate_region(Vector2i(5, 2)).grow(12)
-	_check(not outside.intersects(sheet_rect) and _difference(open_with_ink, open_without_ink, outside) > 0.005,
-		"Board annotations outside the open sheet still render")
+	_check(_difference(open_with_ink, open_without_ink, b4) > 0.005,
+		"Forecast keeps the previously obscured B4 move ink visible")
+	var page: Control = scene.get("_storybook_page")
+	var scenery: TextureRect = page.get("_scenery")
+	scenery.hide()
+	var open_without_scenery := await _capture()
+	scenery.show()
+	var gate: Vector2i = before.objective.gate
+	_check(_difference(open_with_ink, open_without_scenery, _gate_region(gate + Vector2i.UP)) > 0.05,
+		"Gate wall is still painted in the column immediately above its opening after refitting")
+	_check(_difference(open_with_ink, open_without_scenery, _gate_region(gate)) == 0.0,
+		"Painted wall does not cover the registered Gate opening")
+	var figures := board.get_node("CastAndUnitMarkers") as CanvasItem
+	figures.hide()
+	var without_figures := await _capture()
+	figures.show()
+	for unit: Dictionary in before.units:
+		if unit.hp > 0:
+			var region := _gate_region(unit.position)
+			_check(_difference(open_with_ink, open_without_scenery, region) == 0.0,
+				"Gate surround leaves occupied %s exposed" % unit.position)
+			_check(_difference(open_with_ink, without_figures, region) > 0.005,
+				"Living %s is visibly rendered with Forecast open" % unit.id)
 
-	await _click(a5_point)
+	await _click(sheet_rect.position + Vector2(8, 35))
 	_check(_staged_move("wizard", B4) and leaf.is_visible_in_tree(),
-		"Clicking through the open Forecast does not retarget the covered board cell")
-	await _click(forecast_point)
-	_check(not leaf.is_visible_in_tree() and not forecast.button_pressed, "Clicking Forecast again closes the sheet")
-	var closed_with_ink := await _capture()
-	var closed_without_ink := await _capture_without_ink()
-	_check(_difference(open_with_ink, closed_with_ink, overlap) > 0.01,
-		"The open Forecast visibly changes the overlapping board region")
-	_check(_difference(closed_with_ink, closed_without_ink, overlap) > 0.005,
-		"The same B4 ink visibly renders in the overlap after Forecast closes")
-	await _click(a5_point)
-	_check(_staged_move("wizard", A5) and scene.battle_snapshot() == before,
-		"After closing Forecast the same click stages Wizard Move to A5 without committing")
-	await _click(forecast_point)
-	var knight_point := _cell_point(Vector2i(0, 1)) # A2
-	_check(leaf.is_visible_in_tree() and not leaf.get_global_rect().has_point(knight_point),
-		"Reopened Forecast leaves Knight's A2 exposed")
-	await _click(knight_point)
+		"Clicking paper does not retarget the staged move")
+	await _click(_cell_point(A5))
+	_check(_staged_move("wizard", A5) and scene.battle_snapshot() == before and leaf.is_visible_in_tree(),
+		"Clicking the formerly blocked A5 stages a real move without closing Forecast or committing")
+	await _click(orders.get_global_rect().get_center())
+	_check(leaf.is_visible_in_tree() and orders.button_pressed and not forecast.button_pressed
+		and board.get_global_rect().is_equal_approx(board_rect) and leaf.get_global_rect().is_equal_approx(sheet_rect),
+		"Switching from Forecast to Standing orders keeps the layout and changes only the active tab")
+	var picker := scene.find_child("KnightOrder", true, false) as OptionButton
+	_check(picker != null and picker.has_focus(), "Opening Standing orders focuses the first enabled picker")
+	await _click(_cell_point(Vector2i(0, 1))) # A2
 	_check(scene.get("_actor_id") == "knight" and _staged_move("wizard", A5),
-		"Clicking the exposed board with Forecast open selects Knight without replacing Wizard's Move")
+		"Clicking the board with Standing orders open selects Knight without replacing Wizard's Move")
+	await _click(orders.get_global_rect().get_center())
+	_check(not leaf.is_visible_in_tree() and not orders.button_pressed, "The active tab closes the leaf")
 
 
 func _move(actor: String, destination: Vector2i) -> bool:
@@ -264,5 +274,5 @@ func _finish() -> void:
 	for failure in failures:
 		printerr("FAIL: ", failure)
 	if failures.is_empty():
-		print("PASS: normal storybook art, authoritative gate state, and Forecast overlap")
+		print("PASS: registered Gate wall and opening, occupied-cell rendering, both leaves, and real B4/A5 input")
 	quit(0 if failures.is_empty() else 1)

@@ -93,6 +93,9 @@ func _run() -> void:
 	if board == null or knight.is_empty() or targets.is_empty():
 		_finish_capture("No board, knight, or legal move.")
 		return
+	if not await _capture_leaf("StandingOrders", "13-standing-orders-open"):
+		_finish_capture(failure)
+		return
 	await _click(board.get_global_transform_with_canvas() * board.cell_center(knight.position))
 	driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
 	if scene.get("_actor_id") != "knight" or not await driver.action("move") \
@@ -106,6 +109,9 @@ func _run() -> void:
 			or not plan.get("valid", false) or scene.battle_snapshot() != before \
 			or not await _save_capture("09-forecast"):
 		_finish_capture(failure if not failure.is_empty() else "Move forecast was not staged.")
+		return
+	if not await _capture_leaf("ForecastDetails", "14-round-forecast-open"):
+		_finish_capture(failure)
 		return
 	var expected: Dictionary = plan.result.duplicate(true)
 	if not await _press_button("Commit") or scene.battle_snapshot() != expected \
@@ -123,11 +129,41 @@ func _run() -> void:
 		_finish_capture(failure if not failure.is_empty() else "Forfeit confirmation missing.")
 		return
 	await Controls.click(self, confirm)
-	if not _screen_is("result") or not await _save_capture("12-forfeit-result"):
+	var settled: Dictionary = scene.get("_run")
+	if not _screen_is("result") or settled.get("outcome") != "defeat" \
+			or not settled.get("mission", {}).get("_voluntary_defeat", false) \
+			or not await _save_capture("12-forfeit-result"):
+		_finish_capture(failure if not failure.is_empty() else "Forfeit did not settle as a voluntary defeat.")
+		return
+	await _launch_gap(PackedStringArray(["--mission=wrong_side_of_the_door"]), profile)
+	if not _screen_is("battle"):
 		_finish_capture(failure)
+		return
+	board = scene.find_child("BridgeBoard", true, false) as Control
+	if board == null:
+		_finish_capture("No Gate board to capture.")
+		return
+	var transform := board.get_global_transform_with_canvas()
+	await _click(transform * board.cell_center(Vector2i(0, 3)))
+	await _click(transform * board.cell_center(Vector2i(1, 3)))
+	var gate_move: Dictionary = scene.get("_planned_state").get("overrides", {}).get("wizard", {})
+	if gate_move.get("target_id") != "1,3" or not await _capture_leaf("ForecastDetails", "15-gate-forecast-open"):
+		_finish_capture(failure if not failure.is_empty() else "Could not capture the Gate with a staged B4 move.")
 		return
 	print("Completed supplemental captures in " + output)
 	_finish_capture("")
+
+
+func _capture_leaf(button_name: String, filename: String) -> bool:
+	var leaf := scene.find_child("ExtraDetails", true, false) as Control
+	if leaf == null or not await _press_button(button_name) or not leaf.is_visible_in_tree():
+		failure = "Could not open the battle leaf for " + filename
+		return false
+	if not await _save_capture(filename) or not await _press_button(button_name) or leaf.is_visible_in_tree():
+		if failure.is_empty():
+			failure = "Could not close the battle leaf after " + filename
+		return false
+	return true
 
 
 func _launch_gap(args: PackedStringArray, profile: String) -> void:

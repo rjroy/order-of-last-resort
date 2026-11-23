@@ -11,6 +11,8 @@ signal forfeit_requested
 
 const Ink := preload("res://presentation/storybook_battle_ink.gd")
 const Surround := preload("res://presentation/storybook_battle_surround.gd")
+const SceneryRegistration := preload("res://presentation/storybook_scenery.gdshader")
+const Prep := preload("res://presentation/guild_prep_widgets.gd")
 const CastSprites := preload("res://presentation/cast_sprites.gd")
 const BridgeArt := preload("res://bridge_art.gd")
 const GATE_BOARD := "frontier_gate_board"
@@ -18,10 +20,19 @@ const FIELD_BOARD := "frontier_field"
 const GATE_ART := "res://assets/storybook-gate/"
 const FIELD_ART := "res://assets/storybook-field/frontier-field-surround-rgba.png"
 const EDGE := 16.0
+const CONTENT_MARGIN := EDGE + 26.0
 const DARK := Color("#231910")
 const PARCHMENT := Color("#f7e9c7")
 const MUTED := Color("#dfc9a2")
 const GOLD := Color("#ffda88")
+const PAPER := Color("#f3dbad")
+const PAPER_INK := Color("#362419")
+const PAPER_MUTED := Color("#614831")
+const LEAF_WIDTH := 416.0
+# At play size, leave room for the instructions and three complete order rows.
+# Shorter arenas still cap the sheet and let its body scroll.
+const LEAF_HEIGHT := 304.0
+const LEAF_GAP := 15.0
 
 
 class BattleSurface extends Control:
@@ -75,16 +86,22 @@ var _forecast: Button
 var _clear: Button
 var _commit: Button
 var _leaf: PanelContainer
+var _leaf_heading: Label
+var _order_instructions: Label
+var _orders_scroll: ScrollContainer
 var _order_entries: VBoxContainer
 var _forecast_scroll: ScrollContainer
-var _forecast_heading: Label
 var _forecast_text: Label
 var _field_notes: Label
 var _bleed: Surround
 var _scenery: TextureRect
+var _scenery_registration: ShaderMaterial
 var _props: Dictionary = {}
 var _header: Control
 var _footer: VBoxContainer
+var _rail_controls: HBoxContainer
+var _book: Control
+var _rail_top := 0.0
 var _action_rows: Array = []
 var _target_rows: Array = []
 var _order_rows: Array = []
@@ -113,8 +130,6 @@ func mount_board(board: Control, trusted_board_id: String, board_dimensions := V
 		_load_gate_art()
 	elif trusted_board_id == FIELD_BOARD:
 		set_scene_art(CastSprites.load_texture(FIELD_ART), {})
-		# Leave room for longer combat commands without making the orders wrap.
-		_summary.size_flags_stretch_ratio = 1.65
 	_board_host.add_child(board)
 	board.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	board.accessibility_name = "Battle board"
@@ -153,6 +168,7 @@ func render(view: Dictionary) -> void:
 	_objective.tooltip_text = view.get("objective_details", _objective.text) if active else _objective.text
 	var selected_hero: String = view.get("selected_hero", "")
 	var command: String = view.get("command_summary", "")
+	_summary.size_flags_stretch_ratio = 0.75 if command == "Standing orders only" else 1.45
 	_summary.text = command if not command.is_empty() else (
 		"Standing orders only" if active else _victory_summary() if outcome == "victory" else "Mission failed")
 	_summary.tooltip_text = _summary.text
@@ -172,7 +188,8 @@ func render(view: Dictionary) -> void:
 	_inspection.tooltip_text = _inspection.text
 	_render_locked_dose(str(view.get("locked_dose", "")))
 	_forecast.text = "Forecast" if active else "Round result"
-	_forecast_heading.text = "Round forecast" if active else "Round result"
+	if _expanded == "forecast":
+		_leaf_heading.text = "Round forecast" if active else "Round result"
 	_forecast_scroll.accessibility_name = "Round forecast in execution order" if active else "Resolved round events"
 	_forecast_text.text = view.get("forecast", "")
 	var objective_details: String = view.get("objective_details", "")
@@ -188,6 +205,7 @@ func render(view: Dictionary) -> void:
 	_commit.disabled = not active or not view.get("can_commit", false)
 	_commit.text = "Commit round %d" % int(view.get("round", 1)) if active else (
 		"Mission complete" if outcome == "victory" else "Mission failed")
+	_fit_actions_caption(size.x - CONTENT_MARGIN * 2.0)
 
 
 func _victory_summary() -> String:
@@ -225,6 +243,7 @@ func _render_locked_dose(text: String) -> void:
 func set_scene_art(surround: Texture2D, props: Dictionary) -> void:
 	_build()
 	_scenery.texture = surround
+	_scenery.material = _scenery_registration if surround != null else null
 	_props = props.duplicate(true)
 	if is_instance_valid(_ink):
 		_ink.set_scene_props(_props)
@@ -268,16 +287,17 @@ func _build() -> void:
 	_scenery = TextureRect.new()
 	_scenery.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_scenery.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_scenery_registration = ShaderMaterial.new()
+	_scenery_registration.shader = SceneryRegistration
 	_surface_root.add_child(_scenery)
 	_scenery.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	# The leaf edge, shaded margins, and separating rules sit above the painting,
 	# but never take input from the mounted board or the controls.
-	var book := Control.new()
-	book.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	book.draw.connect(_draw_book.bind(book))
-	_surface_root.add_child(book)
-	book.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	resized.connect(book.queue_redraw)
+	_book = Control.new()
+	_book.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_book.draw.connect(_draw_book.bind(_book))
+	_surface_root.add_child(_book)
+	_book.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_build_header()
 	_build_footer()
 	_build_leaf()
@@ -484,7 +504,7 @@ func _battle_popup_accepts_selection(popup: PopupMenu) -> bool:
 func _build_footer() -> void:
 	_footer = VBoxContainer.new()
 	_footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_footer.add_theme_constant_override("separation", 4)
+	_footer.add_theme_constant_override("separation", 5)
 	_footer.minimum_size_changed.connect(_layout_page, CONNECT_DEFERRED)
 	_surface_root.add_child(_footer)
 	var line := HBoxContainer.new()
@@ -493,6 +513,7 @@ func _build_footer() -> void:
 	_footer.add_child(line)
 	_summary = _label("", 18, PARCHMENT, true)
 	_summary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_summary.size_flags_stretch_ratio = 1.45
 	line.add_child(_summary)
 	_inspection = _label("", 15, MUTED)
 	_inspection.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -517,10 +538,13 @@ func _build_footer() -> void:
 	line.add_child(_locked_dose)
 	_locked_dose.hide()
 	var controls := HBoxContainer.new()
+	_rail_controls = controls
 	controls.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	controls.add_theme_constant_override("separation", 8)
 	_footer.add_child(controls)
 	_actions = _menu("Actions", "Actions")
+	_actions.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_style_rail_button(_actions)
 	controls.add_child(_actions)
 	var actions_popup := _actions.get_popup()
 	actions_popup.visibility_changed.connect(_battle_popup_visibility_changed.bind(actions_popup))
@@ -528,6 +552,7 @@ func _build_footer() -> void:
 		if _battle_popup_accepts_selection(actions_popup) and index >= 0 and index < _action_rows.size():
 			action_selected.emit(str(_action_rows[index].id)))
 	_targets = _menu("Targets", "Choose target")
+	_style_rail_button(_targets)
 	_targets.hide()
 	controls.add_child(_targets)
 	var targets_popup := _targets.get_popup()
@@ -537,10 +562,12 @@ func _build_footer() -> void:
 			target_selected.emit(str(_target_rows[index].id)))
 	_orders = _button("StandingOrders", "Standing orders")
 	_orders.toggle_mode = true
+	_style_rail_button(_orders, true)
 	controls.add_child(_orders)
 	_orders.pressed.connect(_toggle_leaf.bind("orders"))
 	_forecast = _button("ForecastDetails", "Forecast")
 	_forecast.toggle_mode = true
+	_style_rail_button(_forecast, true)
 	controls.add_child(_forecast)
 	_forecast.pressed.connect(_toggle_leaf.bind("forecast"))
 	var space := Control.new()
@@ -548,49 +575,79 @@ func _build_footer() -> void:
 	space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	controls.add_child(space)
 	_clear = _button("ClearCommand", "Clear command")
+	_style_rail_button(_clear)
 	controls.add_child(_clear)
 	_clear.pressed.connect(_request_battle_action.bind(clear_requested))
-	_commit = _button("Commit", "Commit round 1", true)
-	_commit.custom_minimum_size.x = 182
+	_commit = _button("Commit", "Commit round 1")
+	_style_rail_button(_commit, false, true)
+	_commit.custom_minimum_size.x = 211
+	_commit.add_theme_font_override("font", _display)
+	_commit.add_theme_font_size_override("font_size", 21)
 	controls.add_child(_commit)
 	_commit.pressed.connect(_request_battle_action.bind(commit_requested))
 
 
 func _build_leaf() -> void:
-	_leaf = PanelContainer.new()
+	_leaf = Prep.mount(_surface_root, false, true, true, PAPER, 26, 14)
 	_leaf.name = "ExtraDetails"
 	_leaf.z_index = 5
 	_leaf.mouse_filter = Control.MOUSE_FILTER_STOP
-	_leaf.add_theme_stylebox_override("panel", _surface(Color("#2f2218"), Color("#c59857"), 12, 12))
-	_surface_root.add_child(_leaf)
+	_leaf.mouse_force_pass_scroll_events = false
+	# Text can report a transient wrapped minimum as its pane is shown.
+	# Keep it from growing the sheet outside the fitted layout.
+	var body := Control.new()
+	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body.clip_contents = true
+	_leaf.add_child(body)
+	var sheet := VBoxContainer.new()
+	sheet.add_theme_constant_override("separation", 5)
+	body.add_child(sheet)
+	sheet.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_leaf_heading = _label("Standing orders", 23, PAPER_INK)
+	_leaf_heading.add_theme_font_override("font", _display)
+	sheet.add_child(_leaf_heading)
+	_order_instructions = _label("An order stays in place when a direct command takes its turn.", 14, PAPER_MUTED)
+	_order_instructions.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_order_instructions.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	sheet.add_child(_order_instructions)
+	_orders_scroll = _leaf_scroll(sheet)
 	_order_entries = VBoxContainer.new()
-	_order_entries.add_theme_constant_override("separation", 6)
-	_leaf.add_child(_order_entries)
-	var title := _label("Standing orders", 22, GOLD, true)
-	_order_entries.add_child(title)
-	_order_entries.add_child(_label("An order stays in place when a direct command takes its turn.", 14, MUTED))
-	_forecast_scroll = ScrollContainer.new()
-	_forecast_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_forecast_scroll.follow_focus = true
+	_order_entries.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_order_entries.add_theme_constant_override("separation", 4)
+	_orders_scroll.add_child(_order_entries)
+	_forecast_scroll = _leaf_scroll(sheet)
 	_forecast_scroll.focus_mode = Control.FOCUS_ALL
+	_forecast_scroll.draw_focus_border = true
 	_forecast_scroll.accessibility_name = "Round forecast in execution order"
-	_leaf.add_child(_forecast_scroll)
+	_forecast_scroll.add_theme_stylebox_override("panel", _surface(Color.TRANSPARENT, Color.TRANSPARENT, 8, 5, 0))
+	_forecast_scroll.add_theme_stylebox_override("focus", _focus_outline(Color("#88471d")))
 	var content := VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation", 9)
 	_forecast_scroll.add_child(content)
-	_forecast_heading = _label("Round forecast", 22, GOLD, true)
-	content.add_child(_forecast_heading)
-	_forecast_text = _label("", 16, PARCHMENT)
+	_forecast_text = _label("", 16, PAPER_INK)
 	_forecast_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_forecast_text.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	content.add_child(_forecast_text)
-	_field_notes = _label("", 14, MUTED)
+	_field_notes = _label("", 14, PAPER_MUTED)
 	_field_notes.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_field_notes.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	_field_notes.hide()
 	content.add_child(_field_notes)
 	_leaf.hide()
+
+
+func _leaf_scroll(sheet: VBoxContainer) -> ScrollContainer:
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.follow_focus = true
+	sheet.add_child(scroll)
+	var bar := scroll.get_v_scroll_bar()
+	bar.add_theme_stylebox_override("scroll", _surface(Color("#e4c796"), Color("#c8aa7b"), 4, 4))
+	for state in ["grabber", "grabber_highlight", "grabber_pressed"]:
+		bar.add_theme_stylebox_override(state, _surface(Color("#986d46"), Color("#805936"), 4, 4))
+	return scroll
 
 
 func _toggle_leaf(section: String) -> void:
@@ -601,7 +658,10 @@ func _toggle_leaf(section: String) -> void:
 	_forecast.set_pressed_no_signal(_expanded == "forecast")
 	if is_forfeit_confirmation_open():
 		return
-	_order_entries.visible = _expanded == "orders"
+	_leaf_heading.text = "Standing orders" if _expanded == "orders" else (
+		"Round forecast" if _forecast.text == "Forecast" else "Round result")
+	_order_instructions.visible = _expanded == "orders"
+	_orders_scroll.visible = _expanded == "orders"
 	_forecast_scroll.visible = _expanded == "forecast"
 	_leaf.visible = not _expanded.is_empty()
 	_layout_page()
@@ -648,6 +708,8 @@ func _forfeit_input(event: InputEvent) -> void:
 func _refresh_actions(rows: Array, hero: String, chosen: String, active: bool) -> void:
 	_actions.disabled = not active or rows.is_empty()
 	_actions.text = "Actions" if hero.is_empty() else "%s’s actions" % hero
+	_actions.tooltip_text = _actions.text
+	_actions.accessibility_name = _actions.text
 	var current := -1
 	for index in rows.size():
 		if rows[index].id == chosen:
@@ -687,9 +749,9 @@ func _refresh_orders(rows: Array) -> void:
 	var incoming := rows.map(func(row: Dictionary) -> String: return row.hero_id)
 	for hero in _order_widgets.keys():
 		if hero not in incoming:
-			var old: Control = _order_widgets[hero].row
-			_order_entries.remove_child(old)
-			old.queue_free()
+			for control: Control in [_order_widgets[hero].row, _order_widgets[hero].rule]:
+				_order_entries.remove_child(control)
+				control.queue_free()
 			_order_widgets.erase(hero)
 	for row: Dictionary in rows:
 		var hero: String = row.hero_id
@@ -697,9 +759,10 @@ func _refresh_orders(rows: Array) -> void:
 			_add_order(hero, row.hero_label)
 		var widgets: Dictionary = _order_widgets[hero]
 		var note: Label = widgets.note
+		var detail: Label = widgets.detail
 		var picker: OptionButton = widgets.picker
-		note.text = "%s  %s%s" % [row.hero_label, row.get("hp", ""),
-			"  (overridden this round)" if row.get("overridden", false) else ""]
+		note.text = row.hero_label
+		detail.text = str(row.get("hp", "")) + (" · Overridden this round" if row.get("overridden", false) else "")
 		var items: Array = row.get("choices", [])
 		if items != widgets.choices:
 			widgets.choices = items.duplicate(true)
@@ -709,23 +772,48 @@ func _refresh_orders(rows: Array) -> void:
 		picker.disabled = not row.get("enabled", true) or items.is_empty()
 		widgets.selected_index = items.find_custom(func(item: Dictionary) -> bool: return item.id == row.order_id)
 		picker.select(widgets.selected_index)
+		picker.tooltip_text = "%s · %s\n%s" % [note.text, detail.text, picker.text]
 
 
 func _add_order(hero: String, label: String) -> void:
+	var rule := HSeparator.new()
+	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var line := StyleBoxLine.new()
+	line.color = Color("#b58c59")
+	rule.add_theme_stylebox_override("separator", line)
+	_order_entries.add_child(rule)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
+	row.add_theme_constant_override("separation", 10)
 	_order_entries.add_child(row)
-	var note := _label("", 14, PARCHMENT)
-	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(note)
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.add_theme_constant_override("separation", 1)
+	row.add_child(copy)
+	var note := _label("", 16, PAPER_INK)
+	copy.add_child(note)
+	var detail := _label("", 13, PAPER_MUTED)
+	copy.add_child(detail)
 	var picker := OptionButton.new()
 	picker.name = hero.to_pascal_case() + "Order"
 	picker.accessibility_name = label + " standing order"
-	picker.custom_minimum_size = Vector2(164, 32)
+	picker.custom_minimum_size = Vector2(171, 33)
+	picker.fit_to_longest_item = false
+	picker.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	picker.add_theme_constant_override("modulate_arrow", 1)
+	picker.add_theme_constant_override("arrow_margin", 9)
+	picker.add_theme_stylebox_override("normal", _surface(Color("#f9e6bf"), Color("#a5845b"), 10, 4))
+	picker.add_theme_stylebox_override("hover", _surface(Color("#fff0cc"), Color("#925f37"), 10, 4))
+	picker.add_theme_stylebox_override("pressed", _surface(Color("#eed5a5"), Color("#925f37"), 10, 4))
+	picker.add_theme_stylebox_override("disabled", _surface(Color("#e7cfa5"), Color("#b39773"), 10, 4))
+	picker.add_theme_stylebox_override("focus", _focus_outline(Color("#8f4d1e")))
+	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		picker.add_theme_color_override(state, PAPER_INK)
+	picker.add_theme_color_override("font_disabled_color", PAPER_MUTED)
 	row.add_child(picker)
 	var popup := picker.get_popup()
 	popup.visibility_changed.connect(_battle_popup_visibility_changed.bind(popup))
-	var widgets := {"row": row, "note": note, "picker": picker, "choices": [], "selected_index": -1}
+	var widgets := {"row": row, "rule": rule, "note": note, "detail": detail, "picker": picker,
+		"choices": [], "selected_index": -1}
 	_order_widgets[hero] = widgets
 	picker.item_selected.connect(func(index: int) -> void:
 		# OptionButton updates its display before delivering even a stale click.
@@ -737,35 +825,68 @@ func _add_order(hero: String, label: String) -> void:
 			order_selected.emit(hero, str(items[index].id)))
 
 
+func _fit_actions_caption(content_width: float) -> void:
+	# Reserve the real minimums of the visible rail controls, including Targets
+	# when offered. The authored caption may use what's left, not widen the rail.
+	var available := content_width
+	var gap := _rail_controls.get_theme_constant("separation")
+	for child: Control in _rail_controls.get_children():
+		if child != _actions and child.visible:
+			available -= child.get_combined_minimum_size().x + gap
+	var caption_width := _actions.get_theme_font("font").get_string_size(_actions.text, HORIZONTAL_ALIGNMENT_LEFT,
+		-1, _actions.get_theme_font_size("font_size")).x
+	# With overrun trimming enabled, the button's native minimum contains its
+	# frame and arrow, but no width from the text itself.
+	var base_width := _actions.get_minimum_size().x
+	_actions.custom_minimum_size.x = minf(maxf(available, base_width), ceilf(base_width + caption_width))
+
+
 func _layout_page() -> void:
 	if not _built or not is_instance_valid(_forfeit_panel):
 		return
 	var width := size.x - EDGE * 2.0
-	var height := size.y - EDGE * 2.0
-	if minf(width, height) <= 0.0:
+	if minf(width, size.y - EDGE * 2.0) <= 0.0:
 		return
-	var margin := EDGE + 26.0
-	var content_width := size.x - margin * 2.0
-	var footer_height := maxf(72.0, _footer.get_combined_minimum_size().y) if _locked_dose.visible else 72.0
+	var margin := CONTENT_MARGIN
+	var content_width := maxf(0.0, size.x - margin * 2.0)
+	_fit_actions_caption(content_width)
+	var footer_height := maxf(72.0, _footer.get_combined_minimum_size().y)
 	var footer_top := size.y - EDGE - 11.0 - footer_height
+	_rail_top = footer_top - 9.0
 	var board_top := EDGE + 65.0
-	var max_height := maxf(0.0, footer_top - board_top - 7.0)
+	var arena := Rect2(Vector2(EDGE, board_top), Vector2(width, maxf(0.0, _rail_top - board_top - 2.0)))
 	var board_extent := Vector2(_dimensions) * BridgeArt.TILE + BridgeArt.GUTTER * 2.0
-	var ratio := board_extent.x / board_extent.y
-	var map_width := minf(width, max_height * ratio)
-	var map_height := map_width / ratio
-	_board_host.position = Vector2((size.x - map_width) * 0.5, board_top + (max_height - map_height) * 0.5)
-	_board_host.size = Vector2(map_width, map_height)
+	var region := arena
+	if not _expanded.is_empty():
+		var leaf_size := Vector2(minf(content_width, LEAF_WIDTH), minf(LEAF_HEIGHT, arena.size.y * 0.56))
+		_leaf.size = leaf_size
+		_leaf.position = Vector2(size.x - margin - _leaf.size.x, _rail_top - 7.0 - _leaf.size.y)
+		# Pick the larger fit, not a fixed grid aspect or a presumed spare corner.
+		var beside := Rect2(arena.position, Vector2(maxf(0.0, _leaf.position.x - LEAF_GAP - arena.position.x),
+			arena.size.y))
+		var above := Rect2(arena.position, Vector2(arena.size.x,
+			maxf(0.0, _leaf.position.y - LEAF_GAP - arena.position.y)))
+		region = beside if _board_scale(beside, board_extent) >= _board_scale(above, board_extent) else above
+	var fitted_scale := _board_scale(region, board_extent)
+	var map_size := board_extent * fitted_scale
+	_board_host.position = region.get_center() - map_size * 0.5
+	_board_host.size = map_size
 	_bleed.place(_board_host.get_rect())
+	if fitted_scale > 0.0:
+		var grid_start := (_board_host.position + BridgeArt.GUTTER * fitted_scale) / size
+		var grid_end := (_board_host.get_rect().end - BridgeArt.GUTTER * fitted_scale) / size
+		_scenery_registration.set_shader_parameter("aperture", Vector4(grid_start.x, grid_start.y, grid_end.x, grid_end.y))
 	_header.position = Vector2(margin, EDGE + 5.0)
 	_header.size = Vector2(content_width, 57.0)
 	_layout_header()
 	_footer.position = Vector2(margin, footer_top)
 	_footer.size = Vector2(content_width, footer_height)
-	var leaf_height := 210.0 if _expanded == "orders" else 242.0
-	_leaf.position = Vector2(margin, footer_top - leaf_height - 5.0)
-	_leaf.size = Vector2(minf(maxf(content_width, 0), 510.0), leaf_height)
-	_forfeit_panel.custom_minimum_size.x = minf(432.0, maxf(0.0, content_width))
+	_forfeit_panel.custom_minimum_size.x = minf(432.0, content_width)
+	_book.queue_redraw()
+
+
+func _board_scale(region: Rect2, extent: Vector2) -> float:
+	return minf(region.size.x / extent.x, region.size.y / extent.y)
 
 
 func _layout_header() -> void:
@@ -799,12 +920,14 @@ func _draw_book(canvas: Control) -> void:
 		Vector2(width * 0.75, EDGE), Vector2(width * 0.71, 132), Vector2(EDGE, 132)])
 	canvas.draw_polygon(cap, PackedColorArray([Color(DARK, 0.91), Color(DARK, 0.57),
 		Color(DARK, 0.0), Color(DARK, 0.0), Color(DARK, 0.0)]))
-	_wash(canvas, Rect2(Vector2(EDGE, height - EDGE - 102), Vector2(width - EDGE * 2, 102)),
-		Color(DARK, 0.0), Color(DARK, 0.80))
-	_wash(canvas, Rect2(Vector2(EDGE, height - EDGE - 100), Vector2(width - EDGE * 2, 49)),
-		Color(DARK, 0.0), Color(DARK, 0.45))
-	canvas.draw_rect(Rect2(Vector2(EDGE, height - EDGE - 51), Vector2(width - EDGE * 2, 51)),
-		Color(DARK, 0.45))
+	var rail_width := width - EDGE * 2.0
+	var rail_height := maxf(0.0, height - EDGE - _rail_top)
+	var rail := Rect2(EDGE, _rail_top, rail_width, rail_height)
+	_wash(canvas, rail, Color("#4b2d1e"), Color("#281910"))
+	canvas.draw_line(rail.position, Vector2(rail.end.x, rail.position.y), Color("#c39453"), 2.0)
+	var stitch := _rail_top + 4.0
+	canvas.draw_dashed_line(Vector2(EDGE + 2, stitch), Vector2(width - EDGE - 2, stitch),
+		Color("#9a694568"), 1.0, 3.0, true)
 	var layers := [
 		[0.0, 5.0, Color("#3a2519")],
 		[4.0, 3.0, Color("#624027")],
@@ -840,31 +963,54 @@ func _wash(canvas: Control, rect: Rect2, top: Color, bottom: Color) -> void:
 	canvas.draw_polygon(PackedVector2Array([a, b, c, d]), PackedColorArray([top, top, bottom, bottom]))
 
 
-func _button(node_name: String, label: String, primary := false) -> Button:
+func _button(node_name: String, label: String) -> Button:
 	var result := Button.new()
 	result.name = node_name
 	result.text = label
 	result.focus_mode = Control.FOCUS_ALL
 	result.custom_minimum_size.y = 41
-	if primary:
-		result.add_theme_stylebox_override("normal", _sign("#e9bb72"))
-		result.add_theme_stylebox_override("hover", _sign("#ffda8f"))
-		result.add_theme_stylebox_override("pressed", _sign("#c68f46"))
-		for key in ["font_color", "font_focus_color", "font_hover_color", "font_pressed_color"]:
-			result.add_theme_color_override(key, DARK)
 	return result
 
 
-func _sign(fill: String) -> StyleBoxTexture:
+func _style_rail_button(control: BaseButton, tab := false, primary := false) -> void:
+	var dark := "#38271c"
+	var hover := "#513927"
+	var pressed := "#2a1b14"
+	control.custom_minimum_size.y = 44 if not primary else 47
+	control.add_theme_stylebox_override("normal", _sign("#e9b75f" if primary else dark, primary))
+	control.add_theme_stylebox_override("hover", _sign("#ffd787" if primary else hover, primary))
+	control.add_theme_stylebox_override("pressed", _sign("#f0d5a4" if tab else "#c68f46" if primary else pressed,
+		tab or primary))
+	control.add_theme_stylebox_override("hover_pressed", _sign("#f8e2b8" if tab else "#d39e52" if primary else hover,
+		tab or primary))
+	control.add_theme_stylebox_override("disabled", _surface(Color("#38291f"), Color("#79614a"), 12, 6))
+	control.add_theme_stylebox_override("focus", _focus_outline(Color("#fff1cd"), 2.0))
+	control.add_theme_color_override("font_disabled_color", Color("#c9b291"))
+	if primary:
+		for state in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
+			control.add_theme_color_override(state, PAPER_INK)
+	elif tab:
+		for state in ["font_pressed_color", "font_hover_pressed_color"]:
+			control.add_theme_color_override(state, PAPER_INK)
+
+
+func _focus_outline(tint: Color, outset := 0.0) -> StyleBoxFlat:
+	var focus := _surface(Color.TRANSPARENT, tint, 0, 0, 2)
+	focus.draw_center = false
+	focus.set_expand_margin_all(outset)
+	return focus
+
+
+func _sign(fill: String, light: bool) -> StyleBoxTexture:
 	var image := Image.new()
 	# Nine-slice keeps the clipped corners and fine incised line at one scale.
 	image.load_svg_from_string("""
 <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
-  <path d="M6 1h24l5 5v24l-5 5H6l-5-5V6z" fill="%s" stroke="#4b2f19" stroke-width="2"/>
-  <path d="M8 4h20l4 4v20l-4 4H8l-4-4V8z" fill="none" stroke="#a2753c"/>
-  <path d="M9 5h18l4 4M5 9v18" fill="none" stroke="#ffe1a1" stroke-opacity=".75"/>
+  <path d="M6 1h24l5 5v24l-5 5H6l-5-5V6z" fill="%s" stroke="#22160e" stroke-width="2"/>
+  <path d="M8 4h20l4 4v20l-4 4H8l-4-4V8z" fill="none" stroke="%s"/>
+  <path d="M9 5h18l4 4M5 9v18" fill="none" stroke="#ffe1a1" stroke-opacity="%s"/>
 </svg>
-""" % fill)
+""" % [fill, "#966329" if light else "#be985e", ".85" if light else ".26"])
 	var panel := StyleBoxTexture.new()
 	panel.texture = ImageTexture.create_from_image(image)
 	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
@@ -880,6 +1026,9 @@ func _menu(node_name: String, label: String) -> MenuButton:
 	result.focus_mode = Control.FOCUS_ALL
 	result.custom_minimum_size.y = 41
 	result.flat = false
+	result.icon = get_theme_icon("arrow", "OptionButton")
+	result.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	result.add_theme_constant_override("h_separation", 9)
 	return result
 
 

@@ -21,7 +21,7 @@ Use `.agents/skills/discover-game-hook/templates/experiment-record.md` to start 
 
 Snapshot the player brief and relevant procedure versions in the record: reference immutable commits when available; otherwise preserve input copies and content hashes. Record the prompt, important constraints, proposals, human decisions, and available agent/model identity. A fresh run may produce different ideas; reproducible procedure does not promise identical AI output.
 
-Use Beads for actionable work. This record holds decisions and research evidence, not a duplicate task list. No game build, dependency installation, paid service, asset creation, or integration is authorized merely by requesting discovery.
+This record holds decisions and research evidence, not a task list. No game build, dependency installation, paid service, asset creation, or integration is authorized merely by requesting discovery.
 
 ## 1. Set the exploration envelope
 

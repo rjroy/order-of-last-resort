@@ -78,4 +78,4 @@ Preserve old builds and criteria. If criteria change, begin a new comparison and
 - **Replay this experiment:** manifest and evidence needed to restore builds and starting conditions; what has and has not been verified:
 - **Run the method again:** discovery skill, template, and input snapshots to reuse in a new experiment directory; decisions to reopen rather than inherit:
 - Known limits: player learning cannot be reset; seeds may not guarantee determinism; AI output may differ:
-- Related Beads IDs for actionable follow-up, not a duplicate backlog:
+- Related work references, if any:

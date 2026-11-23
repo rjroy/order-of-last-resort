@@ -23,7 +23,7 @@ Read `.lore/work/shared/audience/player-brief.md`. When no direction has been se
 
 Invoking this skill to explore and build a mechanic authorizes that bounded work, subject to project approvals. Asking to define or discuss the skill does not authorize an experiment. Do not silently expand into a complete game, install dependencies, generate assets, or integrate into another experiment without the applicable authorization.
 
-Track actionable work in Beads. Store hypotheses and evidence in the experiment's versioned records, not in a second task backlog. Keep experiments independently attributable and follow the Godot constraint in `AGENTS.md` without inventing a shared framework.
+Store hypotheses and evidence in the experiment's versioned records, not in a task backlog. Keep experiments independently attributable and use Godot without inventing a shared framework.
 
 ## 1. Frame one mechanic
 

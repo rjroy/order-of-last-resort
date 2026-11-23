@@ -1,14 +1,17 @@
 # Standalone extraction
 
 Source: Mind Garage commit `64e6289821b912f394e4eaa744ae76e0ce485a3f`
-on its `master` branch. The game was then called The Company of Unlikely
-Heroes; its current title is Barnaby's Order of Last Resort.
+on its `master` branch. At that snapshot the game was already titled
+Barnaby's Order of Last Resort; The Company of Unlikely Heroes is its earlier
+title and remains in its paths.
 
 The extraction filtered only `master`, retaining `games/company-of-unlikely-heroes/`,
 `.lore/work/games/company-of-unlikely-heroes/`, `.lore/work/shared/`, the
 `discover-game-hook`, `explore-mechanic` and `model-a-class` skills, `LICENSE`
 and `.gitignore`. Original directory names are intentional: recipes and
-scripts use those paths. The source snapshot itself was not modified.
+scripts use those paths. The source commit is immutable: extraction did not
+rewrite it. This does not describe or prohibit subsequent graduation changes
+to the Mind Garage working tree or later commits.
 
 The retained files at the filtered tip matched their source tree objects
 before standalone documentation was added. History was rewritten, so original
@@ -18,8 +21,11 @@ commits; zero IDs identify commits discarded by the path filter. The source
 tip changed only excluded content and maps to zero; the filtered tip before
 standalone changes corresponds to the preceding retained source commit.
 
-The original issue database and other games were excluded. Historical
-references to them remain as context and may not resolve in this checkout.
+The original issue database and other games were excluded from the filtered
+history. A separate tracker migration selected game issues from a live source
+tracker snapshot; see [tracker migration and bootstrap](.beads/MIGRATION.md)
+for its scope, ID mapping and publication status. Historical references to
+other source issues and games remain as context and may not resolve here.
 External creative skills named by the modeling procedure are not included;
 they must be installed separately if that workflow is used.
 

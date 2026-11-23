@@ -59,14 +59,18 @@ Keep an encounter provisionally when its intended decision can be demonstrated a
 
 ### Regenerate mechanical evidence
 
-From the repository root with Godot 4.7.2, extract the exact final source and run the reported regressions directly:
+From the standalone repository root with Godot 4.7.2, extract the retained game
+tree and run the reported regressions directly. Original source commit
+`c68fbe4` maps to `5b116f3eb2777d2491b34af7d7b3d134057d76b0` in the
+standalone history; the game tree is identical, although the archive excludes
+unrelated Mind Garage paths. In the original repository, use `c68fbe4` instead.
 
 ```sh
 (
   set -e
   godot --version
   archive_dir=$(mktemp -d)
-  git archive --output="$archive_dir/source.tar" c68fbe4
+  git archive --output="$archive_dir/source.tar" 5b116f3eb2777d2491b34af7d7b3d134057d76b0
   tar -xf "$archive_dir/source.tar" -C "$archive_dir"
   cd "$archive_dir"
   for suite in fixed_outing_victory_test hold_line_pressure_test \

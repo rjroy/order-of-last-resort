@@ -1,0 +1,99 @@
+{
+  "role": "ogre",
+  "master": {
+    "source": "models/ogre/ogre.blend",
+    "sha256": "de684dfd64989017877291cfeaa44579f842616a55ec6e2e4d6659dfe5a67560",
+    "rig_name": "ogre | Rig",
+    "action_prefix": "Ogre",
+    "capture_size": 512,
+    "capture_anchor": [
+      256,
+      344
+    ]
+  },
+  "takes": {
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        25
+      ],
+      26,
+      false
+    ],
+    "heavy_strike": [
+      "Heavy Strike",
+      [
+        1,
+        6,
+        11,
+        14,
+        16,
+        21,
+        22,
+        26,
+        31,
+        36,
+        41
+      ],
+      42,
+      false
+    ],
+    "heavy_tread": [
+      "Heavy Tread",
+      [
+        1,
+        6,
+        7,
+        11,
+        16,
+        21,
+        25
+      ],
+      26,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        6,
+        11,
+        15
+      ],
+      16,
+      false
+    ],
+    "ready": [
+      "Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31
+      ],
+      33,
+      true
+    ],
+    "swap_reaction": [
+      "Swap Reaction",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26
+      ],
+      27,
+      false
+    ]
+  }
+}

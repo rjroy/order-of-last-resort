@@ -794,7 +794,28 @@
         "move",
         "ogre_strike"
       ],
-      "behavior": "frontier_ogre_strike"
+      "behavior": "frontier_ogre_strike",
+      "cast_key": "ogre",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "heavy_tread"
+          },
+          "ogre_strike": {
+            "handler": "attack",
+            "clip": "heavy_strike"
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat",
+        "events": {
+          "swapped": "swap_reaction"
+        }
+      }
     },
     "trickster": {
       "class": "enemy",

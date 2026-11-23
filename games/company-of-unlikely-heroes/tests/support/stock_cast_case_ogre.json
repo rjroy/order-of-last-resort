@@ -1,0 +1,32 @@
+{
+  "actor": "ogre",
+  "case": {
+    "automatic_rounds": 4,
+    "cast_key": "ogre",
+    "minimum_opening": 1,
+    "triggers": [
+      {
+        "ability": "ogre_strike",
+        "actor_field": "source_id",
+        "clip": "heavy_strike",
+        "id": "strike",
+        "type": "action"
+      }
+    ],
+    "variants": {
+      "swap": {
+        "route_ref": "odd_couple_swap",
+        "triggers": [
+          {
+            "actor_field": "target_id",
+            "clip": "swap_reaction",
+            "event": "swap",
+            "id": "swapped",
+            "type": "event"
+          }
+        ]
+      }
+    }
+  },
+  "mission": "odd_couple"
+}

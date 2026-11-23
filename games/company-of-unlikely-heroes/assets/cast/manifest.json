@@ -10651,6 +10651,488 @@
           "path": "res://assets/cast/duelist.png"
         }
       }
+    },
+    "ogre": {
+      "source": "art/models/ogre/ogre.blend",
+      "sha256": "de684dfd64989017877291cfeaa44579f842616a55ec6e2e4d6659dfe5a67560",
+      "clips": {
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                286,
+                588,
+                168,
+                258
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                454,
+                588,
+                168,
+                258
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                622,
+                588,
+                168,
+                258
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                790,
+                588,
+                168,
+                258
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                958,
+                588,
+                168,
+                258
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 42,
+              "rect": [
+                1126,
+                588,
+                168,
+                258
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            72,
+            219
+          ],
+          "action": "Ogre | Defeat",
+          "path": "res://assets/cast/ogre.png"
+        },
+        "heavy_strike": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                0,
+                209,
+                294
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                209,
+                0,
+                209,
+                294
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 125,
+              "rect": [
+                418,
+                0,
+                209,
+                294
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 83,
+              "rect": [
+                627,
+                0,
+                209,
+                294
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                836,
+                0,
+                209,
+                294
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 42,
+              "rect": [
+                1045,
+                0,
+                209,
+                294
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                294,
+                209,
+                294
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                209,
+                294,
+                209,
+                294
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 208,
+              "rect": [
+                418,
+                294,
+                209,
+                294
+              ]
+            },
+            {
+              "source_frame": 36,
+              "duration_ms": 209,
+              "rect": [
+                627,
+                294,
+                209,
+                294
+              ]
+            },
+            {
+              "source_frame": 41,
+              "duration_ms": 41,
+              "rect": [
+                836,
+                294,
+                209,
+                294
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            79,
+            255
+          ],
+          "action": "Ogre | Heavy Strike",
+          "path": "res://assets/cast/ogre.png"
+        },
+        "heavy_tread": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                847,
+                157,
+                244
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 42,
+              "rect": [
+                157,
+                847,
+                157,
+                244
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 167,
+              "rect": [
+                314,
+                847,
+                157,
+                244
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                471,
+                847,
+                157,
+                244
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                628,
+                847,
+                157,
+                244
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                785,
+                847,
+                157,
+                244
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 42,
+              "rect": [
+                942,
+                847,
+                157,
+                244
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            65,
+            205
+          ],
+          "action": "Ogre | Heavy Tread",
+          "path": "res://assets/cast/ogre.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                1045,
+                294,
+                143,
+                259
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                1188,
+                294,
+                143,
+                259
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 166,
+              "rect": [
+                0,
+                588,
+                143,
+                259
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 42,
+              "rect": [
+                143,
+                588,
+                143,
+                259
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            65,
+            220
+          ],
+          "action": "Ogre | Hit",
+          "path": "res://assets/cast/ogre.png"
+        },
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                1099,
+                847,
+                137,
+                244
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                1236,
+                847,
+                137,
+                244
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                1091,
+                137,
+                244
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                137,
+                1091,
+                137,
+                244
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                274,
+                1091,
+                137,
+                244
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                411,
+                1091,
+                137,
+                244
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 83,
+              "rect": [
+                548,
+                1091,
+                137,
+                244
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            59,
+            205
+          ],
+          "action": "Ogre | Ready",
+          "path": "res://assets/cast/ogre.png"
+        },
+        "swap_reaction": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                685,
+                1091,
+                213,
+                242
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                898,
+                1091,
+                213,
+                242
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                1111,
+                1091,
+                213,
+                242
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                1335,
+                213,
+                242
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                213,
+                1335,
+                213,
+                242
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 41,
+              "rect": [
+                426,
+                1335,
+                213,
+                242
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            74,
+            203
+          ],
+          "action": "Ogre | Swap Reaction",
+          "path": "res://assets/cast/ogre.png"
+        }
+      }
     }
   }
 }

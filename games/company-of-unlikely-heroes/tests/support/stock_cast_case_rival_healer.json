@@ -1,0 +1,32 @@
+{
+  "actor": "rival_healer",
+  "case": {
+    "automatic_rounds": 4,
+    "cast_key": "rival_healer",
+    "minimum_opening": 1,
+    "triggers": [
+      {
+        "ability": "frontier_heal",
+        "actor_field": "unit_id",
+        "clip": "ally_heal",
+        "id": "heal",
+        "type": "action"
+      }
+    ],
+    "variants": {
+      "bonk": {
+        "automatic_rounds": 5,
+        "triggers": [
+          {
+            "ability": "rival_bonk",
+            "actor_field": "source_id",
+            "clip": "padded_bonk",
+            "id": "bonk",
+            "type": "action"
+          }
+        ]
+      }
+    }
+  },
+  "mission": "mirror_company"
+}

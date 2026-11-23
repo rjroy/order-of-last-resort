@@ -1,0 +1,93 @@
+{
+  "role": "rival_healer",
+  "master": {
+    "source": "models/rival_healer/rival_healer.blend",
+    "sha256": "5529f1164b7eb8262d36b0986f7cc8183641bf14c75b1ca6e6daa4ea5fb9d2a6",
+    "rig_name": "Rival_Healer_Rig",
+    "action_prefix": "Rival Healer"
+  },
+  "takes": {
+    "ally_heal": [
+      "Ally Heal",
+      [
+        1,
+        6,
+        11,
+        15,
+        16,
+        21,
+        26,
+        31,
+        33
+      ],
+      34,
+      false
+    ],
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26
+      ],
+      27,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        6,
+        11,
+        16
+      ],
+      17,
+      false
+    ],
+    "move": [
+      "Move",
+      [
+        1,
+        6,
+        11,
+        16,
+        21
+      ],
+      22,
+      false
+    ],
+    "padded_bonk": [
+      "Padded Bonk",
+      [
+        1,
+        6,
+        7,
+        11,
+        12,
+        16,
+        21,
+        26,
+        27
+      ],
+      28,
+      false
+    ],
+    "ready": [
+      "Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31
+      ],
+      33,
+      true
+    ]
+  }
+}

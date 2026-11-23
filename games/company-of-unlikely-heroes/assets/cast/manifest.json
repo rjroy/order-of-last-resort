@@ -5520,6 +5520,478 @@
           "path": "res://assets/cast/rival_wizard.png"
         }
       }
+    },
+    "rival_healer": {
+      "source": "art/models/rival_healer/rival_healer.blend",
+      "sha256": "5529f1164b7eb8262d36b0986f7cc8183641bf14c75b1ca6e6daa4ea5fb9d2a6",
+      "clips": {
+        "ally_heal": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                422,
+                157,
+                199
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                157,
+                422,
+                157,
+                199
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 166,
+              "rect": [
+                314,
+                422,
+                157,
+                199
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 42,
+              "rect": [
+                471,
+                422,
+                157,
+                199
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                628,
+                422,
+                157,
+                199
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                785,
+                422,
+                157,
+                199
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                621,
+                157,
+                199
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 83,
+              "rect": [
+                157,
+                621,
+                157,
+                199
+              ]
+            },
+            {
+              "source_frame": 33,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                422,
+                157,
+                199
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            62,
+            186
+          ],
+          "action": "Rival Healer | Ally Heal",
+          "path": "res://assets/cast/rival_healer.png"
+        },
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                314,
+                621,
+                151,
+                198
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                465,
+                621,
+                151,
+                198
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                616,
+                621,
+                151,
+                198
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                767,
+                621,
+                151,
+                198
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                820,
+                151,
+                198
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 41,
+              "rect": [
+                151,
+                820,
+                151,
+                198
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            81,
+            184
+          ],
+          "action": "Rival Healer | Defeat",
+          "path": "res://assets/cast/rival_healer.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                121,
+                1018,
+                131,
+                196
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                252,
+                1018,
+                131,
+                196
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                383,
+                1018,
+                131,
+                196
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                121,
+                1018,
+                131,
+                196
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            69,
+            183
+          ],
+          "action": "Rival Healer | Hit",
+          "path": "res://assets/cast/rival_healer.png"
+        },
+        "move": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                555,
+                211,
+                122,
+                207
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                677,
+                211,
+                122,
+                207
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                799,
+                211,
+                122,
+                207
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                921,
+                211,
+                122,
+                207
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 42,
+              "rect": [
+                555,
+                211,
+                122,
+                207
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            62,
+            184
+          ],
+          "action": "Rival Healer | Move",
+          "path": "res://assets/cast/rival_healer.png"
+        },
+        "padded_bonk": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                0,
+                185,
+                211
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 42,
+              "rect": [
+                185,
+                0,
+                185,
+                211
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 167,
+              "rect": [
+                370,
+                0,
+                185,
+                211
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 41,
+              "rect": [
+                555,
+                0,
+                185,
+                211
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                740,
+                0,
+                185,
+                211
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                211,
+                185,
+                211
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                185,
+                211,
+                185,
+                211
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 41,
+              "rect": [
+                370,
+                211,
+                185,
+                211
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                0,
+                185,
+                211
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            81,
+            198
+          ],
+          "action": "Rival Healer | Padded Bonk",
+          "path": "res://assets/cast/rival_healer.png"
+        },
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                302,
+                820,
+                121,
+                197
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                423,
+                820,
+                121,
+                197
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                544,
+                820,
+                121,
+                197
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                665,
+                820,
+                121,
+                197
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                786,
+                820,
+                121,
+                197
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                907,
+                820,
+                121,
+                197
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                1018,
+                121,
+                197
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            61,
+            184
+          ],
+          "action": "Rival Healer | Ready",
+          "path": "res://assets/cast/rival_healer.png"
+        }
+      }
     }
   }
 }

@@ -1,0 +1,31 @@
+{
+  "actor": "frontier_sheep",
+  "case": {
+    "automatic_rounds": 6,
+    "cast_key": "frontier_sheep",
+    "minimum_opening": 3,
+    "triggers": [
+      {
+        "actor_field": "unit_id",
+        "clip": "flee_step",
+        "id": "flee",
+        "type": "sheep_flee"
+      },
+      {
+        "actor_field": "unit_id",
+        "clip": "pen_settle",
+        "hold": "penned",
+        "id": "pen_entry",
+        "type": "sheep_entry"
+      },
+      {
+        "actor_field": "unit_id",
+        "hold": "penned",
+        "id": "pen_held",
+        "once_per_unit": true,
+        "type": "sheep_held"
+      }
+    ]
+  },
+  "mission": "great_sheep_escape"
+}

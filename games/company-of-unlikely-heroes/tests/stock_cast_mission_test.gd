@@ -191,7 +191,7 @@ func _run() -> void:
 			await _capture("round-%02d-terminal.png" % (index + 1))
 		board.set_process(false)
 		var matches := []
-		var repeated_holds := []
+		var holds := {}
 		var group_action := {}
 		var group_remaining := 0
 		var positions := {}
@@ -208,10 +208,10 @@ func _run() -> void:
 				if known_ids.has(id) and Triggers.matches(trigger, event, before, committed,
 						group_action if group_remaining > 0 else {}, positions,
 						events.slice(event_index + 1), events.slice(0, event_index)):
+					if trigger.has("hold"):
+						holds[id] = trigger.hold
 					var identity := str(trigger.id) + ":" + id
 					if trigger.get("once_per_unit", false) and observed_units.has(identity):
-						if trigger.has("clip"):
-							repeated_holds.append({"id": id, "clip": trigger.clip})
 						continue
 					observed[trigger.id] = true
 					observed_units[identity] = true
@@ -226,6 +226,12 @@ func _run() -> void:
 			await _capture("round-%02d-committed-event.png" % (index + 1))
 		if not events_only:
 			var cues: Array = board.call("action_playback_snapshot")
+			for trigger: Dictionary in case.triggers:
+				if trigger.has("hold"):
+					_check(not cues.any(func(cue): return known_ids.has(cue.get("unit_id")) \
+						and cue.get("cast_key") == case.get("cast_key") \
+						and cue.get("clip") == trigger.hold),
+						"Persistent hold %s is not enqueued as an action" % trigger.hold)
 			if not matches.is_empty():
 				for match_record in matches:
 					if match_record.clip.is_empty():
@@ -235,14 +241,14 @@ func _run() -> void:
 						and cue.get("clip") == match_record.clip),
 						"Committed %s for %s has authored %s cue" % [
 							match_record.trigger, match_record.id, match_record.clip])
-			for held in repeated_holds:
-				_check(not cues.any(func(cue): return cue.get("unit_id") == held.id \
-					and cue.get("cast_key") == case.get("cast_key") and cue.get("clip") == held.clip),
-					"Previously penned %s does not replay %s" % [held.id, held.clip])
 		if not events_only:
 			await _sample_queue(board, index + 1)
 		board.call("_process", 30.0)
 		board.set_process(false)
+		if not events_only:
+			_check((board.call("action_playback_snapshot") as Array).is_empty(), "Playback drains before held-pose checks")
+			for id in holds:
+				await _check_held_figure(board, id, str(holds[id]), index + 1)
 	for trigger: Dictionary in case.triggers:
 		_check(observed.has(trigger.id), "Stock route committed trigger " + str(trigger.id))
 		if not events_only and trigger.has("clip"):
@@ -348,6 +354,46 @@ func _ready(board: Node, case: Dictionary, label: String) -> void:
 			if maxf(absf(delta.r), maxf(absf(delta.g), absf(delta.b))) > 4.0 / 255.0:
 				changed += 1
 	_check(changed > 100, "Requested character's visible ready art differs from placeholder")
+	board.call("set_render_state", cells, units, overlay)
+	board.set_process(false)
+
+
+func _check_held_figure(board: Node, id: String, hold: String, round_number: int) -> void:
+	var figure: Dictionary = board.get("_units_by_id").get(id, {})
+	_check(figure.get("cast_hold") == hold, "Committed figure %s holds %s" % [id, hold])
+	if figure.get("cast_hold") != hold:
+		return
+	var cast = board.get("_cast")
+	_check(cast != null and cast.clip_for(str(figure.get("cast_key", "")), hold) != null,
+		"Committed figure %s has an authored %s atlas clip" % [id, hold])
+	if cast == null or cast.clip_for(str(figure.get("cast_key", "")), hold) == null:
+		return
+	# Compare the live, normally rendered hold with the same board at ready.
+	# Only this subject's hold selector changes; no actor or geometry is removed.
+	board.set_process(false)
+	await process_frame
+	await RenderingServer.frame_post_draw
+	var held_image := viewport.get_texture().get_image()
+	await _capture("round-%02d-%s-%s-held.png" % [round_number, id, hold])
+	var cells: Dictionary = board.get("_cells").duplicate(true)
+	var units: Array = board.get("_units").duplicate(true)
+	var overlay: Dictionary = board.get("_overlay").duplicate(true)
+	var ready_units: Array = units.duplicate(true)
+	for unit: Dictionary in ready_units:
+		if unit.get("id") == id:
+			unit.erase("cast_hold")
+	board.call("set_render_state", cells, ready_units, overlay)
+	board.set_process(false)
+	await process_frame
+	await RenderingServer.frame_post_draw
+	var ready_image := viewport.get_texture().get_image()
+	var changed := 0
+	for y in held_image.get_height():
+		for x in held_image.get_width():
+			var delta := held_image.get_pixel(x, y) - ready_image.get_pixel(x, y)
+			if maxf(absf(delta.r), maxf(absf(delta.g), absf(delta.b))) > 4.0 / 255.0:
+				changed += 1
+	_check(changed > 100, "Live %s held atlas pose for %s visibly differs from its ready pose" % [hold, id])
 	board.call("set_render_state", cells, units, overlay)
 	board.set_process(false)
 

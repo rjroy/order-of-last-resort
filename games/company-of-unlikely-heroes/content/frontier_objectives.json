@@ -230,7 +230,24 @@
       }
     },
     "frontier_sheep": {
-      "class": "civilian", "label": "Sheep", "art_key": "ferryman", "behavior": "hold"
+      "class": "civilian",
+      "label": "Sheep",
+      "art_key": "ferryman",
+      "behavior": "hold",
+      "cast_key": "frontier_sheep",
+      "cast_art_key": "ferryman",
+      "cast_team": "civilian",
+      "cast_variant": "default",
+      "cast_presentation": {
+        "actions": {},
+        "events": {
+          "sheep_flee": "flee_step",
+          "sheep_entry": "pen_settle"
+        },
+        "holds": {
+          "sheep_penned": "penned"
+        }
+      }
     },
     "frontier_shepherd": {
       "class": "enemy",

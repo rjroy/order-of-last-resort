@@ -9,6 +9,7 @@ const ACTION_BEATS := {
 	"blast": 17, "pull": 13, "retreat": 13, "swap": 15, "misdirect": 14,
 	"inspiring_melody": 25, "healing_sonnet": 25, "summon_skeleton": 20, "raise_dead": 34,
 	"wave": 18, "dont_go": 27, "say_hello": 25,
+	"close_thrust": 8,
 }
 
 class Entry:
@@ -20,6 +21,7 @@ class Entry:
 	var gift: CastSprites.Clip
 	var gift_from: Variant = null
 	var gift_to: Variant = null
+	var gift_angle := 0.0
 	var facing: float
 
 	func progress() -> float:
@@ -33,15 +35,17 @@ var _entries: Array[Entry] = []
 
 func enqueue(cues: Array, art: CastSprites) -> void:
 	var tails := {}
+	var added := {}
 	for entry in _entries:
 		tails[entry.cue.unit_id] = entry.duration_ms - entry.elapsed_ms
-	for value in cues:
+	for index in cues.size():
+		var value = cues[index]
 		if not value is Dictionary or str(value.get("unit_id", "")).is_empty():
 			continue
 		var role := str(value.get("cast_key", ""))
 		var key := str(value.get("clip", ""))
 		var clip := art.clip_for(role, key)
-		if clip == null or key in ["ready", "gift", "acid_flask"]:
+		if clip == null or key in ["ready", "gift", "acid_flask", "harpoon_projectile"]:
 			continue
 		var cue: Dictionary = value.duplicate(true)
 		cue["target_id"] = str(cue.get("target_id", ""))
@@ -56,9 +60,14 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 			if entry.gift != null:
 				entry.impact_ms = clip.release_ms + GIFT_FLIGHT_MS
 		entry.duration_ms = maxf(clip.total_ms, entry.impact_ms + FEEDBACK_MS)
-		entry.elapsed_ms = -float(tails.get(cue.unit_id, 0.0))
+		var start := float(tails.get(cue.unit_id, 0.0))
+		var parent: Variant = added.get(int(cue.get("after_cue", -1)))
+		if parent != null:
+			start = maxf(start, -parent.elapsed_ms + parent.impact_ms)
+		entry.elapsed_ms = -start
 		tails[cue.unit_id] = entry.duration_ms - entry.elapsed_ms
 		_entries.append(entry)
+		added[index] = entry
 
 
 func clear() -> void:
@@ -67,6 +76,11 @@ func clear() -> void:
 
 func pending() -> bool:
 	return not _entries.is_empty()
+
+
+func has_pending_clip(unit_id: String, key: String) -> bool:
+	return _entries.any(func(entry: Entry): return entry.cue.get("unit_id") == unit_id \
+		and entry.cue.get("clip") == key)
 
 
 func advance(delta_ms: float) -> void:

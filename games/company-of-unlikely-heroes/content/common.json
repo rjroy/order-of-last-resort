@@ -262,7 +262,11 @@
     },
     "harpooner": {
       "class": "enemy",
-      "label": "Harpooner"
+      "label": "Harpooner",
+      "cast_key": "harpooner",
+      "cast_art_key": "enemy",
+      "cast_variant": "spear",
+      "cast_team": "enemies"
     },
     "ferryman": {
       "class": "civilian",

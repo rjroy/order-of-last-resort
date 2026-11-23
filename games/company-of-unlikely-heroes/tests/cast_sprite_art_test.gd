@@ -7,12 +7,12 @@ const Board = preload("res://bridge_art.gd")
 const MANIFEST := "res://assets/cast/manifest.json"
 const CELL := Vector2i.ZERO
 const CELLS := {CELL: "bridge"}
-const ROLES := ["knight", "healer", "wizard", "rogue", "necromancer", "bard", "skeleton", "zombie", "alchemist"]
+const ROLES := ["knight", "healer", "wizard", "rogue", "necromancer", "bard", "skeleton", "zombie", "alchemist", "harpooner"]
 const ART_KEYS := {
 	"knight": "knight", "healer": "healer", "wizard": "wizard",
 	"rogue": "wizard", "necromancer": "wizard", "bard": "wizard",
 	# Stock Mixologist keeps the legacy art key; cast_key selects her own sprite.
-	"skeleton": "skeleton", "zombie": "zombie", "alchemist": "healer",
+	"skeleton": "skeleton", "zombie": "zombie", "alchemist": "healer", "harpooner": "enemy",
 }
 const EXTRA_CLIPS := {
 	"knight": ["guard", "shield_away"],
@@ -24,6 +24,7 @@ const EXTRA_CLIPS := {
 	"skeleton": ["wave", "dont_go"],
 	"zombie": ["say_hello", "offer_flower", "gift"],
 	"alchemist": ["potion", "acid", "acid_flask"],
+	"harpooner": ["pursue", "close_thrust", "ranged_cast", "hit", "defeat", "harpoon_projectile"],
 }
 
 var board := Board.new()

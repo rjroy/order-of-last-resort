@@ -2195,8 +2195,14 @@ func _refresh_board() -> void:
 	_corpse_markers = _rules.corpse_markers(_state)
 	for corpse in _corpse_markers.values():
 		var profile: Dictionary = _rules.entity_profile(_state, corpse.id)
-		units.append({"id": corpse.id, "art_key": profile.art_key, "variant": profile.get("art_variant", ""),
-			"label": "Corpse", "cell": corpse.position, "hp": 0, "max_hp": 0, "prone": true})
+		var marker := {"id": corpse.id, "art_key": profile.art_key, "variant": profile.get("art_variant", ""),
+			"label": "Corpse", "cell": corpse.position, "hp": 0, "max_hp": 0, "prone": true}
+		var actor := _find(corpse.id)
+		if not actor.is_empty():
+			var cast_key := CastCues.cast_key_for(_state, actor, profile)
+			if cast_key == "harpooner":
+				marker["cast_key"] = cast_key
+		units.append(marker)
 	var shared_art := _shared_enemy_art()
 	for unit in _state.units:
 		var is_objective: bool = unit.id == _state.objective.get("subject") \

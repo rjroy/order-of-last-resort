@@ -19,6 +19,8 @@ const CLIPS := {
 	"alchemist": {"alchemist_potion": ["healing_potion", "potion"],
 		"alchemist_acid": ["acid", "acid"], "alchemist_plain_tonic": ["plain_tonic", "potion"],
 		"alchemist_repeat_batch": ["repeat_batch", "potion"]},
+	"harpooner": {"move": ["move", "pursue"], "enemy_attack": ["attack", "close_thrust"],
+		"enemy_harpoon": ["attack", "ranged_cast"]},
 }
 const STRIKES := ["bonk", "blast", "shield_away", "offer_flower", "healing_sonnet", "wave"]
 
@@ -34,8 +36,9 @@ static func cast_key_for(state: Dictionary, unit: Dictionary, profile := {}) -> 
 		profile = Catalog.profile(definitions, character_id)
 	# Metadata is per character, not inherited. A newly authored art key or
 	# variant takes precedence even if a custom bundle copies the stock record.
-	if profile.get("team") != "heroes" or character.get("cast_art_key") != profile.get("art_key") \
-			or profile.get("art_variant", "") != "":
+	if profile.get("team") != character.get("cast_team", "heroes") \
+			or character.get("cast_art_key") != profile.get("art_key") \
+			or profile.get("art_variant", "") != character.get("cast_variant", ""):
 		return ""
 	return key
 
@@ -49,6 +52,9 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 		actors[unit.id] = unit
 	for entity in before.units + before.obstacles:
 		positions[entity.id] = entity.position
+	var health := {}
+	for unit in before.units:
+		health[unit.id] = int(unit.hp)
 	var cues := []
 	var index := 0
 	while index < events.size():
@@ -60,6 +66,7 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 			push_error("Invalid resolved action span at event %d." % index)
 			return []
 		var echo_started := false
+		var reactions := []
 		while index < end:
 			var event: Dictionary = events[index]
 			if not echo_started and event.get("song_echo", false):
@@ -72,10 +79,35 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 				echo_started = true
 			if not cue.is_empty():
 				_observe(cue, event, positions)
+			if event.get("type") == "damage" and int(event.get("amount", 0)) > 0:
+				var victim: String = event.get("target_id", "")
+				if health.has(victim):
+					health[victim] = maxi(0, int(health[victim]) - int(event.amount))
+					var target: Dictionary = actors.get(victim, {})
+					if cast_key_for(after, target) == "harpooner":
+						reactions.append({"unit_id": victim, "cast_key": "harpooner",
+							"clip": "defeat" if health[victim] <= 0 else "hit",
+							"source_cell": positions.get(victim), "actor_cell": positions.get(victim),
+							"target_id": "", "recipients": []})
+			elif event.get("type") == "heal":
+				var healed: String = event.get("target_id", "")
+				if health.has(healed):
+					health[healed] += int(event.get("amount", 0))
 			_trace_position(event, positions)
 			index += 1
+		if not cue.is_empty() and cue.cast_key == "harpooner" and cue.clip == "ranged_cast" \
+				and cue.get("target_cell") is Vector2i:
+			var offset: Vector2i = cue.target_cell - cue.source_cell
+			if absi(offset.x) + absi(offset.y) <= 1:
+				cue.clip = "close_thrust"
+		var parent_index := -1
 		if not cue.is_empty():
+			parent_index = cues.size()
 			cues.append(cue)
+		for reaction in reactions:
+			if parent_index >= 0:
+				reaction["after_cue"] = parent_index
+			cues.append(reaction)
 	return cues
 
 
@@ -100,6 +132,8 @@ static func _start_cue(state: Dictionary, actor: Dictionary, action: Dictionary)
 	var cue := {"unit_id": actor.id, "cast_key": key, "clip": clip, "target_id": "",
 		"source_cell": action.source_cell, "actor_cell": action.actor_cell, "recipients": []}
 	if clip == "retreat":
+		cue["target_cell"] = action.actor_cell
+	elif clip == "pursue":
 		cue["target_cell"] = action.actor_cell
 	return cue
 
@@ -145,13 +179,27 @@ static func _observe(cue: Dictionary, event: Dictionary, positions: Dictionary) 
 			if own_action and clip == "guard":
 				_recipient(cue, actor, cue.source_cell, "guard")
 		"reflect":
+			if clip in ["close_thrust", "ranged_cast"]:
+				var ward: String = event.get("ward_id", "")
+				if not cue.has("target_cell"):
+					_aim(cue, ward, positions.get(ward))
+				_recipient(cue, ward, positions.get(ward), "guard")
 			if clip in STRIKES and not cue.has("target_cell"):
 				# A fully absorbed strike still took place. Use the ward as
 				# the aiming point; only an actual damage event overrides it.
 				var ward: String = event.get("ward_id", "")
 				_aim(cue, ward, positions.get(ward))
+		"body_double":
+			if clip in ["close_thrust", "ranged_cast"]:
+				var original: String = event.get("unit_id", "")
+				_aim(cue, original, positions.get(original))
 		"damage":
-			if clip in STRIKES and event.get("source_id") == actor:
+			if clip in ["close_thrust", "ranged_cast"] \
+					and event.get("source_id") == actor:
+				if not cue.has("target_cell"):
+					_aim(cue, id, cell)
+				_recipient(cue, id, cell, "hit")
+			elif clip in STRIKES and event.get("source_id") == actor:
 				if clip != "wave" and not _has_recipient(cue, "hit"):
 					_aim(cue, id, cell)
 				_recipient(cue, id, cell, "hit")

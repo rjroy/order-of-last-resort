@@ -427,7 +427,17 @@ func _draw_figures() -> void:
 	_ink_canvas = _figures
 	var active := _playback.active()
 	var actions := {}
-	var occupants := _units.duplicate()
+	var occupants: Array = []
+	for original: Dictionary in _units:
+		var occupant := original
+		if str(original.get("cast_key", "")) == "harpooner" and int(original.get("hp", 1)) <= 0 \
+				and _playback.has_pending_clip(str(original.get("id", "")), "defeat"):
+			# The final corpse row is authoritative, but its appearance belongs
+			# after the complete committed action and defeat timeline.
+			occupant = original.duplicate()
+			occupant["pre_defeat"] = true
+			occupant["label"] = ""
+		occupants.append(occupant)
 	for entry in active:
 		if entry.elapsed_ms >= entry.clip.total_ms:
 			continue
@@ -439,9 +449,13 @@ func _draw_figures() -> void:
 			# The final board can include a later fall, or a fall caused by the
 			# dose itself. Show this committed gesture before returning to it.
 			var dose_gesture := _is_dose_gesture(entry)
-			if int(unit.get("hp", 1)) <= 0 and not dose_gesture:
+			var harpoon_reaction: bool = entry.cue.cast_key == "harpooner" and entry.cue.clip in ["hit", "defeat"]
+			var before_harpoon_defeat: bool = entry.cue.cast_key == "harpooner" \
+				and _playback.has_pending_clip(id, "defeat")
+			if int(unit.get("hp", 1)) <= 0 and not dose_gesture and not harpoon_reaction and not before_harpoon_defeat:
 				continue
-			if bool(unit.get("prone", false)) and not _is_wizard_pull(entry) and not dose_gesture:
+			if bool(unit.get("prone", false)) and not _is_wizard_pull(entry) and not dose_gesture \
+					and not harpoon_reaction and not before_harpoon_defeat:
 				continue
 			# A previous shield throw cannot remove a shield that has since been recovered.
 			if entry.cue.clip == "shield_away" and not bool(unit.get("shield_away", false)):
@@ -468,7 +482,8 @@ func _draw_figures() -> void:
 			_at(_tile_origin(unit.cell))
 			var action: CastPlayback.Entry = actions.get(unit.id)
 			var down := bool(unit.get("prone", false)) or int(unit.get("hp", 1)) <= 0
-			_draw_health(unit, down and (action == null or not _is_dose_gesture(action)))
+			if not unit.get("pre_defeat", false):
+				_draw_health(unit, down and (action == null or not _is_dose_gesture(action)))
 			_draw_unit_marker(unit)
 	# Loose equipment is a tile marker, even when a unit occupies that tile.
 	for cell in _overlay.get("forecast_shields", []):
@@ -829,7 +844,7 @@ func _draw_cast(unit: Dictionary, foot: Vector2, facing: float, prone: bool, act
 		return false
 	var key := "ready"
 	var time_ms := _ready_ms
-	var turned_down := prone
+	var turned_down := prone and not bool(unit.get("pre_defeat", false))
 	if cast_key == "knight" and bool(unit.get("shield_away", false)):
 		# Equipment is authoritative. Never show a second shield on the unit.
 		key = "shield_away"
@@ -844,7 +859,11 @@ func _draw_cast(unit: Dictionary, foot: Vector2, facing: float, prone: bool, act
 		time_ms = INF
 		turned_down = false
 		facing = _wizard_pull_facing[unit.id]
-	elif prone:
+	elif cast_key == "harpooner" and int(unit.get("hp", 1)) <= 0 and not bool(unit.get("pre_defeat", false)):
+		key = "defeat"
+		time_ms = INF
+		turned_down = false
+	elif prone and not bool(unit.get("pre_defeat", false)):
 		time_ms = 0.0
 	var clip := _cast.clip_for(cast_key, key)
 	if clip == null:
@@ -895,6 +914,13 @@ func _sync_playback_geometry() -> void:
 		var nudge := entry.clip.release_offset * Vector2(entry.facing, 1.0) * entry.clip.scale
 		entry.gift_from = _unit_foot(rendered_cell) + nudge
 		entry.gift_to = _unit_foot(target) + Vector2(0, -29)
+		if entry.cue.cast_key == "harpooner" and entry.cue.clip == "ranged_cast" and entry.gift.tip is Vector2:
+			var tip_offset: Vector2 = (entry.gift.tip - entry.gift.anchor) * entry.gift.scale \
+				* Vector2(entry.facing, 1.0)
+			var path: Vector2 = entry.gift_to - entry.gift_from
+			if not path.is_zero_approx() and not tip_offset.is_zero_approx():
+				entry.gift_angle = path.angle() - tip_offset.angle()
+				entry.gift_to -= tip_offset.rotated(entry.gift_angle)
 
 
 func _draw_committed_feedback(entry: CastPlayback.Entry) -> void:
@@ -903,7 +929,11 @@ func _draw_committed_feedback(entry: CastPlayback.Entry) -> void:
 		var start: Vector2 = entry.gift_from
 		var landing: Vector2 = entry.gift_to
 		var midair := start.lerp(landing, flight) - Vector2(0, sin(PI * flight) * 24.0)
-		_at(midair, entry.facing * flight * TAU, Vector2(entry.facing, 1.0))
+		# A thrown harpoon flies point first; potions and gifts still tumble.
+		var rotation: float = entry.gift_angle \
+			if entry.cue.clip == "ranged_cast" and entry.cue.cast_key == "harpooner" \
+			else entry.facing * flight * TAU
+		_at(midair, rotation, Vector2(entry.facing, 1.0))
 		_cast.paint(_ink_canvas, entry.gift, entry.gift.frame_index(entry.elapsed_ms - entry.clip.release_ms))
 	var progress := entry.progress()
 	if progress < 0.0 or progress >= 1.0:

@@ -27,24 +27,31 @@ BEATS = {
     "dont_go": [19],
     "say_hello": [19],
     "offer_flower": [14, 22, 26, 53],
+    ("harpooner", "pursue"): [5, 9, 14],
+    ("harpooner", "close_thrust"): [5, 8, 13],
+    ("harpooner", "ranged_cast"): [8, 10, 11, 13, 23],
+    ("harpooner", "hit"): [4],
+    ("harpooner", "defeat"): [9, 22],
 }
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("output", type=Path)
-    args = parser.parse_args()
     game = Path(__file__).resolve().parents[2]
-    manifest = json.loads((game / "assets/cast/manifest.json").read_text())
+    parser.add_argument("output", type=Path)
+    parser.add_argument("--assets", type=Path, default=game / "assets/cast")
+    args = parser.parse_args()
+    manifest = json.loads((args.assets / "manifest.json").read_text())
     font = subprocess.check_output(["fc-match", "-f", "%{file}", "sans"], text=True)
     with tempfile.TemporaryDirectory() as tmp:
         tiles = []
         for role, actor in manifest["actors"].items():
             for name, clip in actor["clips"].items():
-                for beat in BEATS.get(name, [clip["frames"][0]["source_frame"]]):
+                default = BEATS.get(name, [clip["frames"][0]["source_frame"]])
+                for beat in BEATS.get((role, name), default):
                     frame = next(f for f in clip["frames"] if f["source_frame"] == beat)
                     x, y, w, h = frame["rect"]
-                    path = game / clip["path"].removeprefix("res://")
+                    path = args.assets / Path(clip["path"]).name
                     tile = Path(tmp) / f"{len(tiles)}.png"
                     tiles.append(tile)
                     subprocess.run(

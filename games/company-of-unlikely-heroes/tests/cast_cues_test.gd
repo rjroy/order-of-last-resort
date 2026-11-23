@@ -241,8 +241,19 @@ func _test_reflection() -> void:
 		return
 	_check(plan.events.any(func(event): return event.get("type") == "reflect"), "Fixture actually reflects")
 	var cues := _build(protected, plan.result, plan.events)
-	_check(cues.size() == 1, "Reflection creates only the original caster's cue")
+	_check(cues.filter(func(cue): return cue.get("clip") not in ["hit", "defeat"]).size() == 1,
+		"Reflection creates only the original action cue")
 	_cue(cues, "caster", "wizard", "blast", "recipient")
+	var reaction := _cue(cues, "recipient", "harpooner", "hit")
+	if not reaction.is_empty():
+		_check(reaction.get("after_cue") == 0, "Reflected victim flinches at the source action's impact")
+		var art = load("res://presentation/cast_sprites.gd").new()
+		art.load_manifest()
+		var playback = load("res://presentation/cast_playback.gd").new()
+		playback.enqueue(cues, art)
+		var entries: Array = playback.get("_entries")
+		_check(entries.size() == 2 and is_equal_approx(-entries[1].elapsed_ms, entries[0].impact_ms),
+			"Victim reaction starts at the caster's authored impact, not at preview or release")
 
 
 func _test_committed_round() -> void:
@@ -276,7 +287,8 @@ func _test_non_actions_and_aliases() -> void:
 	defs = alias
 	var alias_state := _state([_unit("alchemist", "alias_healer", Vector2i(3, 3)),
 		_unit("foe", "harpooner", Vector2i(4, 3))])
-	_check(_action(alias_state, "alchemist", "healer_bonk", "foe").is_empty(),
+	_check(not _action(alias_state, "alchemist", "healer_bonk", "foe").any(
+		func(cue): return cue.get("unit_id") == "alchemist"),
 		"An unmodeled character sharing a kit or art does not borrow a cast")
 	defs = old_defs
 
@@ -294,7 +306,8 @@ func _test_custom_ability_handlers() -> void:
 	if plan.get("valid", false):
 		_check(plan.result.units[1].hp == 8 and plan.result.units[1].position == Vector2i(4, 3),
 			"Custom Say Hello resolves as damage instead of movement")
-		_check(_build(state, plan.result, plan.events).is_empty(),
+		_check(not _build(state, plan.result, plan.events).any(
+			func(cue): return cue.get("unit_id") == "recast_zombie"),
 			"A custom attack must not play the stock repel-only greeting")
 	defs = original
 
@@ -324,5 +337,6 @@ func _test_mixologist_recipes() -> void:
 			var repeated: Dictionary = rules.apply_plan(after, repeat)
 			var cues := _build(after, repeated, repeat.events)
 			_cue(cues, "mix", "alchemist", recipe[3], recipe[2])
-			_check(cues.all(func(cue): return cue.get("unit_id") == "mix"),
+			_check(cues.all(func(cue): return cue.get("unit_id") == "mix" \
+				or cue.get("cast_key") == "harpooner" and cue.get("clip") in ["hit", "defeat"]),
 				"Repeat Batch does not animate another hero")

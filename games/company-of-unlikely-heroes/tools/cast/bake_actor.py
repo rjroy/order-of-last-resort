@@ -93,7 +93,7 @@ def ink_light(mat, bottle_glass=False):
     )
 
 
-def setup(scene, role):
+def setup(scene, role, anchor):
     s = scene
     for mat in bpy.data.materials:
         if mat.node_tree and any(
@@ -109,8 +109,14 @@ def setup(scene, role):
     c.rotation_euler = (1.150829196, 0, -0.435386419)
     cam.type = "ORTHO"
     cam.ortho_scale = 2.44 * SIZE / 256
+    # Off-axis framing preserves the common projection and ground anchor;
+    # it only reallocates transparent capture space toward a long prop.
     c.location = c.rotation_euler.to_matrix() @ Vector(
-        (0, cam.ortho_scale * (ANCHOR[1] / SIZE - 0.5), 6)
+        (
+            cam.ortho_scale * (0.5 - anchor[0] / SIZE),
+            cam.ortho_scale * (anchor[1] / SIZE - 0.5),
+            6,
+        )
     )
     s.render.engine = "CYCLES"
     s.cycles.device = "CPU"
@@ -163,7 +169,8 @@ def bake(role, work):
             )
         ):
             o.hide_render = True
-    setup(s, role)
+    anchor = [master.get("capture_anchor_x", ANCHOR[0]), ANCHOR[1]]
+    setup(s, role, anchor)
     actor = master.get("source_actor", role.title())
     rig = bpy.data.objects[f"{actor}_Rig"]
     release = RELEASES.get(role)
@@ -181,7 +188,7 @@ def bake(role, work):
     for clip, (action, frames, end, loop) in TAKES[role].items():
         take = bpy.data.actions[f"{actor} | {action}"]
         rig.animation_data.action = take
-        data[clip] = {"frames": [], "loop": loop, "anchor": ANCHOR, "action": take.name}
+        data[clip] = {"frames": [], "loop": loop, "anchor": anchor, "action": take.name}
         for i, f in enumerate(frames):
             s.frame_set(f)
             variant = ""
@@ -212,7 +219,7 @@ def bake(role, work):
                     else:
                         data[clip]["release"] = {
                             "time_ms": round((f - frames[0]) * 1000 / 24),
-                            "offset": [round(a - b, 3) for a, b in zip(px, ANCHOR)],
+                            "offset": [round(a - b, 3) for a, b in zip(px, anchor)],
                             "clip": prop_clip,
                         }
             key = (action, f, variant)

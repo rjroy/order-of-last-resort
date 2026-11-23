@@ -18,6 +18,7 @@ class Clip:
 	var release_ms := -1.0
 	var release_offset := Vector2.ZERO
 	var release_clip := ""
+	var tip: Variant = null
 
 	func frame_index(at_ms: float) -> int:
 		var sample := fposmod(at_ms, total_ms) if loop else maxf(0.0, at_ms)
@@ -95,6 +96,8 @@ static func _parse_clip(data: Variant, default_scale: float) -> Clip:
 	var clip := Clip.new()
 	clip.path = data.path if data.path.begins_with("res://") else MANIFEST.get_base_dir().path_join(data.path)
 	clip.anchor = Vector2(float(data.anchor[0]), float(data.anchor[1]))
+	if _numbers(data.get("tip"), 2):
+		clip.tip = Vector2(float(data.tip[0]), float(data.tip[1]))
 	clip.scale = _scale(data, default_scale)
 	clip.loop = bool(data.get("loop", false))
 	for frame in data.frames:

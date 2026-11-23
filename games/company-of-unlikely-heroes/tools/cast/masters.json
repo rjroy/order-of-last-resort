@@ -8,6 +8,11 @@
     "source": "models/bard/bard-blockout.blend",
     "sha256": "5685e66c4f43a73a8267afcb6d16c369e64d3d6460cc80631642f3e796874966"
   },
+  "harpooner": {
+    "source": "models/harpooner/harpooner.blend",
+    "sha256": "e097b3aa7697ef09b02aa8713e12a32746c29c323c77c5b8b089ad5cd66b003a",
+    "capture_anchor_x": 91
+  },
   "healer": {
     "source": "models/healer/healer-blockout.blend",
     "sha256": "3a0b8427c788a26b511a6f6262c6debeb3fbcea78fa2c44fd867b32e5010aaa5"

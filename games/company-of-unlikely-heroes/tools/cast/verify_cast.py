@@ -1,5 +1,6 @@
 """Check source hashes, encoded sprites, registration and authored release timing."""
 
+import argparse
 import hashlib
 import json
 import math
@@ -11,13 +12,24 @@ from takes import RELEASES, TAKES
 
 def main():
     game = Path(__file__).resolve().parents[2]
-    dest = game / "assets/cast"
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--assets", type=Path, default=game / "assets/cast")
+    parser.add_argument("actors", nargs="*", help="verify only these registered actors")
+    args = parser.parse_args()
+    dest = args.assets
     masters = json.loads(Path(__file__).with_name("masters.json").read_text())
     manifest = json.loads((dest / "manifest.json").read_text())
     root = game.parents[1] / manifest["source_root"]
-    for role, takes in TAKES.items():
+    roles = args.actors or list(TAKES)
+    if unknown := set(roles) - TAKES.keys():
+        parser.error(f"unregistered actors: {', '.join(sorted(unknown))}")
+    for role in roles:
+        takes = TAKES[role]
         actor = manifest["actors"][role]
-        source_actor = masters[role].get("source_actor", role.title())
+        master = masters[role]
+        source_actor = master.get("source_actor", role.title())
+        assert actor["source"] == "art/" + master["source"]
+        assert actor["sha256"] == master["sha256"]
         assert (
             hashlib.sha256((root / actor["source"]).read_bytes()).hexdigest()
             == actor["sha256"]
@@ -53,6 +65,8 @@ def main():
                 assert not any(b for row in rows for b in row[:3] + row[-3:])
             assert elapsed == round((end - samples[0]) * 1000 / 24)
     for role, (actor_clip, prop_clip, _, source_frame, _) in RELEASES.items():
+        if role not in roles:
+            continue
         clips = manifest["actors"][role]["clips"]
         throw = clips[actor_clip]
         release = throw["release"]
@@ -62,6 +76,10 @@ def main():
         assert release["clip"] == prop_clip
         assert len(release["offset"]) == 2 and all(map(math.isfinite, release["offset"]))
         assert clips[prop_clip]["frames"][0]["source_frame"] == source_frame
+        if role == "harpooner":
+            tip = clips[prop_clip]["tip"]
+            assert len(tip) == 2 and all(map(math.isfinite, tip))
+            assert tip == [160, 11.5]
     print(
         "Verified all authored samples, source hashes, timing, alpha padding and projectile releases."
     )

@@ -15,6 +15,9 @@ RECIPE = HERE / "cast"
 GAME = HERE.parent
 SIZE = 320
 PADDING = 3
+# Frame-local tip relative to the detached prop's root registration, in the
+# approved Harpooner F11 projection. This is unaffected by atlas cropping.
+PROJECTILE_TIPS = {("harpooner", "harpoon_projectile"): (153.519, -3.439)}
 
 
 def alpha_bounds(rgba, width):
@@ -58,6 +61,11 @@ def pack(role, work, dest, master):
             )
         w, h = r - x, b - y
         clip["anchor"] = [round(a - o, 3) for a, o in zip(clip["anchor"], [x, y])]
+        if (role, name) in PROJECTILE_TIPS:
+            clip["tip"] = [
+                round(a + offset, 3)
+                for a, offset in zip(clip["anchor"], PROJECTILE_TIPS[(role, name)])
+            ]
         clip["path"] = f"res://assets/cast/{role}.png"
         for frame in clip["frames"]:
             buf = crop(pixels[frame.pop("file")], (x, y, r, b))

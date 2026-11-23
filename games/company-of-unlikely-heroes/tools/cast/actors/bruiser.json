@@ -1,0 +1,89 @@
+{
+  "role": "bruiser",
+  "master": {
+    "source": "models/bruiser/bruiser-candidate.blend",
+    "sha256": "190e66a530052a883dd7d52db7ea01d0629585cb4a7f0115631423807bf9ddc4",
+    "rig_name": "Bruiser_Rig",
+    "action_prefix": "Bruiser"
+  },
+  "takes": {
+    "down": [
+      "Down",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        29
+      ],
+      30,
+      false
+    ],
+    "heavy_strike": [
+      "Heavy Strike",
+      [
+        1,
+        6,
+        9,
+        11,
+        15,
+        16,
+        18,
+        21,
+        25,
+        26,
+        31,
+        36,
+        41,
+        42
+      ],
+      43,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        6,
+        11,
+        16,
+        17
+      ],
+      18,
+      false
+    ],
+    "ready": [
+      "Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31,
+        36
+      ],
+      37,
+      true
+    ],
+    "trudge": [
+      "Trudge",
+      [
+        1,
+        6,
+        8,
+        11,
+        16,
+        21,
+        22,
+        26,
+        29
+      ],
+      30,
+      false
+    ]
+  }
+}

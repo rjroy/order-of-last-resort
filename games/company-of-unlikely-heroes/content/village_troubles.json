@@ -147,8 +147,30 @@
       "art_key": "bruiser",
       "art_variant": "default",
       "max_hp": 3,
-      "abilities": ["move", "bruiser_strike"],
-      "behavior": "bruiser_charge"
+      "abilities": [
+        "move",
+        "bruiser_strike"
+      ],
+      "behavior": "bruiser_charge",
+      "cast_key": "bruiser",
+      "cast_art_key": "bruiser",
+      "cast_team": "enemies",
+      "cast_variant": "default",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "trudge"
+          },
+          "bruiser_strike": {
+            "handler": "attack",
+            "clip": "heavy_strike",
+            "impact_frame": 18
+          }
+        },
+        "hit": "hit",
+        "defeat": "down"
+      }
     },
     "village_troll": {
       "class": "civilian",

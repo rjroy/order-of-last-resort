@@ -4327,6 +4327,497 @@
           "path": "res://assets/cast/goblin.png"
         }
       }
+    },
+    "bruiser": {
+      "source": "art/models/bruiser/bruiser-candidate.blend",
+      "sha256": "190e66a530052a883dd7d52db7ea01d0629585cb4a7f0115631423807bf9ddc4",
+      "clips": {
+        "down": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                492,
+                825,
+                190,
+                194
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                682,
+                825,
+                190,
+                194
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                872,
+                825,
+                190,
+                194
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                1020,
+                190,
+                194
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                190,
+                1020,
+                190,
+                194
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                380,
+                1020,
+                190,
+                194
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 41,
+              "rect": [
+                570,
+                1020,
+                190,
+                194
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            79,
+            175
+          ],
+          "action": "Bruiser | Down",
+          "path": "res://assets/cast/bruiser.png"
+        },
+        "heavy_strike": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                0,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 125,
+              "rect": [
+                204,
+                0,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 84,
+              "rect": [
+                408,
+                0,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 166,
+              "rect": [
+                612,
+                0,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 42,
+              "rect": [
+                816,
+                0,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 83,
+              "rect": [
+                1020,
+                0,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                210,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                204,
+                210,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 42,
+              "rect": [
+                408,
+                210,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                612,
+                210,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 208,
+              "rect": [
+                816,
+                210,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 36,
+              "duration_ms": 209,
+              "rect": [
+                1020,
+                210,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 41,
+              "duration_ms": 41,
+              "rect": [
+                0,
+                420,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 42,
+              "duration_ms": 42,
+              "rect": [
+                204,
+                420,
+                204,
+                210
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            86,
+            192
+          ],
+          "action": "Bruiser | Heavy Strike",
+          "path": "res://assets/cast/bruiser.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                408,
+                420,
+                172,
+                195
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                580,
+                420,
+                172,
+                195
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                752,
+                420,
+                172,
+                195
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                924,
+                420,
+                172,
+                195
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 41,
+              "rect": [
+                0,
+                630,
+                172,
+                195
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            81,
+            177
+          ],
+          "action": "Bruiser | Hit",
+          "path": "res://assets/cast/bruiser.png"
+        },
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                760,
+                1020,
+                157,
+                193
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                917,
+                1020,
+                157,
+                193
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                1074,
+                1020,
+                157,
+                193
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                1214,
+                157,
+                193
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                157,
+                1214,
+                157,
+                193
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                314,
+                1214,
+                157,
+                193
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 208,
+              "rect": [
+                471,
+                1214,
+                157,
+                193
+              ]
+            },
+            {
+              "source_frame": 36,
+              "duration_ms": 42,
+              "rect": [
+                628,
+                1214,
+                157,
+                193
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            65,
+            175
+          ],
+          "action": "Bruiser | Ready",
+          "path": "res://assets/cast/bruiser.png"
+        },
+        "trudge": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                172,
+                630,
+                164,
+                195
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 84,
+              "rect": [
+                336,
+                630,
+                164,
+                195
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 125,
+              "rect": [
+                500,
+                630,
+                164,
+                195
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                664,
+                630,
+                164,
+                195
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                828,
+                630,
+                164,
+                195
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 42,
+              "rect": [
+                992,
+                630,
+                164,
+                195
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                825,
+                164,
+                195
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                164,
+                825,
+                164,
+                195
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 41,
+              "rect": [
+                328,
+                825,
+                164,
+                195
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            72,
+            177
+          ],
+          "action": "Bruiser | Trudge",
+          "path": "res://assets/cast/bruiser.png"
+        }
+      }
     }
   }
 }

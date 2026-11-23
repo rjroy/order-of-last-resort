@@ -1,0 +1,18 @@
+{
+  "actor": "bruiser",
+  "case": {
+    "automatic_rounds": 4,
+    "cast_key": "bruiser",
+    "minimum_opening": 1,
+    "triggers": [
+      {
+        "ability": "bruiser_strike",
+        "actor_field": "source_id",
+        "clip": "heavy_strike",
+        "id": "strike",
+        "type": "action"
+      }
+    ]
+  },
+  "mission": "harpoon_squad"
+}

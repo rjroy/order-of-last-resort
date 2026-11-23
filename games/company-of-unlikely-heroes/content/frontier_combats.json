@@ -828,7 +828,29 @@
         "trickster_strike",
         "ogre_swap"
       ],
-      "behavior": "trickster_swap"
+      "behavior": "trickster_swap",
+      "cast_key": "trickster",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "quick_step"
+          },
+          "trickster_strike": {
+            "handler": "attack",
+            "clip": "melee_feint"
+          },
+          "ogre_swap": {
+            "handler": "swap_ally",
+            "clip": "switch_places"
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat"
+      }
     },
     "rival_knight": {
       "class": "enemy",

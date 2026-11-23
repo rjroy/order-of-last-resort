@@ -1,0 +1,93 @@
+{
+  "role": "trickster",
+  "master": {
+    "source": "models/trickster/trickster.blend",
+    "sha256": "0dfe1ba48e545da2c815d6ce4bf68cfacfc286fcb48a3e6704e060a191c963ba",
+    "rig_name": "trickster | Rig",
+    "action_prefix": "Trickster"
+  },
+  "takes": {
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        25
+      ],
+      26,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        6,
+        11,
+        15
+      ],
+      16,
+      false
+    ],
+    "melee_feint": [
+      "Melee Feint",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        23
+      ],
+      24,
+      false
+    ],
+    "quick_step": [
+      "Quick Step",
+      [
+        1,
+        6,
+        7,
+        11,
+        16,
+        21,
+        25
+      ],
+      26,
+      false
+    ],
+    "ready": [
+      "Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31
+      ],
+      33,
+      true
+    ],
+    "switch_places": [
+      "Switch Places",
+      [
+        1,
+        6,
+        10,
+        11,
+        16,
+        20,
+        21,
+        26,
+        31,
+        34
+      ],
+      35,
+      false
+    ]
+  }
+}

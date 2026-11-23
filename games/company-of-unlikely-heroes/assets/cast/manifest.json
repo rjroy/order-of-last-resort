@@ -11133,6 +11133,478 @@
           "path": "res://assets/cast/ogre.png"
         }
       }
+    },
+    "trickster": {
+      "source": "art/models/trickster/trickster.blend",
+      "sha256": "0dfe1ba48e545da2c815d6ce4bf68cfacfc286fcb48a3e6704e060a191c963ba",
+      "clips": {
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                0,
+                107,
+                191
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                107,
+                0,
+                107,
+                191
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                214,
+                0,
+                107,
+                191
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                321,
+                0,
+                107,
+                191
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                428,
+                0,
+                107,
+                191
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 42,
+              "rect": [
+                535,
+                0,
+                107,
+                191
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            45,
+            170
+          ],
+          "action": "Trickster | Defeat",
+          "path": "res://assets/cast/trickster.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                137,
+                571,
+                103,
+                189
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                240,
+                571,
+                103,
+                189
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 166,
+              "rect": [
+                343,
+                571,
+                103,
+                189
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 42,
+              "rect": [
+                446,
+                571,
+                103,
+                189
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            44,
+            171
+          ],
+          "action": "Trickster | Hit",
+          "path": "res://assets/cast/trickster.png"
+        },
+        "melee_feint": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                120,
+                381,
+                137,
+                189
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                257,
+                381,
+                137,
+                189
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                394,
+                381,
+                137,
+                189
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                531,
+                381,
+                137,
+                189
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 84,
+              "rect": [
+                668,
+                381,
+                137,
+                189
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 41,
+              "rect": [
+                0,
+                571,
+                137,
+                189
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            42,
+            168
+          ],
+          "action": "Trickster | Melee Feint",
+          "path": "res://assets/cast/trickster.png"
+        },
+        "quick_step": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                549,
+                571,
+                99,
+                185
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 42,
+              "rect": [
+                648,
+                571,
+                99,
+                185
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 167,
+              "rect": [
+                747,
+                571,
+                99,
+                185
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                760,
+                99,
+                185
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                99,
+                760,
+                99,
+                185
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                198,
+                760,
+                99,
+                185
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 42,
+              "rect": [
+                297,
+                760,
+                99,
+                185
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            42,
+            167
+          ],
+          "action": "Trickster | Quick Step",
+          "path": "res://assets/cast/trickster.png"
+        },
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                396,
+                760,
+                86,
+                185
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                482,
+                760,
+                86,
+                185
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                568,
+                760,
+                86,
+                185
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                654,
+                760,
+                86,
+                185
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                740,
+                760,
+                86,
+                185
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                826,
+                760,
+                86,
+                185
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                945,
+                86,
+                185
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            40,
+            167
+          ],
+          "action": "Trickster | Ready",
+          "path": "res://assets/cast/trickster.png"
+        },
+        "switch_places": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                642,
+                0,
+                120,
+                190
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 167,
+              "rect": [
+                762,
+                0,
+                120,
+                190
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                191,
+                120,
+                190
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                120,
+                191,
+                120,
+                190
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                240,
+                191,
+                120,
+                190
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 41,
+              "rect": [
+                360,
+                191,
+                120,
+                190
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                480,
+                191,
+                120,
+                190
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                600,
+                191,
+                120,
+                190
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 125,
+              "rect": [
+                720,
+                191,
+                120,
+                190
+              ]
+            },
+            {
+              "source_frame": 34,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                381,
+                120,
+                190
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            41,
+            172
+          ],
+          "action": "Trickster | Switch Places",
+          "path": "res://assets/cast/trickster.png"
+        }
+      }
     }
   }
 }

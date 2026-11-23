@@ -1,0 +1,32 @@
+{
+  "actor": "trickster",
+  "case": {
+    "automatic_rounds": 4,
+    "cast_key": "trickster",
+    "minimum_opening": 1,
+    "triggers": [
+      {
+        "ability": "trickster_strike",
+        "actor_field": "source_id",
+        "clip": "melee_feint",
+        "id": "strike",
+        "type": "action"
+      }
+    ],
+    "variants": {
+      "swap": {
+        "route_ref": "odd_couple_swap",
+        "triggers": [
+          {
+            "ability": "ogre_swap",
+            "actor_field": "unit_id",
+            "clip": "switch_places",
+            "id": "swap",
+            "type": "action"
+          }
+        ]
+      }
+    }
+  },
+  "mission": "odd_couple"
+}

@@ -48,6 +48,7 @@ PAGES = (
          ("Committed resolution", "gaps/10-resolution.png"))),
     ("19", "Mission debrief and rewards", "19-mission-debrief-rewards.png",
      "0142c4cca15e2e47abfcde3f027bf80f5acb0609a02ec8d567ef08e1cd7c4a36", (
+         ("Ordinary debrief, no reward", "ordinary-extra/ordinary-mission-cleared.png"),
          ("Reward choices", "ordinary/11-debrief-reward-choices.png"),
          ("Reward selected, road 1", "ordinary/12-reward-selected-0.png"),
          ("Reward selected, road 2", "ordinary/12-reward-selected-1.png"),

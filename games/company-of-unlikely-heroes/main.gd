@@ -17,6 +17,7 @@ const GuildCreationPage = preload("res://presentation/guild_creation_page.gd")
 const GuildBoundPage = preload("res://presentation/guild_bound_page.gd")
 const CommissionBoardPage = preload("res://presentation/commission_board_page.gd")
 const FieldReportsPage = preload("res://presentation/field_reports_page.gd")
+const MissionDebriefPage = preload("res://presentation/mission_debrief_page.gd")
 const GuildPetitionViewModel = preload("res://presentation/guild_petition_view_model.gd")
 const DEFAULT_ADVENTURE := "first_outing"
 const TERMINAL_REPLAY_STALL_MS := 3200
@@ -1132,141 +1133,50 @@ func _begin_mission() -> void:
 func _show_debrief() -> void:
 	var result: Dictionary = _run.last_result
 	var pending: bool = _run.phase == "reward"
-	var next_title := ""
+	var next_mission := ""
 	if _commission.is_empty():
-		next_title = _mission_title_for(_run.mission_ids[_run.mission_index])
+		next_mission = str(_run.mission_ids[_run.mission_index])
 	elif _run.phase == "ready":
-		next_title = _mission_title_for(_run.destination_id)
+		next_mission = str(_run.destination_id)
 	var chosen: Dictionary = _run.get("chosen_reward", {})
-	if pending or not chosen.is_empty():
-		_show_reward_debrief(next_title, pending, chosen)
-		return
-	var page := _book_page("debrief", 0.46)
-	var leaves := _book.spread(page, 0.46, 44)
-	var left := leaves[0]
-	var right := leaves[1]
-	_book.text(left, "Mission cleared", 44, GuildBookPage.INK, "display")
-	_book.text(left, _mission_title_for(result.mission_id), 28, GuildBookPage.RUST, "italic")
-	_book.rule(left)
-	_book.text(left, str(result.get("text", "")), 17)
-	if _uses_builtin_catalog and not _commission.is_empty():
-		_book.text(left, _receipt_summary(Adventure.receipt(_run)), 15, GuildBookPage.FOREST)
-	if not next_title.is_empty():
-		_book.space(left, 12)
-		_book.text(left, "Next: " + next_title, 24, GuildBookPage.INK, "display")
-		var painting := _destination_plate(_next_visible_mission())
-		if painting != null:
-			_book.plate(left, painting, Vector2(0, 253))
-	_book.space(left, 12, true)
-	_add_continue(left, next_title).grab_focus()
-	_build_carry_report(right)
+	var offers: Array[Dictionary] = []
+	if pending:
+		for offer: Dictionary in _run.reward_offers:
+			offers.append(_debrief_reward(offer))
+	var book := MissionDebriefPage.new()
+	var page := _book_page("debrief", -1.0, book)
+	book.populate(page, {
+		"mission": _mission_title_for(result.mission_id),
+		"result_text": str(result.get("text", "")),
+		"pending": pending,
+		"offers": offers,
+		"claimed": {} if chosen.is_empty() else _debrief_reward(chosen),
+		"receipt": _receipt_summary(Adventure.receipt(_run)) if _uses_builtin_catalog and not _commission.is_empty() else "",
+		"carry": _debrief_carry_lines(pending),
+		"scout_note": str(_run.get("scout_note", "")),
+		"next_title": "" if next_mission.is_empty() else _mission_title_for(next_mission),
+		"next_art": _destination_plate(next_mission) if not pending and chosen.is_empty() and not next_mission.is_empty() else null,
+		"next_is_fork": _run.phase == "route",
+		"can_continue": _run.phase in ["ready", "route"],
+		"advance": _continue_after_debrief,
+	})
 
 
-func _show_reward_debrief(next_title: String, pending: bool, chosen: Dictionary) -> void:
-	if not pending:
-		_show_claimed_debrief(next_title, chosen)
-		return
-	var page := _book_page("debrief")
-	_book_heading(page, "Choose one reward",
-		"%s cleared. The chosen hero keeps the upgrade until the outing ends." % _mission_title_for(_run.last_result.mission_id))
-	if _uses_builtin_catalog and not _commission.is_empty():
-		_book.text(page, _receipt_summary(Adventure.receipt(_run)), 15, GuildBookPage.FOREST)
-	var displays := _book.scroll(page, "RewardScroll")
-	var cards := GridContainer.new()
-	cards.columns = 3
-	cards.add_theme_constant_override("h_separation", 16)
-	cards.add_theme_constant_override("v_separation", 16)
-	cards.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	displays.add_child(cards)
-	var first_offer: Button
-	for offer in _run.reward_offers:
-		var button := _build_reward_entry(cards, offer, true)
-		if first_offer == null:
-			first_offer = button
-	var folio := _book.row(page, 17)
-	var carry_scroll := _book.scroll(folio, "PendingCarryScroll")
-	carry_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	carry_scroll.custom_minimum_size.y = 111
-	var company := _book.stack(carry_scroll, 6)
-	company.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_build_carry_report(company, true)
-	var scout_note: String = _run.get("scout_note", "")
-	if not scout_note.is_empty():
-		var note := _book.stack(folio, 5)
-		note.custom_minimum_size.x = 335
-		note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		note.size_flags_stretch_ratio = 0.46
-		_book.text(note, "Your scout’s note", 22, GuildBookPage.INK, "display")
-		_book.text(note, scout_note, 15)
-	_book.rule(page)
-	var footer := _book.row(page, 16)
-	var reminder := _book.text(footer, "Choose a reward before continuing.", 15, GuildBookPage.SUBTLE)
-	reminder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	reminder.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_add_continue(footer, next_title)
-	if first_offer != null:
-		first_offer.grab_focus()
-
-
-func _show_claimed_debrief(next_title: String, chosen: Dictionary) -> void:
-	var page := _book_page("debrief", 0.47)
-	_book_heading(page, "Reward claimed", _mission_title_for(_run.last_result.mission_id) + " cleared")
-	if _uses_builtin_catalog and not _commission.is_empty():
-		_book.text(page, _receipt_summary(Adventure.receipt(_run)), 15, GuildBookPage.FOREST)
-	var leaves := _book.spread(page, 0.47, 44)
-	_build_reward_entry(leaves[0], chosen, false)
-	_build_carry_report(leaves[1])
-	_book.space(leaves[1], 8, true)
-	if not next_title.is_empty():
-		_book.text(leaves[1], "Next: " + next_title, 21, GuildBookPage.RUST, "italic")
-	_add_continue(leaves[1], next_title).grab_focus()
-
-
-func _build_reward_entry(parent: Control, offer: Dictionary, pending: bool) -> Button:
+func _debrief_reward(offer: Dictionary) -> Dictionary:
 	var hero_id: String = offer.hero_id
 	var upgrade_id: String = offer.upgrade_id
 	var upgrade: Dictionary = _definitions.upgrades[upgrade_id]
 	var hero := Catalog.profile(_definitions, hero_id)
-	var rarity: String = upgrade.rarity.capitalize()
 	var owned := int(_run.upgrades_by_id.get(hero_id, {}).get(upgrade_id, 0))
-	var progress := "%d of %d acquired  ·  %d remaining" % [owned, upgrade.cap, int(upgrade.cap) - owned]
-	var mount := _book.inset(parent, GuildBookPage.PALE, GuildBookPage.RULE, 12, 10)
-	mount.name = "RewardCard_" + hero_id
-	mount.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mount.size_flags_vertical = Control.SIZE_SHRINK_BEGIN if not pending else Control.SIZE_FILL
-	var entry := _book.stack(mount, 6)
-	var upgrade_art := GuildBookArt.upgrade(upgrade_id) if _uses_builtin_catalog else null
-	if upgrade_art != null:
-		var art_height := 154 if pending else 242
-		var sketch := _book.plate(entry, upgrade_art, Vector2(art_height * 318.0 / 154.0, art_height))
-		sketch.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	var recipient := _book.row(entry, 8)
-	var portrait := GuildBookArt.class_portrait(_portrait_identity(hero_id))
-	if portrait != null:
-		_book.plate(recipient, portrait, Vector2(44, 44), "portrait")
-	var identity := _book.stack(recipient, 0)
-	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_book.text(identity, hero.label, 20, GuildBookPage.INK, "display")
-	var class_text := _portrait_subtitle(hero_id, str(hero.label))
-	if not class_text.is_empty():
-		_book.text(identity, class_text, 13, GuildBookPage.SUBTLE)
-	_book.text(identity, rarity, 13, GuildBookPage.RARITY.get(upgrade.rarity, GuildBookPage.SUBTLE))
-	_book.rule(entry)
-	_book.text(entry, upgrade.label, 28, GuildBookPage.INK, "display")
-	_book.text(entry, upgrade.description, 16)
-	_book.space(entry, 3, true)
-	_book.text(entry, progress, 13, GuildBookPage.SUBTLE)
-	if not pending:
-		_book.text(entry, "Awarded for this outing", 15, GuildBookPage.FOREST, "italic")
-		return null
-	var button := _book.button(entry, "Reward_" + hero_id, "Take reward", "ClothButton")
-	button.accessibility_name = "Award %s to %s" % [upgrade.label, hero.label]
-	button.accessibility_description = "%s. %s. %s. This is your one reward for the mission." % [
-		rarity, upgrade.description, progress]
-	button.set_meta("hero_id", hero_id)
-	button.set_meta("upgrade_id", upgrade_id)
-	button.pressed.connect(_claim_reward.bind(hero_id, upgrade_id))
-	return button
+	return {
+		"hero_id": hero_id, "upgrade_id": upgrade_id,
+		"hero_name": hero.label, "class_name": _portrait_subtitle(hero_id, str(hero.label)),
+		"rarity": upgrade.rarity, "label": upgrade.label, "description": upgrade.description,
+		"progress": "%d of %d acquired  ·  %d remaining" % [owned, upgrade.cap, int(upgrade.cap) - owned],
+		"portrait": GuildBookArt.class_portrait(_portrait_identity(hero_id)),
+		"art": GuildBookArt.upgrade(upgrade_id) if _uses_builtin_catalog else null,
+		"claim": _claim_reward.bind(hero_id, upgrade_id),
+	}
 
 
 func _claim_reward(hero_id: String, upgrade_id: String) -> void:
@@ -1278,31 +1188,15 @@ func _claim_reward(hero_id: String, upgrade_id: String) -> void:
 		_show_debrief()
 
 
-func _add_continue(parent: Control, next_title: String) -> Button:
-	var caption := "Continue to next mission"
-	if next_title.is_empty() and _run.phase == "route":
-		caption = "Read field reports"
-	var advance := _book.button(parent, "ContinueAdventure", caption, "ClothButton")
-	advance.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	advance.accessibility_name = "Continue to " + next_title if not next_title.is_empty() else caption
-	_book.set_disabled(advance, _run.phase not in ["ready", "route"])
-	if advance.disabled:
-		advance.accessibility_description = "Choose one reward first."
-	advance.pressed.connect(_continue_after_debrief)
-	return advance
-
-
 func _continue_after_debrief() -> void:
-	if _run.phase == "route":
-		_show_routes()
-	else:
-		_begin_mission()
+	if _screen == "debrief":
+		if _run.phase == "route":
+			_show_routes()
+		elif _run.phase == "ready":
+			_begin_mission()
 
 
-func _build_carry_report(panel: VBoxContainer, compact := false) -> void:
-	_book.text(panel, "What carries forward", 22 if compact else 33, GuildBookPage.INK, "display")
-	var report := _book.text(panel, "", 14 if compact else 17)
-	report.name = "CarryReport"
+func _debrief_carry_lines(compact: bool) -> String:
 	var lines: PackedStringArray = []
 	for id in _run.party:
 		var before: Dictionary = _run.last_result.heroes_by_id[id]
@@ -1326,11 +1220,7 @@ func _build_carry_report(panel: VBoxContainer, compact := false) -> void:
 		line += "  ·  Order: %s" % order.get("label", "None") if compact \
 			else "\nStanding order: %s" % order.get("label", "None")
 		lines.append(line)
-	report.text = ("\n" if compact else "\n\n").join(lines)
-
-
-func _next_visible_mission() -> String:
-	return str(_run.mission_ids[_run.mission_index]) if _commission.is_empty() else str(_run.destination_id)
+	return ("\n" if compact else "\n\n").join(lines)
 
 
 func _show_result() -> void:

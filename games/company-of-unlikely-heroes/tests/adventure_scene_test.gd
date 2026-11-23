@@ -215,6 +215,11 @@ func _exercise_transition_fixture() -> void:
 			await _press("Reward_knight")
 			var chosen_run: Dictionary = scene.get("_run")
 			_check(chosen_run.get("phase") == "ready", "Selecting one reward completes the choice")
+			var next := _node("DebriefNextMission") as Label
+			_check(next != null and next.text == "Next: " + str(defs.missions.company_rescue.title)
+				and next.is_visible_in_tree() and root.get_visible_rect().encloses(next.get_global_rect())
+				and _node("DebriefScoutNote") == null,
+				"Claimed fixed outing shows its known next mission without relying on a scout note")
 			_check(_node("Reward_knight") == null and _node("Reward_wizard") == null
 				and _node("Reward_alchemist") == null,
 				"Claimed debrief exposes no second reward button")

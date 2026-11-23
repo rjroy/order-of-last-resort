@@ -20,12 +20,20 @@ func _run() -> void:
 	defs.characters.test_namesake.label = "Bad Bard"
 	defs.characters["test_opted_in"] = defs.characters.test_custom.duplicate(true)
 	defs.characters.test_opted_in["guild_portrait"] = "rogue"
+	var long_hero_name := "The Healer of the Long and Winding Road and the Lantern at the End of It"
+	defs.characters.healer.label = long_hero_name
 	var roster_id: String = defs.commission_settings.roster_adventure
 	defs.adventures[roster_id].roster.append_array(["test_custom", "test_namesake", "test_opted_in"])
 	for id in defs.missions:
 		defs.missions[id].title = "Custom mission " + id
+	var long_mission_title := "The commission whose name is written in a very long hand. ".repeat(59).left(3323)
+	for id in defs.mission_reports:
+		if not defs.mission_reports[id].has("destination_descriptors"):
+			defs.missions[id].title = long_mission_title
+	var long_reward := "This custom upgrade changes the next deployment in specific ways. ".repeat(30).strip_edges()
 	for id in defs.upgrades:
 		defs.upgrades[id].label = "Custom upgrade " + id
+		defs.upgrades[id].description = long_reward
 	# External authored prose is deliberately much longer than stock copy.
 	var long_description := "The scout describes a winding road and a remarkable landmark. ".repeat(30).strip_edges()
 	for report in defs.mission_reports.values():
@@ -96,7 +104,7 @@ func _run() -> void:
 		for i in run.reports.size():
 			var scroll_name := "RouteDetails_%d" % i
 			_check_long_copy(scroll_name, "Route_%d" % i, long_description)
-			await _check_report_keyboard_scroll(scroll_name)
+			await _check_keyboard_scroll(scroll_name)
 			var card := _item_card(_node("Route_%d" % i) as Control, "RouteCard_%d" % i)
 			_check(card != null and _textures_in(card).is_empty(),
 				"External immediate mission %d does not inherit stock report art by ID" % i)
@@ -105,6 +113,7 @@ func _run() -> void:
 		await _play_battle(mission)
 		if scene.current_screen() == "debrief":
 			run = scene.get("_run")
+			_check_extreme_debrief_title(long_mission_title, "Pending")
 			_check(not run.reward_offers.is_empty(), "Custom catalog reaches real reward offers")
 			var art = load("res://presentation/guild_book_art.gd")
 			for offer in run.reward_offers:
@@ -113,6 +122,21 @@ func _run() -> void:
 				var stock_image: Texture2D = art.upgrade(str(offer.upgrade_id))
 				_check(card != null and stock_image != null and stock_image not in _textures_in(card),
 					"External upgrade %s does not inherit stock art by ID" % offer.upgrade_id)
+				var details_name := "RewardDetails_" + str(offer.hero_id)
+				_check_long_copy(details_name, "Reward_" + str(offer.hero_id), long_reward)
+				await _check_keyboard_scroll(details_name)
+			var scout := _node("PendingScoutScroll")
+			var carry := _node("CarryReport") as Label
+			_check(scout != null and long_description in _text_in(scout), "Debrief retains the complete custom scout note")
+			_check(carry != null and long_hero_name in carry.text and "Order:" in carry.text,
+				"Debrief retains long carry entries and standing orders")
+			await _check_keyboard_scroll("PendingScoutScroll")
+			await _check_keyboard_scroll("PendingCarryScroll")
+			if not run.reward_offers.is_empty():
+				await _press("Reward_" + str(run.reward_offers[0].hero_id))
+				_check_extreme_debrief_title(long_mission_title, "Claimed")
+				_check(_node("DebriefNextMission") == null,
+					"Claimed reward before a fork does not announce a hidden mission")
 		else:
 			_check(false, "Custom catalog battle reaches reward debrief")
 	else:
@@ -120,6 +144,23 @@ func _run() -> void:
 	_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(fixture)) == OK,
 		"Custom catalog fixture is removed")
 	_cleanup()
+
+
+func _check_extreme_debrief_title(full_title: String, state: String) -> void:
+	var book := _node("DebriefScreen") as Control
+	var title := _node("DebriefMissionTitle") as Label
+	var bounds := Rect2(Vector2.ZERO, Vector2(VIEWPORT_SIZE))
+	_check(book != null and book.get_global_rect().is_equal_approx(bounds),
+		state + ": long authored title does not stretch the book")
+	_check(title != null and title.accessibility_name.contains(full_title) and title.tooltip_text.contains(full_title),
+		state + ": full mission title remains accessible even when visually shortened")
+	_check(title != null and _reachable(title) and title.size.y <= 60.0,
+		state + ": the long heading is bounded to two printed lines")
+	if title != null:
+		var rendered := title.get_line_count()
+		_check(rendered > title.get_visible_line_count() and title.get_visible_line_count() == 2,
+			state + ": the heading visibly truncates to two lines rather than dropping the title")
+	_check(_reachable(_node("ContinueAdventure") as Control), state + ": continuation is fully in view")
 
 
 func _check_long_copy(scroll_name: String, button_name: String, description: String) -> void:
@@ -138,13 +179,13 @@ func _check_long_copy(scroll_name: String, button_name: String, description: Str
 	scroll.scroll_vertical = 0
 
 
-func _check_report_keyboard_scroll(scroll_name: String) -> void:
+func _check_keyboard_scroll(scroll_name: String) -> void:
 	var scroll := _node(scroll_name) as ScrollContainer
 	if scroll == null:
 		return
 	var bar := scroll.get_v_scroll_bar()
 	_check(bar.focus_mode == Control.FOCUS_ALL and not bar.accessibility_name.is_empty(),
-		scroll_name + " offers a named keyboard stop when report text overflows")
+		scroll_name + " offers a named keyboard stop when text overflows")
 	bar.grab_focus()
 	for pressed in [true, false]:
 		var down := InputEventKey.new()

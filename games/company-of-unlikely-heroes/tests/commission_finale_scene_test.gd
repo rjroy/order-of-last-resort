@@ -137,6 +137,12 @@ func _journey(defs: Dictionary, offer_index: int) -> void:
 			_check(false, label + ": upgrade is available")
 			return
 		_check(scene.current_screen() == "debrief", label + ": upgrade selection keeps the debrief open")
+		if step == length - 2:
+			var next := _node("DebriefNextMission") as Label
+			_check(next != null and next.text == "Next: " + title and _reachable(next),
+				label + ": claimed debrief shows the known destination before leaving")
+		else:
+			_check(_node("DebriefNextMission") == null, label + ": claimed debrief before a fork shows no next mission")
 		await _press("ContinueAdventure")
 		if step == length - 2:
 			_check(scene.current_screen() == "battle", label + ": final continuation goes directly to destination")

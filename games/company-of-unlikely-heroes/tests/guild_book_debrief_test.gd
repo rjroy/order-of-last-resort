@@ -34,6 +34,8 @@ func _run() -> void:
 		_check(false, "First stock route identifies its mission")
 		_cleanup()
 		return
+	# The stock seed-13 draw previously put a long reward below the clip edge.
+	run.reward_rng_state = load("res://rewards.gd").starting_rng_state(13)
 	await _press("Route_0")
 	if scene.current_screen() != "battle":
 		_check(false, "First stock route opens its battle")
@@ -49,6 +51,7 @@ func _run() -> void:
 	var art = load("res://presentation/guild_book_art.gd") if ResourceLoader.exists("res://presentation/guild_book_art.gd") else null
 	var offers: Array = run.reward_offers.duplicate(true)
 	_check(run.phase == "reward" and not offers.is_empty(), "Victory offers rewards")
+	var reward_scroll := _node("RewardScroll") as ScrollContainer
 	var caps := {}
 	var upgrade_textures := {}
 	for offer in offers:
@@ -71,6 +74,9 @@ func _run() -> void:
 		upgrade_textures[upgrade_id] = illustration
 		_check(button != null and not button.disabled and owned < int(upgrade.cap),
 			"Offer %s remains available under its cap" % upgrade_id)
+		_check(reward_scroll != null and button != null
+			and reward_scroll.get_global_rect().grow(1.0).encloses(button.get_global_rect()),
+			"Seed-13 offer %s action is fully visible without scrolling its description" % upgrade_id)
 		var text := _text_in(card)
 		_check("%d of %d" % [owned, upgrade.cap] in text,
 			"Offer %s shows current count and cap" % upgrade_id)
@@ -84,14 +90,44 @@ func _run() -> void:
 					"Different offered upgrades use distinct illustrations")
 	var continuation := _node("ContinueAdventure") as BaseButton
 	_check(continuation != null and continuation.disabled, "A single reward is required before continuing")
+	if continuation != null:
+		continuation.pressed.emit()
+		await process_frame
+		_check(scene.current_screen() == "debrief" and scene.get("_run") == run,
+			"Continuation cannot bypass a pending choice")
 	if not offers.is_empty():
 		var chosen: Dictionary = offers[0]
 		var before_owned := int(run.upgrades_by_id.get(chosen.hero_id, {}).get(chosen.upgrade_id, 0))
-		await _press("Reward_" + str(chosen.hero_id))
+		var comparison := _node("Reward_" + str(offers.back().hero_id)) as BaseButton
+		var claim := _node("Reward_" + str(chosen.hero_id)) as BaseButton
+		if comparison == null or claim == null:
+			_check(false, "The compared and claimed offer actions exist")
+			_cleanup()
+			return
+		comparison.grab_focus()
+		await process_frame
+		_check(comparison.has_focus() and scene.get("_run") == run and run.chosen_reward.is_empty(),
+			"Keyboard focus compares an offer without claiming it")
+		claim.grab_focus()
+		for down in [true, false]:
+			var key := InputEventKey.new()
+			key.keycode = KEY_ENTER
+			key.pressed = down
+			viewport.push_input(key, true)
+			await process_frame
 		run = scene.get("_run")
 		_check(int(run.upgrades_by_id.get(chosen.hero_id, {}).get(chosen.upgrade_id, 0)) == before_owned + 1,
 			"Choosing an offer grants exactly one copy")
 		_check(run.phase != "reward", "One reward ends the choice")
+		var claimed := _node("RewardCard_" + str(chosen.hero_id))
+		_check(claimed != null and defs.upgrades[chosen.upgrade_id].label in _text_in(claimed)
+			and "Awarded for this outing" in _text_in(claimed),
+			"The settled page identifies the actual claimed upgrade")
+		for offer in offers:
+			_check(_node("Reward_" + str(offer.hero_id)) == null, "A settled page has no claim actions")
+		continuation = _node("ContinueAdventure") as BaseButton
+		_check(continuation != null and continuation.has_focus() and not continuation.disabled,
+			"Claiming enables and focuses continuation")
 		for id in caps:
 			_check(defs.upgrades[id].cap == caps[id], "Presentation did not change cap for " + id)
 	_cleanup()

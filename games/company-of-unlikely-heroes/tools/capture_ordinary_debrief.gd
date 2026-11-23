@@ -77,6 +77,8 @@ func _run() -> void:
 	var terminal: Dictionary = scene.get("_state")
 	var carry := _node("CarryReport") as Control
 	var continue_button := _node("ContinueAdventure") as BaseButton
+	var next := _node("DebriefNextMission") as Label
+	var next_title: String = defs.missions[run.mission_ids[1]].title if run.get("mission_ids", []).size() > 1 else ""
 	if not failures.is_empty() or played_rounds < 1 or scene.current_screen() != "debrief" \
 			or run.get("phase") != "ready" or run.get("mission_index") != 1 \
 			or not run.get("reward_offers", []).is_empty() \
@@ -85,6 +87,7 @@ func _run() -> void:
 			or terminal.get("outcome") != "victory" \
 			or not BattleRules.new().is_committed_terminal(terminal) \
 			or carry == null or not carry.is_visible_in_tree() \
+			or next == null or next.text != "Next: " + next_title or not _reachable(next) \
 			or continue_button == null or not continue_button.is_visible_in_tree() or continue_button.disabled:
 		_fail_capture("A real no-reward victory debrief was not reached: " + str(failures) \
 			+ "; screen=" + scene.current_screen() + "; phase=" + str(run.get("phase")) \

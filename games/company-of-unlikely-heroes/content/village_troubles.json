@@ -138,8 +138,33 @@
       "art_key": "hookhand",
       "art_variant": "default",
       "max_hp": 3,
-      "abilities": ["move", "hook_pull"],
-      "behavior": "hookhand_pull_or_approach"
+      "abilities": [
+        "move",
+        "hook_pull"
+      ],
+      "behavior": "hookhand_pull_or_approach",
+      "cast_key": "hookhand",
+      "cast_art_key": "hookhand",
+      "cast_team": "enemies",
+      "cast_variant": "default",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "approach"
+          },
+          "hook_pull": {
+            "handler": "hook",
+            "clip": "hook_pull",
+            "impact_frame": 18
+          }
+        },
+        "hit": "flinch",
+        "defeat": "down",
+        "events": {
+          "recover": "recover"
+        }
+      }
     },
     "bruiser": {
       "class": "enemy",

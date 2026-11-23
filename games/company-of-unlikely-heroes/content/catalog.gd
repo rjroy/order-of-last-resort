@@ -24,6 +24,7 @@ const ABILITY_EVENTS := {"swap_furthest": ["swap"], "swap_ally": ["swap"], "misd
 	"sweep": ["sweep"], "stop_target": ["stop_target"], "repel": ["repel"],
 	"perform": ["performance_dry"], "hook": ["hook_pull"]}
 const CAST_ACTION_HANDLERS := ["move", "attack", "hook", "push", "blast", "enemy_heal", "swap_ally", "perform"]
+const CAST_EVENTS := ["recover"]
 const STATUS_EXPIRY := {"reflect": "actor_turn_start", "skip_action": "consume_action",
 	"retarget": "actor_turn_end", "misdirect": "consume_attack", "stop_move": "actor_turn_end",
 	"block_voluntary_move": "consume_move"}
@@ -868,8 +869,15 @@ class Validator:
 			_text(character.cast_variant, path + ".cast_variant", true)
 		var presentation := _dictionary(character.cast_presentation, path + ".cast_presentation")
 		for field in presentation:
-			if field not in ["actions", "hit", "defeat"]:
+			if field not in ["actions", "hit", "defeat", "events"]:
 				_error(path + ".cast_presentation." + str(field), "unknown presentation field")
+		var events_path := path + ".cast_presentation.events"
+		var events := _dictionary(presentation.get("events", {}), events_path)
+		for kind in events:
+			var event_path := events_path + "." + str(kind)
+			_choice(kind, CAST_EVENTS, event_path)
+			if _text(events[kind], event_path) and events[kind] == "ready":
+				_error(event_path, "ready is reserved for idle presentation")
 		var actions := _dictionary(presentation.get("actions", {}), path + ".cast_presentation.actions")
 		for id in actions:
 			var action_path := path + ".cast_presentation.actions." + str(id)

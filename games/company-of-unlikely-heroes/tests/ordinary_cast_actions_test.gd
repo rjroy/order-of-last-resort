@@ -27,6 +27,7 @@ func _initialize() -> void:
 	_case(defs, "rival_healer", "frontier_heal", "ogre", Vector2i(3, 2), "heal", Vector2i(3, 2))
 	_case(defs, "trickster", "ogre_swap", "ogre", Vector2i(3, 2), "shift", Vector2i(2, 2))
 	_case(defs, "frontier_war_drummer", "frontier_war_drum", "healer", Vector2i(4, 2), "hit", Vector2i(4, 2))
+	_recover(defs)
 	defs.characters.hookhand.cast_presentation.actions.hook_pull.handler = "attack"
 	var state := _state(defs, "hookhand", "healer", Vector2i(4, 2))
 	var plan: Dictionary = rules.preview(state, "caster", "hook_pull", "target")
@@ -64,6 +65,23 @@ func _state(defs: Dictionary, caster: String, target: String, at: Vector2i) -> D
 
 func _actor(id: String, character: String, at: Vector2i) -> Dictionary:
 	return {"id": id, "character_id": character, "position": at, "hp": 5, "max_hp": 10, "statuses": {}}
+
+
+func _recover(defs: Dictionary) -> void:
+	defs.characters.hookhand.cast_presentation["events"] = {"recover": "get_up"}
+	var state := _state(defs, "wizard", "hookhand", Vector2i(3, 2))
+	var down: Dictionary = rules.preview(state, "caster", "wizard_blast")
+	_check(down.valid and rules.knocked_down(down.result, "target"), "Real Wizard Blast knocks Hookhand down")
+	if not down.valid:
+		return
+	_check(not Cues.build(state, down.result, down.events).any(func(cue): return cue.clip == "get_up"),
+		"Being knocked down is not recovery")
+	var plan: Dictionary = rules.preview_round(down.result)
+	var recovered := Cues.build(down.result, plan.result, plan.events).filter(
+		func(cue): return cue.get("ordinary_role") == "recover")
+	_check(recovered.size() == 1 and recovered[0].unit_id == "target" and recovered[0].clip == "get_up" \
+		and recovered[0].source_cell == Vector2i(3, 2) and not rules.knocked_down(plan.result, "target"),
+		"Only the owner of a real knockdown recovery gets its authored cue")
 
 
 func _case(defs: Dictionary, caster: String, ability: String, target: String, at: Vector2i,

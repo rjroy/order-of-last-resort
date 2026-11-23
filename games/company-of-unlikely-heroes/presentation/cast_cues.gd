@@ -52,7 +52,13 @@ static func _valid_presentation(value: Variant) -> bool:
 	if not value is Dictionary:
 		return false
 	for field in value:
-		if field not in ["actions", "hit", "defeat"]:
+		if field not in ["actions", "hit", "defeat", "events"]:
+			return false
+	var events: Variant = value.get("events", {})
+	if not events is Dictionary:
+		return false
+	for kind in events:
+		if kind not in Catalog.CAST_EVENTS or not _presentation_clip(events[kind]):
 			return false
 	var actions: Variant = value.get("actions", {})
 	if not actions is Dictionary:
@@ -194,11 +200,15 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 				var knocked: bool = event.get("reaction_id") == "jelly_knees"
 				for status_id in event.get("status_ids", []):
 					knocked = knocked or Statuses.is_knockdown(after, status_id)
-				if knocked and cast_key_for(after, target) == "ferryman" \
-						and not has_presentation(after, target) and prone.get(recovered, false):
-					reactions.append({"unit_id": recovered, "cast_key": "ferryman", "clip": "recover",
-						"source_cell": positions.get(recovered), "actor_cell": positions.get(recovered),
-						"target_id": "", "recipients": []})
+				if knocked and prone.get(recovered, false) and int(health.get(recovered, 0)) > 0:
+					if cast_key_for(after, target) == "ferryman" and not has_presentation(after, target):
+						reactions.append({"unit_id": recovered, "cast_key": "ferryman", "clip": "recover",
+							"source_cell": positions.get(recovered), "actor_cell": positions.get(recovered),
+							"target_id": "", "recipients": []})
+					else:
+						var getting_up := _event_cue(after, target, "recover", positions.get(recovered))
+						if not getting_up.is_empty():
+							reactions.append(getting_up)
 				if knocked and prone.has(recovered):
 					prone[recovered] = false
 			elif event.get("type") == "victory" and after.get("outcome") == "victory":
@@ -235,6 +245,18 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 				reaction["after_cue"] = parent_index
 			cues.append(reaction)
 	return cues
+
+
+static func _event_cue(state: Dictionary, owner: Dictionary, kind: String, cell: Variant) -> Dictionary:
+	if not cell is Vector2i:
+		return {}
+	var presentation := presentation_for(state, owner)
+	var clip: String = presentation.get("events", {}).get(kind, "")
+	if clip.is_empty():
+		return {}
+	return {"unit_id": owner.id, "cast_key": cast_key_for(state, owner), "clip": clip,
+		"ordinary_presentation": true, "ordinary_role": kind, "source_cell": cell, "actor_cell": cell,
+		"target_id": "", "recipients": []}
 
 
 static func _start_cue(state: Dictionary, actor: Dictionary, action: Dictionary) -> Dictionary:

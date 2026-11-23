@@ -24,8 +24,10 @@ The ability must be in the effective kit;
 its actual handler must match before the committed action plays. A move needs
 an actual displacement. An optional positive `impact_frame` sets contact on
 that sampled source frame; absent or unsampled frames use the default timing.
-Reactions require a damageable character and work even
-without action mappings. `ready` is reserved for idle. The metadata selects
+`hit` and `defeat` require a damageable character and work even without action
+mappings. The optional `events.recover` clip plays when its living owner really
+gets up from knockdown, not on a wait or an unrelated skipped action.
+`ready` is reserved for idle. The metadata selects
 artwork only; missing clips and changed custom art use existing fallbacks and
 never alter rules. Goblin currently declares `move`, `jab`, `hit` and `defeat`,
 but its cast atlas is not yet registered or approved for runtime integration.

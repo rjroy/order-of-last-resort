@@ -1,0 +1,18 @@
+{
+  "actor": "hookhand",
+  "case": {
+    "automatic_rounds": 4,
+    "cast_key": "hookhand",
+    "minimum_opening": 1,
+    "triggers": [
+      {
+        "ability": "hook_pull",
+        "actor_field": "unit_id",
+        "clip": "hook_pull",
+        "id": "pull",
+        "type": "action"
+      }
+    ]
+  },
+  "mission": "harpoon_squad"
+}

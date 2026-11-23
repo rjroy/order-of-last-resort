@@ -22,6 +22,7 @@ class Entry:
 	var gift_from: Variant = null
 	var gift_to: Variant = null
 	var gift_angle := 0.0
+	var gift_point_first := false
 	var facing: float
 
 	func progress() -> float:
@@ -59,7 +60,7 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 			if not ordinary and ACTION_BEATS.has(key) else clip.total_ms * 0.48
 		if ordinary and cue.get("impact_frame") is int and cue.impact_frame in clip.source_frames:
 			entry.impact_ms = clip.time_at_source_frame(cue.impact_frame)
-		if clip.release_ms >= 0.0:
+		if clip.release_ms >= 0.0 and cue.get("target_cell") is Vector2i:
 			entry.gift = art.clip_for(role, clip.release_clip)
 			if entry.gift != null:
 				entry.impact_ms = clip.release_ms + GIFT_FLIGHT_MS

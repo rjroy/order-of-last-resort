@@ -1,0 +1,108 @@
+{
+  "role": "hookhand",
+  "master": {
+    "source": "models/hookhand/hookhand.blend",
+    "sha256": "00a0381915c32fb33bf956cdab0c62b2c93f53c67f786d0a3cfdc621e8ad8098",
+    "rig_name": "Hookhand_Rig",
+    "action_prefix": "Hookhand",
+    "capture_size": 512,
+    "capture_anchor": [
+      256,
+      344
+    ]
+  },
+  "takes": {
+    "approach": [
+      "Approach",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        22,
+        26,
+        29
+      ],
+      30,
+      false
+    ],
+    "down": [
+      "Down",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        25,
+        26,
+        30
+      ],
+      31,
+      false
+    ],
+    "flinch": [
+      "Flinch",
+      [
+        1,
+        6,
+        11,
+        16,
+        19
+      ],
+      20,
+      false
+    ],
+    "hook_pull": [
+      "Hook Pull",
+      [
+        1,
+        6,
+        10,
+        11,
+        14,
+        16,
+        18,
+        21,
+        22,
+        26,
+        31,
+        36,
+        41,
+        43
+      ],
+      44,
+      false
+    ],
+    "ready": [
+      "Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31,
+        36
+      ],
+      39,
+      true
+    ],
+    "recover": [
+      "Recover",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        28
+      ],
+      29,
+      false
+    ]
+  }
+}

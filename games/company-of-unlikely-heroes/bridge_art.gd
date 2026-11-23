@@ -998,11 +998,12 @@ func _sync_playback_geometry() -> void:
 		var nudge := entry.clip.release_offset * Vector2(entry.facing, 1.0) * entry.clip.scale
 		entry.gift_from = _unit_foot(rendered_cell) + nudge
 		entry.gift_to = _unit_foot(target) + Vector2(0, -29)
-		if entry.cue.cast_key == "harpooner" and entry.cue.clip == "ranged_cast" and entry.gift.tip is Vector2:
+		if entry.gift.tip is Vector2:
 			var tip_offset: Vector2 = (entry.gift.tip - entry.gift.anchor) * entry.gift.scale \
 				* Vector2(entry.facing, 1.0)
 			var path: Vector2 = entry.gift_to - entry.gift_from
 			if not path.is_zero_approx() and not tip_offset.is_zero_approx():
+				entry.gift_point_first = true
 				entry.gift_angle = path.angle() - tip_offset.angle()
 				entry.gift_to -= tip_offset.rotated(entry.gift_angle)
 
@@ -1013,10 +1014,8 @@ func _draw_committed_feedback(entry: CastPlayback.Entry) -> void:
 		var start: Vector2 = entry.gift_from
 		var landing: Vector2 = entry.gift_to
 		var midair := start.lerp(landing, flight) - Vector2(0, sin(PI * flight) * 24.0)
-		# A thrown harpoon flies point first; potions and gifts still tumble.
-		var rotation: float = entry.gift_angle \
-			if entry.cue.clip == "ranged_cast" and entry.cue.cast_key == "harpooner" \
-			else entry.facing * flight * TAU
+		# An authored tip steers the detached artwork; untipped props tumble.
+		var rotation: float = entry.gift_angle if entry.gift_point_first else entry.facing * flight * TAU
 		_at(midair, rotation, Vector2(entry.facing, 1.0))
 		_cast.paint(_ink_canvas, entry.gift, entry.gift.frame_index(entry.elapsed_ms - entry.clip.release_ms))
 	var progress := entry.progress()

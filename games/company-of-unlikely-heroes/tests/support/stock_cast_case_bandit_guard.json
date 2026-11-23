@@ -1,0 +1,53 @@
+{
+  "actor": "bandit_guard",
+  "case": {
+    "automatic_rounds": 4,
+    "cast_key": "bandit_guard",
+    "minimum_opening": 1,
+    "triggers": [
+      {
+        "ability": "bandit_strike",
+        "actor_field": "source_id",
+        "clip": "melee",
+        "id": "strike",
+        "type": "action"
+      }
+    ],
+    "variants": {
+      "brace": {
+        "rounds": [
+          {
+            "command": {
+              "ability": "move",
+              "actor": "healer",
+              "target": "2,2"
+            }
+          },
+          {
+            "command": {
+              "ability": "wizard_blast",
+              "actor": "wizard"
+            }
+          },
+          {
+            "command": {
+              "ability": "healer_bonk",
+              "actor": "healer",
+              "target": "bandit_guard_2"
+            }
+          }
+        ],
+        "triggers": [
+          {
+            "actor_field": "unit_id",
+            "clip": "brace",
+            "event": "ally_death_guard",
+            "id": "brace",
+            "type": "event"
+          }
+        ]
+      }
+    }
+  },
+  "mission": "last_one_standing"
+}

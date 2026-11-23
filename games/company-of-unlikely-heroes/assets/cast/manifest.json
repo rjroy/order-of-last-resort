@@ -11605,6 +11605,498 @@
           "path": "res://assets/cast/trickster.png"
         }
       }
+    },
+    "bandit_guard": {
+      "source": "art/models/bandit_guard/bandit_guard.blend",
+      "sha256": "a330ce3ea4ab07279a32bdedb227d3fb8c96755ca6a3e9cd9b13a5cafcf01803",
+      "clips": {
+        "brace": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                835,
+                632,
+                153,
+                196
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 84,
+              "rect": [
+                0,
+                835,
+                153,
+                196
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 125,
+              "rect": [
+                153,
+                835,
+                153,
+                196
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                306,
+                835,
+                153,
+                196
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                459,
+                835,
+                153,
+                196
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 84,
+              "rect": [
+                612,
+                835,
+                153,
+                196
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 41,
+              "rect": [
+                835,
+                632,
+                153,
+                196
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            58,
+            178
+          ],
+          "action": "Guard Bandit | Brace",
+          "path": "res://assets/cast/bandit_guard.png"
+        },
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                780,
+                423,
+                167,
+                203
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                632,
+                167,
+                203
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 42,
+              "rect": [
+                167,
+                632,
+                167,
+                203
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                334,
+                632,
+                167,
+                203
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                501,
+                632,
+                167,
+                203
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 41,
+              "rect": [
+                668,
+                632,
+                167,
+                203
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                668,
+                632,
+                167,
+                203
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 42,
+              "rect": [
+                668,
+                632,
+                167,
+                203
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            72,
+            185
+          ],
+          "action": "Guard Bandit | Defeat",
+          "path": "res://assets/cast/bandit_guard.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                0,
+                153,
+                212
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 83,
+              "rect": [
+                153,
+                0,
+                153,
+                212
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                306,
+                0,
+                153,
+                212
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                459,
+                0,
+                153,
+                212
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 83,
+              "rect": [
+                612,
+                0,
+                153,
+                212
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                0,
+                153,
+                212
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            58,
+            194
+          ],
+          "action": "Guard Bandit | Hit",
+          "path": "res://assets/cast/bandit_guard.png"
+        },
+        "melee": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                765,
+                0,
+                153,
+                211
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                212,
+                153,
+                211
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 42,
+              "rect": [
+                153,
+                212,
+                153,
+                211
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                306,
+                212,
+                153,
+                211
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                459,
+                212,
+                153,
+                211
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 84,
+              "rect": [
+                612,
+                212,
+                153,
+                211
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 41,
+              "rect": [
+                765,
+                0,
+                153,
+                211
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            58,
+            193
+          ],
+          "action": "Guard Bandit | Melee",
+          "path": "res://assets/cast/bandit_guard.png"
+        },
+        "move": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                765,
+                212,
+                156,
+                209
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                423,
+                156,
+                209
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 42,
+              "rect": [
+                156,
+                423,
+                156,
+                209
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                312,
+                423,
+                156,
+                209
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                468,
+                423,
+                156,
+                209
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 42,
+              "rect": [
+                624,
+                423,
+                156,
+                209
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 42,
+              "rect": [
+                765,
+                212,
+                156,
+                209
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            61,
+            181
+          ],
+          "action": "Guard Bandit | Move",
+          "path": "res://assets/cast/bandit_guard.png"
+        },
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                835,
+                632,
+                153,
+                196
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                765,
+                835,
+                153,
+                196
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                1031,
+                153,
+                196
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                153,
+                1031,
+                153,
+                196
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                306,
+                1031,
+                153,
+                196
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                459,
+                1031,
+                153,
+                196
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 83,
+              "rect": [
+                612,
+                1031,
+                153,
+                196
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            58,
+            178
+          ],
+          "action": "Guard Bandit | Ready",
+          "path": "res://assets/cast/bandit_guard.png"
+        }
+      }
     }
   }
 }

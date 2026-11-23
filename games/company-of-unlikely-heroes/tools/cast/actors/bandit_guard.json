@@ -1,0 +1,95 @@
+{
+  "role": "bandit_guard",
+  "master": {
+    "source": "models/bandit_guard/bandit_guard.blend",
+    "sha256": "a330ce3ea4ab07279a32bdedb227d3fb8c96755ca6a3e9cd9b13a5cafcf01803",
+    "rig_name": "Guard_Bandit_Rig",
+    "action_prefix": "Guard Bandit"
+  },
+  "takes": {
+    "brace": [
+      "Brace",
+      [
+        1,
+        6,
+        8,
+        11,
+        16,
+        21,
+        23
+      ],
+      24,
+      false
+    ],
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        6,
+        10,
+        11,
+        16,
+        20,
+        21,
+        25
+      ],
+      26,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        4,
+        6,
+        11,
+        16,
+        18
+      ],
+      19,
+      false
+    ],
+    "melee": [
+      "Melee",
+      [
+        1,
+        6,
+        10,
+        11,
+        16,
+        21,
+        23
+      ],
+      24,
+      false
+    ],
+    "move": [
+      "Move",
+      [
+        1,
+        6,
+        10,
+        11,
+        16,
+        21,
+        22
+      ],
+      23,
+      false
+    ],
+    "ready": [
+      "Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31
+      ],
+      33,
+      true
+    ]
+  }
+}

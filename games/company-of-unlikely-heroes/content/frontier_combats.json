@@ -995,7 +995,28 @@
           "reduction": 1,
           "max_reduction": 1
         }
-      ]
+      ],
+      "cast_key": "bandit_guard",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "move"
+          },
+          "bandit_strike": {
+            "handler": "attack",
+            "clip": "melee"
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat",
+        "events": {
+          "ally_death_guard": "brace"
+        }
+      }
     },
     "bandit_swift": {
       "class": "enemy",

@@ -1,0 +1,126 @@
+{
+  "role": "archer",
+  "master": {
+    "source": "models/archer/archer-candidate-clearance.blend",
+    "sha256": "a9ba0e6bc35d8d233c76aa8c97048b0b6fd1f0dc0cd003d8f0cdabaf4180f118",
+    "rig_name": "Archer_Rig",
+    "action_prefix": "Archer",
+    "release_visible_frames": {
+      "draw_and_release": [
+        7,
+        16
+      ]
+    },
+    "projectile_tip_offsets": {
+      "arrow_projectile": [
+        -78.111,
+        39.926
+      ]
+    }
+  },
+  "takes": {
+    "advance": [
+      "Advance",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        27
+      ],
+      28,
+      false
+    ],
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        29
+      ],
+      30,
+      false
+    ],
+    "draw_and_release": [
+      "Draw and Release",
+      [
+        1,
+        6,
+        7,
+        11,
+        13,
+        16,
+        17,
+        18,
+        20,
+        21,
+        26,
+        31,
+        33
+      ],
+      34,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        6,
+        11,
+        16,
+        17
+      ],
+      18,
+      false
+    ],
+    "ready": [
+      "Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31
+      ],
+      33,
+      true
+    ],
+    "reserve_arrival": [
+      "Reserve Arrival",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        27
+      ],
+      28,
+      false
+    ],
+    "arrow_projectile": [
+      "Draw and Release",
+      [
+        17
+      ],
+      18,
+      false
+    ]
+  },
+  "release": [
+    "draw_and_release",
+    "arrow_projectile",
+    "Arrow_Detachable",
+    17,
+    "Release"
+  ]
+}

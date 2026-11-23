@@ -54,6 +54,10 @@ def main():
         for name, (action, samples, end, loop) in takes.items():
             clip = actor["clips"][name]
             assert len(clip["anchor"]) == 2 and all(map(math.isfinite, clip["anchor"]))
+            tip_offset = master.get("projectile_tip_offsets", {}).get(name)
+            if tip_offset is not None:
+                assert len(tip_offset) == 2 and all(map(math.isfinite, tip_offset))
+                assert clip["tip"] == [round(a + b, 3) for a, b in zip(clip["anchor"], tip_offset)]
             frames = clip["frames"]
             assert clip["path"] == f"res://assets/cast/{role}.png"
             assert (

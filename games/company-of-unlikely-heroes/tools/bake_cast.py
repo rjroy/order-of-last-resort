@@ -68,10 +68,15 @@ def pack(role, work, dest, master):
             )
         w, h = r - x, b - y
         clip["anchor"] = [round(a - o, 3) for a, o in zip(clip["anchor"], [x, y])]
-        if (role, name) in PROJECTILE_TIPS:
+        tip_offset = master.get("projectile_tip_offsets", {}).get(
+            name, PROJECTILE_TIPS.get((role, name))
+        )
+        if tip_offset is not None:
+            if len(tip_offset) != 2 or not all(math.isfinite(v) for v in tip_offset):
+                raise ValueError(f"{role}/{name}: invalid projectile tip offset")
             clip["tip"] = [
                 round(a + offset, 3)
-                for a, offset in zip(clip["anchor"], PROJECTILE_TIPS[(role, name)])
+                for a, offset in zip(clip["anchor"], tip_offset)
             ]
         clip["path"] = f"res://assets/cast/{role}.png"
         for frame in clip["frames"]:

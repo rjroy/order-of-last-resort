@@ -1,0 +1,24 @@
+{
+  "actor": "archer",
+  "case": {
+    "automatic_rounds": 6,
+    "cast_key": "archer",
+    "minimum_opening": 0,
+    "triggers": [
+      {
+        "actor_field": "unit_id",
+        "clip": "reserve_arrival",
+        "id": "reserve_arrival",
+        "type": "reserve_arrival"
+      },
+      {
+        "ability": "archer_shot",
+        "actor_field": "source_id",
+        "clip": "draw_and_release",
+        "id": "shot",
+        "type": "action"
+      }
+    ]
+  },
+  "mission": "hold_the_line"
+}

@@ -576,7 +576,28 @@
         "move",
         "archer_shot"
       ],
-      "behavior": "frontier_archer_shot"
+      "behavior": "frontier_archer_shot",
+      "cast_key": "archer",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "advance"
+          },
+          "archer_shot": {
+            "handler": "attack",
+            "clip": "draw_and_release"
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat",
+        "events": {
+          "reserve_arrival": "reserve_arrival"
+        }
+      }
     },
     "captain": {
       "class": "enemy",

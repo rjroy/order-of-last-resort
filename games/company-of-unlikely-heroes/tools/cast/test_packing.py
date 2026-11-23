@@ -47,6 +47,25 @@ class AlphaBounds(unittest.TestCase):
             self.assertEqual(clip["anchor"], [-141, 47])
             self.assertEqual(clip["frames"][0]["rect"][2:], [7, 7])
 
+    def test_recipe_tip_offset_survives_packing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pixels = bytearray(320 * 320 * 4)
+            pixels[(100 * 320 + 100) * 4: (100 * 320 + 100) * 4 + 4] = b"\x01\x02\x03\xff"
+            subprocess.run(
+                ["magick", "-size", "320x320", "-depth", "8", "rgba:-", f"PNG32:{work / 'sample.png'}"],
+                input=pixels, check=True,
+            )
+            (work / "actor.json").write_text(json.dumps({
+                "arrow": {"frames": [{"file": "sample.png", "source_frame": 17, "duration_ms": 42}],
+                          "anchor": [100, 100], "loop": False, "action": "Arrow"}
+            }))
+            master = {"source": "test.blend", "sha256": "test",
+                      "projectile_tip_offsets": {"arrow": [-2.5, 1.25]}}
+            clip = pack("actor", work, work, master)["clips"]["arrow"]
+            self.assertEqual(clip["anchor"], [3, 3])
+            self.assertEqual(clip["tip"], [0.5, 4.25])
+
 
 if __name__ == "__main__":
     unittest.main()

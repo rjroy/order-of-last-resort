@@ -8639,6 +8639,571 @@
           "path": "res://assets/cast/frontier_shepherd.png"
         }
       }
+    },
+    "archer": {
+      "source": "art/models/archer/archer-candidate-clearance.blend",
+      "sha256": "a9ba0e6bc35d8d233c76aa8c97048b0b6fd1f0dc0cd003d8f0cdabaf4180f118",
+      "clips": {
+        "advance": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                580,
+                471,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                707,
+                471,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                834,
+                471,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                961,
+                471,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                695,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 41,
+              "rect": [
+                127,
+                695,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                580,
+                471,
+                127,
+                211
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            66,
+            186
+          ],
+          "action": "Archer | Advance",
+          "path": "res://assets/cast/archer.png"
+        },
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                0,
+                183,
+                247
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                183,
+                0,
+                183,
+                247
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                366,
+                0,
+                183,
+                247
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                549,
+                0,
+                183,
+                247
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                732,
+                0,
+                183,
+                247
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                915,
+                0,
+                183,
+                247
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 41,
+              "rect": [
+                915,
+                0,
+                183,
+                247
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            118,
+            189
+          ],
+          "action": "Archer | Defeat",
+          "path": "res://assets/cast/archer.png"
+        },
+        "draw_and_release": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 42,
+              "rect": [
+                145,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 167,
+              "rect": [
+                290,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 83,
+              "rect": [
+                435,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 125,
+              "rect": [
+                580,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                580,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 41,
+              "rect": [
+                725,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 84,
+              "rect": [
+                870,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 41,
+              "rect": [
+                0,
+                471,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                145,
+                471,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                290,
+                471,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 83,
+              "rect": [
+                435,
+                471,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 33,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                247,
+                145,
+                224
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            84,
+            201
+          ],
+          "action": "Archer | Draw and Release",
+          "release": {
+            "time_ms": 667,
+            "offset": [
+              20.913,
+              -151.515
+            ],
+            "clip": "arrow_projectile"
+          },
+          "path": "res://assets/cast/archer.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                889,
+                695,
+                125,
+                211
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                906,
+                125,
+                211
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                125,
+                906,
+                125,
+                211
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                250,
+                906,
+                125,
+                211
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 41,
+              "rect": [
+                889,
+                695,
+                125,
+                211
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            64,
+            190
+          ],
+          "action": "Archer | Hit",
+          "path": "res://assets/cast/archer.png"
+        },
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                375,
+                906,
+                125,
+                208
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                500,
+                906,
+                125,
+                208
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                625,
+                906,
+                125,
+                208
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                750,
+                906,
+                125,
+                208
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                875,
+                906,
+                125,
+                208
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                1117,
+                125,
+                208
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 83,
+              "rect": [
+                125,
+                1117,
+                125,
+                208
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            64,
+            187
+          ],
+          "action": "Archer | Ready",
+          "path": "res://assets/cast/archer.png"
+        },
+        "reserve_arrival": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                580,
+                471,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                254,
+                695,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                381,
+                695,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                508,
+                695,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                635,
+                695,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 41,
+              "rect": [
+                762,
+                695,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                580,
+                471,
+                127,
+                211
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            66,
+            186
+          ],
+          "action": "Archer | Reserve Arrival",
+          "path": "res://assets/cast/archer.png"
+        },
+        "arrow_projectile": {
+          "frames": [
+            {
+              "source_frame": 17,
+              "duration_ms": 42,
+              "rect": [
+                250,
+                1117,
+                78,
+                47
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            83.913,
+            1.485
+          ],
+          "action": "Archer | Draw and Release",
+          "tip": [
+            5.802,
+            41.411
+          ],
+          "path": "res://assets/cast/archer.png"
+        }
+      }
     }
   }
 }

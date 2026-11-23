@@ -62,8 +62,8 @@ func _run() -> void:
 	await ForfeitControls.click(self, escape)
 	await _key(KEY_ESCAPE)
 	_check(scene.battle_snapshot() == stranded
-		and ForfeitControls.button(root, ["cancel"]) == null,
-		"Escape cancels confirmation without changing the battle")
+		and ForfeitControls.button(root, ["cancel"]) == null and escape.has_focus(),
+		"Escape cancels confirmation, restores Forfeit focus, and does not change the battle")
 	await ForfeitControls.click(self, escape)
 	cancel = ForfeitControls.button(root, ["cancel"])
 	if cancel == null:
@@ -107,10 +107,16 @@ func _run() -> void:
 		_check(false, "Queued command offers a cancelable confirmation")
 		_finish()
 		return
-	# Clicking the underlying board must not retarget while the confirmation is open.
+	# The paper and scrim do not dismiss the dialog, run a command, or steal keyboard focus.
+	var commit := scene.find_child("Commit", true, false) as BaseButton
+	if commit != null:
+		await ForfeitControls.click(self, commit)
+	await ForfeitControls.click(self, escape)
 	await _click_cell(board, _unit(opening, "knight").position)
-	_check(scene.battle_snapshot() == before and scene.get("_planned_state") == queued,
-		"Confirmation blocks underlying board input")
+	await _key(KEY_DOWN)
+	_check(cancel.is_visible_in_tree() and cancel.has_focus() and scene.battle_snapshot() == before
+		and scene.get("_planned_state") == queued and scene.get("_actor_id") == actor,
+		"Backdrop clicks, board clicks, and keyboard input cannot dismiss or change the battle")
 	await ForfeitControls.click(self, cancel)
 	_check(scene.battle_snapshot() == before and scene.get("_planned_state") == queued
 		and scene.get("_plan") == plan and scene.get("_actor_id") == actor

@@ -33,6 +33,7 @@ const LEAF_WIDTH := 416.0
 # Shorter arenas still cap the sheet and let its body scroll.
 const LEAF_HEIGHT := 304.0
 const LEAF_GAP := 15.0
+const FORFEIT_LEAF_WIDTH := 480.0
 
 
 class BattleSurface extends Control:
@@ -368,35 +369,39 @@ func _build_forfeit_confirmation() -> void:
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_forfeit_modal.add_child(center)
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_forfeit_panel = PanelContainer.new()
-	_forfeit_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_forfeit_panel.add_theme_stylebox_override("panel", _surface(Color("#2f2218"), Color("#c59857"), 22, 18))
-	center.add_child(_forfeit_panel)
+	_forfeit_panel = Prep.mount(center, false, false, true, Color("#fae7c2"), 29, 24)
 	var content := VBoxContainer.new()
 	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_theme_constant_override("separation", 6)
+	content.add_theme_constant_override("separation", 12)
 	_forfeit_panel.add_child(content)
-	content.add_child(_label("Forfeit mission?", 26, GOLD, true))
-	_forfeit_copy = _label("", 17, PARCHMENT)
+	var heading := _label("Forfeit mission?", 37, PAPER_INK)
+	heading.add_theme_font_override("font", _display)
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(heading)
+	var rule := HSeparator.new()
+	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var ink := StyleBoxLine.new()
+	ink.color = Color("#a75a43")
+	ink.thickness = 2
+	rule.add_theme_stylebox_override("separator", ink)
+	content.add_child(rule)
+	_forfeit_copy = _label("", 22, PAPER_INK)
 	_forfeit_copy.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_forfeit_copy.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	content.add_child(_forfeit_copy)
 	var gap := Control.new()
 	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	gap.custom_minimum_size.y = 6
+	gap.custom_minimum_size.y = 4
 	content.add_child(gap)
 	var buttons := HBoxContainer.new()
 	buttons.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	buttons.alignment = BoxContainer.ALIGNMENT_END
-	buttons.add_theme_constant_override("separation", 10)
+	buttons.add_theme_constant_override("separation", 17)
 	content.add_child(buttons)
 	_forfeit_cancel = _button("CancelForfeit", "Cancel")
-	_forfeit_cancel.custom_minimum_size.x = 92
+	_style_forfeit_choice(_forfeit_cancel, Color("#204a36"), Color("#2c5c45"), Color("#173929"), Color("#142d20"))
 	buttons.add_child(_forfeit_cancel)
 	_forfeit_confirm = _button("ConfirmForfeit", "Forfeit mission")
-	_forfeit_confirm.add_theme_stylebox_override("normal", _surface(Color("#4e2e23"), Color("#c28d6b"), 12, 6))
-	_forfeit_confirm.add_theme_stylebox_override("hover", _surface(Color("#673e30"), Color("#dfaa87"), 12, 6))
-	_forfeit_confirm.add_theme_stylebox_override("pressed", _surface(Color("#41261e"), Color("#dfaa87"), 12, 6))
+	_style_forfeit_choice(_forfeit_confirm, Color("#862b22"), Color("#96372b"), Color("#682219"), Color("#591e17"))
 	buttons.add_child(_forfeit_confirm)
 	for button: Button in [_forfeit_cancel, _forfeit_confirm]:
 		var other := _forfeit_confirm if button == _forfeit_cancel else _forfeit_cancel
@@ -410,6 +415,17 @@ func _build_forfeit_confirmation() -> void:
 	_forfeit_cancel.pressed.connect(_cancel_forfeit)
 	_forfeit_confirm.pressed.connect(_confirm_forfeit)
 	_forfeit_modal.hide()
+
+
+func _style_forfeit_choice(button: Button, fill: Color, hover: Color, pressed: Color, edge: Color) -> void:
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.custom_minimum_size.y = 57
+	button.add_theme_font_override("font", _display)
+	button.add_theme_font_size_override("font_size", 22)
+	button.add_theme_stylebox_override("normal", _surface(fill, edge, 13, 8))
+	button.add_theme_stylebox_override("hover", _surface(hover, edge, 13, 8))
+	button.add_theme_stylebox_override("pressed", _surface(pressed, edge, 13, 8))
+	button.add_theme_stylebox_override("focus", _focus_outline(Color("#a25717"), 4.0))
 
 
 func _open_forfeit_confirmation() -> void:
@@ -881,7 +897,7 @@ func _layout_page() -> void:
 	_layout_header()
 	_footer.position = Vector2(margin, footer_top)
 	_footer.size = Vector2(content_width, footer_height)
-	_forfeit_panel.custom_minimum_size.x = minf(432.0, content_width)
+	_forfeit_panel.custom_minimum_size.x = minf(FORFEIT_LEAF_WIDTH, content_width)
 	_book.queue_redraw()
 
 

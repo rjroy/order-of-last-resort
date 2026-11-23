@@ -49,6 +49,9 @@ func _run() -> void:
 	if cancel == null or confirm == null:
 		_cleanup()
 		return
+	_check(cancel.has_focus() and not confirm.has_focus(), "The outing dialog defaults to the safe Cancel choice")
+	_check("Your outing will end." in cancel.accessibility_description,
+		"The focused control announces the outing consequence")
 	if upgrades != null and loadout != null:
 		var focus_before := viewport.gui_get_focus_owner()
 		if upgrades.is_visible_in_tree() and not upgrades.disabled:

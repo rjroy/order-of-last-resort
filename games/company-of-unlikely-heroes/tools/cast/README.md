@@ -23,6 +23,31 @@ python "$tools/proof_sheet.py" "$stage/harpooner-proof.png" --assets "$stage"
 
 The staging manifest contains only the selected entries and is not a replacement for the runtime manifest. To publish one actor, copy only its PNG and merge its one generated actor entry.
 
+The full build and full verification discover one-role recipes in `tools/cast/actors/<role>.json`. Commit each accepted recipe alongside its atlas and manifest entry. Full verification requires every discovered recipe to have its atlas and manifest entry. Explicit subset verification loads only the requested actors, so another in-progress recipe cannot disrupt it. A staging `--recipe` identical to an installed role is allowed; a conflicting definition is rejected.
+
+An individually approved actor can instead be staged with a single JSON recipe fragment, without changing either shared registry. Fragments are opt-in for `bake_subset.py` and `verify_cast.py`, not included by the full build, and cannot replace a registered actor. The fragment's `role` is a lowercase runtime identifier, `master` uses the same fields as an entry in `masters.json`, and `takes` maps clip names to `[action suffix, source-frame list, exclusive stop, loop]` as in `takes.py`. Optional `release` uses the five fields documented in `takes.py`. For example, with the source and hash replaced by an approved exact master:
+
+```json
+{
+  "role": "example",
+  "master": {
+    "source": "models/example/example.blend",
+    "sha256": "<approved SHA-256>",
+    "rig_name": "Example_Rig",
+    "action_prefix": "Example"
+  },
+  "takes": {"ready": ["Ready", [1], 25, true]}
+}
+```
+
+Use `python "$tools/bake_subset.py" "$stage" example --recipe /path/to/example.json`, then `python "$tools/verify_cast.py" --assets "$stage" --recipe /path/to/example.json example`. The staging directory must be empty, and the fragment and approved master must remain available for both commands. The proof sheet reads the staged manifest as usual. A fragment is an extraction recipe, not model, runtime, or publication approval. Special prop visibility and release behavior still require appropriate renderer support; a generic release does not automatically handle every native action.
+
+For any master, `rig_name` and `action_prefix` independently override native names. If omitted they retain the existing `source_actor` (or title-cased role) defaults: `<actor>_Rig` and `<actor> | <action>`. An explicitly empty `action_prefix` selects the unprefixed action name with no separator. These options do not alter the source, projection, lighting or timing.
+
+`capture_size` can enlarge the square canvas without changing the camera orientation or pixels per metre. `capture_anchor: [x,y]` places the ground origin in that canvas; for example, `512` and `[256,344]` add 96 pixels on every side of the normal capture. Omitting both keeps the existing 320 px capture and anchor; the legacy `capture_anchor_x` remains supported. The renderer, projectile projections, packer and verifier use the selected size. Enlarging capture does not prove a pose fits: examine the full native motion, outline and three-pixel padding, then verify the rendered staging output. Do not reduce scale to force a fit.
+
+For a detached-prop recipe, an optional master field `release_visible_frames` maps actor clip names to inclusive frame windows during which the prop is attached and visible. Other actor frames hide that prop hierarchy; the separate prop clip remains visible. Omit the field to retain existing release behavior. This affects only the release prop, not other carried or independently released objects.
+
 `masters.json` pins the approved native rigs under `.lore/work/games/company-of-unlikely-heroes/art/models`. Per-model READMEs there document orientation, approvals, source limitations and actions. The renderer opens each master and checks its SHA-256 before and after, without saving. Two exact strips are reused from the tracked `art/pilots/ferryman-crossing/assets`: Knight Guard and Healer Ally Heal, pinned in `takes.py`. Their original renderer is `art/pilots/ferryman-crossing/authoring/bake_sprites.py` and uses those same two masters. Other drawings come directly from the native files. Render-only review floors and lights are excluded, not unparented character geometry such as the Wizard's hat. The ink-light shader preserves model base color or pigment graphs with the pilot's warm outlined contour, common orthographic projection, deterministic 12-sample CPU Cycles lighting and Standard color transform. Capture padding does not change pixels per metre or actor registration. The optional `capture_anchor_x` reallocates blank space toward a long prop without changing the camera angle, scale, registered pose, or release offset.
 
 `cast/takes.py` defines source frame samples and timings at 24 fps. Sparse holds and source-specific key beats avoid baking every playback frame. Neutral T-poses are setup, not performances. Knight and Healer have no separate ready action; Rogue's retreat doubles as the ready pose at F1. Knight shield-away is the F8 stance with the whole detachable shield hierarchy invisible. No invented attack takes. Wizard Pull ends seated. Bard's duplicate closing loop keys are deliberately omitted.

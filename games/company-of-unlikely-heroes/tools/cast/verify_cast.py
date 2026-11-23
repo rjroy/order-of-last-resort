@@ -8,26 +8,37 @@ import struct
 import subprocess
 from pathlib import Path
 from takes import RELEASES, TAKES
+from recipe import action_name, capture_config, load_fragment, load_registered
 
 
 def main():
     game = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--assets", type=Path, default=game / "assets/cast")
+    parser.add_argument("--recipe", type=Path, help="optional single-actor staging fragment")
     parser.add_argument("actors", nargs="*", help="verify only these registered actors")
     args = parser.parse_args()
     dest = args.assets
-    masters = json.loads(Path(__file__).with_name("masters.json").read_text())
     manifest = json.loads((dest / "manifest.json").read_text())
+    registered_dir = Path(__file__).with_name("actors")
+    selected = args.actors or sorted(
+        set(manifest["actors"]) | {path.stem for path in registered_dir.glob("*.json")}
+    )
+    masters, takes_by_role, releases = load_registered(
+        registered_dir,
+        json.loads(Path(__file__).with_name("masters.json").read_text()),
+        TAKES, RELEASES, selected,
+    )
+    masters, takes_by_role, releases = load_fragment(args.recipe, masters, takes_by_role, releases)
     root = game.parents[1] / manifest["source_root"]
-    roles = args.actors or list(TAKES)
-    if unknown := set(roles) - TAKES.keys():
+    roles = args.actors or list(takes_by_role)
+    if unknown := set(roles) - takes_by_role.keys():
         parser.error(f"unregistered actors: {', '.join(sorted(unknown))}")
     for role in roles:
-        takes = TAKES[role]
+        takes = takes_by_role[role]
         actor = manifest["actors"][role]
         master = masters[role]
-        source_actor = master.get("source_actor", role.title())
+        size, _ = capture_config(master)
         assert actor["source"] == "art/" + master["source"]
         assert actor["sha256"] == master["sha256"]
         assert (
@@ -42,10 +53,11 @@ def main():
         assert len(alpha) == width * height
         for name, (action, samples, end, loop) in takes.items():
             clip = actor["clips"][name]
+            assert len(clip["anchor"]) == 2 and all(map(math.isfinite, clip["anchor"]))
             frames = clip["frames"]
             assert clip["path"] == f"res://assets/cast/{role}.png"
             assert (
-                clip["action"] == f"{source_actor} | {action}" and clip["loop"] == loop
+                clip["action"] == action_name(role, master, action) and clip["loop"] == loop
             )
             assert [f["source_frame"] for f in frames] == samples
             elapsed = 0
@@ -56,6 +68,7 @@ def main():
                 )
                 elapsed += frame["duration_ms"]
                 x, y, w, h = frame["rect"]
+                assert w <= size and h <= size
                 assert x >= 0 and y >= 0 and x + w <= width and y + h <= height
                 rows = [
                     alpha[i * width + x : i * width + x + w] for i in range(y, y + h)
@@ -64,7 +77,7 @@ def main():
                 assert not any(b for row in rows[:3] + rows[-3:] for b in row)
                 assert not any(b for row in rows for b in row[:3] + row[-3:])
             assert elapsed == round((end - samples[0]) * 1000 / 24)
-    for role, (actor_clip, prop_clip, _, source_frame, _) in RELEASES.items():
+    for role, (actor_clip, prop_clip, _, source_frame, _) in releases.items():
         if role not in roles:
             continue
         clips = manifest["actors"][role]["clips"]

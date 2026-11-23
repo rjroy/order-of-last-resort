@@ -3966,6 +3966,367 @@
           "path": "res://assets/cast/harpooner.png"
         }
       }
+    },
+    "goblin": {
+      "source": "art/models/goblin/goblin.blend",
+      "sha256": "a276f52d23ac8d32f520e96d153db39d5b2befd7bad669bb365150547466ed3d",
+      "clips": {
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                0,
+                107,
+                152
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                107,
+                0,
+                107,
+                152
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                214,
+                0,
+                107,
+                152
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                321,
+                0,
+                107,
+                152
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                428,
+                0,
+                107,
+                152
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 42,
+              "rect": [
+                428,
+                0,
+                107,
+                152
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            45,
+            130
+          ],
+          "action": "Goblin | Defeat",
+          "path": "res://assets/cast/goblin.png"
+        },
+        "jab": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                258,
+                303,
+                130,
+                139
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 84,
+              "rect": [
+                388,
+                303,
+                130,
+                139
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 125,
+              "rect": [
+                518,
+                303,
+                130,
+                139
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                443,
+                130,
+                139
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 83,
+              "rect": [
+                130,
+                443,
+                130,
+                139
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 42,
+              "rect": [
+                260,
+                443,
+                130,
+                139
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            40,
+            116
+          ],
+          "action": "Goblin | Goblin Jab",
+          "path": "res://assets/cast/goblin.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                535,
+                0,
+                96,
+                151
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                152,
+                96,
+                151
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 166,
+              "rect": [
+                96,
+                152,
+                96,
+                151
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 42,
+              "rect": [
+                192,
+                152,
+                96,
+                151
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            41,
+            130
+          ],
+          "action": "Goblin | Hit",
+          "path": "res://assets/cast/goblin.png"
+        },
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                288,
+                152,
+                86,
+                140
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                374,
+                152,
+                86,
+                140
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                460,
+                152,
+                86,
+                140
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                546,
+                152,
+                86,
+                140
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                303,
+                86,
+                140
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                86,
+                303,
+                86,
+                140
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 83,
+              "rect": [
+                172,
+                303,
+                86,
+                140
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            40,
+            119
+          ],
+          "action": "Goblin | Ready",
+          "path": "res://assets/cast/goblin.png"
+        },
+        "move": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                390,
+                443,
+                97,
+                138
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 42,
+              "rect": [
+                487,
+                443,
+                97,
+                138
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                582,
+                97,
+                138
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                97,
+                582,
+                97,
+                138
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                194,
+                582,
+                97,
+                138
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                291,
+                582,
+                97,
+                138
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 42,
+              "rect": [
+                388,
+                582,
+                97,
+                138
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            42,
+            117
+          ],
+          "action": "Goblin | Scamper",
+          "path": "res://assets/cast/goblin.png"
+        }
+      }
     }
   }
 }

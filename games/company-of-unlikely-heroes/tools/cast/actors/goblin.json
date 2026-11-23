@@ -1,0 +1,76 @@
+{
+  "role": "goblin",
+  "master": {
+    "source": "models/goblin/goblin.blend",
+    "sha256": "a276f52d23ac8d32f520e96d153db39d5b2befd7bad669bb365150547466ed3d",
+    "rig_name": "goblin | Rig",
+    "action_prefix": "Goblin"
+  },
+  "takes": {
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        25
+      ],
+      26,
+      false
+    ],
+    "jab": [
+      "Goblin Jab",
+      [
+        1,
+        6,
+        8,
+        11,
+        16,
+        18
+      ],
+      19,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        6,
+        11,
+        15
+      ],
+      16,
+      false
+    ],
+    "ready": [
+      "Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31
+      ],
+      33,
+      true
+    ],
+    "move": [
+      "Scamper",
+      [
+        1,
+        6,
+        7,
+        11,
+        16,
+        21,
+        25
+      ],
+      26,
+      false
+    ]
+  }
+}

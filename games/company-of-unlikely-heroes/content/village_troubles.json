@@ -116,6 +116,18 @@
       "label": "Goblin",
       "art_key": "goblin",
       "art_variant": "default",
+      "cast_key": "goblin",
+      "cast_art_key": "goblin",
+      "cast_variant": "default",
+      "cast_team": "enemies",
+      "cast_presentation": {
+        "actions": {
+          "move": {"handler": "move", "clip": "move"},
+          "goblin_jab": {"handler": "attack", "clip": "jab", "impact_frame": 8}
+        },
+        "hit": "hit",
+        "defeat": "defeat"
+      },
       "max_hp": 1,
       "abilities": ["move", "goblin_jab"],
       "behavior": "goblin_mob_pursuit"

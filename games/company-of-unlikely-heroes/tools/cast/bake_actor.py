@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import argparse
 import subprocess
 import sys
 from pathlib import Path
@@ -12,6 +13,7 @@ from mathutils import Vector
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from takes import PILOT, RELEASES, TAKES
+from recipe import action_name, capture_config, load_fragment, load_registered, release_prop_hidden, rig_name
 
 ART = HERE.parents[3] / ".lore/work/games/company-of-unlikely-heroes/art"
 # Pilot's exact pixels/metre, enlarged symmetrically to protect tall/extending poses.
@@ -93,7 +95,7 @@ def ink_light(mat, bottle_glass=False):
     )
 
 
-def setup(scene, role, anchor):
+def setup(scene, role, anchor, size=SIZE):
     s = scene
     for mat in bpy.data.materials:
         if mat.node_tree and any(
@@ -108,13 +110,13 @@ def setup(scene, role, anchor):
     s.camera = c
     c.rotation_euler = (1.150829196, 0, -0.435386419)
     cam.type = "ORTHO"
-    cam.ortho_scale = 2.44 * SIZE / 256
+    cam.ortho_scale = 2.44 * size / 256
     # Off-axis framing preserves the common projection and ground anchor;
     # it only reallocates transparent capture space toward a long prop.
     c.location = c.rotation_euler.to_matrix() @ Vector(
         (
-            cam.ortho_scale * (0.5 - anchor[0] / SIZE),
-            cam.ortho_scale * (anchor[1] / SIZE - 0.5),
+            cam.ortho_scale * (0.5 - anchor[0] / size),
+            cam.ortho_scale * (anchor[1] / size - 0.5),
             6,
         )
     )
@@ -125,7 +127,7 @@ def setup(scene, role, anchor):
     s.cycles.use_adaptive_sampling = False
     s.cycles.use_animated_seed = False
     s.cycles.seed = 14
-    s.render.resolution_x = s.render.resolution_y = SIZE
+    s.render.resolution_x = s.render.resolution_y = size
     s.render.resolution_percentage = 100
     s.render.film_transparent = True
     s.render.image_settings.file_format = "PNG"
@@ -142,8 +144,12 @@ def magick(*args):
     subprocess.run(["magick", *map(str, args)], check=True)
 
 
-def bake(role, work):
-    master = json.loads((HERE / "masters.json").read_text())[role]
+def bake(role, work, recipe=None):
+    masters, takes, releases = load_registered(
+        HERE / "actors", json.loads((HERE / "masters.json").read_text()), TAKES, RELEASES, [role]
+    )
+    masters, takes, releases = load_fragment(recipe, masters, takes, releases)
+    master = masters[role]
     path = ART / master["source"]
 
     def verify():
@@ -169,11 +175,12 @@ def bake(role, work):
             )
         ):
             o.hide_render = True
-    anchor = [master.get("capture_anchor_x", ANCHOR[0]), ANCHOR[1]]
-    setup(s, role, anchor)
-    actor = master.get("source_actor", role.title())
-    rig = bpy.data.objects[f"{actor}_Rig"]
-    release = RELEASES.get(role)
+    size, anchor = capture_config(master)
+    if role in PILOT and size != SIZE:
+        raise ValueError("pilot strip reuse requires the original 320px canvas")
+    setup(s, role, anchor, size)
+    rig = bpy.data.objects[rig_name(role, master)]
+    release = releases.get(role)
     if release:
         actor_clip, prop_clip, prop_name, release_frame, marker = release
         root = bpy.data.objects[prop_name]
@@ -185,8 +192,8 @@ def bake(role, work):
         }
     cache = {}
     data = {}
-    for clip, (action, frames, end, loop) in TAKES[role].items():
-        take = bpy.data.actions[f"{actor} | {action}"]
+    for clip, (action, frames, end, loop) in takes[role].items():
+        take = bpy.data.actions[action_name(role, master, action)]
         rig.animation_data.action = take
         data[clip] = {"frames": [], "loop": loop, "anchor": anchor, "action": take.name}
         for i, f in enumerate(frames):
@@ -199,21 +206,25 @@ def bake(role, work):
             if release:
                 prop_only = clip == prop_clip
                 empty_hand = clip == actor_clip and f >= release_frame
+                window = master.get("release_visible_frames")
+                hidden_prop = empty_hand or (window is not None and release_prop_hidden(window, clip, f))
                 for o, hidden in visibility.items():
                     o.hide_render = (
-                        hidden or (prop_only and o not in prop) or (empty_hand and o in prop)
+                        hidden or (prop_only and o not in prop) or (not prop_only and hidden_prop and o in prop)
                     )
                 if prop_only:
                     variant = "prop_only"
                 elif empty_hand:
                     variant = "empty_hand"
+                elif hidden_prop:
+                    variant = "hidden_prop"
                 if (prop_only or empty_hand) and f == release_frame:
                     if marker:
                         assert take.pose_markers[marker].frame == f
                     uv = world_to_camera_view(
                         s, s.camera, root.matrix_world.translation
                     )
-                    px = [round(uv.x * SIZE, 3), round((1 - uv.y) * SIZE, 3)]
+                    px = [round(uv.x * size, 3), round((1 - uv.y) * size, 3)]
                     if prop_only:
                         data[clip]["anchor"] = px
                     else:
@@ -229,7 +240,7 @@ def bake(role, work):
                 if role in PILOT and (clip in ("guard", "ally_heal", "ready")):
                     pilot_clip = "guard" if role == "knight" else "ally_heal"
                     name = f"{role}_{pilot_clip}"
-                    index = TAKES[role][pilot_clip][1].index(f)
+                    index = takes[role][pilot_clip][1].index(f)
                     src = ART / "pilots/ferryman-crossing/assets" / f"{name}.png"
                     assert hashlib.sha256(src.read_bytes()).hexdigest() == PILOT[role]
                     magick(
@@ -259,7 +270,7 @@ def bake(role, work):
                         "mpr:mask",
                         "+delete",
                         "-size",
-                        f"{SIZE}x{SIZE}",
+                        f"{size}x{size}",
                         "xc:#352b28",
                         "mpr:mask",
                         "-compose",
@@ -283,5 +294,9 @@ def bake(role, work):
 
 
 if __name__ == "__main__":
-    role, work = sys.argv[sys.argv.index("--") + 1 :]
-    bake(role, Path(work))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("role")
+    parser.add_argument("work", type=Path)
+    parser.add_argument("--recipe", type=Path)
+    args = parser.parse_args(sys.argv[sys.argv.index("--") + 1 :])
+    bake(args.role, args.work, args.recipe)

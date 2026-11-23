@@ -847,7 +847,51 @@ class Validator:
 	func _check_character(character: Dictionary, path: String) -> void:
 		_text(character.get("label"), path + ".label")
 		if _ref(character.get("class"), "classes", path + ".class"):
-			_check_profile(_effective_profile(character), path)
+			var profile := _effective_profile(character)
+			_check_profile(profile, path)
+			if character.has("cast_presentation"):
+				_check_cast_presentation(character, profile, path)
+
+	func _check_cast_presentation(character: Dictionary, profile: Dictionary, path: String) -> void:
+		_text(character.get("cast_key"), path + ".cast_key")
+		_text(character.get("cast_art_key"), path + ".cast_art_key")
+		var capabilities: Variant = profile.get("capabilities", [])
+		if not capabilities is Array:
+			capabilities = []
+		var abilities: Variant = profile.get("abilities", [])
+		if not abilities is Array:
+			abilities = []
+		if character.has("cast_team"):
+			_text(character.cast_team, path + ".cast_team")
+		if character.has("cast_variant"):
+			_text(character.cast_variant, path + ".cast_variant", true)
+		var presentation := _dictionary(character.cast_presentation, path + ".cast_presentation")
+		for field in presentation:
+			if field not in ["actions", "hit", "defeat"]:
+				_error(path + ".cast_presentation." + str(field), "unknown presentation field")
+		var actions := _dictionary(presentation.get("actions", {}), path + ".cast_presentation.actions")
+		for id in actions:
+			var action_path := path + ".cast_presentation.actions." + str(id)
+			if _ref(id, "abilities", action_path) and id not in abilities:
+				_error(action_path, "ability is not in the character's effective kit")
+			var binding := _dictionary(actions[id], action_path)
+			for field in binding:
+				if field not in ["handler", "clip", "impact_frame"]:
+					_error(action_path + "." + str(field), "unknown binding field")
+			_choice(binding.get("handler"), ["move", "attack"], action_path + ".handler")
+			if binding.get("handler") == "move" and "mobile" not in capabilities:
+				_error(action_path, "move presentation requires the mobile capability")
+			if _text(binding.get("clip"), action_path + ".clip") and binding.clip == "ready":
+				_error(action_path + ".clip", "ready is reserved for idle presentation")
+			if binding.has("impact_frame"):
+				_integer(binding.impact_frame, action_path + ".impact_frame", 1)
+		for field in ["hit", "defeat"]:
+			if presentation.has(field):
+				if "damageable" not in capabilities:
+					_error(path + ".cast_presentation." + field, "requires the damageable capability")
+				if _text(presentation[field], path + ".cast_presentation." + field) \
+						and presentation[field] == "ready":
+					_error(path + ".cast_presentation." + field, "ready is reserved for idle presentation")
 
 	func _effective_profile(character: Dictionary) -> Dictionary:
 		return _defs.classes.get(character.get("class"), {}).merged(character, true)

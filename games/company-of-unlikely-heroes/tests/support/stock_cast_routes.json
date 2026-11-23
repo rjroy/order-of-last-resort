@@ -1,0 +1,22 @@
+{
+  "bandit_guard_first": [
+    {
+      "command": {
+        "ability": "wizard_blast",
+        "actor": "wizard"
+      }
+    },
+    {},
+    {},
+    {}
+  ],
+  "odd_couple_swap": [
+    {
+      "command": {
+        "ability": "wizard_pull",
+        "actor": "wizard",
+        "target": "trickster_2"
+      }
+    }
+  ]
+}

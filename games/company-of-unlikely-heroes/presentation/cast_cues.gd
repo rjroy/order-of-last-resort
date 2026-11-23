@@ -32,7 +32,10 @@ static func cast_key_for(state: Dictionary, unit: Dictionary, profile := {}) -> 
 	var character_id: String = unit.get("character_id", "")
 	var character: Dictionary = definitions.characters.get(character_id, {})
 	var key: Variant = character.get("cast_key")
-	if not key is String or not CLIPS.has(key):
+	if character.has("cast_presentation") and not _valid_presentation(character.cast_presentation):
+		return ""
+	if not key is String or key.is_empty() \
+			or (not CLIPS.has(key) and not character.get("cast_presentation") is Dictionary):
 		return ""
 	if profile.is_empty():
 		profile = Catalog.profile(definitions, character_id)
@@ -43,6 +46,56 @@ static func cast_key_for(state: Dictionary, unit: Dictionary, profile := {}) -> 
 			or profile.get("art_variant", "") != character.get("cast_variant", ""):
 		return ""
 	return key
+
+
+static func _valid_presentation(value: Variant) -> bool:
+	if not value is Dictionary:
+		return false
+	for field in value:
+		if field not in ["actions", "hit", "defeat"]:
+			return false
+	var actions: Variant = value.get("actions", {})
+	if not actions is Dictionary:
+		return false
+	for id in actions:
+		var binding: Variant = actions[id]
+		if not id is String or id.strip_edges().is_empty() or not binding is Dictionary:
+			return false
+		for field in binding:
+			if field not in ["handler", "clip", "impact_frame"]:
+				return false
+		if binding.get("handler") not in ["move", "attack"] or not _presentation_clip(binding.get("clip")):
+			return false
+		if binding.has("impact_frame"):
+			var frame: Variant = binding.impact_frame
+			if not (frame is int or frame is float) or not is_finite(float(frame)) \
+					or frame < 1 or frame > 2147483647 or floorf(frame) != frame:
+				return false
+	for field in ["hit", "defeat"]:
+		if value.has(field) and not _presentation_clip(value[field]):
+			return false
+	return true
+
+
+static func _presentation_clip(value: Variant) -> bool:
+	return value is String and not value.strip_edges().is_empty() and value != "ready"
+
+
+## Optional ordinary-actor presentation is character-owned, never inherited.
+## A missing or incompatible identity retains the normal fallback.
+static func presentation_for(state: Dictionary, unit: Dictionary, profile := {}) -> Dictionary:
+	if cast_key_for(state, unit, profile).is_empty():
+		return {}
+	var character: Dictionary = state.catalog.defs.characters.get(unit.get("character_id", ""), {})
+	var data: Variant = character.get("cast_presentation")
+	return data if data is Dictionary else {}
+
+
+static func has_presentation(state: Dictionary, unit: Dictionary) -> bool:
+	if cast_key_for(state, unit).is_empty():
+		return false
+	var character: Dictionary = state.catalog.defs.characters.get(unit.get("character_id", ""), {})
+	return character.has("cast_presentation")
 
 
 static func build(before: Dictionary, after: Dictionary, events: Array) -> Array:
@@ -92,11 +145,24 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 				var victim: String = event.get("target_id", "")
 				if health.has(victim):
 					var amount := int(event.get("amount", 0))
+					var was_alive: bool = int(health[victim]) > 0
 					health[victim] = maxi(0, int(health[victim]) - amount)
 					var target: Dictionary = actors.get(victim, {})
 					var key := cast_key_for(after, target)
+					var presentation := presentation_for(after, target)
+					if was_alive and amount > 0 and not presentation.is_empty() \
+							and "damageable" in Catalog.profile(after.catalog.defs, target.get("character_id", "")).get("capabilities", []):
+						var reaction_clip: Variant = presentation.get("defeat" if health[victim] <= 0 else "hit")
+						if reaction_clip is String and not reaction_clip.is_empty():
+							reactions.append({"unit_id": victim, "cast_key": key, "clip": reaction_clip,
+								"ordinary_presentation": true,
+								"ordinary_role": "defeat" if health[victim] <= 0 else "hit",
+								"was_prone": bool(prone.get(victim, false)),
+								"source_cell": positions.get(victim), "actor_cell": positions.get(victim),
+								"target_id": "", "recipients": []})
 					var knocked := key == "ferryman" and Statuses.is_knockdown(after, event.get("status_id", ""))
-					if key in ["harpooner", "ferryman"] and (amount > 0 or knocked) \
+					if not has_presentation(after, target) and key in ["harpooner", "ferryman"] \
+							and (amount > 0 or knocked) \
 							and (key != "ferryman" or not prone.get(victim, false)):
 						var down: bool = health[victim] <= 0 or (key == "ferryman" \
 							and knocked)
@@ -104,7 +170,7 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 							"clip": ("defeat" if down else "hit") if key == "harpooner" else ("down" if down else "flinch"),
 							"source_cell": positions.get(victim), "actor_cell": positions.get(victim),
 							"target_id": "", "recipients": []})
-					if key == "ferryman" and (knocked or health[victim] <= 0):
+					if Statuses.is_knockdown(after, event.get("status_id", "")) or health[victim] <= 0:
 						prone[victim] = true
 			elif event.get("type") == "heal":
 				var healed: String = event.get("target_id", "")
@@ -115,11 +181,12 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 					and event.get("applied", false)):
 				var victim: String = event.get("target_id", "")
 				var target: Dictionary = actors.get(victim, {})
-				if cast_key_for(after, target) == "ferryman":
+				if cast_key_for(after, target) == "ferryman" and not has_presentation(after, target):
 					if not prone.get(victim, false):
 						reactions.append({"unit_id": victim, "cast_key": "ferryman", "clip": "down",
 							"source_cell": positions.get(victim), "actor_cell": positions.get(victim),
 							"target_id": "", "recipients": []})
+				if prone.has(victim):
 					prone[victim] = true
 			elif event.get("type") == "recover":
 				var recovered: String = event.get("unit_id", "")
@@ -127,10 +194,12 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 				var knocked: bool = event.get("reaction_id") == "jelly_knees"
 				for status_id in event.get("status_ids", []):
 					knocked = knocked or Statuses.is_knockdown(after, status_id)
-				if knocked and cast_key_for(after, target) == "ferryman" and prone.get(recovered, false):
+				if knocked and cast_key_for(after, target) == "ferryman" \
+						and not has_presentation(after, target) and prone.get(recovered, false):
 					reactions.append({"unit_id": recovered, "cast_key": "ferryman", "clip": "recover",
 						"source_cell": positions.get(recovered), "actor_cell": positions.get(recovered),
 						"target_id": "", "recipients": []})
+				if knocked and prone.has(recovered):
 					prone[recovered] = false
 			elif event.get("type") == "victory" and after.get("outcome") == "victory":
 				var objective: Dictionary = after.get("objective", {})
@@ -139,15 +208,20 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 				if objective.get("handler") == "escort" and objective.get("subject") == subject \
 						and event.get("position") == objective.get("destination") \
 						and target.get("position") == objective.get("destination") \
-						and cast_key_for(after, target) == "ferryman":
+						and cast_key_for(after, target) == "ferryman" \
+						and not has_presentation(after, target):
 					reactions.append({"unit_id": subject, "cast_key": "ferryman", "clip": "safe_bank",
 						"source_cell": target.position, "actor_cell": target.position,
 						"target_id": "", "recipients": []})
 			_trace_position(event, positions)
 			index += 1
-		if not cue.is_empty() and cue.clip == "travel" and not travelled:
+		if not cue.is_empty() and not cue.get("ordinary_presentation", false) \
+				and cue.clip == "travel" and not travelled:
 			cue.clear()
-		if not cue.is_empty() and cue.cast_key == "harpooner" and cue.clip == "ranged_cast" \
+		if not cue.is_empty() and cue.get("ordinary_handler") == "move" and not travelled:
+			cue.clear()
+		if not cue.is_empty() and not cue.get("ordinary_presentation", false) \
+				and cue.cast_key == "harpooner" and cue.clip == "ranged_cast" \
 				and cue.get("target_cell") is Vector2i:
 			var offset: Vector2i = cue.target_cell - cue.source_cell
 			if absi(offset.x) + absi(offset.y) <= 1:
@@ -167,13 +241,26 @@ static func _start_cue(state: Dictionary, actor: Dictionary, action: Dictionary)
 	if actor.is_empty():
 		return {}
 	var key := cast_key_for(state, actor)
-	var binding: Array = CLIPS.get(key, {}).get(action.ability_id, [])
+	var presentation := presentation_for(state, actor)
+	var ordinary := has_presentation(state, actor)
+	var binding: Array = [] if ordinary else CLIPS.get(key, {}).get(action.ability_id, [])
+	var ordinary_handler := ""
+	var impact_frame: Variant = null
+	if ordinary:
+		var actions: Variant = presentation.get("actions", {})
+		var declared: Variant = actions.get(action.ability_id) if actions is Dictionary else null
+		if declared is Dictionary and declared.get("handler") in ["move", "attack"] \
+				and declared.get("clip") is String and not declared.clip.is_empty():
+			ordinary_handler = declared.handler
+			binding = [ordinary_handler, declared.clip]
+			impact_frame = declared.get("impact_frame")
 	if binding.is_empty():
 		return {}
 	var definitions: Dictionary = state.catalog.defs
 	var ability: Dictionary = definitions.abilities.get(action.ability_id, {})
 	var clip: String = binding[1]
-	if ability.get("handler", "") != binding[0] or not _supports_shape(definitions, ability, clip):
+	if ability.get("handler", "") != binding[0] \
+			or (not ordinary and not _supports_shape(definitions, ability, clip)):
 		return {}
 	if ability.get("handler") == "repeat_batch":
 		var recipe: Dictionary = definitions.abilities.get(action.get("recipe_id", ""), {})
@@ -183,7 +270,15 @@ static func _start_cue(state: Dictionary, actor: Dictionary, action: Dictionary)
 			return {}
 	var cue := {"unit_id": actor.id, "cast_key": key, "clip": clip, "target_id": "",
 		"source_cell": action.source_cell, "actor_cell": action.actor_cell, "recipients": []}
-	if clip == "retreat":
+	if not ordinary_handler.is_empty():
+		cue["ordinary_handler"] = ordinary_handler
+		cue["ordinary_presentation"] = true
+		cue["ordinary_role"] = "action"
+		if impact_frame != null:
+			cue["impact_frame"] = int(impact_frame)
+		if ordinary_handler == "move":
+			cue["target_cell"] = action.actor_cell
+	elif clip == "retreat":
 		cue["target_cell"] = action.actor_cell
 	elif clip in ["pursue", "travel"]:
 		cue["target_cell"] = action.actor_cell
@@ -209,6 +304,10 @@ static func _supports_shape(definitions: Dictionary, ability: Dictionary, clip: 
 
 
 static func _observe(cue: Dictionary, event: Dictionary, positions: Dictionary) -> void:
+	if cue.get("ordinary_presentation", false):
+		if cue.get("ordinary_handler") == "attack":
+			_observe_ordinary_attack(cue, event, positions)
+		return
 	var id: String = event.get("target_id", "")
 	var cell: Variant = positions.get(id)
 	var actor: String = cue.unit_id
@@ -297,6 +396,25 @@ static func _observe(cue: Dictionary, event: Dictionary, positions: Dictionary) 
 			if own_action and clip in ["summon_skeleton", "raise_dead"]:
 				_aim(cue, id, event.position)
 				_recipient(cue, event.summon_id, event.position, "summon")
+
+
+static func _observe_ordinary_attack(cue: Dictionary, event: Dictionary, positions: Dictionary) -> void:
+	match event.get("type"):
+		"body_double":
+			var original: String = event.get("unit_id", "")
+			_aim(cue, original, positions.get(original))
+		"reflect":
+			var ward: String = event.get("ward_id", "")
+			if not cue.has("target_cell"):
+				_aim(cue, ward, positions.get(ward))
+			_recipient(cue, ward, positions.get(ward), "guard")
+		"damage":
+			if event.get("source_id") == cue.unit_id:
+				var target: String = event.get("target_id", "")
+				var cell: Variant = positions.get(target)
+				if not cue.has("target_cell"):
+					_aim(cue, target, cell)
+				_recipient(cue, target, cell, "hit")
 
 
 static func _observe_heal(cue: Dictionary, event: Dictionary, cell: Variant) -> void:

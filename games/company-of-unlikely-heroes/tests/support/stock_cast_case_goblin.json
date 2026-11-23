@@ -1,0 +1,25 @@
+{
+  "actor": "goblin",
+  "case": {
+    "automatic_rounds": 6,
+    "cast_key": "goblin",
+    "minimum_opening": 2,
+    "triggers": [
+      {
+        "ability": "goblin_jab",
+        "actor_field": "unit_id",
+        "clip": "jab",
+        "id": "jab",
+        "type": "action"
+      },
+      {
+        "ability": "move",
+        "actor_field": "unit_id",
+        "clip": "move",
+        "id": "move",
+        "type": "action"
+      }
+    ]
+  },
+  "mission": "goblin_mob"
+}

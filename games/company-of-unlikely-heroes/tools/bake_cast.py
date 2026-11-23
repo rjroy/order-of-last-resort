@@ -6,6 +6,7 @@ import json
 import math
 import os
 import subprocess
+import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -13,6 +14,9 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 RECIPE = HERE / "cast"
 GAME = HERE.parent
+sys.path.insert(0, str(RECIPE))
+from recipe import capture_config, load_registered
+from takes import RELEASES, TAKES
 SIZE = 320
 PADDING = 3
 # Frame-local tip relative to the detached prop's root registration, in the
@@ -32,19 +36,22 @@ def alpha_bounds(rgba, width):
     return left, occupied[0][0], right, occupied[-1][0] + 1
 
 
-def crop(data, box):
+def crop(data, box, size=SIZE):
     x, y, r, b = box
-    return b"".join(data[(i * SIZE + x) * 4 : (i * SIZE + r) * 4] for i in range(y, b))
+    return b"".join(data[(i * size + x) * 4 : (i * size + r) * 4] for i in range(y, b))
 
 
 def pack(role, work, dest, master):
+    size, _ = capture_config(master)
     clips = json.loads((work / f"{role}.json").read_text())
     used = dict.fromkeys(f["file"] for clip in clips.values() for f in clip["frames"])
     pixels = {
         f: subprocess.check_output(["magick", str(work / f), "-depth", "8", "rgba:-"])
         for f in used
     }
-    boxes = {f: alpha_bounds(buf, SIZE) for f, buf in pixels.items()}
+    if any(len(buf) != size * size * 4 for buf in pixels.values()):
+        raise ValueError(f"{role}: capture dimensions do not match recipe")
+    boxes = {f: alpha_bounds(buf, size) for f, buf in pixels.items()}
     tiles = {}
     positions = {}
     to_place = []
@@ -55,7 +62,7 @@ def pack(role, work, dest, master):
         y = min(b[1] for b in group) - PADDING
         r = max(b[2] for b in group) + PADDING
         b = max(b[3] for b in group) + PADDING
-        if min(x, y) < 0 or max(r, b) > SIZE:
+        if min(x, y) < 0 or max(r, b) > size:
             raise ValueError(
                 f"{role}/{name}: insufficient capture margin {(x, y, r, b)}"
             )
@@ -68,7 +75,7 @@ def pack(role, work, dest, master):
             ]
         clip["path"] = f"res://assets/cast/{role}.png"
         for frame in clip["frames"]:
-            buf = crop(pixels[frame.pop("file")], (x, y, r, b))
+            buf = crop(pixels[frame.pop("file")], (x, y, r, b), size)
             key = (w, h, hashlib.sha256(buf).digest())
             if key not in tiles:
                 tiles[key] = buf
@@ -128,7 +135,9 @@ def main():
     parser.add_argument("--threads", type=int, default=6)
     parser.add_argument("--output", type=Path, default=GAME / "assets/cast")
     args = parser.parse_args()
-    masters = json.loads((RECIPE / "masters.json").read_text())
+    masters, _, _ = load_registered(
+        RECIPE / "actors", json.loads((RECIPE / "masters.json").read_text()), TAKES, RELEASES
+    )
     args.output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)

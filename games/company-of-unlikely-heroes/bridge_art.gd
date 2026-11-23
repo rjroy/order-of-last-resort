@@ -436,14 +436,22 @@ func _draw_figures() -> void:
 		var occupant := original
 		var key := str(original.get("cast_key", ""))
 		var id := str(original.get("id", ""))
-		if key == "ferryman":
+		var ordinary_defeat := _ordinary_defeat_clip(original)
+		if key == "ferryman" and not original.has("cast_lifecycle"):
 			var cell := _playback.actor_cell(id, original.cell)
 			if cell != original.cell:
 				occupant = original.duplicate()
 				occupant["cell"] = cell
-		if (key == "harpooner" and int(original.get("hp", 1)) <= 0 \
+		if original.has("cast_lifecycle") and int(original.get("hp", 1)) > 0 \
+				and bool(original.get("prone", false)) and _playback.has_waiting_upright_hit(id):
+			if occupant == original:
+				occupant = original.duplicate()
+			occupant["prone"] = false
+		if (not ordinary_defeat.is_empty() and int(original.get("hp", 1)) <= 0 \
+				and _playback.has_pending_ordinary_role(id, "defeat")) \
+				or (not original.has("cast_lifecycle") and key == "harpooner" and int(original.get("hp", 1)) <= 0 \
 				and _playback.has_pending_clip(id, "defeat")) \
-				or (key == "ferryman" and bool(original.get("prone", false)) \
+				or (not original.has("cast_lifecycle") and key == "ferryman" and bool(original.get("prone", false)) \
 				and _playback.has_pending_clip(id, "down")):
 			# The final corpse row is authoritative, but its appearance belongs
 			# after the complete committed action and defeat timeline.
@@ -463,19 +471,27 @@ func _draw_figures() -> void:
 			# The final board can include a later fall, or a fall caused by the
 			# dose itself. Show this committed gesture before returning to it.
 			var dose_gesture := _is_dose_gesture(entry)
-			var harpoon_reaction: bool = entry.cue.cast_key == "harpooner" and entry.cue.clip in ["hit", "defeat"]
-			var before_harpoon_defeat: bool = entry.cue.cast_key == "harpooner" \
+			var ordinary_defeat := _ordinary_defeat_clip(unit)
+			var before_ordinary_defeat := not ordinary_defeat.is_empty() \
+				and _playback.has_pending_ordinary_role(id, "defeat")
+			var ordinary_hit := _ordinary_hit_gesture(unit, entry)
+			var legacy_lifecycle := not unit.has("cast_lifecycle")
+			var harpoon_reaction: bool = legacy_lifecycle and entry.cue.cast_key == "harpooner" \
+				and entry.cue.clip in ["hit", "defeat"]
+			var before_harpoon_defeat: bool = legacy_lifecycle and entry.cue.cast_key == "harpooner" \
 				and _playback.has_pending_clip(id, "defeat")
-			var ferryman_reaction: bool = entry.cue.cast_key == "ferryman" \
+			var ferryman_reaction: bool = legacy_lifecycle and entry.cue.cast_key == "ferryman" \
 				and (entry.cue.clip in ["flinch", "down", "recover"] or _playback.has_pending_clip(id, "down"))
 			if int(unit.get("hp", 1)) <= 0 and not dose_gesture and not harpoon_reaction \
-					and not before_harpoon_defeat and not ferryman_reaction:
+					and not before_harpoon_defeat and not ferryman_reaction and not before_ordinary_defeat:
 				continue
 			if bool(unit.get("prone", false)) and not _is_wizard_pull(entry) and not dose_gesture \
-					and not harpoon_reaction and not before_harpoon_defeat and not ferryman_reaction:
+					and not harpoon_reaction and not before_harpoon_defeat and not ferryman_reaction \
+					and not before_ordinary_defeat and not ordinary_hit:
 				continue
 			# A previous shield throw cannot remove a shield that has since been recovered.
-			if entry.cue.clip == "shield_away" and not bool(unit.get("shield_away", false)):
+			if not entry.cue.get("ordinary_presentation", false) and entry.cue.clip == "shield_away" \
+					and not bool(unit.get("shield_away", false)):
 				continue
 		actions[id] = entry
 		if unit.is_empty():
@@ -500,7 +516,8 @@ func _draw_figures() -> void:
 			var action: CastPlayback.Entry = actions.get(unit.id)
 			var down := bool(unit.get("prone", false)) or int(unit.get("hp", 1)) <= 0
 			if not unit.get("pre_defeat", false):
-				_draw_health(unit, down and (action == null or not _is_dose_gesture(action)))
+				_draw_health(unit, down and (action == null or (not _is_dose_gesture(action) \
+					and not _ordinary_hit_gesture(unit, action))))
 			_draw_unit_marker(unit)
 	# Loose equipment is a tile marker, even when a unit occupies that tile.
 	for cell in _overlay.get("forecast_shields", []):
@@ -862,7 +879,8 @@ func _draw_cast(unit: Dictionary, foot: Vector2, facing: float, prone: bool, act
 	var key := "ready"
 	var time_ms := _ready_ms
 	var turned_down := prone and not bool(unit.get("pre_defeat", false))
-	if cast_key == "knight" and bool(unit.get("shield_away", false)):
+	var defeat_tail := _ordinary_defeat_tail(unit)
+	if not unit.has("cast_lifecycle") and cast_key == "knight" and bool(unit.get("shield_away", false)):
 		# Equipment is authoritative. Never show a second shield on the unit.
 		key = "shield_away"
 	elif action != null and action.elapsed_ms < action.clip.total_ms:
@@ -870,17 +888,29 @@ func _draw_cast(unit: Dictionary, foot: Vector2, facing: float, prone: bool, act
 		time_ms = action.elapsed_ms
 		turned_down = false
 		facing = action.facing if action.facing != 0.0 else facing
-	elif cast_key == "wizard" and prone and _wizard_pull_facing.has(unit.id):
+	elif defeat_tail != null:
+		key = defeat_tail.cue.clip
+		time_ms = INF
+		turned_down = false
+		facing = defeat_tail.facing if defeat_tail.facing != 0.0 else facing
+	elif not unit.has("cast_lifecycle") and cast_key == "wizard" and prone and _wizard_pull_facing.has(unit.id):
 		# Pull ends seated. Hold its authored stumble instead of rotating a standing pose.
 		key = "pull"
 		time_ms = INF
 		turned_down = false
 		facing = _wizard_pull_facing[unit.id]
-	elif cast_key == "harpooner" and int(unit.get("hp", 1)) <= 0 and not bool(unit.get("pre_defeat", false)):
+	elif not _ordinary_defeat_clip(unit).is_empty() and int(unit.get("hp", 1)) <= 0 \
+			and not bool(unit.get("pre_defeat", false)):
+		key = _ordinary_defeat_clip(unit)
+		time_ms = INF
+		turned_down = false
+	elif not unit.has("cast_lifecycle") and cast_key == "harpooner" \
+			and int(unit.get("hp", 1)) <= 0 and not bool(unit.get("pre_defeat", false)):
 		key = "defeat"
 		time_ms = INF
 		turned_down = false
-	elif cast_key == "ferryman" and (prone or (_playback.has_pending_clip(str(unit.get("id", "")), "recover") \
+	elif not unit.has("cast_lifecycle") and cast_key == "ferryman" \
+			and (prone or (_playback.has_pending_clip(str(unit.get("id", "")), "recover") \
 			and not _playback.has_pending_clip(str(unit.get("id", "")), "down"))) \
 			and not bool(unit.get("pre_defeat", false)):
 		key = "down"
@@ -902,12 +932,43 @@ func _target_cell(id: String, at: Variant) -> Variant:
 	return at if at is Vector2i else _targets_by_id.get(id)
 
 
+func _ordinary_defeat_clip(unit: Dictionary) -> String:
+	var lifecycle: Variant = unit.get("cast_lifecycle", {})
+	var key: String = unit.get("cast_key", "")
+	if lifecycle is Dictionary and lifecycle.get("defeat") is String:
+		var clip: String = lifecycle.defeat
+		if not clip.is_empty() and _cast.clip_for(key, clip) != null:
+			return clip
+	return ""
+
+
+func _ordinary_hit_gesture(unit: Dictionary, entry: CastPlayback.Entry) -> bool:
+	var lifecycle: Variant = unit.get("cast_lifecycle", {})
+	return entry.cue.get("ordinary_presentation", false) and lifecycle is Dictionary \
+		and entry.cue.get("ordinary_role") == "hit" and lifecycle.get("hit") == entry.cue.clip \
+		and int(unit.get("hp", 1)) > 0
+
+
+func _ordinary_defeat_tail(unit: Dictionary) -> CastPlayback.Entry:
+	var clip := _ordinary_defeat_clip(unit)
+	if clip.is_empty():
+		return null
+	for entry in _playback.active():
+		if entry.cue.get("unit_id") == unit.get("id") and entry.cue.get("clip") == clip \
+				and entry.cue.get("ordinary_presentation", false) and entry.cue.get("ordinary_role") == "defeat" \
+				and entry.elapsed_ms >= entry.clip.total_ms:
+			return entry
+	return null
+
+
 func _is_wizard_pull(entry: CastPlayback.Entry) -> bool:
-	return entry.cue.cast_key == "wizard" and entry.cue.clip == "pull"
+	return not entry.cue.get("ordinary_presentation", false) \
+		and entry.cue.cast_key == "wizard" and entry.cue.clip == "pull"
 
 
 func _is_dose_gesture(entry: CastPlayback.Entry) -> bool:
-	return entry.cue.cast_key == "alchemist" and entry.cue.clip in ["potion", "acid"]
+	return not entry.cue.get("ordinary_presentation", false) \
+		and entry.cue.cast_key == "alchemist" and entry.cue.clip in ["potion", "acid"]
 
 
 func _sync_playback_geometry() -> void:

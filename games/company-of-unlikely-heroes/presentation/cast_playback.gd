@@ -45,7 +45,9 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 		var role := str(value.get("cast_key", ""))
 		var key := str(value.get("clip", ""))
 		var clip := art.clip_for(role, key)
-		if clip == null or key in ["ready", "gift", "acid_flask", "harpoon_projectile"]:
+		var ordinary: bool = value.get("ordinary_presentation", false)
+		if clip == null or key == "ready" \
+				or (not ordinary and key in ["gift", "acid_flask", "harpoon_projectile"]):
 			continue
 		var cue: Dictionary = value.duplicate(true)
 		cue["target_id"] = str(cue.get("target_id", ""))
@@ -54,7 +56,9 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 		entry.clip = clip
 		entry.facing = 0.0
 		entry.impact_ms = clip.time_at_source_frame(ACTION_BEATS[key]) \
-			if ACTION_BEATS.has(key) else clip.total_ms * 0.48
+			if not ordinary and ACTION_BEATS.has(key) else clip.total_ms * 0.48
+		if ordinary and cue.get("impact_frame") is int and cue.impact_frame in clip.source_frames:
+			entry.impact_ms = clip.time_at_source_frame(cue.impact_frame)
 		if clip.release_ms >= 0.0:
 			entry.gift = art.clip_for(role, clip.release_clip)
 			if entry.gift != null:
@@ -102,6 +106,17 @@ func actor_cell(unit_id: String, fallback: Vector2i) -> Vector2i:
 func has_pending_clip(unit_id: String, key: String) -> bool:
 	return _entries.any(func(entry: Entry): return entry.cue.get("unit_id") == unit_id \
 		and entry.cue.get("clip") == key)
+
+
+func has_pending_ordinary_role(unit_id: String, role: String) -> bool:
+	return _entries.any(func(entry: Entry): return entry.cue.get("unit_id") == unit_id \
+		and entry.cue.get("ordinary_presentation", false) and entry.cue.get("ordinary_role") == role)
+
+
+func has_waiting_upright_hit(unit_id: String) -> bool:
+	return _entries.any(func(entry: Entry): return entry.cue.get("unit_id") == unit_id \
+		and entry.cue.get("ordinary_presentation", false) and entry.cue.get("ordinary_role") == "hit" \
+		and not entry.cue.get("was_prone", false) and entry.elapsed_ms < 0.0)
 
 
 func advance(delta_ms: float) -> void:

@@ -1,0 +1,512 @@
+{
+  "version": 1,
+  "approved_on": "2026-11-22",
+  "approved_by": "Ronald",
+  "decision": "Approved models and common finish; authorized runtime integration. Runtime appearance not included in this approval.",
+  "approved_review": {
+    "index_sha256": "822f6b7f1612cc72d0d5728af923e0e54b22f8d6af6ae957dde170bd823277e7",
+    "evidence_sha256": "62a6216cd51c4ac25495601a619b7f772a064be3e70d70593dca42fd8b5bbc6a",
+    "recipe_baseline_commit": "a95280ecf9fb694fa7955fc555e12b608c807c69",
+    "recipe_sha256": "966dcf930b36a58731a295d11dc033965213dc81ae7f4fa301e4de2531a5d907",
+    "finish": {
+      "camera_euler_xyz_radians": [
+        1.150829196,
+        0,
+        -0.435386419
+      ],
+      "capture_px": [
+        320,
+        320
+      ],
+      "orthographic_width_m": 3.05,
+      "pixels_per_metre": 104.91803279,
+      "anchor_note": "Actor-specific capture offsets allocate transparent runway without changing scale or ground registration.",
+      "view_transform": "Standard / None",
+      "light": "CPU Cycles, 12 samples, seed 14, no denoising; saved Base Color times the fixed ink light ramp with Generated-coordinate breakup.",
+      "outline": "Per-frame alpha dilation Disk:2 over #352b28; no paper or screen overlay.",
+      "tactical_px_per_metre": 26.48171501,
+      "blender": "5.2.2 LTS d13f752e3b9c"
+    }
+  },
+  "actors": {
+    "goblin": {
+      "source": "../../models/goblin/goblin.blend",
+      "sha256": "a276f52d23ac8d32f520e96d153db39d5b2befd7bad669bb365150547466ed3d",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Goblin Jab",
+          8
+        ]
+      }
+    },
+    "hookhand": {
+      "source": "../../models/hookhand/hookhand.blend",
+      "sha256": "00a0381915c32fb33bf956cdab0c62b2c93f53c67f786d0a3cfdc621e8ad8098",
+      "capture_anchor_px": [
+        87,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Hook Pull",
+          18
+        ]
+      }
+    },
+    "bruiser": {
+      "source": "../../models/bruiser/bruiser-candidate.blend",
+      "sha256": "190e66a530052a883dd7d52db7ea01d0629585cb4a7f0115631423807bf9ddc4",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Heavy Strike",
+          18
+        ]
+      }
+    },
+    "village_troll": {
+      "source": "../../models/village_troll/village_troll.blend",
+      "sha256": "8e33879195777ff6e4cff32310de546d2a5532e99d510929fb97f31b973dc4e3",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Stop Beside Hero",
+          13
+        ]
+      }
+    },
+    "shieldbearer": {
+      "source": "../../models/shieldbearer/shieldbearer-candidate.blend",
+      "sha256": "cf0967f444f5a1caf40b4e19b5c05b5ac76a2b209e0d814cffbfdcebbafaf515",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Guard",
+          8
+        ]
+      }
+    },
+    "archer": {
+      "source": "../../models/archer/archer-candidate-clearance.blend",
+      "sha256": "a9ba0e6bc35d8d233c76aa8c97048b0b6fd1f0dc0cd003d8f0cdabaf4180f118",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Draw and Release",
+          13
+        ],
+        "advance": [
+          "Advance",
+          15
+        ],
+        "release": [
+          "Draw and Release",
+          17
+        ],
+        "recovery": [
+          "Draw and Release",
+          22
+        ],
+        "arrival": [
+          "Reserve Arrival",
+          8
+        ],
+        "defeat": [
+          "Defeat",
+          24
+        ]
+      }
+    },
+    "captain": {
+      "source": "../../models/captain/captain-candidate.blend",
+      "sha256": "9b0b921dd1d914965832df32dc6f1960c5acaa467008da37d05ff8476f7d1f9b",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Command",
+          12
+        ]
+      }
+    },
+    "grunt": {
+      "source": "../../models/grunt/grunt-candidate.blend",
+      "sha256": "3dcf176a63e749f5ca8f5e9038765323a40afce0f31f4299ac55ebf529f706b9",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Close Strike",
+          10
+        ]
+      }
+    },
+    "bomber": {
+      "source": "../../models/bomber/bomber-pigment.blend",
+      "sha256": "d1e366646d96277503a120ead851c08fabb5f1c7abaa9fe9fd4a67282e10ee13",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Detonate on defeat",
+          8
+        ]
+      }
+    },
+    "enemy_healer": {
+      "source": "../../models/enemy_healer/enemy_healer-pigment.blend",
+      "sha256": "3ec1be65fce33a6ea42e11944a347a8b0df93f07127a21022f333a1dc1ef7dee",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Field dressing",
+          13
+        ]
+      }
+    },
+    "duelist": {
+      "source": "../../models/duelist/duelist-pigment.blend",
+      "sha256": "73dd3f381ea869da44430838a36df65766400d82d93a568ce29c7b6275417d4e",
+      "capture_anchor_px": [
+        81,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Lunge",
+          15
+        ]
+      }
+    },
+    "ogre": {
+      "source": "../../models/ogre/ogre.blend",
+      "sha256": "de684dfd64989017877291cfeaa44579f842616a55ec6e2e4d6659dfe5a67560",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Heavy Strike",
+          22
+        ]
+      }
+    },
+    "trickster": {
+      "source": "../../models/trickster/trickster.blend",
+      "sha256": "0dfe1ba48e545da2c815d6ce4bf68cfacfc286fcb48a3e6704e060a191c963ba",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Switch Places",
+          10
+        ]
+      }
+    },
+    "rival_knight": {
+      "source": "../../models/rival_knight/rival_knight.blend",
+      "sha256": "f7fa59f3fc0e5cb77885b4c93d48f85ab4a57340d93e7b20f086dd3be7c875b8",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Shield Push",
+          10
+        ]
+      }
+    },
+    "rival_wizard": {
+      "source": "../../models/rival_wizard/rival_wizard.blend",
+      "sha256": "b7df8ad5eeeac050cf9b108512412a71701f017aa3b4393e4fe7cb24531366e8",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Nearest Blast",
+          10
+        ]
+      }
+    },
+    "rival_healer": {
+      "source": "../../models/rival_healer/rival_healer.blend",
+      "sha256": "5529f1164b7eb8262d36b0986f7cc8183641bf14c75b1ca6e6daa4ea5fb9d2a6",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Ally Heal",
+          15
+        ]
+      }
+    },
+    "bandit_damage": {
+      "source": "../../models/bandit_damage/bandit_damage.blend",
+      "sha256": "24a4ad58905757af3206ecf6738a761143bf7661db21fd29c8a05ce85b9c602e",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Harder Strike",
+          17
+        ]
+      }
+    },
+    "bandit_guard": {
+      "source": "../../models/bandit_guard/bandit_guard.blend",
+      "sha256": "a330ce3ea4ab07279a32bdedb227d3fb8c96755ca6a3e9cd9b13a5cafcf01803",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Brace",
+          8
+        ]
+      }
+    },
+    "bandit_swift": {
+      "source": "../../models/bandit_swift/bandit_swift.blend",
+      "sha256": "b476b5b64e6367a41accdfeca06ebf40011920f677189c0ff7a1e74ec3d53262",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Quick Step",
+          6
+        ]
+      }
+    },
+    "frontier_war_drummer": {
+      "source": "../../models/frontier_war_drummer/frontier_war_drummer-pigment.blend",
+      "sha256": "bce0e78136d3284b9d213731355402f7711e6c2c85b4064b10936157f0fa492e",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "War drum pulse",
+          14
+        ]
+      }
+    },
+    "frontier_sheep": {
+      "source": "../../models/frontier_sheep/frontier_sheep.blend",
+      "sha256": "b99b310d4157a747b0a6f10bc25ce6e875ffc440bab852be2fbb8c290ca3dc91",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Flee step",
+          8
+        ]
+      }
+    },
+    "frontier_shepherd": {
+      "source": "../../models/frontier_shepherd/frontier_shepherd.blend",
+      "sha256": "8e88d1378b5cf2529ee13c3f4eea8a9777aba51e67c4c69f46eedb9adb5566fd",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Scatter wave",
+          15
+        ]
+      }
+    },
+    "frontier_wagon_raider": {
+      "source": "../../models/frontier_wagon_raider/frontier_wagon_raider-candidate.blend",
+      "sha256": "c6f8b8e6d098c21dc0f22e6cd11549b8d6ce69a8aa98d96325527aba552bce68",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Wagon Strike",
+          16
+        ]
+      }
+    },
+    "frontier_wagon": {
+      "source": "../../models/frontier_wagon/frontier_wagon-candidate.blend",
+      "sha256": "24168deae79baf9324fb933fd714f443f38ede0f3e38d2c621cc0bbabfd425fb",
+      "capture_anchor_px": [
+        160,
+        248
+      ],
+      "review_poses": {
+        "ready": [
+          "Ready",
+          1
+        ],
+        "action": [
+          "Destroyed",
+          13
+        ]
+      }
+    }
+  },
+  "superseded": {
+    "archer": {
+      "source": "../../models/archer/superseded/archer-candidate.blend",
+      "sha256": "860f336d875408cd233e438fdd2bef09f661c216ccac6350d4ac150afc29f784",
+      "reason": "Bow, string and arrow clearance"
+    },
+    "bomber": {
+      "source": "../../models/bomber/superseded/bomber.blend",
+      "sha256": "73c39e6efa0d98795cd2a3da88699d15a1e32d56fac5f0e6f1e26551098323b2",
+      "reason": "Constant Base Color, before the approved pigment revision"
+    },
+    "enemy_healer": {
+      "source": "../../models/enemy_healer/superseded/enemy_healer.blend",
+      "sha256": "c87c9c43e1a722d97f9551511db995be91f6dc593291029f1581d9f581de1591",
+      "reason": "Constant Base Color, before the approved pigment revision"
+    },
+    "duelist": {
+      "source": "../../models/duelist/superseded/duelist.blend",
+      "sha256": "eb8cc686c5a0e14f86c16f0e073f9745100734f3d341d726a4df3e82759b2766",
+      "reason": "Constant Base Color, before the approved pigment revision"
+    },
+    "frontier_war_drummer": {
+      "source": "../../models/frontier_war_drummer/superseded/frontier_war_drummer.blend",
+      "sha256": "f9e226c347a1d802926505a1608034e776f86c3c6dffb9a302649ff78ef979bf",
+      "reason": "Constant Base Color, before the approved pigment revision"
+    }
+  }
+}

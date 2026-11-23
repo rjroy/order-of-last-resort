@@ -2215,8 +2215,11 @@ func _refresh_board() -> void:
 		var actor := _find(corpse.id)
 		if not actor.is_empty():
 			var cast_key := CastCues.cast_key_for(_state, actor, profile)
-			if cast_key == "harpooner":
+			var presentation := CastCues.presentation_for(_state, actor, profile)
+			if cast_key == "harpooner" or presentation.get("defeat") is String:
 				marker["cast_key"] = cast_key
+				if CastCues.has_presentation(_state, actor):
+					marker["cast_lifecycle"] = presentation
 		units.append(marker)
 	var shared_art := _shared_enemy_art()
 	for unit in _state.units:
@@ -2238,6 +2241,9 @@ func _refresh_board() -> void:
 		var cast_key := CastCues.cast_key_for(_state, unit, profile)
 		if not cast_key.is_empty():
 			figure["cast_key"] = cast_key
+			var presentation := CastCues.presentation_for(_state, unit, profile)
+			if CastCues.has_presentation(_state, unit):
+				figure["cast_lifecycle"] = presentation
 		if "minion" in profile.capabilities:
 			var directed := _find(_rules.nominated_target(_state, unit.id))
 			if not directed.is_empty() and directed.position.x != unit.position.x:

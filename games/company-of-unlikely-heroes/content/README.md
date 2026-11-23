@@ -12,6 +12,22 @@
 - **Upgrades** optionally define between-mission rewards. Each entry specifies a commandable, non-minion `hero_id` (character, not class), `rarity`, positive integer acquisition `cap`, `label`, `description`, supported `effect`, and positive integer `amount`. The hero's effective kit and any referenced definitions must support the effect. The three unlock effects also name their granted `ability`; House Lights names the granted `order` and its `behavior`. Leave those grants out of the hero's base kit. Omitting `upgrades` preserves reward-free play.
 - **Reward weights** optionally set positive whole-number `reward_weights` for all four tiers (`common`, `uncommon`, `rare`, `legendary`). With no weights the defaults are `60/28/10/2` respectively. For each deployed hero, the outing draws a tier among those with an eligible entry, then draws uniformly among that hero's remaining entries in that tier. Caps govern eligibility, not draw weight. Only the chosen reward uses an acquisition.
 
+## Optional ordinary-actor cast presentation
+
+Character-owned `cast_key`, `cast_art_key`, `cast_team` and `cast_variant`
+bind a packaged cast family only while the effective team, art key and variant
+still match. The `cast_presentation` dictionary optionally maps ability IDs in
+`actions` to `{ "handler": "move" | "attack", "clip": "<clip id>" }`, and
+can name `hit` and `defeat` clips. The ability must be in the effective kit;
+its actual handler must match before the committed action plays. A move needs
+an actual displacement. An optional positive `impact_frame` sets contact on
+that sampled source frame; absent or unsampled frames use the default timing.
+Reactions require a damageable character and work even
+without action mappings. `ready` is reserved for idle. The metadata selects
+artwork only; missing clips and changed custom art use existing fallbacks and
+never alter rules. Goblin currently declares `move`, `jab`, `hit` and `defeat`,
+but its cast atlas is not yet registered or approved for runtime integration.
+
 ## Guild petitions and equipped kits
 
 [`guild_progression.json`](guild_progression.json) defines the permanent petitions for the built-in guild. `kits` names each recruit’s base `offense` and `utility` ability IDs; Move is separate. A petition grants a recruit, an ability for one recipient and slot, a standing order and its behavior, or a supported passive technique. Its `cost` is paid once by the guild, not once per deployment. `prerequisites` lists other petition IDs. [`guild_training.json`](guild_training.json) supplies the actions and habits introduced by guild training. Add mechanical effects in rules code rather than expressing new behavior as a purchase label.

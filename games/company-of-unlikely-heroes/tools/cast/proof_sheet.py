@@ -48,7 +48,9 @@ def main():
         for role, actor in manifest["actors"].items():
             for name, clip in actor["clips"].items():
                 default = BEATS.get(name, [clip["frames"][0]["source_frame"]])
-                for beat in BEATS.get((role, name), default):
+                available = {frame["source_frame"] for frame in clip["frames"]}
+                beats = [beat for beat in BEATS.get((role, name), default) if beat in available]
+                for beat in beats or [clip["frames"][0]["source_frame"]]:
                     frame = next(f for f in clip["frames"] if f["source_frame"] == beat)
                     x, y, w, h = frame["rect"]
                     path = args.assets / Path(clip["path"]).name

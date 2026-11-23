@@ -1,0 +1,105 @@
+{
+  "role": "village_troll",
+  "master": {
+    "source": "models/village_troll/village_troll.blend",
+    "sha256": "8e33879195777ff6e4cff32310de546d2a5532e99d510929fb97f31b973dc4e3",
+    "rig_name": "village_troll | Rig",
+    "action_prefix": "Village Troll"
+  },
+  "takes": {
+    "curious_follow": [
+      "Curious Follow",
+      [
+        1,
+        6,
+        7,
+        11,
+        16,
+        21,
+        25
+      ],
+      26,
+      false
+    ],
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        25
+      ],
+      26,
+      false
+    ],
+    "displaced": [
+      "Displaced",
+      [
+        1,
+        6,
+        11,
+        16,
+        18
+      ],
+      19,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        6,
+        11,
+        15
+      ],
+      16,
+      false
+    ],
+    "leaves_square_alive": [
+      "Leaves Square Alive",
+      [
+        1,
+        6,
+        11,
+        16,
+        20,
+        21,
+        26,
+        28
+      ],
+      29,
+      false
+    ],
+    "ready": [
+      "Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31
+      ],
+      33,
+      true
+    ],
+    "stop_beside_hero": [
+      "Stop Beside Hero",
+      [
+        1,
+        6,
+        11,
+        13,
+        16,
+        21,
+        26,
+        30
+      ],
+      31,
+      false
+    ]
+  }
+}

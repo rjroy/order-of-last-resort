@@ -1,0 +1,49 @@
+{
+  "actor": "village_troll",
+  "case": {
+    "cast_key": "village_troll",
+    "minimum_opening": 1,
+    "rounds": [
+      {
+        "command": {
+          "ability": "move",
+          "actor": "knight",
+          "target": "4,2"
+        }
+      },
+      {},
+      {}
+    ],
+    "triggers": [
+      {
+        "ability": "move",
+        "actor_field": "unit_id",
+        "clip": "curious_follow",
+        "id": "move",
+        "type": "action"
+      }
+    ],
+    "variants": {
+      "living_exit": {
+        "rounds": [
+          {
+            "command": {
+              "ability": "knight_push",
+              "actor": "knight",
+              "target": "troll"
+            }
+          }
+        ],
+        "triggers": [
+          {
+            "actor_field": "target_id",
+            "clip": "leaves_square_alive",
+            "id": "living_exit",
+            "type": "troll_exit"
+          }
+        ]
+      }
+    }
+  },
+  "mission": "unwelcome_guest"
+}

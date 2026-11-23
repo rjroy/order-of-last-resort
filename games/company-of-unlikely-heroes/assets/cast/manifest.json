@@ -13412,6 +13412,539 @@
           "path": "res://assets/cast/frontier_war_drummer.png"
         }
       }
+    },
+    "village_troll": {
+      "source": "art/models/village_troll/village_troll.blend",
+      "sha256": "8e33879195777ff6e4cff32310de546d2a5532e99d510929fb97f31b973dc4e3",
+      "clips": {
+        "curious_follow": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                594,
+                757,
+                156,
+                228
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 42,
+              "rect": [
+                750,
+                757,
+                156,
+                228
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 167,
+              "rect": [
+                906,
+                757,
+                156,
+                228
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                1062,
+                757,
+                156,
+                228
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                997,
+                156,
+                228
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                156,
+                997,
+                156,
+                228
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 42,
+              "rect": [
+                312,
+                997,
+                156,
+                228
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            73,
+            200
+          ],
+          "action": "Village Troll | Curious Follow",
+          "path": "res://assets/cast/village_troll.png"
+        },
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                0,
+                169,
+                267
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                169,
+                0,
+                169,
+                267
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                338,
+                0,
+                169,
+                267
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                507,
+                0,
+                169,
+                267
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                676,
+                0,
+                169,
+                267
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 42,
+              "rect": [
+                845,
+                0,
+                169,
+                267
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            81,
+            220
+          ],
+          "action": "Village Troll | Defeat",
+          "path": "res://assets/cast/village_troll.png"
+        },
+        "displaced": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                477,
+                267,
+                173,
+                241
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                650,
+                267,
+                173,
+                241
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                823,
+                267,
+                173,
+                241
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 83,
+              "rect": [
+                996,
+                267,
+                173,
+                241
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                516,
+                173,
+                241
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            70,
+            212
+          ],
+          "action": "Village Troll | Displaced",
+          "path": "res://assets/cast/village_troll.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                1014,
+                0,
+                159,
+                249
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                267,
+                159,
+                249
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 166,
+              "rect": [
+                159,
+                267,
+                159,
+                249
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 42,
+              "rect": [
+                318,
+                267,
+                159,
+                249
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            80,
+            221
+          ],
+          "action": "Village Troll | Hit",
+          "path": "res://assets/cast/village_troll.png"
+        },
+        "leaves_square_alive": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                173,
+                516,
+                198,
+                240
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                371,
+                516,
+                198,
+                240
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                569,
+                516,
+                198,
+                240
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                767,
+                516,
+                198,
+                240
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 41,
+              "rect": [
+                965,
+                516,
+                198,
+                240
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                757,
+                198,
+                240
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 83,
+              "rect": [
+                198,
+                757,
+                198,
+                240
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 42,
+              "rect": [
+                396,
+                757,
+                198,
+                240
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            75,
+            211
+          ],
+          "action": "Village Troll | Leaves Square Alive",
+          "path": "res://assets/cast/village_troll.png"
+        },
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                468,
+                997,
+                143,
+                228
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                611,
+                997,
+                143,
+                228
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                754,
+                997,
+                143,
+                228
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                897,
+                997,
+                143,
+                228
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                1040,
+                997,
+                143,
+                228
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                1183,
+                997,
+                143,
+                228
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                1225,
+                143,
+                228
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            71,
+            200
+          ],
+          "action": "Village Troll | Ready",
+          "path": "res://assets/cast/village_troll.png"
+        },
+        "stop_beside_hero": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                143,
+                1225,
+                157,
+                226
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                300,
+                1225,
+                157,
+                226
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 83,
+              "rect": [
+                457,
+                1225,
+                157,
+                226
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 125,
+              "rect": [
+                614,
+                1225,
+                157,
+                226
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                614,
+                1225,
+                157,
+                226
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                771,
+                1225,
+                157,
+                226
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 166,
+              "rect": [
+                928,
+                1225,
+                157,
+                226
+              ]
+            },
+            {
+              "source_frame": 30,
+              "duration_ms": 42,
+              "rect": [
+                1085,
+                1225,
+                157,
+                226
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            70,
+            198
+          ],
+          "action": "Village Troll | Stop Beside Hero",
+          "path": "res://assets/cast/village_troll.png"
+        }
+      }
     }
   }
 }

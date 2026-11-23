@@ -202,7 +202,25 @@
       "label": "Village Troll",
       "team": "enemies",
       "art_key": "village_troll",
-      "behavior": "village_troll_follow"
+      "behavior": "village_troll_follow",
+      "cast_key": "village_troll",
+      "cast_art_key": "village_troll",
+      "cast_team": "enemies",
+      "cast_variant": "default",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "curious_follow"
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat",
+        "events": {
+          "displaced": "displaced",
+          "leave_zone": "leaves_square_alive"
+        }
+      }
     }
   },
   "abilities": {

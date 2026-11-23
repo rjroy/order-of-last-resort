@@ -1,0 +1,55 @@
+{
+  "actor": "enemy_healer",
+  "case": {
+    "automatic_rounds": 4,
+    "cast_key": "enemy_healer",
+    "minimum_opening": 1,
+    "triggers": [
+      {
+        "ability": "rival_bonk",
+        "actor_field": "source_id",
+        "clip": "bonk",
+        "id": "bonk",
+        "type": "action"
+      }
+    ],
+    "variants": {
+      "field_dressing": {
+        "rounds": [
+          {
+            "command": {
+              "ability": "wizard_pull",
+              "actor": "wizard",
+              "target": "healer"
+            }
+          },
+          {
+            "command": {
+              "ability": "move",
+              "actor": "knight",
+              "target": "2,1"
+            }
+          },
+          {
+            "command": {
+              "ability": "healer_bonk",
+              "actor": "healer",
+              "target": "bruiser_2"
+            }
+          }
+        ],
+        "triggers": [
+          {
+            "ability": "frontier_heal",
+            "actor_field": "unit_id",
+            "clip": "field_dressing",
+            "id": "field_dressing",
+            "min_amount": 1,
+            "type": "action"
+          }
+        ]
+      }
+    }
+  },
+  "mission": "unfortunate_healer"
+}

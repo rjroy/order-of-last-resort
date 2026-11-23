@@ -6564,6 +6564,418 @@
           "path": "res://assets/cast/hookhand.png"
         }
       }
+    },
+    "enemy_healer": {
+      "source": "art/models/enemy_healer/enemy_healer-pigment.blend",
+      "sha256": "3ec1be65fce33a6ea42e11944a347a8b0df93f07127a21022f333a1dc1ef7dee",
+      "clips": {
+        "bonk": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                0,
+                169,
+                219
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                169,
+                0,
+                169,
+                219
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                338,
+                0,
+                169,
+                219
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                507,
+                0,
+                169,
+                219
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 84,
+              "rect": [
+                676,
+                0,
+                169,
+                219
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 41,
+              "rect": [
+                845,
+                0,
+                169,
+                219
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            87,
+            199
+          ],
+          "action": "Bonk",
+          "path": "res://assets/cast/enemy_healer.png"
+        },
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                459,
+                646,
+                192,
+                212
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                651,
+                646,
+                192,
+                212
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                843,
+                646,
+                192,
+                212
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                859,
+                192,
+                212
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 125,
+              "rect": [
+                192,
+                859,
+                192,
+                212
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 42,
+              "rect": [
+                384,
+                859,
+                192,
+                212
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            117,
+            194
+          ],
+          "action": "Defeat",
+          "path": "res://assets/cast/enemy_healer.png"
+        },
+        "field_dressing": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                676,
+                219,
+                201,
+                213
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                877,
+                219,
+                201,
+                213
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                433,
+                201,
+                213
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                201,
+                433,
+                201,
+                213
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                201,
+                433,
+                201,
+                213
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 166,
+              "rect": [
+                402,
+                433,
+                201,
+                213
+              ]
+            },
+            {
+              "source_frame": 30,
+              "duration_ms": 42,
+              "rect": [
+                676,
+                219,
+                201,
+                213
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            78,
+            195
+          ],
+          "action": "Field dressing",
+          "path": "res://assets/cast/enemy_healer.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                219,
+                169,
+                214
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                169,
+                219,
+                169,
+                214
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 125,
+              "rect": [
+                338,
+                219,
+                169,
+                214
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 41,
+              "rect": [
+                507,
+                219,
+                169,
+                214
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            94,
+            194
+          ],
+          "action": "Hit",
+          "path": "res://assets/cast/enemy_healer.png"
+        },
+        "move": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                603,
+                433,
+                153,
+                213
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                756,
+                433,
+                153,
+                213
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                909,
+                433,
+                153,
+                213
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                646,
+                153,
+                213
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 125,
+              "rect": [
+                153,
+                646,
+                153,
+                213
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 42,
+              "rect": [
+                306,
+                646,
+                153,
+                213
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            75,
+            194
+          ],
+          "action": "Move",
+          "path": "res://assets/cast/enemy_healer.png"
+        },
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                576,
+                859,
+                143,
+                212
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                719,
+                859,
+                143,
+                212
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                862,
+                859,
+                143,
+                212
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                1071,
+                143,
+                212
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                143,
+                1071,
+                143,
+                212
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            68,
+            194
+          ],
+          "action": "Ready",
+          "path": "res://assets/cast/enemy_healer.png"
+        }
+      }
     }
   }
 }

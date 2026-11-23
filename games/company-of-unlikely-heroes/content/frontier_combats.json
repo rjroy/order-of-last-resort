@@ -617,7 +617,29 @@
         "rival_bonk",
         "frontier_heal"
       ],
-      "behavior": "frontier_medic"
+      "behavior": "frontier_medic",
+      "cast_key": "enemy_healer",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "move"
+          },
+          "rival_bonk": {
+            "handler": "attack",
+            "clip": "bonk"
+          },
+          "frontier_heal": {
+            "handler": "enemy_heal",
+            "clip": "field_dressing"
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat"
+      }
     },
     "duelist": {
       "class": "enemy",

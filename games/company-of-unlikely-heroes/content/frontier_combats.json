@@ -703,7 +703,26 @@
         "move",
         "rival_blast"
       ],
-      "behavior": "rival_wizard_cast"
+      "behavior": "rival_wizard_cast",
+      "cast_key": "rival_wizard",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "move"
+          },
+          "rival_blast": {
+            "handler": "blast",
+            "clip": "nearest_blast",
+            "impact_frame": 10
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat"
+      }
     },
     "rival_healer": {
       "class": "enemy",

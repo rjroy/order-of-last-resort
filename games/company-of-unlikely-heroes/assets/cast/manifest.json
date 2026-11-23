@@ -5169,6 +5169,357 @@
           "path": "res://assets/cast/rival_knight.png"
         }
       }
+    },
+    "rival_wizard": {
+      "source": "art/models/rival_wizard/rival_wizard.blend",
+      "sha256": "b7df8ad5eeeac050cf9b108512412a71701f017aa3b4393e4fe7cb24531366e8",
+      "clips": {
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                309,
+                493,
+                122,
+                241
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                431,
+                493,
+                122,
+                241
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                553,
+                493,
+                122,
+                241
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                675,
+                493,
+                122,
+                241
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                735,
+                122,
+                241
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 41,
+              "rect": [
+                122,
+                735,
+                122,
+                241
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            58,
+            228
+          ],
+          "action": "Rival Wizard | Defeat",
+          "path": "res://assets/cast/rival_wizard.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                244,
+                735,
+                117,
+                241
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                361,
+                735,
+                117,
+                241
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                478,
+                735,
+                117,
+                241
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                244,
+                735,
+                117,
+                241
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            61,
+            228
+          ],
+          "action": "Rival Wizard | Hit",
+          "path": "res://assets/cast/rival_wizard.png"
+        },
+        "move": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                0,
+                105,
+                250
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                105,
+                0,
+                105,
+                250
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                210,
+                0,
+                105,
+                250
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                315,
+                0,
+                105,
+                250
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                0,
+                105,
+                250
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            51,
+            228
+          ],
+          "action": "Rival Wizard | Move",
+          "path": "res://assets/cast/rival_wizard.png"
+        },
+        "nearest_blast": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                420,
+                0,
+                143,
+                243
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 167,
+              "rect": [
+                563,
+                0,
+                143,
+                243
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 42,
+              "rect": [
+                706,
+                0,
+                143,
+                243
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                250,
+                143,
+                243
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                143,
+                250,
+                143,
+                243
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                286,
+                250,
+                143,
+                243
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 42,
+              "rect": [
+                420,
+                0,
+                143,
+                243
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            52,
+            230
+          ],
+          "action": "Rival Wizard | Nearest Blast",
+          "path": "res://assets/cast/rival_wizard.png"
+        },
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                429,
+                250,
+                103,
+                242
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                532,
+                250,
+                103,
+                242
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                635,
+                250,
+                103,
+                242
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                738,
+                250,
+                103,
+                242
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                493,
+                103,
+                242
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                103,
+                493,
+                103,
+                242
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 83,
+              "rect": [
+                206,
+                493,
+                103,
+                242
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            49,
+            229
+          ],
+          "action": "Rival Wizard | Ready",
+          "path": "res://assets/cast/rival_wizard.png"
+        }
+      }
     }
   }
 }

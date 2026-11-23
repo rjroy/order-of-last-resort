@@ -1,0 +1,18 @@
+{
+  "actor": "rival_wizard",
+  "case": {
+    "automatic_rounds": 4,
+    "cast_key": "rival_wizard",
+    "minimum_opening": 1,
+    "triggers": [
+      {
+        "ability": "rival_blast",
+        "actor_field": "source_id",
+        "clip": "nearest_blast",
+        "id": "blast",
+        "type": "action"
+      }
+    ]
+  },
+  "mission": "mirror_company"
+}

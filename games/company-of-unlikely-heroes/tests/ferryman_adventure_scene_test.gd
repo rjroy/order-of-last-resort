@@ -153,24 +153,41 @@ func _watch_terminal_replay(replay: Node) -> void:
 	_check(safe != null and travel != null, "Terminal stock round queues travel then safe_bank")
 	if safe == null or travel == null:
 		return
+	var entries: Array = playback.get("_entries").duplicate()
+	var initial_remaining: float = scene.call("_terminal_playback_remaining_ms")
+	# Allow the entire queued timeline, plus the production stall watchdog and
+	# one timeline's worth of wall-clock scheduling slack.
+	var budget_ms := int(ceil(initial_remaining * 2.0)) + int(scene.TERMINAL_REPLAY_STALL_MS)
 	var started := Time.get_ticks_msec()
-	var captured := false
+	var capture: Image
+	var saw_final_frame := false
 	var peak_safe: float = safe.elapsed_ms
 	while is_instance_valid(replay) and scene.find_child("TerminalCastReplay", true, false) != null \
-			and Time.get_ticks_msec() - started < 7000:
-		await process_frame
+			and Time.get_ticks_msec() - started < budget_ms:
+		await RenderingServer.frame_post_draw
 		if not is_instance_valid(replay):
 			break
 		peak_safe = maxf(peak_safe, safe.elapsed_ms)
-		if not captured and safe.elapsed_ms >= 1000.0:
-			captured = true
-			await _capture("adventure-normal-playback.png")
+		if safe in playback.active() and replay.is_visible_in_tree():
+			if capture == null and safe.elapsed_ms >= safe.clip.total_ms * 0.5:
+				capture = viewport.get_texture().get_image()
+			if safe.clip.frame_index(safe.elapsed_ms) == safe.clip.frames.size() - 1:
+				saw_final_frame = true
 	peak_safe = maxf(peak_safe, safe.elapsed_ms)
 	var wall_ms := Time.get_ticks_msec() - started
-	print("Terminal replay: travel %.0f ms, safe_bank %.0f / %.0f ms, wall %d ms" % [
-		travel.clip.total_ms, peak_safe, safe.clip.total_ms, wall_ms])
-	_check(captured, "Safe bank is visible during normal real-time playback")
+	var closed: bool = scene.find_child("TerminalCastReplay", true, false) == null
+	print("Terminal replay: queue %.0f ms, travel %.0f ms, safe_bank %.0f / %.0f ms, wall %d / %d ms, closed %s" % [
+		initial_remaining, travel.clip.total_ms, peak_safe, safe.clip.total_ms, wall_ms, budget_ms, closed])
+	_check(capture != null, "Safe bank is visible during normal real-time playback")
+	if capture != null:
+		_check(capture.save_png(output.path_join("adventure-normal-playback.png")) == OK,
+			"Saved adventure-normal-playback.png")
+	_check(saw_final_frame, "Safe bank final frame is rendered during normal playback")
 	_check(peak_safe >= safe.clip.total_ms, "Normal terminal replay does not truncate safe_bank")
+	_check(closed, "Terminal replay closes naturally within its queue-aware watchdog")
+	if closed:
+		_check(entries.all(func(entry): return entry.elapsed_ms >= entry.duration_ms),
+			"Terminal replay does not close before its queued cast performances complete")
 
 
 func _press(name: String) -> bool:

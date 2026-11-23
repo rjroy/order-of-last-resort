@@ -195,6 +195,17 @@ func _test_missing_profile() -> void:
 	_check(scene.current_screen() == "guild_creation", "Missing profile leads to guild creation")
 	_check_no_practice("Missing profile recovery")
 	_check(not FileAccess.file_exists(profile_path), "Recovery does not silently recreate the missing profile")
+	var input := _node("GuildName") as LineEdit
+	_check(input != null and input.has_focus(), "Recovery focuses the new guild name")
+	_check(_node("GuildCoverPlate") == null, "Custom creation does not show a stock destination plate")
+	if input == null:
+		return
+	input.text = GUILD_NAME
+	input.text_changed.emit(input.text)
+	await _press("CreateGuild")
+	var store = load("res://guild_profile.gd")
+	_check(scene.current_screen() == "commissions" and store.load_profile(profile_path).get("name") == GUILD_NAME,
+		"Founding a replacement guild saves to the custom profile path and opens its board")
 
 
 func _reload_button() -> BaseButton:

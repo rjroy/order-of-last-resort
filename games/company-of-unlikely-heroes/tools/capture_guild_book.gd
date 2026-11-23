@@ -1,6 +1,8 @@
 extends "res://tests/village_outing_scene_test.gd"
 ## Graphical capture. From the repository root:
 ## godot --path games/company-of-unlikely-heroes --script res://tools/capture_guild_book.gd -- --output="$PWD/.lore/local/guild-book-review/<new-directory>"
+## Opening spread only: add --guild-creation-only and use an output directory
+## under .lore/local/release-polish/after/ instead.
 ## The output directory must be new or empty. It contains the isolated profile.
 ## A seeded stock commission is played by the checked-in forecast-based test driver.
 ## That battle driver uses mouse input for board choices and emits menu signals for
@@ -20,13 +22,15 @@ func _initialize() -> void:
 
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
-	if args.size() != 1 or not args[0].begins_with("--output="):
-		_finish_capture("Supply exactly one --output=<absolute directory> argument.")
+	var creation_only := args.size() == 2 and args[1] == "--guild-creation-only"
+	if (args.size() != 1 and not creation_only) or not args[0].begins_with("--output="):
+		_finish_capture("Supply --output=<absolute directory> and optionally --guild-creation-only.")
 		return
 	output = args[0].trim_prefix("--output=").simplify_path()
-	var local := ProjectSettings.globalize_path("res://../../.lore/local/guild-book-review").simplify_path()
+	var location := "release-polish/after" if creation_only else "guild-book-review"
+	var local := ProjectSettings.globalize_path("res://../../.lore/local/" + location).simplify_path()
 	if not output.is_absolute_path() or not output.begins_with(local + "/"):
-		_finish_capture("Output must be an absolute directory below .lore/local/guild-book-review/.")
+		_finish_capture("Output must be an absolute directory below .lore/local/" + location + "/.")
 		return
 	if DisplayServer.get_name() == "headless":
 		_finish_capture("A graphical renderer is required.")
@@ -63,6 +67,9 @@ func _run() -> void:
 	await process_frame
 	if not _screen_is("guild_creation") or not await _save_capture("01-guild-creation"):
 		_finish_capture(failure)
+		return
+	if creation_only:
+		_finish_capture(await _capture_creation_states())
 		return
 	var name_edit := scene.find_child("GuildName", true, false) as LineEdit
 	if name_edit == null:
@@ -198,6 +205,31 @@ func _run() -> void:
 				return
 	print("Completed stock-catalog capture in " + output)
 	_finish_capture("")
+
+
+func _capture_creation_states() -> String:
+	const LONG_NAME := "The Very Unlikely Company of the Last Lantern"
+	var edit := scene.find_child("GuildName", true, false) as LineEdit
+	var create := scene.find_child("CreateGuild", true, false) as BaseButton
+	var feedback := scene.find_child("GuildNameFeedback", true, false) as Label
+	if edit == null or create == null or feedback == null or not create.disabled or not edit.has_focus():
+		return "Fresh creation should focus the name and disable the action."
+	await _key(KEY_ENTER)
+	if not _screen_is("guild_creation") or feedback.text != "Enter a guild name." or not edit.has_focus():
+		return "Submitting a blank name should show feedback and keep focus."
+	if not await _save_capture("02-empty-name-feedback"):
+		return failure
+	for character in LONG_NAME:
+		await _key(character.unicode_at(0))
+	if edit.text != LONG_NAME or create.disabled:
+		return "Long guild name keyboard entry failed: " + edit.text
+	if not await _save_capture("03-long-name"):
+		return failure
+	await _key(KEY_ENTER)
+	if not _screen_is("commissions"):
+		return failure
+	print("Checked creation with keyboard entry and reached the commission board.")
+	return ""
 
 
 func _screen_is(expected: String) -> bool:

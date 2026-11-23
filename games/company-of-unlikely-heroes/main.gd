@@ -13,6 +13,7 @@ const GuildProfile = preload("res://guild_profile.gd")
 const Progression = preload("res://guild_progression.gd")
 const GuildBookPage = preload("res://presentation/guild_book_page.gd")
 const GuildBookArt = preload("res://presentation/guild_book_art.gd")
+const GuildCreationPage = preload("res://presentation/guild_creation_page.gd")
 const GuildPetitionViewModel = preload("res://presentation/guild_petition_view_model.gd")
 const DEFAULT_ADVENTURE := "first_outing"
 const TERMINAL_REPLAY_STALL_MS := 3200
@@ -311,7 +312,7 @@ func _page(screen: String, top_margin := 22) -> VBoxContainer:
 	return _stack(padding, 13)
 
 
-func _book_page(screen: String, gutter := -1.0) -> VBoxContainer:
+func _book_page(screen: String, gutter := -1.0, book: GuildBookPage = null) -> VBoxContainer:
 	_clear_terminal_replay()
 	if _screen == "petitions" and is_instance_valid(_screen_root):
 		var scroll := _screen_root.find_child("PetitionScroll", true, false) as ScrollContainer
@@ -321,7 +322,7 @@ func _book_page(screen: String, gutter := -1.0) -> VBoxContainer:
 	if is_instance_valid(_screen_root):
 		remove_child(_screen_root)
 		_screen_root.queue_free()
-	_book = GuildBookPage.new()
+	_book = GuildBookPage.new() if book == null else book
 	_book.name = screen.to_pascal_case() + "Screen"
 	_screen_root = _book
 	add_child(_book)
@@ -344,12 +345,6 @@ func _book_heading(page: Control, title: String, detail: String,
 		link.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		link.pressed.connect(action)
 	_book.rule(page)
-
-
-func _cover_leaf(parent: Control) -> VBoxContainer:
-	var cover := _book.inset(parent, GuildBookPage.FOREST, GuildBookPage.BRASS, 36, 31)
-	cover.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	return _book.stack(cover, 15)
 
 
 func _open_commission_hub(board_refresh_failed := false) -> void:
@@ -385,65 +380,23 @@ func _show_profile_error(message: String) -> void:
 
 
 func _show_guild_creation(after_missing_profile := false) -> void:
-	var page := _book_page("guild_creation", 0.5)
-	var leaves := _book.spread(page, 0.5, 54)
-	var cover := _cover_leaf(leaves[0])
-	_book.rule(cover, GuildBookPage.BRASS)
-	_book.text(cover, str(ProjectSettings.get_setting("application/config/name")), 58,
-		GuildBookPage.CREAM, "display")
-	var painting := _destination_plate("wrong_side_of_the_door")
-	if painting != null:
-		var front := _book.plate(cover, painting, Vector2(0, 280))
-		front.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	else:
-		_book.space(cover, 110, true)
-	_book.text(cover, "The guild book", 24, GuildBookPage.CREAM, "italic")
-	_book.rule(cover, GuildBookPage.BRASS)
-	var form := leaves[1]
-	_book.space(form, 88)
-	_book.text(form, "Name your guild", 48, GuildBookPage.INK, "display")
-	_book.text(form, "Once it’s founded, you can take commissions and recruit your company. Your guild keeps its name between outings.", 18)
-	_book.space(form, 14)
-	_book.text(form, "Guild name", 16, GuildBookPage.SUBTLE)
-	var input := LineEdit.new()
-	input.name = "GuildName"
-	input.placeholder_text = "Enter a guild name"
-	input.accessibility_name = "Guild name"
-	input.max_length = GuildProfile.MAX_NAME_LENGTH
-	input.custom_minimum_size.y = 53
-	form.add_child(input)
-	var create := _book.button(form, "CreateGuild", "Create guild", "ClothButton")
-	create.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	create.custom_minimum_size.x = 175
-	_book.set_disabled(create, true)
-	var feedback := _book.text(form, "", 15, GuildBookPage.RUST)
-	feedback.hide()
-	if after_missing_profile:
-		_book.text(form, "The previous guild profile could not be found. Create a guild to choose another commission.", 16, GuildBookPage.RUST)
-	_book.space(form, 32, true)
-	_book.rule(form)
-	input.text_changed.connect(func(value: String) -> void:
-		_book.set_disabled(create, value.strip_edges().is_empty())
-		feedback.hide())
-	input.text_submitted.connect(func(_value: String) -> void:
-		if not create.disabled:
-			_create_guild(input.text, feedback))
-	create.pressed.connect(func() -> void: _create_guild(input.text, feedback))
-	input.grab_focus()
+	var opening := GuildCreationPage.new()
+	var page := _book_page("guild_creation", 0.5, opening)
+	opening.populate(page, str(ProjectSettings.get_setting("application/config/name")),
+		_destination_plate("wrong_side_of_the_door"), after_missing_profile, _create_guild)
 
 
-func _create_guild(guild_name: String, feedback: Label) -> void:
+func _create_guild(guild_name: String) -> String:
 	print_verbose("Creating a guild profile.")
 	var created := GuildProfile.create(_profile_path, guild_name, randi()) if _profile_path_configured \
 		else GuildProfile.create_default(_profile_path, guild_name, randi())
 	if created.has("error"):
 		print_verbose("Could not create the guild profile: %s" % created.error)
-		feedback.text = str(created.error)
-		feedback.show()
-		return
+		return str(created.error)
 	_guild_profile = created
 	print_verbose("Guild profile created.")
 	_show_commissions()
+	return ""
 
 
 func _show_commissions(board_refresh_failed := false) -> void:

@@ -2,6 +2,9 @@ extends "res://tests/commission_scene_test.gd"
 
 # Run: godot --headless --path games/company-of-unlikely-heroes --script res://tests/commission_storybook_scene_test.gd
 # Exercise the ordinary guild flow with a disposable profile and no launch flags.
+const Profile = preload("res://guild_profile.gd")
+
+
 func _run() -> void:
 	# The inherited scene fixture owns a SubViewport, but real Window input is
 	# needed for GUI hover and button press/release handling in this test.
@@ -9,24 +12,10 @@ func _run() -> void:
 	root.size = VIEWPORT_SIZE
 	await process_frame
 	await _launch_commission_window()
-	if scene.current_screen() != "guild_creation":
-		_check(false, "Fresh normal launch opens guild creation")
+	if not await _found_with_keyboard():
 		_cleanup()
 		return
-	var input := _node("GuildName") as LineEdit
-	if input == null:
-		_check(false, "Guild name input is available")
-		_cleanup()
-		return
-	input.text = GUILD_NAME
-	input.text_changed.emit(input.text)
-	await _press("CreateGuild")
-	if scene.current_screen() != "commissions":
-		_check(false, "Creating a guild opens commissions")
-		_cleanup()
-		return
-	var store = load("res://guild_profile.gd")
-	store.renew(profile_path, store.load_profile(profile_path), BOARD_SEED)
+	Profile.renew(profile_path, Profile.load_profile(profile_path), BOARD_SEED)
 	await _launch_commission_window()
 	await _press("Commission_0")
 	_check(scene.current_screen() == "guild", "Commission opens recruitment")
@@ -102,6 +91,67 @@ func _run() -> void:
 		"Clicking commit resolves the displayed forecast")
 	_check(scene.battle_snapshot() != opening, "Commit advances the battle")
 	_cleanup()
+
+
+func _found_with_keyboard() -> bool:
+	var input := _node("GuildName") as LineEdit
+	var create := _node("CreateGuild") as Button
+	var notice := _node("GuildNameFeedback") as Label
+	if scene.current_screen() != "guild_creation" or input == null or create == null or notice == null:
+		_check(false, "Fresh normal launch opens the guild creation form")
+		return false
+	var hint := "1 to %d characters." % Profile.MAX_NAME_LENGTH
+	_check(notice.text == hint and input.has_focus() and create.disabled,
+		"Fresh form shows the name length hint and focuses the field, not the disabled action")
+	await _key_in_window(KEY_ENTER)
+	_check(scene.current_screen() == "guild_creation" and notice.text == "Enter a guild name."
+		and input.has_focus() and not FileAccess.file_exists(profile_path),
+		"Empty submission explains what to enter, without saving or losing focus")
+	await _key_in_window(KEY_SPACE, 32)
+	_check(create.disabled, "Whitespace does not enable the action")
+	await _key_in_window(KEY_BACKSPACE)
+
+	var long_name := "The Lantern Company ".repeat(5).left(Profile.MAX_NAME_LENGTH - 1) + "!"
+	for character in long_name:
+		await _key_in_window(character.to_upper().unicode_at(0), character.unicode_at(0))
+	await _key_in_window(KEY_X, 120)
+	_check(input.text == long_name and not create.disabled and notice.text == hint,
+		"Typing the longest valid name clears the error and enables Create; extra input is capped")
+
+	var concurrent := Profile.create(profile_path, "Already Founded", BOARD_SEED)
+	if concurrent.has("error"):
+		_check(false, "Test can create a concurrent profile")
+		return false
+	await _key_in_window(KEY_ENTER)
+	_check(scene.current_screen() == "guild_creation" and "already exists" in notice.text
+		and input.text == long_name and Profile.load_profile(profile_path) == concurrent,
+		"Save failure is visible, retains the typed name and does not overwrite the profile")
+	_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(profile_path)) == OK,
+		"Test can remove its concurrent profile")
+	await _key_in_window(KEY_BACKSPACE)
+	await _key_in_window(KEY_1, 33)
+	_check(notice.text == hint and input.text == long_name, "Editing clears the stale save error")
+
+	await _key_in_window(KEY_TAB)
+	_check(create.has_focus(), "Tab moves from the name field to Create guild")
+	await _key_in_window(KEY_TAB, 0, true)
+	_check(input.has_focus(), "Shift+Tab returns to the name field")
+	await _key_in_window(KEY_TAB)
+	await _key_in_window(KEY_ENTER)
+	_check(scene.current_screen() == "commissions" and Profile.load_profile(profile_path).get("name") == long_name,
+		"Keyboard activation opens commissions and saves the complete long name")
+	return scene.current_screen() == "commissions"
+
+
+func _key_in_window(code: int, unicode := 0, shift := false) -> void:
+	for down in [true, false]:
+		var event := InputEventKey.new()
+		event.keycode = code
+		event.unicode = unicode
+		event.shift_pressed = shift
+		event.pressed = down
+		root.push_input(event, true)
+		await process_frame
 
 
 func _commission_cell(board: Control, cell: Vector2i) -> void:

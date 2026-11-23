@@ -616,7 +616,30 @@
           "benefits": "grunt",
           "damage": 1
         }
-      ]
+      ],
+      "cast_key": "captain",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "advance"
+          },
+          "captain_strike": {
+            "handler": "attack",
+            "clip": "fallback_strike",
+            "impact_frame": 11
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat",
+        "events": {
+          "adjacent_damage_bonus": "command",
+          "tactical_retreat": "back_away"
+        }
+      }
     },
     "grunt": {
       "class": "enemy",

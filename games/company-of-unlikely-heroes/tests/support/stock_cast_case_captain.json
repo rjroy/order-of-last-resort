@@ -1,0 +1,26 @@
+{
+  "actor": "captain",
+  "case": {
+    "automatic_rounds": 4,
+    "cast_key": "captain",
+    "minimum_opening": 1,
+    "triggers": [
+      {
+        "action_ability": "grunt_strike",
+        "action_character": "grunt",
+        "actor_field": "unit_id",
+        "clip": "command",
+        "event": "adjacent_damage_bonus",
+        "id": "rally",
+        "type": "event"
+      },
+      {
+        "actor_field": "unit_id",
+        "clip": "back_away",
+        "id": "retreat",
+        "type": "captain_retreat"
+      }
+    ]
+  },
+  "mission": "cowardly_captain"
+}

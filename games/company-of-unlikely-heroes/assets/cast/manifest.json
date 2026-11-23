@@ -9204,6 +9204,569 @@
           "path": "res://assets/cast/archer.png"
         }
       }
+    },
+    "captain": {
+      "source": "art/models/captain/captain-candidate.blend",
+      "sha256": "9b0b921dd1d914965832df32dc6f1960c5acaa467008da37d05ff8476f7d1f9b",
+      "clips": {
+        "advance": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                693,
+                149,
+                221
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                149,
+                693,
+                149,
+                221
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                298,
+                693,
+                149,
+                221
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                447,
+                693,
+                149,
+                221
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                596,
+                693,
+                149,
+                221
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 41,
+              "rect": [
+                745,
+                693,
+                149,
+                221
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                693,
+                149,
+                221
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            81,
+            196
+          ],
+          "action": "Captain | Advance",
+          "path": "res://assets/cast/captain.png"
+        },
+        "back_away": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                456,
+                233,
+                178,
+                229
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 84,
+              "rect": [
+                634,
+                233,
+                178,
+                229
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 125,
+              "rect": [
+                812,
+                233,
+                178,
+                229
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                990,
+                233,
+                178,
+                229
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                464,
+                178,
+                229
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                178,
+                464,
+                178,
+                229
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 41,
+              "rect": [
+                356,
+                464,
+                178,
+                229
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                456,
+                233,
+                178,
+                229
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            81,
+            209
+          ],
+          "action": "Captain | Back Away",
+          "path": "res://assets/cast/captain.png"
+        },
+        "command": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                894,
+                693,
+                162,
+                218
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                914,
+                162,
+                218
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 41,
+              "rect": [
+                162,
+                914,
+                162,
+                218
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                324,
+                914,
+                162,
+                218
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                324,
+                914,
+                162,
+                218
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                486,
+                914,
+                162,
+                218
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 83,
+              "rect": [
+                648,
+                914,
+                162,
+                218
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 42,
+              "rect": [
+                894,
+                693,
+                162,
+                218
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            83,
+            198
+          ],
+          "action": "Captain | Command",
+          "path": "res://assets/cast/captain.png"
+        },
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                755,
+                0,
+                152,
+                231
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                907,
+                0,
+                152,
+                231
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                233,
+                152,
+                231
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                152,
+                233,
+                152,
+                231
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                304,
+                233,
+                152,
+                231
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                304,
+                233,
+                152,
+                231
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 41,
+              "rect": [
+                304,
+                233,
+                152,
+                231
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            81,
+            196
+          ],
+          "action": "Captain | Defeat",
+          "path": "res://assets/cast/captain.png"
+        },
+        "fallback_strike": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                0,
+                151,
+                233
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                151,
+                0,
+                151,
+                233
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                302,
+                0,
+                151,
+                233
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                453,
+                0,
+                151,
+                233
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                604,
+                0,
+                151,
+                233
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                0,
+                151,
+                233
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            81,
+            211
+          ],
+          "action": "Captain | Fallback Strike",
+          "path": "res://assets/cast/captain.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                534,
+                464,
+                147,
+                224
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                681,
+                464,
+                147,
+                224
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                828,
+                464,
+                147,
+                224
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                975,
+                464,
+                147,
+                224
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 41,
+              "rect": [
+                534,
+                464,
+                147,
+                224
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            81,
+            204
+          ],
+          "action": "Captain | Hit",
+          "path": "res://assets/cast/captain.png"
+        },
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                810,
+                914,
+                148,
+                218
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                958,
+                914,
+                148,
+                218
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                1132,
+                148,
+                218
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                148,
+                1132,
+                148,
+                218
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                296,
+                1132,
+                148,
+                218
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                444,
+                1132,
+                148,
+                218
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 83,
+              "rect": [
+                592,
+                1132,
+                148,
+                218
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            82,
+            198
+          ],
+          "action": "Captain | Ready",
+          "path": "res://assets/cast/captain.png"
+        }
+      }
     }
   }
 }

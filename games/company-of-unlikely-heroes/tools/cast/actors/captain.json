@@ -1,0 +1,108 @@
+{
+  "role": "captain",
+  "master": {
+    "source": "models/captain/captain-candidate.blend",
+    "sha256": "9b0b921dd1d914965832df32dc6f1960c5acaa467008da37d05ff8476f7d1f9b",
+    "rig_name": "Captain_Rig",
+    "action_prefix": "Captain"
+  },
+  "takes": {
+    "advance": [
+      "Advance",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        27
+      ],
+      28,
+      false
+    ],
+    "back_away": [
+      "Back Away",
+      [
+        1,
+        6,
+        8,
+        11,
+        16,
+        21,
+        26,
+        27
+      ],
+      28,
+      false
+    ],
+    "command": [
+      "Command",
+      [
+        1,
+        6,
+        11,
+        12,
+        16,
+        21,
+        26,
+        28
+      ],
+      29,
+      false
+    ],
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        29
+      ],
+      30,
+      false
+    ],
+    "fallback_strike": [
+      "Fallback Strike",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        25
+      ],
+      26,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        6,
+        11,
+        16,
+        17
+      ],
+      18,
+      false
+    ],
+    "ready": [
+      "Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31
+      ],
+      33,
+      true
+    ]
+  }
+}

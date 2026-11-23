@@ -5,6 +5,12 @@ extends "res://tests/guild_first_paths_scene_test.gd"
 # Each path is funded by four real controlled road victories and a forfeit.
 
 func _run() -> void:
+	var expected_dir := OS.get_environment("TEST_EXPECTED_USER_DIR")
+	if not expected_dir.is_empty() and (OS.get_user_data_dir().simplify_path() != expected_dir.simplify_path()
+			or ProjectSettings.globalize_path("user://").simplify_path().trim_suffix("/") != expected_dir.simplify_path().trim_suffix("/")):
+		printerr("Refusing fixture with unexpected user data directory: " + OS.get_user_data_dir())
+		quit(1)
+		return
 	viewport.size = VIEWPORT_SIZE
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	viewport.gui_embed_subwindows = true
@@ -153,9 +159,10 @@ func _run() -> void:
 	await _check_purchased_song(store)
 	fixture.free()
 	for path in paths:
-		if FileAccess.file_exists(path):
-			_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(path)) == OK,
-				"Remove disposable walkthrough profile")
+		for owned_path in [path, path + ".backup"]:
+			if FileAccess.file_exists(owned_path):
+				_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(owned_path)) == OK,
+					"Remove disposable walkthrough profile file " + owned_path)
 	_finish()
 
 

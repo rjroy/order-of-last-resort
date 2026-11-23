@@ -114,11 +114,9 @@ static func _migrate_locked(destination: String) -> Dictionary:
 		DirAccess.remove_absolute(temp)
 		return {"error": "Could not copy legacy profile at %s: %s" % [legacy, error_string(error)]}
 	# Confirm the copied bytes before publishing. The legacy file remains untouched.
-	var source := FileAccess.get_file_as_bytes(legacy)
-	var source_error := FileAccess.get_open_error()
-	var copy := FileAccess.get_file_as_bytes(temp)
-	var copy_error := FileAccess.get_open_error()
-	if source_error != OK or copy_error != OK or source != copy:
+	var source := _read_copy_bytes(legacy)
+	var copy := _read_copy_bytes(temp)
+	if not _complete_copies_match(source, copy):
 		DirAccess.remove_absolute(temp)
 		return {"error": "Could not verify legacy profile copy from %s." % legacy}
 	if _path_exists(destination):
@@ -431,6 +429,32 @@ static func _valid_name(guild_name: String) -> bool:
 	return not guild_name.strip_edges().is_empty() and guild_name.length() <= MAX_NAME_LENGTH
 
 
+## Preserve the expected length alongside the observed bytes: successful opens
+## and equal partial reads are not evidence that a copy is complete.
+static func _read_copy_bytes(path: String) -> Dictionary:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return {"ok": false}
+	var length := file.get_length()
+	var bytes := file.get_buffer(length) if length > 0 else PackedByteArray()
+	var ok := file.get_error() == OK
+	var final_length := file.get_length()
+	ok = ok and file.get_error() == OK and final_length == length
+	file.close()
+	return {"ok": ok, "length": length, "bytes": bytes}
+
+
+static func _complete_copies_match(source: Dictionary, copy: Dictionary) -> bool:
+	if not source.get("ok", false) or not copy.get("ok", false):
+		return false
+	var source_bytes: PackedByteArray = source.bytes
+	var copy_bytes: PackedByteArray = copy.bytes
+	# Guild JSON is never empty. A failed length query can also report zero.
+	return source.length > 0 and copy.length > 0 \
+		and source_bytes.size() == source.length and copy_bytes.size() == copy.length \
+		and source_bytes == copy_bytes
+
+
 ## Publish a verified copy of the current canonical bytes before replacement.
 ## If backup publication fails, the canonical profile is still untouched.
 static func _preserve_backup(absolute_path: String) -> Dictionary:
@@ -440,11 +464,9 @@ static func _preserve_backup(absolute_path: String) -> Dictionary:
 	if error != OK:
 		DirAccess.remove_absolute(temp)
 		return {"error": "Could not copy the current profile to a backup: %s" % error_string(error)}
-	var original := FileAccess.get_file_as_bytes(absolute_path)
-	var original_error := FileAccess.get_open_error()
-	var copied := FileAccess.get_file_as_bytes(temp)
-	var copy_error := FileAccess.get_open_error()
-	if original_error != OK or copy_error != OK or original != copied:
+	var original := _read_copy_bytes(absolute_path)
+	var copied := _read_copy_bytes(temp)
+	if not _complete_copies_match(original, copied):
 		DirAccess.remove_absolute(temp)
 		return {"error": "Could not verify the current profile backup."}
 	if DirAccess.dir_exists_absolute(backup):
@@ -454,8 +476,8 @@ static func _preserve_backup(absolute_path: String) -> Dictionary:
 	if error != OK:
 		DirAccess.remove_absolute(temp)
 		return {"error": "Could not publish the current profile backup: %s" % error_string(error)}
-	var saved := FileAccess.get_file_as_bytes(backup)
-	if FileAccess.get_open_error() != OK or saved != original:
+	var saved := _read_copy_bytes(backup)
+	if not _complete_copies_match(original, saved):
 		return {"error": "Could not verify the published profile backup at %s." % backup}
 	return {}
 

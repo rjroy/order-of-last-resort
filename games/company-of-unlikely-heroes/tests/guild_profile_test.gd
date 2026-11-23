@@ -14,6 +14,12 @@ var completed: Dictionary = {}
 
 
 func _initialize() -> void:
+	var expected_dir := OS.get_environment("TEST_EXPECTED_USER_DIR")
+	if not expected_dir.is_empty() and (OS.get_user_data_dir().simplify_path() != expected_dir.simplify_path()
+			or ProjectSettings.globalize_path("user://").simplify_path().trim_suffix("/") != expected_dir.simplify_path().trim_suffix("/")):
+		printerr("Refusing fixture with unexpected user data directory: " + OS.get_user_data_dir())
+		quit(1)
+		return
 	if not ResourceLoader.exists(PROFILE_SCRIPT):
 		_check(false, "Missing guild_profile.gd")
 	else:
@@ -31,6 +37,7 @@ func _initialize() -> void:
 				"Limited write fails during writing or verification: " + str(result))
 			_check_profile(_load_profile(args[1]), INITIAL_SEED, "After limited write")
 		else:
+			_test_complete_copy_comparison()
 			_test_profile()
 			_check(completed.get("profile", false), "Profile test body completed")
 	if failures.is_empty():
@@ -44,6 +51,36 @@ func _initialize() -> void:
 func _check(condition: bool, message: String) -> void:
 	if not condition:
 		failures.append(message)
+
+
+func _test_complete_copy_comparison() -> void:
+	var full := {"ok": true, "length": 4, "bytes": PackedByteArray([1, 2, 3, 4])}
+	var short := {"ok": true, "length": 4, "bytes": PackedByteArray([1, 2])}
+	var short_copy := {"ok": true, "length": 4, "bytes": PackedByteArray([1, 2])}
+	var empty := {"ok": true, "length": 0, "bytes": PackedByteArray()}
+	var failed := {"ok": false}
+	_check(short.bytes == short_copy.bytes, "Old byte-only comparison accepts matching truncated reads")
+	_check(not profile_store._complete_copies_match(short, short_copy),
+		"Matching truncated source and copy are rejected")
+	_check(not profile_store._complete_copies_match(short, full),
+		"Truncated source is rejected")
+	_check(not profile_store._complete_copies_match(full, short),
+		"Truncated staged or published copy is rejected")
+	_check(not profile_store._complete_copies_match(failed, empty),
+		"Read failure is not mistaken for an empty file")
+	_check(not profile_store._complete_copies_match(empty, empty), "Empty guild copies are rejected")
+	_check(profile_store._complete_copies_match(full, full), "Complete matching copies match")
+	var different := {"ok": true, "length": 4, "bytes": PackedByteArray([1, 2, 3, 5])}
+	_check(not profile_store._complete_copies_match(full, different), "Different complete copies do not match")
+
+
+func _remove_profile_fixture(path: String, required := false) -> void:
+	if required:
+		_check(FileAccess.file_exists(path), "Disposable profile exists for cleanup: " + path)
+	for owned_path in [path, path + ".backup"]:
+		if FileAccess.file_exists(owned_path):
+			_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(owned_path)) == OK,
+				"Remove disposable profile file " + owned_path)
 
 
 func _load_profile(path: String) -> Dictionary:
@@ -148,9 +185,7 @@ func _test_profile() -> void:
 		_check(rejected_renew.has("error"), "Renew does not overwrite a corrupt profile")
 		_check(FileAccess.get_file_as_string(path) == "{ invalid json", "Corrupt file remains available for recovery")
 
-	if FileAccess.file_exists(path):
-		var remove_error := DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
-		_check(remove_error == OK, "Test-owned profile is removed: " + str(remove_error))
+	_remove_profile_fixture(path)
 	completed["profile"] = true
 
 
@@ -198,9 +233,7 @@ func _test_unicode_and_int64() -> void:
 		"Minimum int64 renewal: " + str(renewed))
 	_check_renewed_progression(created, renewed, "Unicode profile renewal")
 	_check(_load_profile(path) == renewed, "Unicode and minimum int64 reload")
-	if FileAccess.file_exists(path):
-		var remove_error := DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
-		_check(remove_error == OK, "Unicode test profile is removed: " + str(remove_error))
+	_remove_profile_fixture(path)
 	completed["unicode"] = true
 
 
@@ -223,8 +256,7 @@ func _test_invalid_versions() -> void:
 			{"name": GUILD_NAME, "board_seed": INITIAL_SEED}, RENEWED_SEED)
 		_check(renewed.has("error"), "Invalid version cannot be overwritten by renew")
 		_check(FileAccess.get_file_as_string(path) == contents, "Invalid version file remains unchanged")
-	var remove_error := DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
-	_check(remove_error == OK, "Version test profile is removed: " + str(remove_error))
+	_remove_profile_fixture(path, true)
 	completed["versions"] = true
 
 
@@ -252,8 +284,7 @@ func _test_legacy_migration() -> void:
 		_check_profile(renewed, RENEWED_SEED, "Renewed migrated profile")
 		_check_renewed_progression(migrated, renewed, "Migrated profile")
 		_check(_load_profile(path) == renewed, "Migrated progression survives disk round-trip")
-	var remove_error := DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
-	_check(remove_error == OK, "Legacy test profile is removed: " + str(remove_error))
+	_remove_profile_fixture(path, true)
 	completed["migration"] = true
 
 
@@ -283,5 +314,4 @@ func _test_v2_preference() -> void:
 		_check(not renewed.has("error") and _load_profile(path) == renewed
 			and renewed.get("preferred_loadouts", {}) == stored.preferred_loadouts,
 			"Existing v2 preference survives save and reload")
-	_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(path)) == OK,
-		"Existing v2 profile fixture is removed")
+	_remove_profile_fixture(path, true)

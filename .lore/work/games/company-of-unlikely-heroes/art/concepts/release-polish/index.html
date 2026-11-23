@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Release polish concepts | Barnaby’s Order of Last Resort</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f3efe7;
+      --card: #fffcf6;
+      --mat: #e7e1d8;
+      --ink: #292637;
+      --muted: #5d5364;
+      --rule: #c9bec5;
+      --accent: #583968;
+      --tint: #eae1ee;
+      --display: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+      --gutter: clamp(1rem, 4vw, 3.5rem);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 1rem/1.55 system-ui, sans-serif;
+    }
+
+    ::selection { background: var(--tint); color: var(--ink); }
+
+    a {
+      color: var(--accent);
+      text-underline-offset: .21em;
+    }
+
+    a:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 4px;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1, h2, h3 {
+      font-family: var(--display);
+      font-weight: 700;
+      line-height: 1.12;
+    }
+
+    .page {
+      max-width: 82rem;
+      margin-inline: auto;
+      padding-inline: var(--gutter);
+    }
+
+    .masthead {
+      border-top: .375rem solid var(--accent);
+      padding-top: clamp(1.5rem, 4vw, 3.5rem);
+    }
+
+    .masthead h1 {
+      font-size: clamp(2.125rem, 5vw, 4.125rem);
+      letter-spacing: -.035em;
+      text-wrap: balance;
+    }
+
+    .intro {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .85rem 2rem;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-top: .85rem;
+    }
+
+    .intro p {
+      color: var(--muted);
+      max-width: 60ch;
+    }
+
+    .intro .status {
+      background: var(--tint);
+      color: var(--accent);
+      border-radius: .3rem;
+      padding: .25rem .6rem;
+      font-size: .875rem;
+      font-weight: 700;
+    }
+
+    .contents {
+      display: flex;
+      flex-wrap: wrap;
+      column-gap: 1.5rem;
+      margin-block: 1rem 0;
+      padding: .35rem 0;
+      border-block: 1px solid var(--rule);
+      list-style: none;
+    }
+
+    .contents a, .back {
+      display: inline-flex;
+      min-height: 2.75rem;
+      align-items: center;
+      font-size: .9375rem;
+      font-weight: 600;
+    }
+
+    .chapter {
+      margin-top: clamp(1.5rem, 4vw, 3.25rem);
+      scroll-margin-top: 1rem;
+    }
+
+    .chapter h2 {
+      margin-bottom: .85rem;
+      font-size: clamp(1.5rem, 3vw, 2.125rem);
+      letter-spacing: -.02em;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: clamp(1rem, 2vw, 1.5rem);
+    }
+
+    @media (min-width: 52rem) {
+      .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    .card {
+      min-width: 0;
+      border: 1px solid var(--rule);
+      border-radius: .75rem;
+      background: var(--card);
+    }
+
+    .card a {
+      display: block;
+      border-radius: .75rem .75rem 0 0;
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .preview {
+      display: block;
+      width: 100%;
+      aspect-ratio: 8 / 5;
+      object-fit: contain;
+      border-radius: calc(.75rem - 1px) calc(.75rem - 1px) 0 0;
+      background: var(--mat);
+    }
+
+    .card-heading {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: .35rem 1rem;
+      padding: .85rem 1rem .25rem;
+    }
+
+    .card h3 {
+      font-size: 1.25rem;
+      line-height: 1.25;
+    }
+
+    .folio {
+      color: var(--muted);
+      font: 600 .78rem/1 system-ui, sans-serif;
+      font-variant-numeric: tabular-nums;
+      margin-inline-end: .35rem;
+    }
+
+    .open {
+      color: var(--accent);
+      font-size: .875rem;
+      font-weight: 650;
+      text-decoration: underline;
+    }
+
+    .card a:hover .open, .card a:focus-visible .open { text-decoration-thickness: 2px; }
+
+    .caption {
+      padding: 0 1rem 1rem;
+      color: var(--muted);
+      font-size: .9375rem;
+    }
+
+    footer {
+      margin-block: clamp(1.5rem, 4vw, 3rem) 1rem;
+      border-top: 1px solid var(--rule);
+    }
+  </style>
+</head>
+<body>
+  <div class="page" id="top">
+    <header class="masthead">
+      <h1>Release polish concepts</h1>
+      <div class="intro">
+        <p>
+          Ten screens for <strong>Barnaby’s Order of Last Resort</strong>, in gameplay
+          order with recovery screens at the end. Select an image to open the original
+          PNG in a new tab.
+        </p>
+        <p class="status">Concepts only · not in-game</p>
+      </div>
+      <nav aria-label="Jump to a section">
+        <ul class="contents">
+          <li><a href="#guild">Guild</a></li>
+          <li><a href="#commission">Commission</a></li>
+          <li><a href="#results">Results</a></li>
+          <li><a href="#recovery">Recovery</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main>
+      <section class="chapter" id="guild">
+        <h2>At the guild</h2>
+        <div class="cards">
+          <article class="card">
+            <a href="15-guild-creation.png" target="_blank" rel="noopener">
+              <img class="preview" src="15-guild-creation.png" alt="">
+              <div class="card-heading">
+                <h3><span class="folio">15</span> Guild creation</h3>
+                <span class="open">Open PNG</span>
+              </div>
+            </a>
+            <p class="caption">Is the first step clear when you arrive to name your guild?</p>
+          </article>
+          <article class="card">
+            <a href="14-commission-board.png" target="_blank" rel="noopener">
+              <img class="preview" src="14-commission-board.png" alt="">
+              <div class="card-heading">
+                <h3><span class="folio">14</span> Commission board</h3>
+                <span class="open">Open PNG</span>
+              </div>
+            </a>
+            <p class="caption">Compare the postings. Can you tell the jobs apart at a glance?</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="chapter" id="commission">
+        <h2>On commission</h2>
+        <div class="cards">
+          <article class="card">
+            <a href="16-recruitment-deployment.png" target="_blank" rel="noopener">
+              <img class="preview" src="16-recruitment-deployment.png" alt="" loading="lazy">
+              <div class="card-heading">
+                <h3><span class="folio">16</span> Recruitment and deployment</h3>
+                <span class="open">Open PNG</span>
+              </div>
+            </a>
+            <p class="caption">Check who’s recruited and who will act first.</p>
+          </article>
+          <article class="card">
+            <a href="17-field-reports.png" target="_blank" rel="noopener">
+              <img class="preview" src="17-field-reports.png" alt="" loading="lazy">
+              <div class="card-heading">
+                <h3><span class="folio">17</span> Field reports</h3>
+                <span class="open">Open PNG</span>
+              </div>
+            </a>
+            <p class="caption">See what each report tells you before you choose a route.</p>
+          </article>
+          <article class="card">
+            <a href="18-battle-controls.png" target="_blank" rel="noopener">
+              <img class="preview" src="18-battle-controls.png" alt="" loading="lazy">
+              <div class="card-heading">
+                <h3><span class="folio">18</span> Battle page</h3>
+                <span class="open">Open PNG</span>
+              </div>
+            </a>
+            <p class="caption">Check how the map, orders and forecast share the page.</p>
+          </article>
+          <article class="card">
+            <a href="21-forfeit-confirmation.png" target="_blank" rel="noopener">
+              <img class="preview" src="21-forfeit-confirmation.png" alt="" loading="lazy">
+              <div class="card-heading">
+                <h3><span class="folio">21</span> Forfeit confirmation</h3>
+                <span class="open">Open PNG</span>
+              </div>
+            </a>
+            <p class="caption">Is it clear what happens if you forfeit, and how to back out?</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="chapter" id="results">
+        <h2>Results and rewards</h2>
+        <div class="cards">
+          <article class="card">
+            <a href="19-mission-debrief-rewards.png" target="_blank" rel="noopener">
+              <img class="preview" src="19-mission-debrief-rewards.png" alt="" loading="lazy">
+              <div class="card-heading">
+                <h3><span class="folio">19</span> Mission debrief and rewards</h3>
+                <span class="open">Open PNG</span>
+              </div>
+            </a>
+            <p class="caption">Check what the mission changed and what reward you can take onward.</p>
+          </article>
+          <article class="card">
+            <a href="20-run-result-return.png" target="_blank" rel="noopener">
+              <img class="preview" src="20-run-result-return.png" alt="" loading="lazy">
+              <div class="card-heading">
+                <h3><span class="folio">20</span> Run result and return</h3>
+                <span class="open">Open PNG</span>
+              </div>
+            </a>
+            <p class="caption">Look for the final outcome, guild pay and the way back to the guild.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="chapter" id="recovery">
+        <h2>Recovery screens</h2>
+        <div class="cards">
+          <article class="card">
+            <a href="22-guild-profile-recovery.png" target="_blank" rel="noopener">
+              <img class="preview" src="22-guild-profile-recovery.png" alt="" loading="lazy">
+              <div class="card-heading">
+                <h3><span class="folio">22</span> Guild profile recovery</h3>
+                <span class="open">Open PNG</span>
+              </div>
+            </a>
+            <p class="caption">If the guild profile can’t load, is the safe next step clear?</p>
+          </article>
+          <article class="card">
+            <a href="23-launch-error.png" target="_blank" rel="noopener">
+              <img class="preview" src="23-launch-error.png" alt="" loading="lazy">
+              <div class="card-heading">
+                <h3><span class="folio">23</span> Launch error</h3>
+                <span class="open">Open PNG</span>
+              </div>
+            </a>
+            <p class="caption">When a launch fails, can you tell what to fix before trying again?</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <a class="back" href="#top">Back to top</a>
+    </footer>
+  </div>
+</body>
+</html>

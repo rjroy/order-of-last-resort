@@ -1,0 +1,25 @@
+{
+  "actor": "frontier_wagon_raider",
+  "case": {
+    "automatic_rounds": 4,
+    "cast_key": "frontier_wagon_raider",
+    "minimum_opening": 2,
+    "triggers": [
+      {
+        "ability": "frontier_wagon_strike",
+        "actor_field": "source_id",
+        "clip": "wagon_strike",
+        "id": "strike",
+        "type": "action"
+      },
+      {
+        "ability": "move",
+        "actor_field": "unit_id",
+        "clip": "intercept",
+        "id": "intercept",
+        "type": "action"
+      }
+    ]
+  },
+  "mission": "last_wagon"
+}

@@ -6976,6 +6976,497 @@
           "path": "res://assets/cast/enemy_healer.png"
         }
       }
+    },
+    "frontier_wagon_raider": {
+      "source": "art/models/frontier_wagon_raider/frontier_wagon_raider-candidate.blend",
+      "sha256": "c6f8b8e6d098c21dc0f22e6cd11549b8d6ce69a8aa98d96325527aba552bce68",
+      "clips": {
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                119,
+                210,
+                118,
+                210
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                237,
+                210,
+                118,
+                210
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 41,
+              "rect": [
+                355,
+                210,
+                118,
+                210
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                473,
+                210,
+                118,
+                210
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                591,
+                210,
+                118,
+                210
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 84,
+              "rect": [
+                709,
+                210,
+                118,
+                210
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 125,
+              "rect": [
+                827,
+                210,
+                118,
+                210
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                420,
+                118,
+                210
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 208,
+              "rect": [
+                118,
+                420,
+                118,
+                210
+              ]
+            },
+            {
+              "source_frame": 36,
+              "duration_ms": 42,
+              "rect": [
+                236,
+                420,
+                118,
+                210
+              ]
+            },
+            {
+              "source_frame": 37,
+              "duration_ms": 42,
+              "rect": [
+                354,
+                420,
+                118,
+                210
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            39,
+            179
+          ],
+          "action": "WagonRaider | Defeat",
+          "path": "res://assets/cast/frontier_wagon_raider.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                472,
+                420,
+                117,
+                209
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 83,
+              "rect": [
+                589,
+                420,
+                117,
+                209
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                706,
+                420,
+                117,
+                209
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                823,
+                420,
+                117,
+                209
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                630,
+                117,
+                209
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 42,
+              "rect": [
+                117,
+                630,
+                117,
+                209
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            41,
+            180
+          ],
+          "action": "WagonRaider | Hit",
+          "path": "res://assets/cast/frontier_wagon_raider.png"
+        },
+        "intercept": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                0,
+                119,
+                210
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 167,
+              "rect": [
+                119,
+                0,
+                119,
+                210
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 42,
+              "rect": [
+                238,
+                0,
+                119,
+                210
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 125,
+              "rect": [
+                357,
+                0,
+                119,
+                210
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 83,
+              "rect": [
+                476,
+                0,
+                119,
+                210
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                595,
+                0,
+                119,
+                210
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                714,
+                0,
+                119,
+                210
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                833,
+                0,
+                119,
+                210
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 41,
+              "rect": [
+                0,
+                210,
+                119,
+                210
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            39,
+            172
+          ],
+          "action": "WagonRaider | Intercept",
+          "path": "res://assets/cast/frontier_wagon_raider.png"
+        },
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                540,
+                839,
+                116,
+                205
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                656,
+                839,
+                116,
+                205
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                772,
+                839,
+                116,
+                205
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                888,
+                839,
+                116,
+                205
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                1047,
+                116,
+                205
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                116,
+                1047,
+                116,
+                205
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 83,
+              "rect": [
+                232,
+                1047,
+                116,
+                205
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            40,
+            176
+          ],
+          "action": "WagonRaider | Ready",
+          "path": "res://assets/cast/frontier_wagon_raider.png"
+        },
+        "wagon_strike": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                234,
+                630,
+                135,
+                208
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 167,
+              "rect": [
+                369,
+                630,
+                135,
+                208
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 42,
+              "rect": [
+                504,
+                630,
+                135,
+                208
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                639,
+                630,
+                135,
+                208
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                774,
+                630,
+                135,
+                208
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 41,
+              "rect": [
+                909,
+                630,
+                135,
+                208
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                839,
+                135,
+                208
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                135,
+                839,
+                135,
+                208
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 42,
+              "rect": [
+                270,
+                839,
+                135,
+                208
+              ]
+            },
+            {
+              "source_frame": 32,
+              "duration_ms": 41,
+              "rect": [
+                405,
+                839,
+                135,
+                208
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            39,
+            172
+          ],
+          "action": "WagonRaider | Wagon Strike",
+          "path": "res://assets/cast/frontier_wagon_raider.png"
+        }
+      }
     }
   }
 }

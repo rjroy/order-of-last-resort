@@ -1,0 +1,89 @@
+{
+  "role": "frontier_wagon_raider",
+  "master": {
+    "source": "models/frontier_wagon_raider/frontier_wagon_raider-candidate.blend",
+    "sha256": "c6f8b8e6d098c21dc0f22e6cd11549b8d6ce69a8aa98d96325527aba552bce68",
+    "rig_name": "WagonRaider_Rig",
+    "action_prefix": "WagonRaider"
+  },
+  "takes": {
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        6,
+        11,
+        12,
+        16,
+        21,
+        23,
+        26,
+        31,
+        36,
+        37
+      ],
+      38,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        4,
+        6,
+        11,
+        16,
+        21
+      ],
+      22,
+      false
+    ],
+    "intercept": [
+      "Intercept",
+      [
+        1,
+        6,
+        10,
+        11,
+        14,
+        16,
+        21,
+        26,
+        29
+      ],
+      30,
+      false
+    ],
+    "ready": [
+      "Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31
+      ],
+      33,
+      true
+    ],
+    "wagon_strike": [
+      "Wagon Strike",
+      [
+        1,
+        6,
+        10,
+        11,
+        16,
+        20,
+        21,
+        26,
+        31,
+        32
+      ],
+      33,
+      false
+    ]
+  }
+}

@@ -217,8 +217,34 @@
       "art_key": "obstacle", "max_hp": 6, "behavior": "hold"
     },
     "frontier_wagon_raider": {
-      "class": "enemy", "label": "Wagon Raider", "art_key": "enemy",
-      "max_hp": 3, "abilities": ["move", "frontier_wagon_strike"], "behavior": "frontier_wagon_hunt"
+      "class": "enemy",
+      "label": "Wagon Raider",
+      "art_key": "enemy",
+      "max_hp": 3,
+      "abilities": [
+        "move",
+        "frontier_wagon_strike"
+      ],
+      "behavior": "frontier_wagon_hunt",
+      "cast_key": "frontier_wagon_raider",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "intercept"
+          },
+          "frontier_wagon_strike": {
+            "handler": "attack",
+            "clip": "wagon_strike",
+            "impact_frame": 16
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat"
+      }
     }
   },
   "abilities": {

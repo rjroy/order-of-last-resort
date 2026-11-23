@@ -1061,7 +1061,30 @@
           ],
           "movement": 1
         }
-      ]
+      ],
+      "cast_key": "bandit_swift",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "move",
+            "bonus": {
+              "stat": "movement",
+              "clip": "quick_step"
+            }
+          },
+          "bandit_strike": {
+            "handler": "attack",
+            "clip": "melee",
+            "impact_frame": 7
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat"
+      }
     }
   },
   "abilities": {

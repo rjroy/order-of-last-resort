@@ -12619,6 +12619,468 @@
           "path": "res://assets/cast/bandit_damage.png"
         }
       }
+    },
+    "bandit_swift": {
+      "source": "art/models/bandit_swift/bandit_swift.blend",
+      "sha256": "b476b5b64e6367a41accdfeca06ebf40011920f677189c0ff7a1e74ec3d53262",
+      "clips": {
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                0,
+                153,
+                228
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 167,
+              "rect": [
+                153,
+                0,
+                153,
+                228
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 42,
+              "rect": [
+                306,
+                0,
+                153,
+                228
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                459,
+                0,
+                153,
+                228
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                612,
+                0,
+                153,
+                228
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 41,
+              "rect": [
+                765,
+                0,
+                153,
+                228
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                765,
+                0,
+                153,
+                228
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 42,
+              "rect": [
+                765,
+                0,
+                153,
+                228
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            88,
+            198
+          ],
+          "action": "Swift Bandit | Defeat",
+          "path": "res://assets/cast/bandit_swift.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 83,
+              "rect": [
+                735,
+                228,
+                147,
+                220
+              ]
+            },
+            {
+              "source_frame": 3,
+              "duration_ms": 125,
+              "rect": [
+                882,
+                228,
+                147,
+                220
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                450,
+                147,
+                220
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 166,
+              "rect": [
+                147,
+                450,
+                147,
+                220
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 42,
+              "rect": [
+                735,
+                228,
+                147,
+                220
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            82,
+            199
+          ],
+          "action": "Swift Bandit | Hit",
+          "path": "res://assets/cast/bandit_swift.png"
+        },
+        "melee": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                670,
+                160,
+                219
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 83,
+              "rect": [
+                160,
+                670,
+                160,
+                219
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 42,
+              "rect": [
+                320,
+                670,
+                160,
+                219
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 167,
+              "rect": [
+                480,
+                670,
+                160,
+                219
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                640,
+                670,
+                160,
+                219
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 83,
+              "rect": [
+                800,
+                670,
+                160,
+                219
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                670,
+                160,
+                219
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            79,
+            198
+          ],
+          "action": "Swift Bandit | Melee",
+          "path": "res://assets/cast/bandit_swift.png"
+        },
+        "move": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                294,
+                450,
+                127,
+                220
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 84,
+              "rect": [
+                421,
+                450,
+                127,
+                220
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 125,
+              "rect": [
+                548,
+                450,
+                127,
+                220
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                675,
+                450,
+                127,
+                220
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                802,
+                450,
+                127,
+                220
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 41,
+              "rect": [
+                294,
+                450,
+                127,
+                220
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            61,
+            198
+          ],
+          "action": "Swift Bandit | Move",
+          "path": "res://assets/cast/bandit_swift.png"
+        },
+        "quick_step": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                228,
+                147,
+                222
+              ]
+            },
+            {
+              "source_frame": 3,
+              "duration_ms": 125,
+              "rect": [
+                147,
+                228,
+                147,
+                222
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 125,
+              "rect": [
+                294,
+                228,
+                147,
+                222
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 84,
+              "rect": [
+                441,
+                228,
+                147,
+                222
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                588,
+                228,
+                147,
+                222
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                228,
+                147,
+                222
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            61,
+            198
+          ],
+          "action": "Swift Bandit | Quick Step",
+          "path": "res://assets/cast/bandit_swift.png"
+        },
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                889,
+                129,
+                219
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                129,
+                889,
+                129,
+                219
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                258,
+                889,
+                129,
+                219
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                387,
+                889,
+                129,
+                219
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                516,
+                889,
+                129,
+                219
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                645,
+                889,
+                129,
+                219
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 83,
+              "rect": [
+                774,
+                889,
+                129,
+                219
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            64,
+            198
+          ],
+          "action": "Swift Bandit | Ready",
+          "path": "res://assets/cast/bandit_swift.png"
+        }
+      }
     }
   }
 }

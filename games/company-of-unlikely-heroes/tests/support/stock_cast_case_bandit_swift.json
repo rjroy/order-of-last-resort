@@ -1,0 +1,31 @@
+{
+  "actor": "bandit_swift",
+  "case": {
+    "automatic_rounds": 4,
+    "cast_key": "bandit_swift",
+    "minimum_opening": 1,
+    "triggers": [
+      {
+        "ability": "bandit_strike",
+        "actor_field": "source_id",
+        "clip": "melee",
+        "id": "strike",
+        "type": "action"
+      }
+    ],
+    "variants": {
+      "quick_step": {
+        "route_ref": "bandit_guard_first",
+        "triggers": [
+          {
+            "actor_field": "unit_id",
+            "clip": "quick_step",
+            "id": "quick_step",
+            "type": "swift_quick_step"
+          }
+        ]
+      }
+    }
+  },
+  "mission": "last_one_standing"
+}

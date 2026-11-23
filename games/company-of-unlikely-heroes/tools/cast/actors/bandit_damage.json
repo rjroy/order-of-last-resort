@@ -1,0 +1,98 @@
+{
+  "role": "bandit_damage",
+  "master": {
+    "source": "models/bandit_damage/bandit_damage.blend",
+    "sha256": "24a4ad58905757af3206ecf6738a761143bf7661db21fd29c8a05ce85b9c602e",
+    "rig_name": "Fierce_Bandit_Rig",
+    "action_prefix": "Fierce Bandit"
+  },
+  "takes": {
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        6,
+        10,
+        11,
+        16,
+        20,
+        21,
+        25
+      ],
+      26,
+      false
+    ],
+    "harder_strike": [
+      "Harder Strike",
+      [
+        1,
+        6,
+        8,
+        11,
+        12,
+        16,
+        17,
+        21,
+        26,
+        31
+      ],
+      32,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        4,
+        6,
+        11,
+        16,
+        17
+      ],
+      18,
+      false
+    ],
+    "melee": [
+      "Melee",
+      [
+        1,
+        6,
+        10,
+        11,
+        14,
+        16,
+        21,
+        24
+      ],
+      25,
+      false
+    ],
+    "move": [
+      "Move",
+      [
+        1,
+        6,
+        9,
+        11,
+        16,
+        20
+      ],
+      21,
+      false
+    ],
+    "ready": [
+      "Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31
+      ],
+      33,
+      true
+    ]
+  }
+}

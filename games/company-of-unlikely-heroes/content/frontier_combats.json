@@ -971,7 +971,29 @@
           ],
           "damage": 1
         }
-      ]
+      ],
+      "cast_key": "bandit_damage",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "move"
+          },
+          "bandit_strike": {
+            "handler": "attack",
+            "clip": "melee",
+            "bonus": {
+              "stat": "damage",
+              "clip": "harder_strike"
+            }
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat"
+      }
     },
     "bandit_guard": {
       "class": "enemy",

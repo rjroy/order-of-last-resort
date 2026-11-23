@@ -12097,6 +12097,528 @@
           "path": "res://assets/cast/bandit_guard.png"
         }
       }
+    },
+    "bandit_damage": {
+      "source": "art/models/bandit_damage/bandit_damage.blend",
+      "sha256": "24a4ad58905757af3206ecf6738a761143bf7661db21fd29c8a05ce85b9c602e",
+      "clips": {
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                320,
+                647,
+                143,
+                210
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 167,
+              "rect": [
+                463,
+                647,
+                143,
+                210
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 42,
+              "rect": [
+                606,
+                647,
+                143,
+                210
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                749,
+                647,
+                143,
+                210
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                892,
+                647,
+                143,
+                210
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 41,
+              "rect": [
+                0,
+                858,
+                143,
+                210
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                858,
+                143,
+                210
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                858,
+                143,
+                210
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            72,
+            185
+          ],
+          "action": "Fierce Bandit | Defeat",
+          "path": "res://assets/cast/bandit_damage.png"
+        },
+        "harder_strike": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                0,
+                183,
+                216
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 84,
+              "rect": [
+                183,
+                0,
+                183,
+                216
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 125,
+              "rect": [
+                366,
+                0,
+                183,
+                216
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 41,
+              "rect": [
+                549,
+                0,
+                183,
+                216
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                732,
+                0,
+                183,
+                216
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                915,
+                0,
+                183,
+                216
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 166,
+              "rect": [
+                0,
+                216,
+                183,
+                216
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                183,
+                216,
+                183,
+                216
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                366,
+                216,
+                183,
+                216
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                0,
+                183,
+                216
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            79,
+            192
+          ],
+          "action": "Fierce Bandit | Harder Strike",
+          "path": "res://assets/cast/bandit_damage.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                549,
+                216,
+                143,
+                215
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 83,
+              "rect": [
+                692,
+                216,
+                143,
+                215
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                835,
+                216,
+                143,
+                215
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                432,
+                143,
+                215
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                143,
+                432,
+                143,
+                215
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 41,
+              "rect": [
+                549,
+                216,
+                143,
+                215
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            72,
+            195
+          ],
+          "action": "Fierce Bandit | Hit",
+          "path": "res://assets/cast/bandit_damage.png"
+        },
+        "melee": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                286,
+                432,
+                160,
+                211
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 167,
+              "rect": [
+                446,
+                432,
+                160,
+                211
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 42,
+              "rect": [
+                606,
+                432,
+                160,
+                211
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 125,
+              "rect": [
+                766,
+                432,
+                160,
+                211
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 83,
+              "rect": [
+                926,
+                432,
+                160,
+                211
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                647,
+                160,
+                211
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 125,
+              "rect": [
+                160,
+                647,
+                160,
+                211
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 42,
+              "rect": [
+                286,
+                432,
+                160,
+                211
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            70,
+            191
+          ],
+          "action": "Fierce Bandit | Melee",
+          "path": "res://assets/cast/bandit_damage.png"
+        },
+        "move": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                143,
+                858,
+                128,
+                197
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 125,
+              "rect": [
+                271,
+                858,
+                128,
+                197
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 84,
+              "rect": [
+                399,
+                858,
+                128,
+                197
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                527,
+                858,
+                128,
+                197
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                655,
+                858,
+                128,
+                197
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 41,
+              "rect": [
+                143,
+                858,
+                128,
+                197
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            57,
+            176
+          ],
+          "action": "Fierce Bandit | Move",
+          "path": "res://assets/cast/bandit_damage.png"
+        },
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                783,
+                858,
+                130,
+                193
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                913,
+                858,
+                130,
+                193
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                1068,
+                130,
+                193
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                130,
+                1068,
+                130,
+                193
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                260,
+                1068,
+                130,
+                193
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                390,
+                1068,
+                130,
+                193
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 83,
+              "rect": [
+                520,
+                1068,
+                130,
+                193
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            59,
+            173
+          ],
+          "action": "Fierce Bandit | Ready",
+          "path": "res://assets/cast/bandit_damage.png"
+        }
+      }
     }
   }
 }

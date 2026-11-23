@@ -16,6 +16,7 @@ const GuildBookArt = preload("res://presentation/guild_book_art.gd")
 const GuildCreationPage = preload("res://presentation/guild_creation_page.gd")
 const GuildBoundPage = preload("res://presentation/guild_bound_page.gd")
 const CommissionBoardPage = preload("res://presentation/commission_board_page.gd")
+const FieldReportsPage = preload("res://presentation/field_reports_page.gd")
 const GuildPetitionViewModel = preload("res://presentation/guild_petition_view_model.gd")
 const DEFAULT_ADVENTURE := "first_outing"
 const TERMINAL_REPLAY_STALL_MS := 3200
@@ -1091,51 +1092,23 @@ func _start_adventure() -> void:
 
 
 func _show_routes() -> void:
-	var page := _book_page("routes", 0.5)
-	var title := _mission_title_for(_run.destination_id)
+	var reports_page := FieldReportsPage.new()
+	var page := _book_page("routes", -1.0, reports_page)
 	var next := int(_run.mission_index) + 1
 	var total := Adventure.mission_count(_run)
 	var penultimate := next == total - 1
-	_book_heading(page, "Field reports", "%s  ·  Mission %d of %d" % [title, next, total])
-	var cards := _book.row(page, 46)
-	cards.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var first: Button
-	for index in range(_run.reports.size()):
-		var report: Dictionary = _run.reports[index]
-		var card := _book.stack(cards, 9)
-		card.name = "RouteCard_%d" % index
-		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var route_name := "Route A" if index == 0 else "Route B"
-		_book.text(card, route_name, 34, GuildBookPage.RUST, "italic")
-		var sketch := _report_plate(str(report.mission_id))
-		if sketch != null:
-			var drawing := _book.plate(card, sketch, Vector2(375, 250), "sketch")
-			drawing.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		var region := _book.detail_scroll(card, "RouteDetails_%d" % index, 154, "Scroll " + route_name + " report")
-		var copy := _book.stack(region, 5)
-		copy.name = "RouteText_%d" % index
-		copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_book.text(copy, "Immediate mission", 15, GuildBookPage.FOREST)
-		var immediate := _book.text(copy, report.description, 17)
-		immediate.custom_minimum_size.y = 51
-		_book.rule(copy)
-		var clue: Dictionary = _definitions.get("mission_kinds", {}).get(report.get("hint_kind", ""), {})
-		var farther := "Known destination" if penultimate else "Farther ahead"
-		if not penultimate and not clue.is_empty():
-			farther += "  ·  " + str(clue.get("label", ""))
-		_book.text(copy, farther, 15, GuildBookPage.FOREST)
-		var hint := _book.text(copy, report.hint_text, 17)
-		hint.custom_minimum_size.y = 53
-		var choose := _book.button(card, "Route_%d" % index, "Take " + route_name, "ClothButton")
-		choose.accessibility_description = "Next: %s. Farther ahead: %s" % [report.description, report.hint_text]
-		choose.pressed.connect(_choose_route.bind(str(report.mission_id)))
-		if index == 0:
-			first = choose
-	_book.rule(page)
-	_book.text(page, "Both roads lead to your destination." if penultimate
-		else "The clue describes what may follow, not the exact mission.", 15, GuildBookPage.SUBTLE, "italic")
-	if first != null:
-		first.grab_focus()
+	var reports: Array[Dictionary] = []
+	for report: Dictionary in _run.reports:
+		var kind: Dictionary = _definitions.get("mission_kinds", {}).get(report.get("hint_kind", ""), {})
+		reports.append({
+			"description": report.description,
+			"clue": report.hint_text,
+			"kind_label": "" if penultimate else str(kind.get("label", "")),
+			"sketch": _report_plate(str(report.mission_id)),
+			"take": _choose_route.bind(str(report.mission_id)),
+		})
+	reports_page.populate(page, "%s  ·  Mission %d of %d" % [_mission_title_for(_run.destination_id), next, total],
+		penultimate, reports)
 
 
 func _choose_route(mission_id: String) -> void:

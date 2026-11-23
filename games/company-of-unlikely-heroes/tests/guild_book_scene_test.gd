@@ -53,6 +53,7 @@ func _run() -> void:
 	if scene.current_screen() == "routes":
 		var run: Dictionary = scene.get("_run")
 		var before: Array = []
+		var public_copy: Array[String] = []
 		var art = load("res://presentation/guild_book_art.gd") if ResourceLoader.exists("res://presentation/guild_book_art.gd") else null
 		var expected: Array = []
 		for i in run.reports.size():
@@ -60,6 +61,7 @@ func _run() -> void:
 			var card := _item_card(button, "RouteCard_%d" % i)
 			var textures := _textures_in(card) if card != null else []
 			before.append(textures)
+			public_copy.append(_text_in(card) if card != null else "")
 			var sketch: Texture2D = art.call("report", str(run.reports[i].mission_id)) if art != null else null
 			expected.append(sketch)
 			_check(sketch != null and sketch in textures,
@@ -107,6 +109,10 @@ func _run() -> void:
 				var after := _textures_in(card)
 				_check(expected[i] != null and expected[i] in after and after == before[i],
 					"Report %d sketch does not disclose hidden continuation" % i)
+				_check(_text_in(card) == public_copy[i]
+					and str(run.reports[i].description) in public_copy[i]
+					and str(run.reports[i].hint_text) in public_copy[i],
+					"Report %d print is unchanged when the hidden continuation changes" % i)
 	_check(not defs.is_empty(), "Stock catalog remains available")
 	_cleanup()
 

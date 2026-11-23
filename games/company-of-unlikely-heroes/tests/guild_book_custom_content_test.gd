@@ -94,7 +94,9 @@ func _run() -> void:
 	if scene.current_screen() == "routes":
 		await process_frame
 		for i in run.reports.size():
-			_check_long_copy("RouteDetails_%d" % i, "Route_%d" % i, long_description)
+			var scroll_name := "RouteDetails_%d" % i
+			_check_long_copy(scroll_name, "Route_%d" % i, long_description)
+			await _check_report_keyboard_scroll(scroll_name)
 			var card := _item_card(_node("Route_%d" % i) as Control, "RouteCard_%d" % i)
 			_check(card != null and _textures_in(card).is_empty(),
 				"External immediate mission %d does not inherit stock report art by ID" % i)
@@ -133,4 +135,23 @@ func _check_long_copy(scroll_name: String, button_name: String, description: Str
 	_check(bar.max_value > bar.page + 1.0, scroll_name + " overflows into a scrollable region")
 	scroll.scroll_vertical = int(bar.max_value)
 	_check(scroll.scroll_vertical > 0, scroll_name + " can scroll to later copy")
+	scroll.scroll_vertical = 0
+
+
+func _check_report_keyboard_scroll(scroll_name: String) -> void:
+	var scroll := _node(scroll_name) as ScrollContainer
+	if scroll == null:
+		return
+	var bar := scroll.get_v_scroll_bar()
+	_check(bar.focus_mode == Control.FOCUS_ALL and not bar.accessibility_name.is_empty(),
+		scroll_name + " offers a named keyboard stop when report text overflows")
+	bar.grab_focus()
+	for pressed in [true, false]:
+		var down := InputEventKey.new()
+		down.keycode = KEY_DOWN
+		down.pressed = pressed
+		viewport.push_input(down, true)
+		await process_frame
+	_check(bar.has_focus() and scroll.scroll_vertical > 0,
+		scroll_name + " scrolls long copy with the keyboard")
 	scroll.scroll_vertical = 0

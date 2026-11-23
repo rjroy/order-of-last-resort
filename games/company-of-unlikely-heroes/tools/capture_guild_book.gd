@@ -5,6 +5,7 @@ extends "res://tests/village_outing_scene_test.gd"
 ## under .lore/local/release-polish/after/ instead.
 ## Commission board only: add --commission-board-only and use that same output root.
 ## Recruitment only: add --recruitment-only and use that same output root.
+## Field reports only: add --field-reports-only and use that same output root.
 ## The output directory must be new or empty. It contains the isolated profile.
 ## A seeded stock commission is played by the checked-in forecast-based test driver.
 ## That battle driver uses mouse input for board choices and emits menu signals for
@@ -14,6 +15,7 @@ extends "res://tests/village_outing_scene_test.gd"
 const SIZE := Vector2i(1280, 820)
 const BOARD_SEED := 6
 const BOARD_REVIEW_SEED := 677 # Matches the approved board plate's destinations and copy.
+const REPORT_REVIEW_SEED := 1630 # Stock reports matching the approved field-report wording.
 const FOUNDERS := ["knight", "healer", "wizard"]
 var output := ""
 var failure := ""
@@ -26,7 +28,8 @@ func _initialize() -> void:
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
 	var mode := args[1] if args.size() == 2 else ""
-	var focused := mode in ["--guild-creation-only", "--commission-board-only", "--recruitment-only"]
+	var focused := mode in ["--guild-creation-only", "--commission-board-only", "--recruitment-only",
+		"--field-reports-only"]
 	if (args.size() != 1 and not focused) or not args[0].begins_with("--output="):
 		_finish_capture("Supply --output=<absolute directory> and optionally one documented capture mode.")
 		return
@@ -65,6 +68,9 @@ func _run() -> void:
 		return
 	if mode == "--recruitment-only":
 		_finish_capture(await _capture_recruitment_states())
+		return
+	if mode == "--field-reports-only":
+		_finish_capture(await _capture_field_reports())
 		return
 	scene = load("res://main.tscn").instantiate()
 	if not scene.has_method("configure_launch") or not scene.has_method("configure_profile_path"):
@@ -330,6 +336,56 @@ func _capture_creation_states() -> String:
 	if not _screen_is("commissions"):
 		return failure
 	print("Checked creation with keyboard entry and reached the commission board.")
+	return ""
+
+
+func _capture_field_reports() -> String:
+	var profile := output.path_join("profile.json")
+	var created: Dictionary = load("res://guild_profile.gd").create(profile, "The Review Company", BOARD_REVIEW_SEED)
+	if created.has("error"):
+		return str(created.error)
+	var commissions = load("res://commissions.gd")
+	for index in 2:
+		if is_instance_valid(scene):
+			scene.queue_free()
+			await process_frame
+		scene = load("res://main.tscn").instantiate()
+		scene.configure_launch(PackedStringArray())
+		scene.configure_profile_path(profile)
+		viewport.add_child(scene)
+		await process_frame
+		await process_frame
+		if not _screen_is("commissions") or not await _activate_with_key("Commission_0"):
+			return failure
+		for hero in FOUNDERS:
+			if not await _activate_with_key("Recruit_" + hero):
+				return failure
+		if not await _activate_with_key("StartAdventure") or not _screen_is("routes"):
+			return failure
+		# Only the capture substitutes a deterministic draw, using the game's
+		# own report generator and keeping the real eligible destination.
+		var run: Dictionary = scene.get("_run")
+		var board_rng: int = commissions.starting_rng_state(REPORT_REVIEW_SEED)
+		var draw: Dictionary = commissions.draw_reports(
+			scene.get("_definitions"), run.destination_id, false, [], "", board_rng)
+		run.reports = draw.reports
+		run.route_rng_state = draw.rng_state
+		scene.call("_show_routes")
+		await process_frame
+		var expected: String = run.reports[index].mission_id
+		if index == 0 and not await _save_capture("06-field-reports"):
+			return failure
+		if index == 1:
+			await _key(KEY_RIGHT)
+			var choice := scene.find_child("Route_1", true, false) as Button
+			if choice == null or not choice.has_focus():
+				return "Right did not focus Route B."
+			if not await _save_capture("07-field-reports-route-b-focus"):
+				return failure
+		await _key(KEY_ENTER)
+		if not _screen_is("battle") or scene.battle_snapshot().get("mission_id") != expected:
+			return "Keyboard selected the wrong mission for Route %s." % ["A" if index == 0 else "B"]
+	print("Entered the correct immediate battle for each route using keyboard input.")
 	return ""
 
 

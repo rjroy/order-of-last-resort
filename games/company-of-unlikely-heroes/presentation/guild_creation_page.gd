@@ -1,56 +1,29 @@
-extends "res://presentation/guild_book_page.gd"
+extends "res://presentation/guild_bound_page.gd"
 ## The opening spread. Profile writes and navigation stay with the scene.
 
 const GuildProfile = preload("res://guild_profile.gd")
-const Binding = preload("res://presentation/guild_creation_material.gdshader")
-const FOCUS_GOLD := Color("#aa660e")
 const NAME_HINT := "1 to %d characters." % GuildProfile.MAX_NAME_LENGTH
 
 var _input: LineEdit
 var _create: Button
 var _message: Label
-var _strong_face: SystemFont
-var _surface_pixel: ImageTexture
 var _invalid_name := false
-
-
-func _draw() -> void:
-	# The texture supplies a single set of UVs for the live material, not artwork.
-	draw_texture_rect(_surface_pixel, Rect2(Vector2.ZERO, size), false)
 
 
 func populate(page: VBoxContainer, title: String, painting: Texture2D, after_missing_profile: bool,
 		create_profile: Callable) -> void:
 	var viewport_size := get_viewport_rect().size
 	var compact := viewport_size.x < 1100 or viewport_size.y < 700
-	for side in ["left", "right"]:
-		add_theme_constant_override("margin_" + side, 28 if compact else 34)
-	add_theme_constant_override("margin_top", 22 if compact else 26)
-	add_theme_constant_override("margin_bottom", 27 if compact else 38)
-	_strong_face = _face.duplicate()
-	_strong_face.font_weight = 700
-	var pixel := Image.create_empty(1, 1, false, Image.FORMAT_RGBA8)
-	pixel.fill(Color.WHITE)
-	_surface_pixel = ImageTexture.create_from_image(pixel)
-	_set_material(self, 0)
+	bind_cover(28 if compact else 34, 22 if compact else 26, 27 if compact else 38)
 	var leaves := spread(page, 0.5, 40 if compact else 56)
 	_mount_cover(leaves[0], title, painting, compact)
 	_build_form(leaves[1], after_missing_profile, create_profile, compact)
 
 
 func _mount_cover(leaf: Control, title: String, painting: Texture2D, compact: bool) -> void:
-	var cloth := PanelContainer.new()
-	var inset_style := StyleBoxEmpty.new()
-	for side in [SIDE_LEFT, SIDE_RIGHT]:
-		inset_style.set_content_margin(side, 29 if compact else 40)
-	inset_style.set_content_margin(SIDE_TOP, 22 if compact else 29)
-	inset_style.set_content_margin(SIDE_BOTTOM, 22 if compact else 34)
-	cloth.add_theme_stylebox_override("panel", inset_style)
+	var cloth := material_panel(leaf, Surface.CLOTH, 29 if compact else 40,
+		22 if compact else 29, 22 if compact else 34)
 	cloth.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	leaf.add_child(cloth)
-	_set_material(cloth, 1)
-	cloth.draw.connect(func() -> void:
-		cloth.draw_texture_rect(_surface_pixel, Rect2(Vector2.ZERO, cloth.size), false))
 	var print := stack(cloth, 8 if compact else 11)
 	rule(print, Color("#cda663"))
 	var title_ink := text(print, title, 44 if compact else 64, CREAM, "display")
@@ -75,13 +48,13 @@ func _build_form(leaf: Control, after_missing_profile: bool, create_profile: Cal
 	margins.add_theme_constant_override("margin_right", 5)
 	leaf.add_child(margins)
 	var form := stack(margins, 0)
-	_strong_text(form, "Name your guild", 40 if compact else 54)
+	strong_text(form, "Name your guild", 40 if compact else 54)
 	space(form, 10 if compact else 14)
 	var intro := text(form, "Once it’s founded, you can take commissions and recruit your company. "
 		+ "Your guild keeps its name between outings.", 21 if compact else 25, INK, "display")
 	intro.add_theme_constant_override("line_spacing", 3)
 	space(form, 17 if compact else 35)
-	var caption := _strong_text(form, "Guild name", 19 if compact else 24)
+	var caption := strong_text(form, "Guild name", 19 if compact else 24)
 	space(form, 7 if compact else 12)
 
 	_input = LineEdit.new()
@@ -115,12 +88,6 @@ func _build_form(leaf: Control, after_missing_profile: bool, create_profile: Cal
 	_input.text_submitted.connect(func(_value: String) -> void: _submit(create_profile))
 	_create.pressed.connect(_submit.bind(create_profile))
 	_input.grab_focus()
-
-
-func _strong_text(parent: Control, words: String, points: int) -> Label:
-	var label := text(parent, words, points, INK, "display")
-	label.add_theme_font_override("font", _strong_face)
-	return label
 
 
 func _name_changed(value: String) -> void:
@@ -172,19 +139,3 @@ func _action_box(fill: Color, edge: Color, lifted := true) -> StyleBoxFlat:
 
 func _field_box(edge := Color("#85683d")) -> StyleBoxFlat:
 	return _box(Color("#fcf1d8"), edge, 1, 5, 13, 7)
-
-
-func _focus_ring(color: Color) -> StyleBoxFlat:
-	var ring := _box(Color.TRANSPARENT, color, 3, 6)
-	ring.draw_center = false
-	ring.set_expand_margin_all(1)
-	return ring
-
-
-func _set_material(surface: Control, kind: int) -> void:
-	var skin := ShaderMaterial.new()
-	skin.shader = Binding
-	skin.set_shader_parameter("surface_kind", kind)
-	skin.set_shader_parameter("surface_size", surface.size)
-	surface.material = skin
-	surface.resized.connect(func() -> void: skin.set_shader_parameter("surface_size", surface.size))

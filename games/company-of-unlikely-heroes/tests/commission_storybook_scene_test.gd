@@ -17,8 +17,9 @@ func _run() -> void:
 		return
 	Profile.renew(profile_path, Profile.load_profile(profile_path), BOARD_SEED)
 	await _launch_commission_window()
-	await _press("Commission_0")
-	_check(scene.current_screen() == "guild", "Commission opens recruitment")
+	if not await _choose_posting_with_keyboard():
+		_cleanup()
+		return
 	for id in FOUNDER_PARTY:
 		await _press("Recruit_" + id)
 	_check(scene.selected_recruits() == FOUNDER_PARTY, "Selected party order is retained")
@@ -141,6 +142,28 @@ func _found_with_keyboard() -> bool:
 	_check(scene.current_screen() == "commissions" and Profile.load_profile(profile_path).get("name") == long_name,
 		"Keyboard activation opens commissions and saves the complete long name")
 	return scene.current_screen() == "commissions"
+
+
+func _choose_posting_with_keyboard() -> bool:
+	var first := _node("Commission_0") as Button
+	var second := _node("Commission_1") as Button
+	var third := _node("Commission_2") as Button
+	if first == null or second == null or third == null:
+		_check(false, "All three commission actions are present")
+		return false
+	_check(first.has_focus(), "Commission board focuses the first posting's action")
+	await _key_in_window(KEY_RIGHT)
+	_check(second.has_focus(), "Right moves to the second posting")
+	await _key_in_window(KEY_RIGHT)
+	_check(third.has_focus(), "Right moves to the third posting")
+	await _key_in_window(KEY_LEFT)
+	_check(second.has_focus(), "Left returns to the second posting")
+	var offers := load("res://commissions.gd").board(scene.get("_definitions"), BOARD_SEED) as Array
+	await _key_in_window(KEY_ENTER)
+	var selected: Dictionary = scene.get("_commission")
+	var success: bool = scene.current_screen() == "guild" and selected == offers[1]
+	_check(success, "Keyboard acceptance opens recruitment for the focused posting")
+	return success
 
 
 func _key_in_window(code: int, unicode := 0, shift := false) -> void:

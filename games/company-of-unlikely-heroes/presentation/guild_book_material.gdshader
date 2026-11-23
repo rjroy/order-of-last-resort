@@ -76,7 +76,44 @@ vec4 cloth(vec2 p, vec2 extent) {
 	return vec4(green, inside(edge));
 }
 
+vec4 posting(vec2 p, vec2 extent) {
+	float tooth = grain(p * vec2(0.65, 1.14)) - 0.5;
+	float mottling = grain(p * 0.044) - 0.5;
+	float corners = rounded_edge(p, extent, 3.0 + mottling * 2.7 + tooth * 0.6, 9.0);
+	vec2 fold = vec2(extent.x - p.x - 3.0, p.y - 3.0);
+	float clipped = (27.0 - fold.x - fold.y) * 0.707;
+	float edge = max(corners, clipped);
+	float shade = 1.0 - smoothstep(0.0, 5.0, rounded_edge(p - vec2(0.2, 2.4), extent, 3.0, 9.0));
+	shade *= 1.0 - smoothstep(0.0, 5.0, clipped - 1.0);
+
+	vec3 page = vec3(0.985, 0.919, 0.796) + tooth * 0.035 + mottling * 0.034;
+	page -= vec3(0.12, 0.16, 0.17) * exp(min(corners, 0.0) * 0.14);
+	page += vec3(0.05, 0.08, 0.11) * exp(-abs(corners + 1.0) * 1.3);
+	page -= vec3(0.19, 0.20, 0.17) * exp(-abs(corners - 0.5) * 1.2);
+
+	float dogear = min(fold.x, 27.0) - 20.0 + fold.y * 0.19;
+	float bent = inside(dogear) * (1.0 - smoothstep(25.5, 29.5, fold.y)) * inside(edge);
+	page -= vec3(0.17, 0.20, 0.22) * exp(-abs(dogear - 0.7) * 0.58) * (1.0 - smoothstep(24.0, 34.0, fold.y));
+	page = mix(page, vec3(0.96, 0.86, 0.68) + fold.x * 0.005 + tooth * 0.045, bent);
+
+	vec2 pin = p - vec2(20.0, 15.0);
+	float pin_size = length(pin);
+	float pin_edge = inside(pin_size - 7.3);
+	float pin_shadow = 1.0 - smoothstep(5.3, 10.5, length(pin - vec2(0.6, 1.6)));
+	vec3 brass = mix(vec3(0.33, 0.21, 0.088), vec3(0.86, 0.62, 0.29), clamp(1.7 - pin_size * 0.22, 0.0, 1.0));
+	brass += exp(-length(pin + vec2(2.0, 2.6)) * 0.49) * 0.44;
+	page = mix(page - vec3(0.35, 0.35, 0.30) * pin_shadow, brass, pin_edge);
+	float sheet = inside(edge);
+	return vec4(mix(vec3(0.28, 0.16, 0.07), page, sheet), max(sheet, shade * 0.36));
+}
+
 void fragment() {
 	vec2 p = UV * surface_size;
-	COLOR = surface_kind == 1 ? cloth(p, surface_size) : vec4(binding(p, surface_size), 1.0);
+	if (surface_kind == 2) {
+		COLOR = posting(p, surface_size);
+	} else if (surface_kind == 1) {
+		COLOR = cloth(p, surface_size);
+	} else {
+		COLOR = vec4(binding(p, surface_size), 1.0);
+	}
 }

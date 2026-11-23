@@ -3,6 +3,7 @@ extends "res://tests/village_outing_scene_test.gd"
 ## godot --path games/company-of-unlikely-heroes --script res://tools/capture_guild_book.gd -- --output="$PWD/.lore/local/guild-book-review/<new-directory>"
 ## Opening spread only: add --guild-creation-only and use an output directory
 ## under .lore/local/release-polish/after/ instead.
+## Commission board only: add --commission-board-only and use that same output root.
 ## The output directory must be new or empty. It contains the isolated profile.
 ## A seeded stock commission is played by the checked-in forecast-based test driver.
 ## That battle driver uses mouse input for board choices and emits menu signals for
@@ -11,6 +12,7 @@ extends "res://tests/village_outing_scene_test.gd"
 
 const SIZE := Vector2i(1280, 820)
 const BOARD_SEED := 6
+const BOARD_REVIEW_SEED := 677 # Matches the approved board plate's destinations and copy.
 const FOUNDERS := ["knight", "healer", "wizard"]
 var output := ""
 var failure := ""
@@ -22,12 +24,13 @@ func _initialize() -> void:
 
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
-	var creation_only := args.size() == 2 and args[1] == "--guild-creation-only"
-	if (args.size() != 1 and not creation_only) or not args[0].begins_with("--output="):
-		_finish_capture("Supply --output=<absolute directory> and optionally --guild-creation-only.")
+	var mode := args[1] if args.size() == 2 else ""
+	var focused := mode in ["--guild-creation-only", "--commission-board-only"]
+	if (args.size() != 1 and not focused) or not args[0].begins_with("--output="):
+		_finish_capture("Supply --output=<absolute directory> and optionally --guild-creation-only or --commission-board-only.")
 		return
 	output = args[0].trim_prefix("--output=").simplify_path()
-	var location := "release-polish/after" if creation_only else "guild-book-review"
+	var location := "release-polish/after" if focused else "guild-book-review"
 	var local := ProjectSettings.globalize_path("res://../../.lore/local/" + location).simplify_path()
 	if not output.is_absolute_path() or not output.begins_with(local + "/"):
 		_finish_capture("Output must be an absolute directory below .lore/local/" + location + "/.")
@@ -56,6 +59,9 @@ func _run() -> void:
 	viewport.gui_embed_subwindows = true
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	root.add_child(viewport)
+	if mode == "--commission-board-only":
+		_finish_capture(await _capture_commission_board())
+		return
 	scene = load("res://main.tscn").instantiate()
 	if not scene.has_method("configure_launch") or not scene.has_method("configure_profile_path"):
 		_finish_capture("The main scene script could not be loaded.")
@@ -68,7 +74,7 @@ func _run() -> void:
 	if not _screen_is("guild_creation") or not await _save_capture("01-guild-creation"):
 		_finish_capture(failure)
 		return
-	if creation_only:
+	if mode == "--guild-creation-only":
 		_finish_capture(await _capture_creation_states())
 		return
 	var name_edit := scene.find_child("GuildName", true, false) as LineEdit
@@ -205,6 +211,27 @@ func _run() -> void:
 				return
 	print("Completed stock-catalog capture in " + output)
 	_finish_capture("")
+
+
+func _capture_commission_board() -> String:
+	var profile := output.path_join("profile.json")
+	var store = load("res://guild_profile.gd")
+	var created: Dictionary = store.create(profile, "The Review Company", BOARD_REVIEW_SEED)
+	if created.has("error"):
+		return "Could not seed the capture board: " + str(created.error)
+	scene = load("res://main.tscn").instantiate()
+	scene.configure_launch(PackedStringArray())
+	scene.configure_profile_path(profile)
+	viewport.add_child(scene)
+	await process_frame
+	await process_frame
+	if not _screen_is("commissions") or not await _save_capture("02-commissions"):
+		return failure
+	await _key(KEY_ENTER)
+	if not _screen_is("guild") or scene.get("_commission").get("destination_id") != "last_wagon":
+		return "Keyboard did not accept the first commission."
+	print("Captured and accepted the seed-%d board." % BOARD_REVIEW_SEED)
+	return ""
 
 
 func _capture_creation_states() -> String:

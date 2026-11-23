@@ -68,6 +68,8 @@ func _run() -> void:
 		"Commission board does not reveal route reports")
 	var board_offers: Array = []
 	var board_titles: Array[String] = []
+	var lengths := [5, 5, 10]
+	var action_edges: Array[float] = []
 	for i in 3:
 		var commission := _node("Commission_%d" % i) as BaseButton
 		_check(commission != null and commission.is_visible_in_tree() and not commission.disabled,
@@ -75,11 +77,18 @@ func _run() -> void:
 		if commission != null:
 			var offer := _commission_snapshot(i)
 			var title := commission.accessibility_name.trim_prefix("Choose commission: ")
+			var length_label := "%d missions" % lengths[i]
 			_check(not title.is_empty() and title != commission.accessibility_name
 				and title in offer.get("labels", []), "Commission %d shows its destination title" % i)
+			_check(length_label in offer.get("labels", []) and commission.accessibility_description.begins_with(length_label),
+				"Commission %d states its mission count in print and on its action" % i)
 			_check(title not in board_titles, "Commission %d has a distinct destination" % i)
 			board_titles.append(title)
 			board_offers.append(offer)
+			action_edges.append(commission.get_global_rect().end.y)
+	if action_edges.size() == 3:
+		_check(is_equal_approx(action_edges.min(), action_edges.max()),
+			"All three Choose commission actions align regardless of title wrapping")
 	_check(_node("Commission_3") == null, "Commission board offers exactly three commissions")
 	var run: Dictionary = scene.get("_run")
 	_check(run.get("reports", []).is_empty(), "No route reports appear before accepting a commission")

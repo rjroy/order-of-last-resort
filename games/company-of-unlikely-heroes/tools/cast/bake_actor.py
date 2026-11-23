@@ -15,6 +15,7 @@ from mathutils import Euler, Vector
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from takes import DERIVED_TAKES, PILOT, RELEASES, TAKES
+from learner_poses import VIAL_FRAMES
 from recipe import action_name, capture_config, load_fragment, load_registered, release_prop_hidden, rig_name
 
 ART = HERE.parents[3] / ".lore/work/games/company-of-unlikely-heroes/art"
@@ -147,9 +148,9 @@ def magick(*args):
 
 
 @contextmanager
-def ready_turns(rig, turns, carried=None):
+def ready_turns(rig, turns, carried=None, shifts=()):
     """Turn bones in a sampled pose without keying the native take."""
-    if not turns and carried is None:
+    if not turns and carried is None and not shifts:
         yield
         return
     # A still render evaluates animation again. Hold the sampled FK channels
@@ -171,6 +172,7 @@ def ready_turns(rig, turns, carried=None):
         prop_basis = prop.matrix_basis.copy()
     animation.action = None
     edited_rotations = []
+    shifted_bases = {}
     try:
         for bone, location, rotation, scale in channels:
             assert bone.rotation_mode == "QUATERNION"
@@ -181,6 +183,13 @@ def ready_turns(rig, turns, carried=None):
             bone.rotation_quaternion = rotation @ turn if turn is not None else rotation
             bone.scale = scale
         bpy.context.view_layer.update()
+        for name, offset in shifts:
+            bone = rig.pose.bones[name]
+            shifted_bases[bone] = bone.matrix_basis.copy()
+            pose = bone.matrix.copy()
+            pose.translation += Vector(offset)
+            bone.matrix = pose
+            bpy.context.view_layer.update()
         if carried:
             prop.matrix = grip.matrix @ grip_space
             bpy.context.view_layer.update()
@@ -188,6 +197,8 @@ def ready_turns(rig, turns, carried=None):
     finally:
         if carried:
             prop.matrix_basis = prop_basis
+        for bone, basis in shifted_bases.items():
+            bone.matrix_basis = basis
         for bone, rotation in edited_rotations:
             bone.rotation_quaternion = rotation
         animation.action = native
@@ -239,8 +250,12 @@ def bake(role, work, recipe=None):
     size, anchor = capture_config(master)
     if role in PILOT and size != SIZE:
         raise ValueError("pilot strip reuse requires the original 320px canvas")
-    setup(s, role, anchor, size)
     rig = bpy.data.objects[rig_name(role, master)]
+    vial = None
+    if role == "rogue":
+        from rogue_vial import GRIP, GRIP_LOCAL, vial_for
+        vial = vial_for(s)
+    setup(s, role, anchor, size)
     release = releases.get(role)
     if release:
         actor_clip, prop_clip, prop_name, release_frame, marker = release
@@ -274,7 +289,9 @@ def bake(role, work, recipe=None):
             native_frame = pose.source if pose else f
             s.frame_set(int(native_frame), subframe=native_frame % 1)
             variant = ""
-            without_shield = role == "knight" and clip in ("shield_away", "rescue_line_unshielded")
+            without_shield = role == "knight" and clip in (
+                "shield_away", "rescue_line_unshielded", "bonk_unshielded",
+            )
             if without_shield:
                 variant = "without_shield"
             for part, hidden in shield_draw.items():
@@ -311,16 +328,20 @@ def bake(role, work, recipe=None):
                         }
             turns = pose.turns if pose else ()
             carried = pose.carried if pose else None
+            shifts = pose.shifts if pose else ()
+            held_vial = vial is not None and clip == "potion" and f in VIAL_FRAMES
+            if vial is not None:
+                vial.hide_render = not held_vial
             # A neutral start or reset can reuse the exact pilot drawing.
             # Keep the original full-canvas renders for later ready samples.
             use_pilot = pilot_clip is not None and (
                 clip == pilot_clip or (
-                    performance is not None and not turns and carried is None
+                    performance is not None and not turns and carried is None and not shifts
                     and not without_shield and (clip != "ready" or i == 0)
                     and native_frame in takes[role][pilot_clip][1]
                 )
             )
-            key = (native_action, native_frame, variant, turns, carried, use_pilot)
+            key = (native_action, native_frame, variant, turns, carried, shifts, held_vial, use_pilot)
             if key not in cache:
                 out = work / f"{role}-{len(cache):03d}.png"
                 cache[key] = out
@@ -342,7 +363,9 @@ def bake(role, work, recipe=None):
                         f"PNG32:{out}",
                     )
                 else:
-                    with ready_turns(rig, turns, carried):
+                    with ready_turns(rig, turns, carried, shifts):
+                        if held_vial:
+                            vial.matrix_world = rig.matrix_world @ rig.pose.bones[GRIP].matrix @ GRIP_LOCAL
                         render_ink(s, work / f"{role}-raw.png", out, size)
             start = frames[0]
             stop = frames[i + 1] if i + 1 < len(frames) else end

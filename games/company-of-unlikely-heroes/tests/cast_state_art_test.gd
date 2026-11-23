@@ -37,11 +37,15 @@ func _run() -> void:
 	await _ko_overrides_live_action()
 	await _knockdown_overrides_live_heal()
 	await _recovered_shield_overrides_live_throw()
-	await _shield_away_rescue_line()
+	await _shield_away_gesture("rescue_line")
+	await _shield_away_gesture("bonk")
 	await _fallen_rescue_equipment()
 	await _wizard_pull_finishes_seated()
+	await _mixologist_pull_recoil()
+	await _resisted_pull_before_later_hit()
 	_test_acid_release_geometry()
 	await _mixologist_knockdown_playback()
+	await _rogue_jelly_potion_playback()
 	if failures == 0:
 		print("Cast state art test passed: KO, shield recovery and Pull seating.")
 	quit(1 if failures else 0)
@@ -100,44 +104,44 @@ func _recovered_shield_overrides_live_throw() -> void:
 		"Recovered and away shield states must be visually distinct")
 
 
-func _shield_away_rescue_line() -> void:
+func _shield_away_gesture(clip_name: String) -> void:
 	board.clear_action_playback()
 	var away := _unit("knight", {"shield_away": true})
 	var hold := await _state(away)
 	var cast = board.get("_cast")
-	var gesture = cast.clip_for("knight", "rescue_line_unshielded")
-	var rescue = cast.clip_for("knight", "rescue_line")
+	var gesture = cast.clip_for("knight", clip_name + "_unshielded")
+	var rescue = cast.clip_for("knight", clip_name)
 	if gesture == null or rescue == null:
-		_check(false, "Rescue Line has shielded and unshielded gesture clips")
+		_check(false, clip_name + " has shielded and unshielded gesture clips")
 		return
-	var sample_ms: float = gesture.time_at_source_frame(14) + 1.0
-	_cue("knight", "rescue_line")
+	var sample_ms: float = gesture.total_ms * 0.5
+	_cue("knight", clip_name)
 	_advance(sample_ms / 1000.0)
 	var actual := await _capture()
-	_check(_difference(hold, actual) > 30, "Shield-away Rescue Line visibly plays its gesture")
+	_check(_difference(hold, actual) > 30, "Shield-away " + clip_name + " visibly plays its gesture")
 
 	# The same authored unshielded clip played directly is the reference, so
 	# displaying a shielded gesture or the stationary hold cannot satisfy this.
 	board.clear_action_playback()
 	await _state(_unit("knight", {"shield_away": false}))
-	_cue("knight", "rescue_line_unshielded")
+	_cue("knight", clip_name + "_unshielded")
 	_advance(sample_ms / 1000.0)
 	var expected := await _capture()
 	_check(_difference(actual, expected) == 0,
-		"Shield-away Rescue Line renders the unshielded gesture")
+		"Shield-away " + clip_name + " renders the unshielded gesture")
 
 	board.clear_action_playback()
 	await _state(away)
-	_cue("knight", "rescue_line")
+	_cue("knight", clip_name)
 	var active: Array = board.get("_playback").active()
 	if active.is_empty():
-		_check(false, "Shield-away Rescue Line enters playback")
+		_check(false, "Shield-away " + clip_name + " enters playback")
 		return
 	_advance((active[0].duration_ms + 1.0) / 1000.0)
-	_check(board.action_playback_snapshot().is_empty(), "Shield-away Rescue Line completes")
+	_check(board.action_playback_snapshot().is_empty(), "Shield-away " + clip_name + " completes")
 	var returned := await _capture()
 	_check(_difference(hold, returned) == 0,
-		"Shield-away Rescue Line returns to the equipment hold")
+		"Shield-away " + clip_name + " returns to the equipment hold")
 
 
 func _fallen_rescue_equipment() -> void:
@@ -238,6 +242,242 @@ func _wizard_pull_finishes_seated() -> void:
 	var down_again := await _state(down)
 	_check(_difference(seated, down_again) > 100,
 		"A later ordinary knockdown must not reuse the earlier Pull pose")
+
+
+func _mixologist_pull_recoil() -> void:
+	board.clear_action_playback()
+	var defs := Catalog.read_default()
+	defs.classes.alchemist.abilities.append("wizard_pull")
+	var rules := Rules.new()
+	var before := Rules.open_mission(defs, "harpoon_squad", ["alchemist", "healer", "bard"])
+	before.obstacles = []
+	_entity(before, "alchemist").position = Vector2i(3, 3)
+	_entity(before, "bruiser").position = Vector2i(6, 3)
+	_entity(before, "healer").position = Vector2i(0, 0)
+	_entity(before, "bard").position = Vector2i(0, 1)
+	var plan: Dictionary = rules.preview(before, "alchemist", "wizard_pull", "bruiser")
+	if not plan.get("valid", false):
+		_check(false, "Mixologist Pull fixture resolves a valid action")
+		return
+	var after: Dictionary = rules.apply_plan(before, plan)
+	var actor := _entity(after, "alchemist")
+	_check(actor.hp < _entity(before, "alchemist").hp and Statuses.knocked_down(after, actor)
+		and actor.position != _entity(before, "alchemist").position,
+		"Committed Pull applies recoil damage, displacement and knockdown")
+	var cues: Array = Cues.build(before, after, plan.events)
+	var pulls := cues.filter(func(cue): return cue.get("unit_id") == "alchemist" and cue.get("clip") == "pull")
+	if pulls.size() != 1:
+		_check(false, "Committed Mixologist Pull produces its actual cue")
+		return
+	_check(pulls[0].get("pull_recoil_down", false),
+		"Actual Pull cue records its own recoil knockdown")
+	var down := _unit("alchemist", {"art_key": "healer", "prone": Statuses.knocked_down(after, actor),
+		"hp": actor.hp, "max_hp": actor.max_hp})
+	var idle_down := await _state(down)
+	# Capture the standing reference on a separate playback. Setting the real
+	# board to standing while recoil is active represents recovery and correctly
+	# invalidates the seated tail, so it must not interrupt the actual timeline.
+	var standing := down.duplicate(true)
+	standing.prone = false
+	await _state(standing)
+	board.play_committed_actions(pulls)
+	board.set_process(false)
+	var reference_entries: Array = board.get("_playback").active()
+	if reference_entries.size() != 1:
+		_check(false, "Mixologist Pull reference enters playback")
+		return
+	_advance(reference_entries[0].clip.total_ms * 0.3 / 1000.0)
+	var upright_action := await _capture()
+	board.clear_action_playback()
+	await _state(down)
+	board.play_committed_actions(pulls)
+	board.set_process(false)
+	var active: Array = board.get("_playback").active()
+	if active.size() != 1:
+		_check(false, "Mixologist Pull enters playback with her own equipment")
+		return
+	var entry = active[0]
+	var cast = board.get("_cast")
+	var pull = cast.clip_for("alchemist", "pull")
+	var wizard_pull = cast.clip_for("wizard", "pull")
+	_check(pull != null and wizard_pull != null and entry.clip.path == pull.path \
+		and entry.clip.path != wizard_pull.path,
+		"Mixologist Pull uses her own equipped atlas, not the Wizard's")
+	_check(entry.gift == null, "Mixologist Pull does not launch a flask")
+	_advance(entry.clip.total_ms * 0.3 / 1000.0)
+	var recoil_action := await _capture()
+	# The DOWN caption differs between these states even while the cast pose is
+	# identical. Mask that caption, not the figure or the rest of the board.
+	var scale: float = board.get("_map_scale")
+	var tile: Vector2 = board.get("_map_origin") + board.call("_tile_origin", CELL) * scale
+	var caption := Rect2i(Vector2i(tile + Vector2(42, 0) * scale),
+		Vector2i(52 * scale + 2, 25 * scale + 2))
+	var recoil_figure := recoil_action.duplicate()
+	var upright_figure := upright_action.duplicate()
+	recoil_figure.fill_rect(caption, Color.BLACK)
+	upright_figure.fill_rect(caption, Color.BLACK)
+	_check(_difference(recoil_figure, upright_figure) == 0,
+		"Mixologist shows her own Pull gesture before recoil knockdown")
+	_check(_difference(recoil_action, idle_down) > 30,
+		"Mixologist Pull gesture differs from her ordinary knocked-down pose")
+	_advance((entry.clip.total_ms - entry.elapsed_ms - 1.0) / 1000.0)
+	var final_drawing := await _capture()
+	_check(_difference(final_drawing, idle_down) > 30,
+		"Mixologist's final Pull drawing is visibly distinct from ordinary prone")
+	_advance((entry.duration_ms - entry.elapsed_ms + 1.0) / 1000.0)
+	var seated := await _capture()
+	_check(board.action_playback_snapshot().is_empty(), "Mixologist Pull completes")
+	_check(_difference(seated, final_drawing) == 0,
+		"Mixologist holds her own final Pull drawing while still prone from recoil")
+	await _state(standing)
+	var down_again := await _state(down)
+	_check(_difference(down_again, idle_down) == 0 and _difference(down_again, seated) > 30,
+		"A later unrelated knockdown after recovery uses ordinary prone, not stale Pull seating")
+	# Recovery can happen while a previous action still blocks Pull in the
+	# queue, before the Pull has ever populated the board's facing cache.
+	board.clear_action_playback()
+	await _state(down)
+	board.play_committed_actions([{"unit_id": "alchemist", "cast_key": "alchemist",
+		"clip": "potion", "source_cell": CELL}, pulls[0]])
+	board.set_process(false)
+	var waiting: Array = board.get("_playback").active()
+	_check(board.action_playback_snapshot().size() == 2 and waiting.size() == 1 \
+		and not board.get("_pull_facing").has("alchemist"),
+		"Pull waits behind an unrelated action before recovery")
+	if waiting.size() != 1:
+		return
+	var blocking_ms: float = waiting[0].duration_ms
+	await _state(standing)
+	_check(board.action_playback_snapshot().size() == 2, "Recovery retains both queued actions")
+	await _state(down)
+	_advance((blocking_ms + 1.0) / 1000.0)
+	var now_active: Array = board.get("_playback").active()
+	_check(now_active.size() == 1 and now_active[0].cue.clip == "pull",
+		"Previously queued Pull still plays after the unrelated action")
+	if now_active.size() != 1:
+		return
+	_advance((now_active[0].duration_ms + 1.0) / 1000.0)
+	var queued_return := await _capture()
+	_check(_difference(queued_return, idle_down) == 0,
+		"Recovery while Pull is queued prevents stale seating on a later knockdown")
+	await _same_batch_recoil_reset(after, pulls[0], down, idle_down)
+
+
+func _resisted_pull_before_later_hit() -> void:
+	board.clear_action_playback()
+	var defs := Catalog.read_default()
+	defs.classes.alchemist.abilities.append("wizard_pull")
+	defs.characters["hostile_caster"] = defs.characters.wizard.duplicate(true)
+	defs.characters.hostile_caster["team"] = "enemies"
+	var rules := Rules.new()
+	var before := Rules.open_mission(defs, "harpoon_squad", ["alchemist", "healer", "bard"])
+	before.obstacles = []
+	_entity(before, "alchemist").position = Vector2i(3, 3)
+	_entity(before, "bruiser").position = Vector2i(6, 3)
+	_entity(before, "bruiser")["alchemy_statuses"] = {"cork_soles": {"source_id": "bruiser"}}
+	_entity(before, "healer").position = Vector2i(0, 0)
+	_entity(before, "bard").position = Vector2i(0, 1)
+	before.units.append({"id": "hostile_caster", "character_id": "hostile_caster",
+		"position": Vector2i(3, 4), "hp": 5, "max_hp": 5, "statuses": {}})
+	var hit_first: Dictionary = rules.preview(before, "hostile_caster", "wizard_blast")
+	if hit_first.get("valid", false):
+		var struck: Dictionary = rules.apply_plan(before, hit_first)
+		_check(rules.knocked_down(struck, "alchemist") \
+			and not rules.preview(struck, "alchemist", "wizard_pull", "bruiser").get("valid", false),
+			"A hit before the turn prevents a knocked-down Mixologist from performing Pull")
+	else:
+		_check(false, "Independent hostile Blast before Pull resolves")
+	var pull: Dictionary = rules.preview(before, "alchemist", "wizard_pull", "bruiser")
+	if not pull.get("valid", false):
+		_check(false, "Resisted Pull before later hit resolves")
+		return
+	var middle: Dictionary = rules.apply_plan(before, pull)
+	_check(not rules.knocked_down(middle, "alchemist"), "Cork Soles prevents Pull recoil knockdown")
+	var hit: Dictionary = rules.preview(middle, "hostile_caster", "wizard_blast")
+	if not hit.get("valid", false):
+		_check(false, "Later independent hostile Blast resolves")
+		return
+	var after: Dictionary = rules.apply_plan(middle, hit)
+	_check(rules.knocked_down(after, "alchemist") and hit.events.any(func(event):
+		return event.get("type") == "damage" and event.get("target_id") == "alchemist"),
+		"A later independent hit actually knocks the Mixologist down")
+	var cues: Array = Cues.build(before, after, pull.events + hit.events)
+	var gestures := cues.filter(func(cue): return cue.get("unit_id") == "alchemist" \
+		and cue.get("clip") == "pull_upright")
+	if gestures.size() != 1:
+		_check(false, "Earlier resisted Pull produces its upright cue")
+		return
+	_check(not gestures[0].get("pull_recoil_down", false),
+		"The later hit does not grant the earlier Pull seated-tail provenance")
+	var actor := _entity(after, "alchemist")
+	var down := _unit("alchemist", {"art_key": "healer", "prone": true, "hp": actor.hp, "max_hp": actor.max_hp})
+	var idle_down := await _state(down)
+	board.play_committed_actions(gestures)
+	board.set_process(false)
+	var entries: Array = board.get("_playback").active()
+	if entries.size() != 1:
+		_check(false, "Resisted Pull enters playback before the later knockdown")
+		return
+	var entry = entries[0]
+	_advance(0.51)
+	var gesture := await _capture()
+	_check(_difference(gesture, idle_down) > 30,
+		"Earlier upright Pull visibly plays despite the final unrelated knockdown")
+	_advance((entry.duration_ms - entry.elapsed_ms + 1.0) / 1000.0)
+	var returned := await _capture()
+	_check(_difference(returned, idle_down) == 0 and not board.get("_pull_facing").has("alchemist"),
+		"Resisted Pull finishes in ordinary prone without a seated tail")
+
+
+func _same_batch_recoil_reset(state: Dictionary, pull: Dictionary, down: Dictionary, idle_down: Image) -> void:
+	# The final board is prone both before and after the second commit, even
+	# though recovery occurred in between. The real recovery event must carry
+	# that transition to the presentation queue.
+	var recovery_plan: Dictionary = Rules.new().preview_round(state)
+	var recoveries: Array = recovery_plan.get("events", []).filter(func(event): return \
+		event.get("type") == "recover" and event.get("unit_id") == "alchemist")
+	if recoveries.size() != 1:
+		_check(false, "Real recoil state produces one committed recovery event")
+		return
+	var recovery: Dictionary = recoveries[0]
+	var later_down := {"type": "damage", "source_id": "bruiser", "target_id": "alchemist",
+		"amount": 0, "status_id": "knockdown"}
+	var reset_cues: Array = Cues.build(state, state, [recovery, later_down])
+	for with_new_pull in [false, true]:
+		board.clear_action_playback()
+		await _state(down)
+		board.play_committed_actions([{"unit_id": "alchemist", "cast_key": "alchemist",
+			"clip": "potion", "source_cell": CELL}, pull])
+		board.set_process(false)
+		var active: Array = board.get("_playback").active()
+		if active.size() != 1:
+			_check(false, "Prior action blocks old Pull for same-batch recovery test")
+			continue
+		var blocking_ms: float = active[0].duration_ms
+		var batch := reset_cues.duplicate(true)
+		if with_new_pull:
+			batch.append(pull.duplicate(true))
+		board.play_committed_actions(batch)
+		board.set_process(false)
+		var snapshot: Array = board.action_playback_snapshot()
+		var queued := snapshot.filter(func(cue): return cue.get("unit_id") == "alchemist" \
+			and cue.get("clip") == "pull")
+		_check(queued.size() == (2 if with_new_pull else 1) \
+			and not queued[0].get("pull_recoil_down", false),
+			"Committed recovery invalidates old queued Pull despite unchanged final prone state")
+		if with_new_pull:
+			_check(queued.size() == 2 and queued[1].get("pull_recoil_down", false),
+				"Recovery does not invalidate a new same-batch recoil after it")
+		else:
+			_advance((blocking_ms + 1.0) / 1000.0)
+			active = board.get("_playback").active()
+			if active.size() != 1:
+				_check(false, "Old Pull still plays after committed recovery")
+				continue
+			_advance((active[0].duration_ms + 1.0) / 1000.0)
+			var returned := await _capture()
+			_check(_difference(returned, idle_down) == 0,
+				"Committed recovery prevents old Pull seating after a later same-batch knockdown")
 
 
 func _test_acid_release_geometry() -> void:
@@ -419,6 +659,59 @@ func _knockdown_cast_image(state: Dictionary, cues: Array, clip: String, source_
 	board.set_process(false)
 	var idle_ko := await _capture()
 	_check(_difference(idle_ko, idle_down) > 10, label + ": idle fallen remains distinct from living prone")
+
+
+func _rogue_jelly_potion_playback() -> void:
+	board.clear_action_playback()
+	var defs := Catalog.read_default()
+	defs.characters.rogue.abilities.append("alchemist_potion")
+	var rules := Rules.new()
+	var before := Rules.open_mission(defs, "harpoon_squad", ["rogue", "healer", "bard"])
+	var actor := _entity(before, "rogue")
+	actor.hp -= 2
+	actor["dose_rng_state"] = 25
+	var plan: Dictionary = rules.preview(before, "rogue", "alchemist_potion", "rogue")
+	if not plan.get("valid", false):
+		_check(false, "Rogue self-potion fixture resolves")
+		return
+	var after: Dictionary = rules.apply_plan(before, plan)
+	_check(plan.events.any(func(event): return event.get("type") == "alchemy_reaction" \
+		and event.get("reaction_id") == "jelly_knees" and event.get("applied", false)) \
+		and Statuses.knocked_down(after, _entity(after, "rogue")),
+		"Rogue self-potion really resolves Jelly Knees and knockdown")
+	var cues: Array = Cues.build(before, after, plan.events)
+	var potions := cues.filter(func(cue): return cue.get("unit_id") == "rogue" \
+		and cue.get("cast_key") == "rogue" and cue.get("clip") == "potion")
+	if potions.size() != 1:
+		_check(false, "Rogue self-potion produces her own committed cue")
+		return
+	var result := _entity(after, "rogue")
+	var down := _unit("rogue", {"art_key": "wizard", "prone": true, "hp": result.hp, "max_hp": result.max_hp})
+	var idle_down := await _state(down)
+	board.play_committed_actions(potions)
+	board.set_process(false)
+	var active: Array = board.get("_playback").active()
+	if active.size() != 1:
+		_check(false, "Rogue self-potion enters playback")
+		return
+	var entry = active[0]
+	_check(entry.gift == null, "Rogue self-potion does not launch a donor flask")
+	_advance(entry.clip.time_at_source_frame(15) / 1000.0 + 0.01)
+	var live_down := await _capture()
+	var upright := down.duplicate(true)
+	upright.prone = false
+	var live_upright := await _state(upright)
+	_check(_difference(live_down, live_upright) == 0,
+		"Rogue self-potion gesture plays before its own Jelly Knees knockdown")
+	_check(_difference(live_down, idle_down) > 30,
+		"Rogue self-potion gesture is visibly distinct from ordinary prone")
+	await _state(down)
+	_advance((entry.duration_ms - entry.elapsed_ms + 1.0) / 1000.0)
+	var returned := await _capture()
+	_check(board.action_playback_snapshot().is_empty() and _difference(returned, idle_down) == 0,
+		"Rogue self-potion completes and returns to ordinary prone")
+	var recovered := await _state(upright)
+	_check(_difference(recovered, idle_down) > 30, "Recovering Rogue returns to her standing pose")
 
 
 func _unit(role: String, extra: Dictionary = {}) -> Dictionary:

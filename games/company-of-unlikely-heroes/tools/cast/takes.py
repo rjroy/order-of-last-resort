@@ -4,6 +4,7 @@ Times are absolute 24-fps source offsets; held poses need only one drawing.
 
 from ready_poses import GUARD, READY_IDLES
 from training_poses import TRAINING_TAKES
+from learner_poses import LEARNER_TAKES
 
 TAKES = {
     "alchemist": {
@@ -120,9 +121,11 @@ TAKES = {
 DERIVED_TAKES = {
     **{(role, "ready"): idle for role, idle in READY_IDLES.items()},
     **TRAINING_TAKES,
+    **LEARNER_TAKES,
 }
-for (role, clip), performance in TRAINING_TAKES.items():
-    TAKES[role][clip] = performance.take()
+for (role, clip), performance in DERIVED_TAKES.items():
+    if clip != "ready":
+        TAKES[role][clip] = performance.take()
 
 # Actor clip, detached clip, prop root, release source frame, optional Blender marker.
 RELEASES = {

@@ -581,8 +581,8 @@
               "source_frame": 1,
               "duration_ms": 250,
               "rect": [
-                122,
-                711,
+                854,
+                717,
                 101,
                 230
               ]
@@ -591,8 +591,8 @@
               "source_frame": 7,
               "duration_ms": 208,
               "rect": [
-                223,
-                711,
+                955,
+                717,
                 101,
                 230
               ]
@@ -601,8 +601,8 @@
               "source_frame": 12,
               "duration_ms": 250,
               "rect": [
-                324,
-                711,
+                1056,
+                717,
                 101,
                 230
               ]
@@ -611,8 +611,8 @@
               "source_frame": 18,
               "duration_ms": 250,
               "rect": [
-                425,
-                711,
+                0,
+                950,
                 101,
                 230
               ]
@@ -621,8 +621,8 @@
               "source_frame": 24,
               "duration_ms": 292,
               "rect": [
-                526,
-                711,
+                101,
+                950,
                 101,
                 230
               ]
@@ -631,8 +631,8 @@
               "source_frame": 31,
               "duration_ms": 292,
               "rect": [
-                627,
-                711,
+                202,
+                950,
                 101,
                 230
               ]
@@ -641,8 +641,8 @@
               "source_frame": 38,
               "duration_ms": 458,
               "rect": [
-                728,
-                711,
+                303,
+                950,
                 101,
                 230
               ]
@@ -662,8 +662,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                775,
-                239,
+                615,
+                478,
                 122,
                 233
               ]
@@ -672,8 +672,8 @@
               "source_frame": 4,
               "duration_ms": 125,
               "rect": [
-                897,
-                239,
+                737,
+                478,
                 122,
                 233
               ]
@@ -682,7 +682,7 @@
               "source_frame": 7,
               "duration_ms": 125,
               "rect": [
-                0,
+                859,
                 478,
                 122,
                 233
@@ -692,7 +692,7 @@
               "source_frame": 10,
               "duration_ms": 125,
               "rect": [
-                122,
+                981,
                 478,
                 122,
                 233
@@ -702,8 +702,8 @@
               "source_frame": 13,
               "duration_ms": 167,
               "rect": [
-                244,
-                478,
+                0,
+                717,
                 122,
                 233
               ]
@@ -712,8 +712,8 @@
               "source_frame": 17,
               "duration_ms": 125,
               "rect": [
-                366,
-                478,
+                122,
+                717,
                 122,
                 233
               ]
@@ -722,8 +722,8 @@
               "source_frame": 20,
               "duration_ms": 125,
               "rect": [
-                488,
-                478,
+                244,
+                717,
                 122,
                 233
               ]
@@ -732,8 +732,8 @@
               "source_frame": 23,
               "duration_ms": 41,
               "rect": [
-                488,
-                478,
+                244,
+                717,
                 122,
                 233
               ]
@@ -742,8 +742,8 @@
               "source_frame": 24,
               "duration_ms": 167,
               "rect": [
-                610,
-                478,
+                366,
+                717,
                 122,
                 233
               ]
@@ -752,8 +752,8 @@
               "source_frame": 28,
               "duration_ms": 167,
               "rect": [
-                732,
-                478,
+                488,
+                717,
                 122,
                 233
               ]
@@ -762,8 +762,8 @@
               "source_frame": 32,
               "duration_ms": 166,
               "rect": [
-                854,
-                478,
+                610,
+                717,
                 122,
                 233
               ]
@@ -772,8 +772,8 @@
               "source_frame": 36,
               "duration_ms": 125,
               "rect": [
-                0,
-                711,
+                732,
+                717,
                 122,
                 233
               ]
@@ -853,8 +853,8 @@
               "source_frame": 18,
               "duration_ms": 125,
               "rect": [
+                930,
                 0,
-                239,
                 155,
                 239
               ]
@@ -863,7 +863,7 @@
               "source_frame": 21,
               "duration_ms": 167,
               "rect": [
-                155,
+                0,
                 239,
                 155,
                 239
@@ -873,7 +873,7 @@
               "source_frame": 25,
               "duration_ms": 167,
               "rect": [
-                310,
+                155,
                 239,
                 155,
                 239
@@ -883,7 +883,7 @@
               "source_frame": 29,
               "duration_ms": 125,
               "rect": [
-                465,
+                310,
                 239,
                 155,
                 239
@@ -893,7 +893,7 @@
               "source_frame": 32,
               "duration_ms": 125,
               "rect": [
-                620,
+                465,
                 239,
                 155,
                 239
@@ -922,8 +922,8 @@
               "source_frame": 18,
               "duration_ms": 42,
               "rect": [
-                792,
-                944,
+                264,
+                1180,
                 24,
                 32
               ]
@@ -943,8 +943,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                829,
-                711,
+                404,
+                950,
                 132,
                 229
               ]
@@ -953,8 +953,8 @@
               "source_frame": 4,
               "duration_ms": 125,
               "rect": [
-                0,
-                944,
+                536,
+                950,
                 132,
                 229
               ]
@@ -963,8 +963,8 @@
               "source_frame": 7,
               "duration_ms": 125,
               "rect": [
-                132,
-                944,
+                668,
+                950,
                 132,
                 229
               ]
@@ -973,8 +973,8 @@
               "source_frame": 10,
               "duration_ms": 125,
               "rect": [
-                264,
-                944,
+                800,
+                950,
                 132,
                 229
               ]
@@ -983,8 +983,8 @@
               "source_frame": 13,
               "duration_ms": 125,
               "rect": [
-                396,
-                944,
+                932,
+                950,
                 132,
                 229
               ]
@@ -993,8 +993,8 @@
               "source_frame": 16,
               "duration_ms": 125,
               "rect": [
-                528,
-                944,
+                0,
+                1180,
                 132,
                 229
               ]
@@ -1003,8 +1003,8 @@
               "source_frame": 19,
               "duration_ms": 125,
               "rect": [
-                660,
-                944,
+                132,
+                1180,
                 132,
                 229
               ]
@@ -1013,8 +1013,8 @@
               "source_frame": 22,
               "duration_ms": 125,
               "rect": [
-                132,
-                944,
+                668,
+                950,
                 132,
                 229
               ]
@@ -1023,8 +1023,8 @@
               "source_frame": 25,
               "duration_ms": 83,
               "rect": [
-                0,
-                944,
+                536,
+                950,
                 132,
                 229
               ]
@@ -1033,8 +1033,8 @@
               "source_frame": 27,
               "duration_ms": 84,
               "rect": [
-                829,
-                711,
+                404,
+                950,
                 132,
                 229
               ]
@@ -1046,6 +1046,107 @@
             211
           ],
           "action": "Mixologist | Etching Paste",
+          "path": "res://assets/cast/alchemist.png"
+        },
+        "pull": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                620,
+                239,
+                123,
+                239
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                743,
+                239,
+                123,
+                239
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                866,
+                239,
+                123,
+                239
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 125,
+              "rect": [
+                989,
+                239,
+                123,
+                239
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                478,
+                123,
+                239
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 166,
+              "rect": [
+                123,
+                478,
+                123,
+                239
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 167,
+              "rect": [
+                246,
+                478,
+                123,
+                239
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 208,
+              "rect": [
+                369,
+                478,
+                123,
+                239
+              ]
+            },
+            {
+              "source_frame": 33,
+              "duration_ms": 167,
+              "rect": [
+                492,
+                478,
+                123,
+                239
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            67,
+            216
+          ],
+          "action": "Mixologist | Pull",
           "path": "res://assets/cast/alchemist.png"
         }
       }
@@ -1060,8 +1161,8 @@
               "source_frame": 1,
               "duration_ms": 167,
               "rect": [
-                0,
-                900,
+                596,
+                903,
                 143,
                 221
               ]
@@ -1070,8 +1171,8 @@
               "source_frame": 5,
               "duration_ms": 166,
               "rect": [
-                143,
-                900,
+                739,
+                903,
                 143,
                 221
               ]
@@ -1080,8 +1181,8 @@
               "source_frame": 9,
               "duration_ms": 167,
               "rect": [
-                286,
-                900,
+                882,
+                903,
                 143,
                 221
               ]
@@ -1090,8 +1191,8 @@
               "source_frame": 13,
               "duration_ms": 167,
               "rect": [
-                429,
-                900,
+                0,
+                1124,
                 143,
                 221
               ]
@@ -1100,8 +1201,8 @@
               "source_frame": 17,
               "duration_ms": 208,
               "rect": [
-                572,
-                900,
+                143,
+                1124,
                 143,
                 221
               ]
@@ -1110,8 +1211,8 @@
               "source_frame": 22,
               "duration_ms": 125,
               "rect": [
-                715,
-                900,
+                286,
+                1124,
                 143,
                 221
               ]
@@ -1131,8 +1232,8 @@
               "source_frame": 1,
               "duration_ms": 167,
               "rect": [
-                720,
-                229,
+                668,
+                458,
                 149,
                 221
               ]
@@ -1141,8 +1242,8 @@
               "source_frame": 5,
               "duration_ms": 125,
               "rect": [
-                869,
-                229,
+                817,
+                458,
                 149,
                 221
               ]
@@ -1151,7 +1252,7 @@
               "source_frame": 8,
               "duration_ms": 125,
               "rect": [
-                0,
+                966,
                 458,
                 149,
                 221
@@ -1161,8 +1262,8 @@
               "source_frame": 11,
               "duration_ms": 83,
               "rect": [
-                149,
-                458,
+                0,
+                682,
                 149,
                 221
               ]
@@ -1171,8 +1272,8 @@
               "source_frame": 13,
               "duration_ms": 167,
               "rect": [
-                298,
-                458,
+                149,
+                682,
                 149,
                 221
               ]
@@ -1181,8 +1282,8 @@
               "source_frame": 17,
               "duration_ms": 166,
               "rect": [
-                447,
-                458,
+                298,
+                682,
                 149,
                 221
               ]
@@ -1191,8 +1292,8 @@
               "source_frame": 21,
               "duration_ms": 167,
               "rect": [
-                596,
-                458,
+                447,
+                682,
                 149,
                 221
               ]
@@ -1201,8 +1302,8 @@
               "source_frame": 25,
               "duration_ms": 167,
               "rect": [
-                745,
-                458,
+                596,
+                682,
                 149,
                 221
               ]
@@ -1211,8 +1312,8 @@
               "source_frame": 29,
               "duration_ms": 125,
               "rect": [
-                0,
-                679,
+                745,
+                682,
                 149,
                 221
               ]
@@ -1221,8 +1322,8 @@
               "source_frame": 32,
               "duration_ms": 83,
               "rect": [
-                149,
-                679,
+                894,
+                682,
                 149,
                 221
               ]
@@ -1231,8 +1332,8 @@
               "source_frame": 34,
               "duration_ms": 167,
               "rect": [
-                298,
-                679,
+                0,
+                903,
                 149,
                 221
               ]
@@ -1241,8 +1342,8 @@
               "source_frame": 38,
               "duration_ms": 125,
               "rect": [
-                447,
-                679,
+                149,
+                903,
                 149,
                 221
               ]
@@ -1251,8 +1352,8 @@
               "source_frame": 41,
               "duration_ms": 208,
               "rect": [
-                596,
-                679,
+                298,
+                903,
                 149,
                 221
               ]
@@ -1261,8 +1362,8 @@
               "source_frame": 46,
               "duration_ms": 125,
               "rect": [
-                745,
-                679,
+                447,
+                903,
                 149,
                 221
               ]
@@ -1352,8 +1453,8 @@
               "source_frame": 31,
               "duration_ms": 292,
               "rect": [
+                1008,
                 0,
-                229,
                 144,
                 229
               ]
@@ -1362,7 +1463,7 @@
               "source_frame": 38,
               "duration_ms": 208,
               "rect": [
-                144,
+                0,
                 229,
                 144,
                 229
@@ -1372,7 +1473,7 @@
               "source_frame": 43,
               "duration_ms": 208,
               "rect": [
-                288,
+                144,
                 229,
                 144,
                 229
@@ -1382,7 +1483,7 @@
               "source_frame": 48,
               "duration_ms": 292,
               "rect": [
-                432,
+                288,
                 229,
                 144,
                 229
@@ -1392,7 +1493,7 @@
               "source_frame": 55,
               "duration_ms": 250,
               "rect": [
-                576,
+                432,
                 229,
                 144,
                 229
@@ -1405,6 +1506,97 @@
             213
           ],
           "action": "Bard | Healing Sonnet",
+          "path": "res://assets/cast/bard.png"
+        },
+        "push": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                576,
+                229,
+                167,
+                224
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 167,
+              "rect": [
+                743,
+                229,
+                167,
+                224
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                910,
+                229,
+                167,
+                224
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                458,
+                167,
+                224
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 167,
+              "rect": [
+                167,
+                458,
+                167,
+                224
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 167,
+              "rect": [
+                334,
+                458,
+                167,
+                224
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 166,
+              "rect": [
+                501,
+                458,
+                167,
+                224
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 84,
+              "rect": [
+                576,
+                229,
+                167,
+                224
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            63,
+            208
+          ],
+          "action": "Bard | Push",
           "path": "res://assets/cast/bard.png"
         }
       }
@@ -1419,8 +1611,8 @@
               "source_frame": 1,
               "duration_ms": 292,
               "rect": [
-                750,
                 625,
+                832,
                 118,
                 207
               ]
@@ -1429,7 +1621,7 @@
               "source_frame": 8,
               "duration_ms": 250,
               "rect": [
-                0,
+                743,
                 832,
                 118,
                 207
@@ -1439,7 +1631,7 @@
               "source_frame": 14,
               "duration_ms": 250,
               "rect": [
-                118,
+                861,
                 832,
                 118,
                 207
@@ -1449,8 +1641,8 @@
               "source_frame": 20,
               "duration_ms": 375,
               "rect": [
-                236,
-                832,
+                0,
+                1039,
                 118,
                 207
               ]
@@ -1459,8 +1651,8 @@
               "source_frame": 29,
               "duration_ms": 291,
               "rect": [
-                354,
-                832,
+                118,
+                1039,
                 118,
                 207
               ]
@@ -1469,8 +1661,8 @@
               "source_frame": 36,
               "duration_ms": 250,
               "rect": [
-                472,
-                832,
+                236,
+                1039,
                 118,
                 207
               ]
@@ -1479,8 +1671,8 @@
               "source_frame": 42,
               "duration_ms": 417,
               "rect": [
-                590,
-                832,
+                354,
+                1039,
                 118,
                 207
               ]
@@ -1500,7 +1692,7 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                318,
+                159,
                 209,
                 156,
                 207
@@ -1510,7 +1702,7 @@
               "source_frame": 4,
               "duration_ms": 125,
               "rect": [
-                474,
+                315,
                 209,
                 156,
                 207
@@ -1520,7 +1712,7 @@
               "source_frame": 7,
               "duration_ms": 125,
               "rect": [
-                630,
+                471,
                 209,
                 156,
                 207
@@ -1530,7 +1722,7 @@
               "source_frame": 10,
               "duration_ms": 125,
               "rect": [
-                786,
+                627,
                 209,
                 156,
                 207
@@ -1540,8 +1732,8 @@
               "source_frame": 13,
               "duration_ms": 167,
               "rect": [
-                0,
-                418,
+                783,
+                209,
                 156,
                 207
               ]
@@ -1550,7 +1742,7 @@
               "source_frame": 17,
               "duration_ms": 125,
               "rect": [
-                156,
+                0,
                 418,
                 156,
                 207
@@ -1560,7 +1752,7 @@
               "source_frame": 20,
               "duration_ms": 125,
               "rect": [
-                312,
+                156,
                 418,
                 156,
                 207
@@ -1570,7 +1762,7 @@
               "source_frame": 23,
               "duration_ms": 125,
               "rect": [
-                468,
+                312,
                 418,
                 156,
                 207
@@ -1580,7 +1772,7 @@
               "source_frame": 26,
               "duration_ms": 83,
               "rect": [
-                624,
+                468,
                 418,
                 156,
                 207
@@ -1590,7 +1782,7 @@
               "source_frame": 28,
               "duration_ms": 208,
               "rect": [
-                318,
+                159,
                 209,
                 156,
                 207
@@ -1611,8 +1803,8 @@
               "source_frame": 1,
               "duration_ms": 167,
               "rect": [
-                780,
-                418,
+                765,
+                625,
                 125,
                 207
               ]
@@ -1621,7 +1813,7 @@
               "source_frame": 5,
               "duration_ms": 166,
               "rect": [
-                0,
+                890,
                 625,
                 125,
                 207
@@ -1631,8 +1823,8 @@
               "source_frame": 9,
               "duration_ms": 125,
               "rect": [
-                125,
-                625,
+                0,
+                832,
                 125,
                 207
               ]
@@ -1641,8 +1833,8 @@
               "source_frame": 12,
               "duration_ms": 209,
               "rect": [
-                250,
-                625,
+                125,
+                832,
                 125,
                 207
               ]
@@ -1651,8 +1843,8 @@
               "source_frame": 17,
               "duration_ms": 166,
               "rect": [
-                375,
-                625,
+                250,
+                832,
                 125,
                 207
               ]
@@ -1661,8 +1853,8 @@
               "source_frame": 21,
               "duration_ms": 167,
               "rect": [
-                500,
-                625,
+                375,
+                832,
                 125,
                 207
               ]
@@ -1671,8 +1863,8 @@
               "source_frame": 25,
               "duration_ms": 125,
               "rect": [
-                625,
-                625,
+                500,
+                832,
                 125,
                 207
               ]
@@ -1681,8 +1873,8 @@
               "source_frame": 28,
               "duration_ms": 208,
               "rect": [
-                780,
-                418,
+                765,
+                625,
                 125,
                 207
               ]
@@ -1752,8 +1944,8 @@
               "source_frame": 18,
               "duration_ms": 209,
               "rect": [
+                795,
                 0,
-                209,
                 159,
                 209
               ]
@@ -1762,7 +1954,7 @@
               "source_frame": 23,
               "duration_ms": 250,
               "rect": [
-                159,
+                0,
                 209,
                 159,
                 209
@@ -1786,6 +1978,97 @@
           ],
           "action": "Healer | Adjacent Bonk",
           "path": "res://assets/cast/healer.png"
+        },
+        "blast": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                624,
+                418,
+                153,
+                207
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 167,
+              "rect": [
+                777,
+                418,
+                153,
+                207
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                0,
+                625,
+                153,
+                207
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 125,
+              "rect": [
+                153,
+                625,
+                153,
+                207
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 125,
+              "rect": [
+                306,
+                625,
+                153,
+                207
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 167,
+              "rect": [
+                459,
+                625,
+                153,
+                207
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 208,
+              "rect": [
+                612,
+                625,
+                153,
+                207
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 84,
+              "rect": [
+                624,
+                418,
+                153,
+                207
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            71,
+            186
+          ],
+          "action": "Healer | Blast",
+          "path": "res://assets/cast/healer.png"
         }
       }
     },
@@ -1799,8 +2082,8 @@
               "source_frame": 1,
               "duration_ms": 208,
               "rect": [
-                532,
-                460,
+                0,
+                688,
                 133,
                 227
               ]
@@ -1809,8 +2092,8 @@
               "source_frame": 6,
               "duration_ms": 167,
               "rect": [
-                665,
-                460,
+                133,
+                688,
                 133,
                 227
               ]
@@ -1819,8 +2102,8 @@
               "source_frame": 10,
               "duration_ms": 208,
               "rect": [
-                798,
-                460,
+                266,
+                688,
                 133,
                 227
               ]
@@ -1829,7 +2112,7 @@
               "source_frame": 15,
               "duration_ms": 250,
               "rect": [
-                0,
+                399,
                 688,
                 133,
                 227
@@ -1839,7 +2122,7 @@
               "source_frame": 21,
               "duration_ms": 209,
               "rect": [
-                133,
+                532,
                 688,
                 133,
                 227
@@ -1849,8 +2132,8 @@
               "source_frame": 26,
               "duration_ms": 250,
               "rect": [
-                798,
-                460,
+                266,
+                688,
                 133,
                 227
               ]
@@ -1859,7 +2142,7 @@
               "source_frame": 32,
               "duration_ms": 458,
               "rect": [
-                266,
+                665,
                 688,
                 133,
                 227
@@ -1940,8 +2223,8 @@
               "source_frame": 39,
               "duration_ms": 208,
               "rect": [
+                840,
                 0,
-                230,
                 140,
                 230
               ]
@@ -1950,8 +2233,8 @@
               "source_frame": 44,
               "duration_ms": 292,
               "rect": [
-                140,
-                230,
+                980,
+                0,
                 140,
                 230
               ]
@@ -1960,7 +2243,7 @@
               "source_frame": 51,
               "duration_ms": 583,
               "rect": [
-                280,
+                0,
                 230,
                 140,
                 230
@@ -1970,7 +2253,7 @@
               "source_frame": 65,
               "duration_ms": 542,
               "rect": [
-                420,
+                140,
                 230,
                 140,
                 230
@@ -1991,8 +2274,8 @@
               "source_frame": 8,
               "duration_ms": 1000,
               "rect": [
-                369,
-                915,
+                246,
+                1142,
                 123,
                 226
               ]
@@ -2012,7 +2295,7 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                560,
+                280,
                 230,
                 133,
                 228
@@ -2022,7 +2305,7 @@
               "source_frame": 4,
               "duration_ms": 167,
               "rect": [
-                693,
+                413,
                 230,
                 133,
                 228
@@ -2032,7 +2315,7 @@
               "source_frame": 8,
               "duration_ms": 125,
               "rect": [
-                826,
+                546,
                 230,
                 133,
                 228
@@ -2042,8 +2325,8 @@
               "source_frame": 11,
               "duration_ms": 125,
               "rect": [
-                0,
-                460,
+                679,
+                230,
                 133,
                 228
               ]
@@ -2052,8 +2335,8 @@
               "source_frame": 14,
               "duration_ms": 166,
               "rect": [
-                133,
-                460,
+                812,
+                230,
                 133,
                 228
               ]
@@ -2062,8 +2345,8 @@
               "source_frame": 18,
               "duration_ms": 167,
               "rect": [
-                266,
-                460,
+                945,
+                230,
                 133,
                 228
               ]
@@ -2072,7 +2355,7 @@
               "source_frame": 22,
               "duration_ms": 167,
               "rect": [
-                399,
+                0,
                 460,
                 133,
                 228
@@ -2082,7 +2365,7 @@
               "source_frame": 26,
               "duration_ms": 83,
               "rect": [
-                560,
+                280,
                 230,
                 133,
                 228
@@ -2103,7 +2386,7 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                399,
+                798,
                 688,
                 123,
                 227
@@ -2113,7 +2396,7 @@
               "source_frame": 4,
               "duration_ms": 167,
               "rect": [
-                522,
+                921,
                 688,
                 123,
                 227
@@ -2123,7 +2406,7 @@
               "source_frame": 8,
               "duration_ms": 125,
               "rect": [
-                645,
+                1044,
                 688,
                 123,
                 227
@@ -2133,8 +2416,8 @@
               "source_frame": 11,
               "duration_ms": 125,
               "rect": [
-                768,
-                688,
+                0,
+                915,
                 123,
                 227
               ]
@@ -2143,7 +2426,7 @@
               "source_frame": 14,
               "duration_ms": 166,
               "rect": [
-                0,
+                123,
                 915,
                 123,
                 227
@@ -2153,7 +2436,7 @@
               "source_frame": 18,
               "duration_ms": 167,
               "rect": [
-                123,
+                246,
                 915,
                 123,
                 227
@@ -2163,7 +2446,7 @@
               "source_frame": 22,
               "duration_ms": 167,
               "rect": [
-                246,
+                369,
                 915,
                 123,
                 227
@@ -2173,7 +2456,7 @@
               "source_frame": 26,
               "duration_ms": 83,
               "rect": [
-                399,
+                798,
                 688,
                 123,
                 227
@@ -2186,6 +2469,208 @@
             212
           ],
           "action": "Knight | Rescue Line",
+          "path": "res://assets/cast/knight.png"
+        },
+        "bonk": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                280,
+                230,
+                133,
+                228
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                133,
+                460,
+                133,
+                228
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 84,
+              "rect": [
+                266,
+                460,
+                133,
+                228
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 83,
+              "rect": [
+                399,
+                460,
+                133,
+                228
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 125,
+              "rect": [
+                532,
+                460,
+                133,
+                228
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                665,
+                460,
+                133,
+                228
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 166,
+              "rect": [
+                798,
+                460,
+                133,
+                228
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 250,
+              "rect": [
+                931,
+                460,
+                133,
+                228
+              ]
+            },
+            {
+              "source_frame": 30,
+              "duration_ms": 125,
+              "rect": [
+                280,
+                230,
+                133,
+                228
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            54,
+            212
+          ],
+          "action": "Knight | Bonk and Taunt",
+          "path": "res://assets/cast/knight.png"
+        },
+        "bonk_unshielded": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                798,
+                688,
+                123,
+                227
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                492,
+                915,
+                123,
+                227
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 84,
+              "rect": [
+                615,
+                915,
+                123,
+                227
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 83,
+              "rect": [
+                738,
+                915,
+                123,
+                227
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 125,
+              "rect": [
+                861,
+                915,
+                123,
+                227
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                984,
+                915,
+                123,
+                227
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 166,
+              "rect": [
+                0,
+                1142,
+                123,
+                227
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 250,
+              "rect": [
+                123,
+                1142,
+                123,
+                227
+              ]
+            },
+            {
+              "source_frame": 30,
+              "duration_ms": 125,
+              "rect": [
+                798,
+                688,
+                123,
+                227
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            53,
+            212
+          ],
+          "action": "Knight | Bonk and Taunt",
           "path": "res://assets/cast/knight.png"
         }
       }
@@ -2200,8 +2685,8 @@
               "source_frame": 1,
               "duration_ms": 250,
               "rect": [
-                0,
-                0,
+                143,
+                212,
                 98,
                 212
               ]
@@ -2210,8 +2695,8 @@
               "source_frame": 7,
               "duration_ms": 250,
               "rect": [
-                98,
-                0,
+                241,
+                212,
                 98,
                 212
               ]
@@ -2220,8 +2705,8 @@
               "source_frame": 13,
               "duration_ms": 250,
               "rect": [
-                196,
-                0,
+                339,
+                212,
                 98,
                 212
               ]
@@ -2230,8 +2715,8 @@
               "source_frame": 19,
               "duration_ms": 250,
               "rect": [
-                294,
-                0,
+                437,
+                212,
                 98,
                 212
               ]
@@ -2251,8 +2736,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                608,
-                423,
+                456,
+                635,
                 142,
                 211
               ]
@@ -2261,8 +2746,8 @@
               "source_frame": 4,
               "duration_ms": 125,
               "rect": [
-                750,
-                423,
+                598,
+                635,
                 142,
                 211
               ]
@@ -2271,8 +2756,8 @@
               "source_frame": 7,
               "duration_ms": 125,
               "rect": [
-                892,
-                423,
+                740,
+                635,
                 142,
                 211
               ]
@@ -2281,8 +2766,8 @@
               "source_frame": 10,
               "duration_ms": 125,
               "rect": [
-                0,
-                634,
+                882,
+                635,
                 142,
                 211
               ]
@@ -2291,8 +2776,8 @@
               "source_frame": 13,
               "duration_ms": 125,
               "rect": [
-                142,
-                634,
+                1024,
+                635,
                 142,
                 211
               ]
@@ -2301,8 +2786,8 @@
               "source_frame": 16,
               "duration_ms": 167,
               "rect": [
-                284,
-                634,
+                0,
+                846,
                 142,
                 211
               ]
@@ -2311,8 +2796,8 @@
               "source_frame": 20,
               "duration_ms": 166,
               "rect": [
-                426,
-                634,
+                142,
+                846,
                 142,
                 211
               ]
@@ -2321,8 +2806,8 @@
               "source_frame": 24,
               "duration_ms": 125,
               "rect": [
-                568,
-                634,
+                284,
+                846,
                 142,
                 211
               ]
@@ -2331,8 +2816,8 @@
               "source_frame": 27,
               "duration_ms": 292,
               "rect": [
-                710,
-                634,
+                426,
+                846,
                 142,
                 211
               ]
@@ -2341,8 +2826,8 @@
               "source_frame": 34,
               "duration_ms": 208,
               "rect": [
-                852,
-                634,
+                568,
+                846,
                 142,
                 211
               ]
@@ -2351,8 +2836,8 @@
               "source_frame": 39,
               "duration_ms": 167,
               "rect": [
-                0,
-                845,
+                710,
+                846,
                 142,
                 211
               ]
@@ -2361,8 +2846,8 @@
               "source_frame": 43,
               "duration_ms": 125,
               "rect": [
-                142,
-                845,
+                852,
+                846,
                 142,
                 211
               ]
@@ -2382,8 +2867,8 @@
               "source_frame": 1,
               "duration_ms": 292,
               "rect": [
-                392,
-                0,
+                535,
+                212,
                 152,
                 211
               ]
@@ -2392,8 +2877,8 @@
               "source_frame": 8,
               "duration_ms": 208,
               "rect": [
-                544,
-                0,
+                687,
+                212,
                 152,
                 211
               ]
@@ -2402,8 +2887,8 @@
               "source_frame": 13,
               "duration_ms": 208,
               "rect": [
-                696,
-                0,
+                839,
+                212,
                 152,
                 211
               ]
@@ -2412,8 +2897,8 @@
               "source_frame": 18,
               "duration_ms": 167,
               "rect": [
-                848,
-                0,
+                991,
+                212,
                 152,
                 211
               ]
@@ -2423,7 +2908,7 @@
               "duration_ms": 167,
               "rect": [
                 0,
-                212,
+                424,
                 152,
                 211
               ]
@@ -2433,7 +2918,7 @@
               "duration_ms": 333,
               "rect": [
                 152,
-                212,
+                424,
                 152,
                 211
               ]
@@ -2443,7 +2928,7 @@
               "duration_ms": 292,
               "rect": [
                 304,
-                212,
+                424,
                 152,
                 211
               ]
@@ -2453,7 +2938,7 @@
               "duration_ms": 166,
               "rect": [
                 456,
-                212,
+                424,
                 152,
                 211
               ]
@@ -2463,7 +2948,7 @@
               "duration_ms": 167,
               "rect": [
                 608,
-                212,
+                424,
                 152,
                 211
               ]
@@ -2473,7 +2958,7 @@
               "duration_ms": 208,
               "rect": [
                 760,
-                212,
+                424,
                 152,
                 211
               ]
@@ -2482,8 +2967,8 @@
               "source_frame": 54,
               "duration_ms": 209,
               "rect": [
-                0,
-                423,
+                912,
+                424,
                 152,
                 211
               ]
@@ -2492,8 +2977,8 @@
               "source_frame": 59,
               "duration_ms": 208,
               "rect": [
-                152,
-                423,
+                0,
+                635,
                 152,
                 211
               ]
@@ -2502,8 +2987,8 @@
               "source_frame": 64,
               "duration_ms": 125,
               "rect": [
-                304,
-                423,
+                152,
+                635,
                 152,
                 211
               ]
@@ -2512,8 +2997,8 @@
               "source_frame": 67,
               "duration_ms": 125,
               "rect": [
-                456,
-                423,
+                304,
+                635,
                 152,
                 211
               ]
@@ -2533,8 +3018,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                284,
-                845,
+                994,
+                846,
                 135,
                 211
               ]
@@ -2543,8 +3028,8 @@
               "source_frame": 4,
               "duration_ms": 167,
               "rect": [
-                419,
-                845,
+                0,
+                1057,
                 135,
                 211
               ]
@@ -2553,8 +3038,8 @@
               "source_frame": 8,
               "duration_ms": 166,
               "rect": [
-                554,
-                845,
+                135,
+                1057,
                 135,
                 211
               ]
@@ -2563,8 +3048,8 @@
               "source_frame": 12,
               "duration_ms": 125,
               "rect": [
-                689,
-                845,
+                270,
+                1057,
                 135,
                 211
               ]
@@ -2573,8 +3058,8 @@
               "source_frame": 15,
               "duration_ms": 167,
               "rect": [
-                824,
-                845,
+                405,
+                1057,
                 135,
                 211
               ]
@@ -2583,8 +3068,8 @@
               "source_frame": 19,
               "duration_ms": 167,
               "rect": [
-                0,
-                1056,
+                540,
+                1057,
                 135,
                 211
               ]
@@ -2593,8 +3078,8 @@
               "source_frame": 23,
               "duration_ms": 83,
               "rect": [
-                135,
-                1056,
+                675,
+                1057,
                 135,
                 211
               ]
@@ -2603,8 +3088,8 @@
               "source_frame": 25,
               "duration_ms": 83,
               "rect": [
-                284,
-                845,
+                994,
+                846,
                 135,
                 211
               ]
@@ -2616,6 +3101,117 @@
             195
           ],
           "action": "Necromancer | Grave Bell",
+          "path": "res://assets/cast/necromancer.png"
+        },
+        "melody": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                0,
+                143,
+                212
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                143,
+                0,
+                143,
+                212
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                286,
+                0,
+                143,
+                212
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                429,
+                0,
+                143,
+                212
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 166,
+              "rect": [
+                572,
+                0,
+                143,
+                212
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                715,
+                0,
+                143,
+                212
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 167,
+              "rect": [
+                858,
+                0,
+                143,
+                212
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 208,
+              "rect": [
+                1001,
+                0,
+                143,
+                212
+              ]
+            },
+            {
+              "source_frame": 34,
+              "duration_ms": 250,
+              "rect": [
+                0,
+                212,
+                143,
+                212
+              ]
+            },
+            {
+              "source_frame": 40,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                0,
+                143,
+                212
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            80,
+            196
+          ],
+          "action": "Necromancer | Inspiring Melody",
           "path": "res://assets/cast/necromancer.png"
         }
       }
@@ -2630,8 +3226,8 @@
               "source_frame": 1,
               "duration_ms": 250,
               "rect": [
-                306,
-                894,
+                834,
+                893,
                 99,
                 223
               ]
@@ -2640,8 +3236,8 @@
               "source_frame": 7,
               "duration_ms": 167,
               "rect": [
-                405,
-                894,
+                933,
+                893,
                 99,
                 223
               ]
@@ -2650,8 +3246,8 @@
               "source_frame": 11,
               "duration_ms": 166,
               "rect": [
-                504,
-                894,
+                1032,
+                893,
                 99,
                 223
               ]
@@ -2660,8 +3256,8 @@
               "source_frame": 15,
               "duration_ms": 209,
               "rect": [
-                603,
-                894,
+                0,
+                1116,
                 99,
                 223
               ]
@@ -2670,8 +3266,8 @@
               "source_frame": 20,
               "duration_ms": 208,
               "rect": [
-                702,
-                894,
+                99,
+                1116,
                 99,
                 223
               ]
@@ -2680,8 +3276,8 @@
               "source_frame": 25,
               "duration_ms": 292,
               "rect": [
-                801,
-                894,
+                198,
+                1116,
                 99,
                 223
               ]
@@ -2690,8 +3286,8 @@
               "source_frame": 32,
               "duration_ms": 541,
               "rect": [
-                900,
-                894,
+                297,
+                1116,
                 99,
                 223
               ]
@@ -2711,8 +3307,8 @@
               "source_frame": 1,
               "duration_ms": 167,
               "rect": [
-                600,
-                671,
+                120,
+                893,
                 102,
                 223
               ]
@@ -2721,8 +3317,8 @@
               "source_frame": 5,
               "duration_ms": 166,
               "rect": [
-                702,
-                671,
+                222,
+                893,
                 102,
                 223
               ]
@@ -2731,8 +3327,8 @@
               "source_frame": 9,
               "duration_ms": 167,
               "rect": [
-                804,
-                671,
+                324,
+                893,
                 102,
                 223
               ]
@@ -2741,8 +3337,8 @@
               "source_frame": 13,
               "duration_ms": 167,
               "rect": [
-                906,
-                671,
+                426,
+                893,
                 102,
                 223
               ]
@@ -2751,8 +3347,8 @@
               "source_frame": 17,
               "duration_ms": 166,
               "rect": [
-                0,
-                894,
+                528,
+                893,
                 102,
                 223
               ]
@@ -2761,8 +3357,8 @@
               "source_frame": 21,
               "duration_ms": 209,
               "rect": [
-                102,
-                894,
+                630,
+                893,
                 102,
                 223
               ]
@@ -2771,8 +3367,8 @@
               "source_frame": 26,
               "duration_ms": 166,
               "rect": [
-                204,
-                894,
+                732,
+                893,
                 102,
                 223
               ]
@@ -2792,7 +3388,7 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                141,
+                0,
                 224,
                 158,
                 223
@@ -2802,7 +3398,7 @@
               "source_frame": 4,
               "duration_ms": 125,
               "rect": [
-                299,
+                158,
                 224,
                 158,
                 223
@@ -2812,7 +3408,7 @@
               "source_frame": 7,
               "duration_ms": 125,
               "rect": [
-                457,
+                316,
                 224,
                 158,
                 223
@@ -2822,7 +3418,7 @@
               "source_frame": 10,
               "duration_ms": 83,
               "rect": [
-                615,
+                474,
                 224,
                 158,
                 223
@@ -2832,7 +3428,7 @@
               "source_frame": 12,
               "duration_ms": 125,
               "rect": [
-                773,
+                632,
                 224,
                 158,
                 223
@@ -2842,8 +3438,8 @@
               "source_frame": 15,
               "duration_ms": 167,
               "rect": [
-                0,
-                448,
+                790,
+                224,
                 158,
                 223
               ]
@@ -2852,8 +3448,8 @@
               "source_frame": 19,
               "duration_ms": 250,
               "rect": [
-                158,
-                448,
+                948,
+                224,
                 158,
                 223
               ]
@@ -2862,8 +3458,8 @@
               "source_frame": 25,
               "duration_ms": 208,
               "rect": [
-                316,
-                448,
+                0,
+                447,
                 158,
                 223
               ]
@@ -2872,8 +3468,8 @@
               "source_frame": 30,
               "duration_ms": 167,
               "rect": [
-                474,
-                448,
+                158,
+                447,
                 158,
                 223
               ]
@@ -2882,8 +3478,8 @@
               "source_frame": 34,
               "duration_ms": 167,
               "rect": [
-                632,
-                448,
+                316,
+                447,
                 158,
                 223
               ]
@@ -2973,8 +3569,8 @@
               "source_frame": 50,
               "duration_ms": 166,
               "rect": [
+                987,
                 0,
-                224,
                 141,
                 224
               ]
@@ -2994,8 +3590,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                790,
-                448,
+                393,
+                670,
                 120,
                 223
               ]
@@ -3004,8 +3600,8 @@
               "source_frame": 4,
               "duration_ms": 167,
               "rect": [
-                910,
-                448,
+                513,
+                670,
                 120,
                 223
               ]
@@ -3014,8 +3610,8 @@
               "source_frame": 8,
               "duration_ms": 83,
               "rect": [
-                0,
-                671,
+                633,
+                670,
                 120,
                 223
               ]
@@ -3024,8 +3620,8 @@
               "source_frame": 10,
               "duration_ms": 125,
               "rect": [
-                120,
-                671,
+                753,
+                670,
                 120,
                 223
               ]
@@ -3034,8 +3630,8 @@
               "source_frame": 13,
               "duration_ms": 167,
               "rect": [
-                240,
-                671,
+                873,
+                670,
                 120,
                 223
               ]
@@ -3044,8 +3640,8 @@
               "source_frame": 17,
               "duration_ms": 166,
               "rect": [
-                360,
-                671,
+                993,
+                670,
                 120,
                 223
               ]
@@ -3054,8 +3650,8 @@
               "source_frame": 21,
               "duration_ms": 167,
               "rect": [
-                480,
-                671,
+                0,
+                893,
                 120,
                 223
               ]
@@ -3064,8 +3660,8 @@
               "source_frame": 25,
               "duration_ms": 83,
               "rect": [
-                790,
-                448,
+                393,
+                670,
                 120,
                 223
               ]
@@ -3077,6 +3673,107 @@
             199
           ],
           "action": "Rogue | Tripwire",
+          "path": "res://assets/cast/rogue.png"
+        },
+        "potion": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                474,
+                447,
+                131,
+                223
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 167,
+              "rect": [
+                605,
+                447,
+                131,
+                223
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 125,
+              "rect": [
+                736,
+                447,
+                131,
+                223
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 166,
+              "rect": [
+                867,
+                447,
+                131,
+                223
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 125,
+              "rect": [
+                998,
+                447,
+                131,
+                223
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                670,
+                131,
+                223
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 167,
+              "rect": [
+                131,
+                670,
+                131,
+                223
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                262,
+                670,
+                131,
+                223
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 83,
+              "rect": [
+                474,
+                447,
+                131,
+                223
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            54,
+            199
+          ],
+          "action": "Rogue | Healing Potion",
           "path": "res://assets/cast/rogue.png"
         }
       }
@@ -3460,8 +4157,8 @@
               "source_frame": 1,
               "duration_ms": 208,
               "rect": [
-                163,
-                674,
+                815,
+                456,
                 123,
                 217
               ]
@@ -3470,8 +4167,8 @@
               "source_frame": 6,
               "duration_ms": 167,
               "rect": [
-                286,
-                674,
+                938,
+                456,
                 123,
                 217
               ]
@@ -3480,7 +4177,7 @@
               "source_frame": 10,
               "duration_ms": 167,
               "rect": [
-                409,
+                0,
                 674,
                 123,
                 217
@@ -3490,7 +4187,7 @@
               "source_frame": 14,
               "duration_ms": 208,
               "rect": [
-                532,
+                123,
                 674,
                 123,
                 217
@@ -3500,7 +4197,7 @@
               "source_frame": 19,
               "duration_ms": 208,
               "rect": [
-                655,
+                246,
                 674,
                 123,
                 217
@@ -3510,7 +4207,7 @@
               "source_frame": 24,
               "duration_ms": 250,
               "rect": [
-                778,
+                369,
                 674,
                 123,
                 217
@@ -3520,7 +4217,7 @@
               "source_frame": 30,
               "duration_ms": 292,
               "rect": [
-                901,
+                492,
                 674,
                 123,
                 217
@@ -3601,8 +4298,8 @@
               "source_frame": 21,
               "duration_ms": 125,
               "rect": [
+                966,
                 0,
-                228,
                 161,
                 228
               ]
@@ -3611,7 +4308,7 @@
               "source_frame": 24,
               "duration_ms": 209,
               "rect": [
-                161,
+                0,
                 228,
                 161,
                 228
@@ -3621,7 +4318,7 @@
               "source_frame": 29,
               "duration_ms": 208,
               "rect": [
-                322,
+                161,
                 228,
                 161,
                 228
@@ -3652,7 +4349,7 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                483,
+                322,
                 228,
                 163,
                 218
@@ -3662,7 +4359,7 @@
               "source_frame": 4,
               "duration_ms": 167,
               "rect": [
-                646,
+                485,
                 228,
                 163,
                 218
@@ -3672,7 +4369,7 @@
               "source_frame": 8,
               "duration_ms": 208,
               "rect": [
-                809,
+                648,
                 228,
                 163,
                 218
@@ -3682,8 +4379,8 @@
               "source_frame": 13,
               "duration_ms": 125,
               "rect": [
-                0,
-                456,
+                811,
+                228,
                 163,
                 218
               ]
@@ -3692,8 +4389,8 @@
               "source_frame": 16,
               "duration_ms": 125,
               "rect": [
-                163,
-                456,
+                974,
+                228,
                 163,
                 218
               ]
@@ -3702,7 +4399,7 @@
               "source_frame": 19,
               "duration_ms": 83,
               "rect": [
-                326,
+                0,
                 456,
                 163,
                 218
@@ -3712,7 +4409,7 @@
               "source_frame": 21,
               "duration_ms": 125,
               "rect": [
-                489,
+                163,
                 456,
                 163,
                 218
@@ -3722,7 +4419,7 @@
               "source_frame": 24,
               "duration_ms": 167,
               "rect": [
-                652,
+                326,
                 456,
                 163,
                 218
@@ -3732,7 +4429,7 @@
               "source_frame": 28,
               "duration_ms": 208,
               "rect": [
-                815,
+                489,
                 456,
                 163,
                 218
@@ -3742,8 +4439,8 @@
               "source_frame": 33,
               "duration_ms": 334,
               "rect": [
-                0,
-                674,
+                652,
+                456,
                 163,
                 218
               ]
@@ -3763,8 +4460,8 @@
               "source_frame": 1,
               "duration_ms": 125,
               "rect": [
-                0,
-                892,
+                615,
+                674,
                 184,
                 212
               ]
@@ -3773,8 +4470,8 @@
               "source_frame": 4,
               "duration_ms": 167,
               "rect": [
-                184,
-                892,
+                799,
+                674,
                 184,
                 212
               ]
@@ -3783,8 +4480,8 @@
               "source_frame": 8,
               "duration_ms": 166,
               "rect": [
-                368,
-                892,
+                983,
+                674,
                 184,
                 212
               ]
@@ -3793,8 +4490,8 @@
               "source_frame": 12,
               "duration_ms": 125,
               "rect": [
-                552,
-                892,
+                0,
+                891,
                 184,
                 212
               ]
@@ -3803,8 +4500,8 @@
               "source_frame": 15,
               "duration_ms": 167,
               "rect": [
-                736,
-                892,
+                184,
+                891,
                 184,
                 212
               ]
@@ -3813,8 +4510,8 @@
               "source_frame": 19,
               "duration_ms": 167,
               "rect": [
-                0,
-                1104,
+                368,
+                891,
                 184,
                 212
               ]
@@ -3823,8 +4520,8 @@
               "source_frame": 23,
               "duration_ms": 125,
               "rect": [
-                184,
-                1104,
+                552,
+                891,
                 184,
                 212
               ]
@@ -3833,8 +4530,8 @@
               "source_frame": 26,
               "duration_ms": 83,
               "rect": [
-                0,
-                892,
+                615,
+                674,
                 184,
                 212
               ]
@@ -3846,6 +4543,97 @@
             198
           ],
           "action": "Wizard | Ring of Sparks",
+          "path": "res://assets/cast/wizard.png"
+        },
+        "dodge": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                736,
+                891,
+                135,
+                212
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 167,
+              "rect": [
+                871,
+                891,
+                135,
+                212
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 125,
+              "rect": [
+                1006,
+                891,
+                135,
+                212
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                1103,
+                135,
+                212
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 166,
+              "rect": [
+                135,
+                1103,
+                135,
+                212
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 167,
+              "rect": [
+                270,
+                1103,
+                135,
+                212
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 125,
+              "rect": [
+                405,
+                1103,
+                135,
+                212
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 83,
+              "rect": [
+                736,
+                891,
+                135,
+                212
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            56,
+            198
+          ],
+          "action": "Wizard | Confusing Dodge",
           "path": "res://assets/cast/wizard.png"
         }
       }

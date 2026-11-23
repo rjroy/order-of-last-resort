@@ -63,7 +63,7 @@ var _units_by_id: Dictionary = {}
 var _targets_by_id: Dictionary = {}
 var _ready_clips: Array[CastSprites.Clip] = []
 var _ready_ms := 0.0
-var _wizard_pull_facing: Dictionary[String, float] = {}
+var _pull_facing: Dictionary[String, float] = {}
 var _pressure_gate_prop_installed := false
 
 
@@ -107,6 +107,7 @@ func set_render_state(cells: Dictionary, units: Array, overlay: Dictionary = {})
 	_cells = cells.duplicate()
 	_units = units.duplicate(true)
 	_overlay = overlay.duplicate(true)
+	var previous_units := _units_by_id.duplicate()
 	_units_by_id.clear()
 	_targets_by_id.clear()
 	for unit: Dictionary in _units:
@@ -114,10 +115,17 @@ func set_render_state(cells: Dictionary, units: Array, overlay: Dictionary = {})
 		_targets_by_id[unit.id] = unit.cell
 	for obstacle: Dictionary in _overlay.get("obstacles", []):
 		_targets_by_id[obstacle.id] = obstacle.position
-	for id in _wizard_pull_facing.keys():
+	for id in previous_units:
+		var previous: Dictionary = previous_units[id]
+		var current: Dictionary = _units_by_id.get(id, {})
+		if bool(previous.get("prone", false)) \
+				and (not bool(current.get("prone", false)) or int(current.get("hp", 1)) <= 0):
+			_playback.clear_pull_recoil(id)
+	for id in _pull_facing.keys():
 		var unit: Dictionary = _units_by_id.get(id, {})
 		if not bool(unit.get("prone", false)) or int(unit.get("hp", 1)) <= 0:
-			_wizard_pull_facing.erase(id)
+			_pull_facing.erase(id)
+			_playback.clear_pull_recoil(id)
 	_set_ready_clips()
 	_objective_zone.clear()
 	for at in _overlay.get("objective_zone", []):
@@ -142,6 +150,9 @@ func set_render_state(cells: Dictionary, units: Array, overlay: Dictionary = {})
 
 ## Only committed cues belong here. A state refresh replaces the board, not the timeline.
 func play_committed_actions(cues: Array) -> void:
+	for cue in cues:
+		if cue is Dictionary and cue.get("control") == "clear_pull_recoil":
+			_pull_facing.erase(str(cue.get("unit_id", "")))
 	_playback.enqueue(cues, _cast)
 	_sync_playback_geometry()
 	_set_processing()
@@ -150,7 +161,7 @@ func play_committed_actions(cues: Array) -> void:
 
 func clear_action_playback() -> void:
 	_playback.clear()
-	_wizard_pull_facing.clear()
+	_pull_facing.clear()
 	_set_processing()
 	_figures.queue_redraw()
 
@@ -488,7 +499,7 @@ func _draw_figures() -> void:
 			if int(unit.get("hp", 1)) <= 0 and not dose_gesture and not harpoon_reaction \
 					and not before_harpoon_defeat and not ferryman_reaction and not before_ordinary_defeat:
 				continue
-			if bool(unit.get("prone", false)) and not _is_wizard_pull(entry) and not dose_gesture \
+			if bool(unit.get("prone", false)) and not _is_pull_gesture(entry) and not dose_gesture \
 					and not harpoon_reaction and not before_harpoon_defeat and not ferryman_reaction \
 					and not before_ordinary_defeat and not ordinary_hit and not ordinary_recover:
 				continue
@@ -888,13 +899,14 @@ func _draw_cast(unit: Dictionary, foot: Vector2, facing: float, prone: bool, act
 	if not unit.has("cast_lifecycle") and cast_key == "knight" and bool(unit.get("shield_away", false)):
 		# Equipment is authoritative. Never show a second shield on the unit.
 		key = "shield_away"
-		if action != null and action.cue.clip == "rescue_line" \
-				and action.elapsed_ms < action.clip.total_ms \
-				and _cast.clip_for(cast_key, "rescue_line_unshielded") != null:
-			key = "rescue_line_unshielded"
-			time_ms = action.elapsed_ms
-			turned_down = false
-			facing = action.facing if action.facing != 0.0 else facing
+		if action != null and action.cue.clip in ["rescue_line", "bonk"] \
+				and action.elapsed_ms < action.clip.total_ms:
+			var unshielded: String = action.cue.clip + "_unshielded"
+			if _cast.clip_for(cast_key, unshielded) != null:
+				key = unshielded
+				time_ms = action.elapsed_ms
+				turned_down = false
+				facing = action.facing if action.facing != 0.0 else facing
 	elif action != null and action.elapsed_ms < action.clip.total_ms:
 		key = action.cue.clip
 		time_ms = action.elapsed_ms
@@ -905,12 +917,13 @@ func _draw_cast(unit: Dictionary, foot: Vector2, facing: float, prone: bool, act
 		time_ms = INF
 		turned_down = false
 		facing = defeat_tail.facing if defeat_tail.facing != 0.0 else facing
-	elif not unit.has("cast_lifecycle") and cast_key == "wizard" and prone and _wizard_pull_facing.has(unit.id):
+	elif not unit.has("cast_lifecycle") and cast_key in ["wizard", "alchemist"] and prone \
+			and _pull_facing.has(unit.id):
 		# Pull ends seated. Hold its authored stumble instead of rotating a standing pose.
 		key = "pull"
 		time_ms = INF
 		turned_down = false
-		facing = _wizard_pull_facing[unit.id]
+		facing = _pull_facing[unit.id]
 	elif held != null and not bool(unit.get("pre_defeat", false)):
 		key = unit.cast_hold
 		time_ms = _ready_ms if held.loop else INF
@@ -977,14 +990,16 @@ func _ordinary_defeat_tail(unit: Dictionary) -> CastPlayback.Entry:
 	return null
 
 
-func _is_wizard_pull(entry: CastPlayback.Entry) -> bool:
+func _is_pull_gesture(entry: CastPlayback.Entry) -> bool:
 	return not entry.cue.get("ordinary_presentation", false) \
-		and entry.cue.cast_key == "wizard" and entry.cue.clip == "pull"
+		and ((entry.cue.cast_key in ["wizard", "alchemist"] and entry.cue.clip == "pull") \
+		or (entry.cue.cast_key == "alchemist" and entry.cue.clip == "pull_upright"))
 
 
 func _is_dose_gesture(entry: CastPlayback.Entry) -> bool:
 	return not entry.cue.get("ordinary_presentation", false) \
-		and entry.cue.cast_key == "alchemist" and entry.cue.clip in ["potion", "acid", "etching_paste"]
+		and ((entry.cue.cast_key == "alchemist" and entry.cue.clip in ["potion", "acid", "etching_paste"]) \
+		or (entry.cue.cast_key == "rogue" and entry.cue.clip == "potion"))
 
 
 func _sync_playback_geometry() -> void:
@@ -1000,8 +1015,9 @@ func _sync_playback_geometry() -> void:
 			entry.facing = _unit_facing(unit)
 			if target is Vector2i and target.x != source.x:
 				entry.facing = -1.0 if target.x < source.x else 1.0
-		if _is_wizard_pull(entry) and bool(unit.get("prone", false)) and int(unit.get("hp", 1)) > 0:
-			_wizard_pull_facing[entry.cue.unit_id] = entry.facing
+		if _is_pull_gesture(entry) and bool(unit.get("prone", false)) and int(unit.get("hp", 1)) > 0 \
+				and (entry.cue.cast_key == "wizard" or entry.cue.get("pull_recoil_down", false)):
+			_pull_facing[entry.cue.unit_id] = entry.facing
 		if entry.gift == null or entry.gift_from != null or entry.flight_progress() < 0.0 \
 				or not target is Vector2i:
 			continue

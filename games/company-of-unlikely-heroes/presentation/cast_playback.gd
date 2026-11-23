@@ -13,6 +13,15 @@ const ACTION_BEATS := {
 	"rescue_line": 14, "rescue_line_unshielded": 14, "ring_sparks": 12,
 	"tripwire": 13, "grave_bell": 12, "etching_paste": 13,
 }
+const LEARNER_BEATS := {
+	"knight": {"bonk": 13, "bonk_unshielded": 13},
+	"healer": {"blast": 12},
+	"wizard": {"dodge": 11},
+	"bard": {"push": 12},
+	"rogue": {"potion": 15},
+	"necromancer": {"melody": 13},
+	"alchemist": {"pull": 13, "pull_upright": 13},
+}
 
 class Entry:
 	var cue: Dictionary
@@ -45,6 +54,9 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 		var value = cues[index]
 		if not value is Dictionary or str(value.get("unit_id", "")).is_empty():
 			continue
+		if value.get("control") == "clear_pull_recoil":
+			clear_pull_recoil(value.unit_id)
+			continue
 		var role := str(value.get("cast_key", ""))
 		var key := str(value.get("clip", ""))
 		var clip := art.clip_for(role, key)
@@ -63,11 +75,13 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 		entry.cue = cue
 		entry.clip = clip
 		entry.facing = 0.0
-		entry.impact_ms = clip.time_at_source_frame(ACTION_BEATS[key]) \
-			if not ordinary and ACTION_BEATS.has(key) else clip.total_ms * 0.48
+		var beat: int = LEARNER_BEATS.get(role, {}).get(key, ACTION_BEATS.get(key, -1))
+		entry.impact_ms = clip.time_at_source_frame(beat) \
+			if not ordinary and beat >= 0 else clip.total_ms * 0.48
 		if ordinary and cue.get("impact_frame") is int and cue.impact_frame in clip.source_frames:
 			entry.impact_ms = clip.time_at_source_frame(cue.impact_frame)
-		if key != "etching_paste" and clip.release_ms >= 0.0 and cue.get("target_cell") is Vector2i:
+		if key != "etching_paste" and not (role == "rogue" and key == "potion") \
+				and clip.release_ms >= 0.0 and cue.get("target_cell") is Vector2i:
 			entry.gift = art.clip_for(role, clip.release_clip)
 			if entry.gift != null:
 				entry.impact_ms = clip.release_ms + GIFT_FLIGHT_MS
@@ -84,6 +98,13 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 
 func clear() -> void:
 	_entries.clear()
+
+
+func clear_pull_recoil(unit_id: String) -> void:
+	for entry in _entries:
+		if entry.cue.get("unit_id") == unit_id and entry.cue.get("cast_key") == "alchemist" \
+				and entry.cue.get("clip") == "pull" and not entry.cue.get("ordinary_presentation", false):
+			entry.cue.erase("pull_recoil_down")
 
 
 func pending() -> bool:

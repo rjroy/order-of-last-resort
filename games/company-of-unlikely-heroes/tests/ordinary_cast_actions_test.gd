@@ -32,6 +32,7 @@ func _initialize() -> void:
 	_resisted_shift(defs, "rival_knight", "knight_push", Vector2i(3, 2))
 	_harmless_wave(defs)
 	_recover(defs)
+	_authored_alchemist_pull(defs)
 	defs.characters.hookhand.cast_presentation.actions.hook_pull.handler = "attack"
 	var state := _state(defs, "hookhand", "healer", Vector2i(4, 2))
 	var plan: Dictionary = rules.preview(state, "caster", "hook_pull", "target")
@@ -42,6 +43,22 @@ func _initialize() -> void:
 	if failures.is_empty():
 		print("PASS: ordinary cast NPC action families on controlled boards")
 	quit(0 if failures.is_empty() else 1)
+
+
+func _authored_alchemist_pull(defs: Dictionary) -> void:
+	var local := defs.duplicate(true)
+	local.classes.alchemist.abilities.append("hook_pull")
+	local.characters.alchemist["cast_presentation"] = {"actions": {
+		"hook_pull": {"handler": "hook", "clip": "pull"}}}
+	var state := _state(local, "alchemist", "healer", Vector2i(4, 2))
+	var plan: Dictionary = rules.preview(state, "caster", "hook_pull", "target")
+	if not plan.get("valid", false):
+		_check(false, "Authored Alchemist hook fixture resolves")
+		return
+	var cues := Cues.build(state, plan.result, plan.events)
+	_check(cues.size() == 1 and cues[0].get("ordinary_presentation", false) \
+		and cues[0].get("clip") == "pull",
+		"An ordinary data-authored Alchemist pull retains its declared clip")
 
 
 func _configure(defs: Dictionary, id: String, ability: String, handler: String) -> void:

@@ -576,7 +576,8 @@ static func _pull(state: Dictionary, actor: Dictionary, target: Dictionary, id: 
 	else:
 		var old: Vector2i = actor.position
 		var direction := _pull_step(actor, target)
-		if Movement.blocks_forced(state, target, events) or Movement.blocks_forced(state, actor, events):
+		if _blocks_aimed_shift(state, target, target, events) \
+				or _blocks_aimed_shift(state, actor, target, events):
 			return
 		actor.position = Movement.forced_destination(state, actor, old + direction, direction, events)
 		# Continue in the pull direction, using the caster's resolved recoil position for occupancy.

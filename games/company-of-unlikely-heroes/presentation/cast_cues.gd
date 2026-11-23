@@ -8,28 +8,29 @@ const Statuses = preload("res://rules/statuses.gd")
 # [expected rules handler, clip]. Catalog authors can redefine an ability ID.
 const CLIPS := {
 	"knight": {"knight_aura": ["apply_status", "guard"], "knight_shield_throw": ["attack", "shield_away"],
-		"knight_rescue_line": ["hook", "rescue_line"]},
+		"knight_rescue_line": ["hook", "rescue_line"], "healer_bonk": ["bonk", "bonk"]},
 	"healer": {"healer_heal": ["heal", "ally_heal"], "healer_field_dressing": ["heal", "ally_heal"],
-		"healer_bonk": ["bonk", "bonk"]},
+		"healer_bonk": ["bonk", "bonk"], "wizard_blast": ["blast", "blast"]},
 	"wizard": {"wizard_blast": ["blast", "blast"], "wizard_pull": ["pull", "pull"],
-		"wizard_ring_sparks": ["sweep", "ring_sparks"]},
+		"wizard_ring_sparks": ["sweep", "ring_sparks"], "rogue_confusing_dodge": ["swap_furthest", "dodge"]},
 	"rogue": {"move": ["move", "retreat"], "rogue_confusing_dodge": ["swap_furthest", "swap"],
-		"rogue_wasnt_me": ["misdirect", "misdirect"], "rogue_tripwire": ["stop_target", "tripwire"]},
+		"rogue_wasnt_me": ["misdirect", "misdirect"], "rogue_tripwire": ["stop_target", "tripwire"],
+		"alchemist_potion": ["healing_potion", "potion"]},
 	"bard": {"inspiring_melody": ["perform", "inspiring_melody"], "healing_sonnet": ["perform", "healing_sonnet"],
-		"bard_take_the_stage": ["perform", "healing_sonnet"]},
+		"bard_take_the_stage": ["perform", "healing_sonnet"], "knight_push": ["push", "push"]},
 	"necromancer": {"summon_skeleton": ["summon", "summon_skeleton"], "raise_dead": ["summon", "raise_dead"],
-		"necro_grave_bell": ["repel", "grave_bell"]},
+		"necro_grave_bell": ["repel", "grave_bell"], "inspiring_melody": ["perform", "melody"]},
 	"skeleton": {"wave": ["sweep", "wave"], "dont_go": ["stop_target", "dont_go"]},
 	"zombie": {"say_hello": ["repel", "say_hello"], "offer_flower": ["attack", "offer_flower"]},
 	"alchemist": {"alchemist_potion": ["healing_potion", "potion"],
 		"alchemist_acid": ["acid", "acid"], "alchemist_etching_paste": ["acid", "etching_paste"],
 		"alchemist_plain_tonic": ["plain_tonic", "potion"],
-		"alchemist_repeat_batch": ["repeat_batch", "potion"]},
+		"alchemist_repeat_batch": ["repeat_batch", "potion"], "wizard_pull": ["pull", "pull"]},
 	"harpooner": {"move": ["move", "pursue"], "enemy_attack": ["attack", "close_thrust"],
 		"enemy_harpoon": ["attack", "ranged_cast"]},
 	"ferryman": {"move": ["move", "travel"]},
 }
-const STRIKES := ["bonk", "blast", "shield_away", "offer_flower", "healing_sonnet", "wave"]
+const STRIKES := ["bonk", "blast", "push", "shield_away", "offer_flower", "healing_sonnet", "wave"]
 
 
 static func cast_key_for(state: Dictionary, unit: Dictionary, profile := {}) -> String:
@@ -156,12 +157,13 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 		shield_away[unit.id] = unit.get("shield_position") is Vector2i
 	var cues := []
 	var last_shift := {}
+	var pull_recoils := {}
 	var index := 0
 	while index < events.size():
 		var action: Dictionary = events[index].get("resolved_action", {})
 		var actor: Dictionary = actors.get(action.get("unit_id", ""), {})
 		var cue := _start_cue(after, actor, action)
-		if cue.get("cast_key") == "knight" and cue.get("clip") == "rescue_line":
+		if cue.get("cast_key") == "knight" and cue.get("clip") in ["rescue_line", "bonk"]:
 			cue["shield_away"] = shield_away.get(actor.id, actor.get("shield_position") is Vector2i)
 		var end := index + int(action.get("event_count", 1))
 		if end <= index or end > events.size():
@@ -209,6 +211,14 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 				var source: String = event.get("source_id", "")
 				var cause: String = event.get("damage_cause", "")
 				var amount := int(event.get("amount", 0))
+				if not cue.get("ordinary_presentation", false) \
+						and cue.get("cast_key") == "alchemist" and cue.get("clip") == "pull" \
+						and victim == cue.get("unit_id") and source == victim \
+						and not prone.get(victim, false) and int(health.get(victim, 0)) > amount \
+						and Statuses.is_knockdown(after, event.get("status_id", "")):
+					cue["pull_recoil_down"] = true
+					cue["pull_recoil_happened"] = true
+					pull_recoils[victim] = cue
 				var dependency := -1
 				match cause:
 					"retaliate":
@@ -276,6 +286,13 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 				for status_id in event.get("status_ids", []):
 					knocked = knocked or Statuses.is_knockdown(after, status_id)
 				if knocked and prone.get(recovered, false) and int(health.get(recovered, 0)) > 0:
+					if pull_recoils.has(recovered):
+						pull_recoils[recovered].erase("pull_recoil_down")
+						pull_recoils.erase(recovered)
+					if cast_key_for(after, target) == "alchemist" and not has_presentation(after, target):
+						# This can happen between two committed prone board snapshots.
+						# Preserve its ordering relative to other queued actions.
+						reactions.append({"unit_id": recovered, "control": "clear_pull_recoil"})
 					if cast_key_for(after, target) == "ferryman" and not has_presentation(after, target):
 						reactions.append({"unit_id": recovered, "cast_key": "ferryman", "clip": "recover",
 							"source_cell": positions.get(recovered), "actor_cell": positions.get(recovered),
@@ -348,6 +365,16 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 					last_shift[id] = parent_index
 				else:
 					last_shift.erase(id)
+	for id in pull_recoils:
+		var actor: Dictionary = actors.get(id, {})
+		if actor.is_empty() or int(actor.get("hp", 0)) <= 0 or not Statuses.knocked_down(after, actor):
+			pull_recoils[id].erase("pull_recoil_down")
+	for cue in cues:
+		if not cue.get("ordinary_presentation", false) \
+				and cue.get("cast_key") == "alchemist" and cue.get("clip") == "pull":
+			if not cue.get("pull_recoil_happened", false):
+				cue["clip"] = "pull_upright"
+			cue.erase("pull_recoil_happened")
 	return cues
 
 
@@ -512,7 +539,7 @@ static func _supports_shape(definitions: Dictionary, ability: Dictionary, clip: 
 	match clip:
 		"guard":
 			return status.get("handler") == "reflect"
-		"inspiring_melody":
+		"inspiring_melody", "melody":
 			return status.get("handler") == "skip_action"
 		"healing_sonnet":
 			return not params.has("status")
@@ -541,11 +568,13 @@ static func _observe(cue: Dictionary, event: Dictionary, positions: Dictionary) 
 				_aim(cue, id, cell)
 				if event.amount > 0:
 					_recipient(cue, id, cell, "heal")
-			elif own_action and clip == "inspiring_melody" and event.amount > 0:
+			elif own_action and clip in ["inspiring_melody", "melody"] and event.amount > 0:
 				_recipient(cue, id, cell, "heal")
 		"performance":
-			if own_action and clip == "inspiring_melody":
+			if own_action and clip in ["inspiring_melody", "melody"]:
 				_aim(cue, id, cell)
+				if event.has("status_id"):
+					_recipient(cue, id, cell, "status")
 		"aura":
 			if own_action and clip == "guard":
 				_recipient(cue, actor, cue.source_cell, "guard")
@@ -601,10 +630,13 @@ static func _observe(cue: Dictionary, event: Dictionary, positions: Dictionary) 
 			if own_action and clip in ["say_hello", "grave_bell"]:
 				_aim(cue, id, cell)
 				_recipient(cue, id, event.position, "shift")
+			elif own_action and clip == "push":
+				_aim(cue, id, cell)
+				_recipient(cue, id, event.position, "shift")
 			elif own_action and clip == "blast":
 				_recipient(cue, id, event.position, "shift")
 		"swap":
-			if own_action and clip == "swap":
+			if own_action and clip in ["swap", "dodge"]:
 				_aim(cue, id, cell)
 				_recipient(cue, id, event.target_position, "shift")
 		"misdirect":
@@ -615,7 +647,7 @@ static func _observe(cue: Dictionary, event: Dictionary, positions: Dictionary) 
 			if own_action and clip in ["dont_go", "tripwire"]:
 				_aim(cue, id, cell)
 				_recipient(cue, id, cell, "status")
-			elif clip in ["rescue_line", "grave_bell"] and event.get("reaction_id") == "cork_soles":
+			elif clip in ["rescue_line", "grave_bell", "push", "pull"] and event.get("reaction_id") == "cork_soles":
 				var resisted: String = event.get("resisted_target_id", id)
 				_aim(cue, resisted, positions.get(resisted))
 		"summon":

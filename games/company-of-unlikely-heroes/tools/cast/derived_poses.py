@@ -8,6 +8,7 @@ class PoseSample(NamedTuple):
     source: float  # Frame in the approved native action.
     turns: tuple = ()  # (bone, model-space X/Y/Z rotation in degrees)
     carried: tuple[str, str] | None = None  # (prop bone, grip bone)
+    shifts: tuple = ()  # (bone, model-space X/Y/Z translation in metres)
 
 
 class DerivedTake(NamedTuple):

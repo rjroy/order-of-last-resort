@@ -25,8 +25,10 @@ class Clip:
 		return mini(frame_ends.bsearch(sample, false), frames.size() - 1)
 
 	func time_at_source_frame(source_frame: int) -> float:
-		var index := source_frames.bsearch(source_frame)
-		return 0.0 if index == 0 else frame_ends[index - 1]
+		for index in source_frames.size():
+			if source_frames[index] >= source_frame:
+				return 0.0 if index == 0 else frame_ends[index - 1]
+		return total_ms
 
 var _actors: Dictionary = {}
 
@@ -51,6 +53,34 @@ func load_manifest() -> void:
 			else:
 				push_warning("Invalid cast sprite clip: %s.%s" % [role, key])
 		_actors[role] = clips
+	# The resisted Pull reuses the accepted upright drawings in reverse to
+	# recover without showing a fall that the rules did not resolve.
+	var alchemist: Dictionary = _actors.get("alchemist", {})
+	var pull: Clip = alchemist.get("pull")
+	if pull != null:
+		var upright := _upright_pull(pull)
+		if upright != null:
+			alchemist["pull_upright"] = upright
+
+
+static func _upright_pull(source: Clip) -> Clip:
+	var frames := [1, 5, 9, 13, 16, 13, 5, 1]
+	var durations := [167, 166, 167, 125, 90, 85, 110, 100]
+	var clip := Clip.new()
+	clip.path = source.path
+	clip.anchor = source.anchor
+	clip.scale = source.scale
+	clip.loop = false
+	for index in frames.size():
+		var at := source.source_frames.find(frames[index])
+		if at < 0:
+			push_warning("Cannot construct upright Mixologist Pull: missing source frame %d" % frames[index])
+			return null
+		clip.frames.append(source.frames[at])
+		clip.source_frames.append(frames[index])
+		clip.total_ms += durations[index]
+		clip.frame_ends.append(clip.total_ms)
+	return clip
 
 
 func clip_for(role: String, key: String) -> Clip:

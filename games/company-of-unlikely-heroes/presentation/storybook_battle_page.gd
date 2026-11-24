@@ -24,6 +24,10 @@ const GATE_BOARD := "frontier_gate_board"
 const FIELD_BOARD := "frontier_field"
 const GATE_ART := "res://assets/storybook-gate/"
 const FIELD_ART := "res://assets/storybook-field/frontier-field-surround-rgba.png"
+const BOARD_SURROUNDS := {
+	"frontier_field": FIELD_ART,
+	"frontier_line_board": "res://assets/storybook-surrounds/frontier_line_board.png",
+}
 const EDGE := 16.0
 const CONTENT_MARGIN := EDGE + 26.0
 const DARK := Color("#231910")
@@ -104,6 +108,7 @@ var _field_notes: Label
 var _bleed: Surround
 var _scenery: TextureRect
 var _scenery_registration: ShaderMaterial
+var _surround_behind_foreground := false
 var _props: Dictionary = {}
 var _header: Control
 var _footer: VBoxContainer
@@ -136,8 +141,17 @@ func mount_board(board: Control, trusted_board_id: String, board_dimensions := V
 	_bleed.set_quiet_edges(trusted_board_id != GATE_BOARD and trusted_board_id != FIELD_BOARD)
 	if trusted_board_id == GATE_BOARD:
 		_load_gate_art()
-	elif trusted_board_id == FIELD_BOARD:
-		set_scene_art(CastSprites.load_texture(FIELD_ART), {})
+	elif BOARD_SURROUNDS.has(trusted_board_id):
+		set_scene_art(CastSprites.load_texture(BOARD_SURROUNDS[trusted_board_id]), {})
+		_surround_behind_foreground = trusted_board_id != FIELD_BOARD and _scenery.texture != null
+		if _surround_behind_foreground:
+			# Terrain, scenery, tactical ink/figures, then the book and controls.
+			# Gate and the accepted Field retain their original composition.
+			board.set_foreground_above_scenery(true)
+			_scenery.z_index = 1
+			_book.z_index = 4
+			_header.z_index = 4
+			_footer.z_index = 4
 	_board_host.add_child(board)
 	board.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	board.accessibility_name = "Battle board"
@@ -147,7 +161,7 @@ func mount_board(board: Control, trusted_board_id: String, board_dimensions := V
 	board.add_child(_ink)
 	_ink.mount(board)
 	_ink.set_scene_props(_props)
-	_ink.set_scenery_coordinates(_scenery.texture != null)
+	_ink.set_scenery_coordinates(_scenery.texture != null and not _surround_behind_foreground)
 	_layout_page()
 
 
@@ -263,7 +277,7 @@ func set_scene_art(surround: Texture2D, props: Dictionary) -> void:
 	_props = props.duplicate(true)
 	if is_instance_valid(_ink):
 		_ink.set_scene_props(_props)
-		_ink.set_scenery_coordinates(surround != null)
+		_ink.set_scenery_coordinates(surround != null and not _surround_behind_foreground)
 
 
 func _load_gate_art() -> void:

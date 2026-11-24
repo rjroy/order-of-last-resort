@@ -9,6 +9,7 @@ const Cues = preload("res://presentation/cast_cues.gd")
 const Bridge = preload("res://bridge_art.gd")
 const HEROES := ["knight", "healer", "wizard", "bard", "rogue", "necromancer", "alchemist"]
 const CELL := Vector2i(3, 3)
+const SCENE_SIZE := Vector2i(1280, 820)
 
 class ProbeBoard extends Bridge:
 	var force_fallen_foreground := false
@@ -28,6 +29,7 @@ class ProbeBoard extends Bridge:
 
 var rules := Rules.new()
 var scene: Node
+var scene_view := SubViewport.new()
 var probe := ProbeBoard.new()
 var probe_view := SubViewport.new()
 var failures: Array[String] = []
@@ -42,7 +44,9 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	root.size = Vector2i(1280, 820)
+	scene_view.size = SCENE_SIZE
+	scene_view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	root.add_child(scene_view)
 	probe_view.size = Vector2i(Bridge.TILE + Bridge.GUTTER * 2.0)
 	probe_view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	probe.size = Vector2(probe_view.size)
@@ -53,7 +57,7 @@ func _run() -> void:
 	root.add_child(probe_container)
 	scene = load("res://main.tscn").instantiate()
 	scene.configure_launch(PackedStringArray(["--mission=goblin_mob"]))
-	root.add_child(scene)
+	scene_view.add_child(scene)
 	await process_frame
 	await process_frame
 	if scene.current_screen() != "battle":
@@ -136,17 +140,26 @@ func _case(hero: String, shield_away: bool) -> void:
 		if own.size() == 1:
 			board._process(maxf(0.0, own[0].clip.total_ms - own[0].elapsed_ms - 1.0) / 1000.0)
 			board.set_process(false)
-			terminal_frame = await _capture()
+			var at_end: Array = board.get("_playback").active().filter(func(entry): return \
+				entry.cue.get("unit_id") == "fallen" and entry.cue.get("clip") == "defeat" \
+				and entry.clip.frame_index(entry.elapsed_ms) == entry.clip.frames.size() - 1)
+			if at_end.size() == 1:
+				terminal_frame = await _capture()
 			break
 		if board.action_playback_snapshot().is_empty():
 			break
 		board._process(0.025)
 		board.set_process(false)
+	_check(terminal_frame != null, label + ": sampled the active defeat clip's final frame")
+	if hero == "rogue":
+		# Exercise the original failure between the two scene captures.
+		root.size = Vector2i(960, 640) if root.size != Vector2i(960, 640) else SCENE_SIZE
 	board._process((board.action_playback_remaining_ms() + 1.0) / 1000.0)
 	board.set_process(false)
 	var held := await _capture()
 	if terminal_frame != null:
-		_check(_difference(terminal_frame, held) == 0, label + ": final defeat frame holds after playback")
+		_check(terminal_frame.get_size() == SCENE_SIZE and held.get_size() == SCENE_SIZE \
+			and terminal_frame.get_data() == held.get_data(), label + ": final defeat frame holds after playback")
 	var rows: Array = board.get("_units")
 	var fallen_rows := rows.filter(func(row): return row.get("id") == "fallen")
 	_check(fallen_rows.size() == 1 and fallen_rows[0].get("hp", 1) == 0,
@@ -264,7 +277,7 @@ func _check_underlap(board: Control, label: String) -> void:
 func _capture() -> Image:
 	await process_frame
 	await RenderingServer.frame_post_draw
-	return root.get_texture().get_image()
+	return scene_view.get_texture().get_image()
 
 
 func _probe_capture() -> Image:

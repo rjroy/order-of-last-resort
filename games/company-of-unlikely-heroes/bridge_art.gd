@@ -4,6 +4,7 @@ extends Control
 signal cell_selected(cell: Vector2i)
 signal cell_hovered(cell: Vector2i)
 signal hover_cleared
+signal grid_labels_visibility_changed
 
 const CastSprites := preload("res://presentation/cast_sprites.gd")
 const CastPlayback := preload("res://presentation/cast_playback.gd")
@@ -49,6 +50,7 @@ var _objective_zone: Dictionary[Vector2i, bool] = {}
 var _pen_zone: Dictionary[Vector2i, bool] = {}
 var _painting: BoardPainting.Plate
 var _grid_visible := true
+var _grid_labels_visible := true
 var _nameplates_visible := true
 var _bounds := Rect2i()
 var _hover: Variant = null
@@ -96,6 +98,17 @@ func set_grid_visible(shown: bool) -> void:
 	if _grid_visible != shown:
 		_grid_visible = shown
 		queue_redraw()
+
+
+func set_grid_labels_visible(shown: bool) -> void:
+	if _grid_labels_visible != shown:
+		_grid_labels_visible = shown
+		queue_redraw()
+		grid_labels_visibility_changed.emit()
+
+
+func are_grid_labels_visible() -> bool:
+	return _grid_labels_visible
 
 
 func set_nameplates_visible(shown: bool) -> void:
@@ -398,7 +411,7 @@ func _draw() -> void:
 		if obstacle.hp > 0 and _cells.has(obstacle.position):
 			_at(_tile_origin(obstacle.position))
 			_draw_object(obstacle)
-	if not _cells.is_empty():
+	if not _cells.is_empty() and _grid_labels_visible:
 		_at(Vector2.ZERO)
 		_draw_coordinates()
 

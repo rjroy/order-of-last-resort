@@ -41,6 +41,7 @@ func mount(board: Control) -> void:
 	z_index = 3
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_board.resized.connect(_redraw)
+	_board.grid_labels_visibility_changed.connect(queue_redraw)
 	_cast.load_manifest()
 	var shader := Shader.new()
 	shader.code = STAMP_SHADER
@@ -105,6 +106,8 @@ func _notification(what: int) -> void:
 		return
 	if _board.resized.is_connected(_redraw):
 		_board.resized.disconnect(_redraw)
+	if _board.grid_labels_visibility_changed.is_connected(queue_redraw):
+		_board.grid_labels_visibility_changed.disconnect(queue_redraw)
 	if not _board.is_queued_for_deletion():
 		_board.set_pressure_gate_prop_installed(false)
 	_board = null
@@ -131,7 +134,7 @@ func _draw() -> void:
 	var step := _step()
 	if minf(step.x, step.y) < 1.0:
 		return
-	if _draw_coordinates:
+	if _draw_coordinates and _board.are_grid_labels_visible():
 		_coordinates(step)
 	var context_cell: Variant = _cues.get("context_cell")
 	var context_text: String = _cues.get("context_text", "")

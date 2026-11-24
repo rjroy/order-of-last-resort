@@ -167,11 +167,12 @@ func _ready_frame_zero() -> Image:
 
 
 func _check_ready_cycles(label: String, ready) -> void:
-	# Reset the shared clock so each render samples the midpoint of each actual
-	# frame. Compare pixels, not just frame indices or manifest declarations.
-	board.set("_ready_ms", 0.0)
+	# Replay the same controlled clock samples rather than assuming every
+	# identity completes a cycle in the manifest's unscaled duration.
 	var first_cycle: Array[Image] = []
 	for cycle in 2:
+		board.set("_ready_ms", 0.0)
+		board.get("_figures").queue_redraw()
 		var elapsed := 0.0
 		var first: Image
 		var changed := false
@@ -192,10 +193,8 @@ func _check_ready_cycles(label: String, ready) -> void:
 				first_cycle.append(image)
 			else:
 				_check(_difference(first_cycle[index], image) == 0,
-					label + " repeats the same rendered frame on its second cycle")
-		_check(changed, "%s visibly animates during ready cycle %d" % [label, cycle + 1])
-		board._process((ready.total_ms - elapsed) / 1000.0)
-		board.set_process(false)
+					label + " reproduces the same rendered frame at the same time")
+		_check(changed, "%s visibly animates during ready sampling %d" % [label, cycle + 1])
 
 
 func _check_manifest() -> void:

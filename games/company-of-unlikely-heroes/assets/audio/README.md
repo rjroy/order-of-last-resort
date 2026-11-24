@@ -10,7 +10,7 @@ Model: `audiocpp-stable-audio-3-sfx` in the local Mirli Soundbox library, origin
 | --- | --- | ---: | --- |
 | `shield_strike.wav` | `15c6fa1a-21a8-4808-925b-3774f532a22a` | 4210 | One small leather-bound wooden shield meeting a blunt steel weapon. A short woody knock with a muted metal edge, close and dry. |
 | `bow_harpoon.wav` | `65bb2b4e-b705-4d8b-aa23-2b8b4d19bd79` | 4211 | One short bowstring release into a small wood target. Restrained string twang then a compact dry wooden thunk; close foley. |
-| `magical_blast.wav` | `6b5e7e10-7a18-40ef-bedb-3aa550293eb7` | 4212 | Single compact magical impact. A quick airy rush collapses into a soft crackling pop, with a few fine sparks dying away. |
+| `magical_blast.wav` | `5ca83c5b-265c-499a-b540-cc116bd7da85` | 6813 | Single fantasy spell hit, like the air being punched by a giant felt-covered mallet. Immediate low hollow whump with a brief flutter of displaced air, tight dry finish. One close, rounded, weighty impact. No windup. |
 | `bone_summon.wav` | `557d91ed-9fcf-4f19-86ad-ce413d9dc78e` | 4213 | A tiny handful of dry bones snapping neatly together, two or three hollow clacks at slightly different pitches. Close dry sound. |
 | `rope_pull.wav` | `69da03a6-d54a-4562-8fcb-da926196f9aa` | 4214 | One short length of coarse hemp rope whipping taut under tension, fiber swish into a small tight snap. Close dry foley. |
 | `war_drum.wav` | `589c795a-38ed-4fbe-ae9e-561b92a806d2` | 4215 | One muted hide drum struck with a padded mallet. Compact round woody resonance, dry and short. |
@@ -19,11 +19,12 @@ Model: `audiocpp-stable-audio-3-sfx` in the local Mirli Soundbox library, origin
 
 Negative prompts:
 
-- Shield through drum: `music, ambient background, voice, long reverb, repeated hits`
+- Shield through drum, except the replacement Blast: `music, ambient background, voice, long reverb, repeated hits`
+- Force Blast: `music, voice, long reverb, gunfire, cinematic boom, repeated attacks, ambient bed`
 - Footfall: `marching, multiple steps, stomp, bass boom, music, ambience, reverb`
 - Potion: `explosion, large window, prolonged tinkling, reverb, music`
 
-All eight are 44.1 kHz stereo PCM24 masters. Each has nonzero signal in the very first frame and crosses 0.1% of full scale within 0.15 ms, so there was no silent audition padding to remove.
+All eight are 44.1 kHz stereo PCM24 masters. Ronald selected the Force audition to replace the original Blast. The [original recording](masters/magical_blast_original.wav) is preserved outside the runtime importer (Mirli ID `6b5e7e10-7a18-40ef-bedb-3aa550293eb7`, seed `4212`).
 
 ## Pencil provenance
 
@@ -63,7 +64,8 @@ SHA-256:
 ceba8f5867a8509f439db70f54e31bb4c9b0e16da0f6db3f2256ef1bec1f0c27  bone_summon.wav
 ec0af0f00db958e1884cd75fef44786b328965d1ad04a7c82e84f19de7edb76c  bow_harpoon.wav
 76cbcaa8e9b44d9ae69d882245a47969ae7864fb2d8bdb7c562c5f895e68bf4f  light_footfall.wav
-b9f012aacd3a52d42dfdfce2e830702141bfb64c3e40dda4756b8cb9248d068a  magical_blast.wav
+899127378a5c79ec12bb35e0cdbbbe42cf7eafd8f8123dd6117a9944f22a7012  magical_blast.wav
+b9f012aacd3a52d42dfdfce2e830702141bfb64c3e40dda4756b8cb9248d068a  masters/magical_blast_original.wav
 b7338971af7a224f4ad59f3d74d9c2300257c6aba4bab21759ed11285050e073  pencil_flick.wav
 7f0b7e28159a53448ca2f021fd0ebfc780b1d6000a6371063ebefc5d93e2207f  potion_smash.wav
 a32ba8ebec09c7e3878bcddaecaf34599f76ecdf2dba5a8718c9191195413abb  rope_pull.wav

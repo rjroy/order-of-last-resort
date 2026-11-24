@@ -6,6 +6,7 @@ const BattleCues = preload("res://battle_cues.gd")
 const BattleDisplayPreferences = preload("res://battle_display_preferences.gd")
 const CastCues = preload("res://presentation/cast_cues.gd")
 const SoundEffects = preload("res://presentation/sound_effects.gd")
+const BackgroundMusic = preload("res://presentation/background_music.gd")
 const StorybookInk = preload("res://presentation/storybook_battle_ink.gd")
 const Catalog = preload("res://content/catalog.gd")
 const Adventure = preload("res://adventure.gd")
@@ -105,6 +106,7 @@ var _terminal_board: BridgeArt
 var _terminal_replay_until := 0
 var _terminal_remaining_ms := 0.0
 var _sound_effects
+var _music
 
 
 func _ready() -> void:
@@ -112,6 +114,9 @@ func _ready() -> void:
 	_sound_effects = SoundEffects.new()
 	_sound_effects.name = "SoundEffects"
 	add_child(_sound_effects)
+	_music = BackgroundMusic.new()
+	_music.name = "BackgroundMusic"
+	add_child(_music)
 	_make_theme()
 	_grid_visible = BattleDisplayPreferences.load_grid_visible()
 	_grid_labels_visible = BattleDisplayPreferences.load_grid_labels_visible()
@@ -307,6 +312,10 @@ func _show_launch_error(message: String, guidance := "") -> void:
 
 func _book_page(screen: String, gutter := -1.0, book: GuildBookPage = null) -> VBoxContainer:
 	_clear_terminal_replay()
+	# Interstitial pages and results keep the last battle's music until the
+	# player actually returns to the guild. The initial reports remain main.
+	if screen not in ["routes", "debrief", "result"]:
+		_music.set_context("main")
 	if _screen == "petitions" and is_instance_valid(_screen_root):
 		var scroll := _screen_root.find_child("PetitionScroll", true, false) as ScrollContainer
 		if scroll != null:
@@ -1259,6 +1268,11 @@ func _discard_conflicted_return() -> void:
 
 func _show_battle(opening: Dictionary) -> void:
 	_state = opening
+	var is_final: bool = _practice == null and _fixed_mission.is_empty() \
+		and _run.get("phase") == "mission" \
+		and int(_run.get("mission_index", -1)) == Adventure.mission_count(_run) - 1 \
+		and opening.get("mission_id", "") == _run.get("destination_id", "")
+	_music.set_context("destination" if is_final else "road")
 	_show_storybook_battle()
 
 

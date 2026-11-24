@@ -7,6 +7,7 @@ const GRID_VISIBLE := "grid_visible"
 const GRID_LABELS_VISIBLE := "grid_labels_visible"
 const NAMEPLATES_VISIBLE := "nameplates_visible"
 const ALWAYS_SHOW_HEALTH_BAR := "always_show_health_bar"
+const SHOW_HINTS := "show_hints"
 
 
 static func load_grid_visible() -> bool:
@@ -25,6 +26,10 @@ static func load_always_show_health_bar() -> bool:
 	return _load_visibility(ALWAYS_SHOW_HEALTH_BAR, "always show health bar", false)
 
 
+static func load_show_hints() -> bool:
+	return _load_visibility(SHOW_HINTS, "hints")
+
+
 static func save_grid_visible(shown: bool) -> void:
 	_save_visibility(GRID_VISIBLE, "grid", shown)
 
@@ -39,6 +44,10 @@ static func save_nameplates_visible(shown: bool) -> void:
 
 static func save_always_show_health_bar(shown: bool) -> void:
 	_save_visibility(ALWAYS_SHOW_HEALTH_BAR, "always show health bar", shown)
+
+
+static func save_show_hints(shown: bool) -> void:
+	_save_visibility(SHOW_HINTS, "hints", shown)
 
 
 static func _load_visibility(key: String, label: String, default := true) -> bool:

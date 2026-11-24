@@ -12,9 +12,16 @@ signal grid_visibility_changed(shown: bool)
 signal grid_labels_visibility_changed(shown: bool)
 signal nameplate_visibility_changed(shown: bool)
 signal always_show_health_bar_changed(shown: bool)
+signal forecast_visibility_changed(opened: bool)
+signal hints_visibility_changed(shown: bool)
+signal help_from_popup_requested(source: Control)
+signal help_shortcut_requested
+signal help_from_dialog_requested(dialog: Window, focus: Control)
 
-enum DisplayOption { GRID, NAMEPLATES, GRID_LABELS, ALWAYS_SHOW_HEALTH_BAR }
+enum DisplayOption { GRID, NAMEPLATES, GRID_LABELS, ALWAYS_SHOW_HEALTH_BAR, SHOW_HINTS }
 
+const DisplayPreferences := preload("res://battle_display_preferences.gd")
+const HELP_MENU_ID := 1000000
 const Ink := preload("res://presentation/storybook_battle_ink.gd")
 const Surround := preload("res://presentation/storybook_battle_surround.gd")
 const SceneryRegistration := preload("res://presentation/storybook_scenery.gdshader")
@@ -88,6 +95,7 @@ var _title: Label
 var _round: Label
 var _objective: Label
 var _options: MenuButton
+var _help_utility_slot: Control
 var _pending_display_option := -1
 var _restart: Button
 var _upgrades: Button
@@ -135,6 +143,21 @@ var _popup_epoch := 0
 var _dismissed_order_pickers: Array[OptionButton] = []
 var _display: SystemFont
 var _built := false
+var _show_hints := true
+var _help_covered := false
+var _practice_controls: Control
+
+
+func set_help_covered(covered: bool) -> void:
+	_help_covered = covered
+	if is_instance_valid(_practice_controls) and _practice_controls.has_method("set_help_covered"):
+		_practice_controls.set_help_covered(covered)
+	queue_accessibility_update()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_ACCESSIBILITY_UPDATE:
+		AccessibilityServer.update_set_flag(get_accessibility_element(), AccessibilityServer.FLAG_HIDDEN, _help_covered)
 
 
 func _ready() -> void:
@@ -187,7 +210,7 @@ func render(view: Dictionary) -> void:
 	_restart.accessibility_description = "Mission ended in defeat." if outcome == "defeat" else ""
 	_upgrade_text.text = view.get("upgrades_text", "")
 	_upgrades.visible = not _restart.visible and not _upgrade_text.text.is_empty()
-	_forfeit.visible = active
+	_forfeit.visible = active and not is_instance_valid(_practice_controls)
 	if not active and is_forfeit_confirmation_open():
 		_close_forfeit_confirmation()
 	_layout_header()
@@ -357,7 +380,13 @@ func _build_header() -> void:
 	_header.add_child(_round)
 	_objective = _label("", 15, PARCHMENT)
 	_header.add_child(_objective)
+	_help_utility_slot = Control.new()
+	_help_utility_slot.name = "HelpUtilitySlot"
+	_help_utility_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_help_utility_slot.custom_minimum_size = Vector2(44, 41)
+	_header.add_child(_help_utility_slot)
 	_options = _menu("Options", "Options")
+	_show_hints = DisplayPreferences.load_show_hints()
 	_options.accessibility_description = "Battlefield grid, grid labels, nameplates, and health bar display options."
 	_style_rail_button(_options)
 	_options.custom_minimum_size = Vector2(104, 41)
@@ -367,11 +396,18 @@ func _build_header() -> void:
 	options_popup.add_check_item("Show Grid Labels", DisplayOption.GRID_LABELS)
 	options_popup.add_check_item("Show Nameplates", DisplayOption.NAMEPLATES)
 	options_popup.add_check_item("Always show health bar", DisplayOption.ALWAYS_SHOW_HEALTH_BAR)
+	options_popup.add_check_item("Show hints", DisplayOption.SHOW_HINTS)
+	options_popup.add_separator()
+	options_popup.add_item("Help (F1)", HELP_MENU_ID)
+	_set_help_shortcut(options_popup)
+	options_popup.set_item_checked(options_popup.get_item_index(DisplayOption.SHOW_HINTS),
+		DisplayPreferences.load_show_hints())
 	options_popup.hide_on_checkable_item_selection = false
 	options_popup.visibility_changed.connect(_battle_popup_visibility_changed.bind(options_popup))
 	options_popup.popup_hide.connect(_restore_options_focus)
 	options_popup.id_pressed.connect(_queue_display_option)
 	options_popup.window_input.connect(_handle_options_window_input)
+	options_popup.window_input.connect(_popup_help_input.bind(_options, options_popup))
 	_restart = _button("Restart", "Restart mission")
 	_restart.custom_minimum_size.x = 141.0
 	_header.add_child(_restart)
@@ -390,6 +426,14 @@ func _build_header() -> void:
 	_upgrade_dialog.name = "OutingLoadout"
 	_upgrade_dialog.title = "Outing upgrades"
 	_upgrade_dialog.ok_button_text = "Close"
+	_upgrade_dialog.add_button("Help (F1)", false, "help")
+	_upgrade_dialog.custom_action.connect(func(action: StringName) -> void:
+		if action == &"help":
+			_open_upgrade_help())
+	_upgrade_dialog.window_input.connect(func(event: InputEvent) -> void:
+		if _is_help_key(event):
+			_upgrade_dialog.set_input_as_handled()
+			_open_upgrade_help())
 	_header.add_child(_upgrade_dialog)
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(496, 250)
@@ -403,13 +447,42 @@ func _build_header() -> void:
 	_upgrade_text.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	scroll.add_child(_upgrade_text)
 	_upgrades.pressed.connect(func() -> void:
-		if is_forfeit_confirmation_open():
+		if _help_covered or is_forfeit_confirmation_open():
 			return
 		_upgrade_dialog.popup_centered(Vector2i(540, 310))
 		scroll.grab_focus())
 	_upgrade_dialog.visibility_changed.connect(func() -> void:
-		if not is_forfeit_confirmation_open() and not _upgrade_dialog.visible and _upgrades.is_visible_in_tree():
+		if not _help_covered and not is_forfeit_confirmation_open() and not _upgrade_dialog.visible and _upgrades.is_visible_in_tree():
 			_upgrades.grab_focus())
+
+
+func _open_upgrade_help() -> void:
+	if _help_covered:
+		return
+	var focus := _upgrade_dialog.gui_get_focus_owner()
+	_upgrade_dialog.hide()
+	help_from_dialog_requested.emit(_upgrade_dialog, focus)
+
+
+func _is_help_key(event: InputEvent) -> bool:
+	return event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F1
+
+
+func _popup_help_input(event: InputEvent, source: Control, popup: PopupMenu) -> void:
+	if not _is_help_key(event):
+		return
+	popup.set_meta("help_restore_row", popup.get_focused_item())
+	popup.set_input_as_handled()
+	popup.hide()
+	help_from_popup_requested.emit(source)
+
+
+func _set_help_shortcut(popup: PopupMenu) -> void:
+	var shortcut := Shortcut.new()
+	var key := InputEventKey.new()
+	key.keycode = KEY_F1
+	shortcut.events = [key]
+	popup.set_item_shortcut(popup.get_item_index(HELP_MENU_ID), shortcut)
 
 
 func _build_forfeit_confirmation() -> void:
@@ -446,6 +519,9 @@ func _build_forfeit_confirmation() -> void:
 	_forfeit_copy.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_forfeit_copy.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	content.add_child(_forfeit_copy)
+	var help_note := _label("Press F1 for Help.", 16, PAPER_MUTED)
+	help_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(help_note)
 	var gap := Control.new()
 	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	gap.custom_minimum_size.y = 4
@@ -486,7 +562,7 @@ func _style_forfeit_choice(button: Button, fill: Color, hover: Color, pressed: C
 
 
 func _open_forfeit_confirmation() -> void:
-	if not _forfeit.is_visible_in_tree() or is_forfeit_confirmation_open():
+	if _help_covered or not _forfeit.is_visible_in_tree() or is_forfeit_confirmation_open():
 		return
 	_forfeit_copy.text = "This mission will count as a defeat."
 	if not _restart.visible:
@@ -507,7 +583,7 @@ func _close_forfeit_confirmation() -> void:
 
 
 func _cancel_forfeit() -> void:
-	if not is_forfeit_confirmation_open():
+	if _help_covered or not is_forfeit_confirmation_open():
 		return
 	_close_forfeit_confirmation()
 	_reexpose_dismissed_order_pickers()
@@ -516,7 +592,7 @@ func _cancel_forfeit() -> void:
 
 
 func _confirm_forfeit() -> void:
-	if not is_forfeit_confirmation_open() or not _forfeit.is_visible_in_tree():
+	if _help_covered or not is_forfeit_confirmation_open() or not _forfeit.is_visible_in_tree():
 		return
 	_close_forfeit_confirmation()
 	forfeit_requested.emit()
@@ -526,11 +602,16 @@ func _confirm_forfeit() -> void:
 
 
 func _request_battle_action(intent: Signal) -> void:
-	if not is_forfeit_confirmation_open():
+	if not _help_covered and not is_forfeit_confirmation_open():
 		intent.emit()
 
 
 func _queue_display_option(option: int) -> void:
+	if _help_covered:
+		return
+	if option == HELP_MENU_ID:
+		help_from_popup_requested.emit(_options)
+		return
 	# Godot emits id_pressed before window_input. Wait for the originating
 	# event; assistive activation has no window event and uses the deferred call.
 	_apply_display_option()
@@ -567,11 +648,16 @@ func _apply_display_option() -> void:
 			nameplate_visibility_changed.emit(shown)
 		DisplayOption.ALWAYS_SHOW_HEALTH_BAR:
 			always_show_health_bar_changed.emit(shown)
+		DisplayOption.SHOW_HINTS:
+			_show_hints = shown
+			DisplayPreferences.save_show_hints(shown)
+			_update_action_tooltips()
+			hints_visibility_changed.emit(shown)
 
 
 func _restore_options_focus() -> void:
 	_pending_display_option = -1
-	if not is_forfeit_confirmation_open() and _options.is_visible_in_tree():
+	if not _help_covered and not is_forfeit_confirmation_open() and _options.is_visible_in_tree():
 		_options.grab_focus()
 
 
@@ -604,6 +690,25 @@ func _reexpose_dismissed_order_pickers() -> void:
 func _battle_popup_visibility_changed(popup: PopupMenu) -> void:
 	if not popup.visible:
 		return
+	if popup == _options.get_popup():
+		popup.position.x = maxi(0, int(get_viewport_rect().size.x) - popup.size.x - 12)
+	var source: Control
+	if popup == _actions.get_popup():
+		source = _actions
+	elif popup == _targets.get_popup():
+		source = _targets
+	else:
+		for widgets: Dictionary in _order_widgets.values():
+			if widgets.picker.get_popup() == popup:
+				source = widgets.picker
+				break
+	if is_instance_valid(source):
+		var launcher := source.get_global_rect()
+		var popup_rect := Rect2(Vector2(popup.position), Vector2(popup.size))
+		if popup_rect.intersects(launcher):
+			var above := launcher.position.y - popup_rect.size.y - 2.0
+			var below := launcher.end.y + 2.0
+			popup.position.y = int(above if above >= 0.0 else below)
 	# A native menu can still receive an assistive click queued before the
 	# background was hidden from accessibility.
 	if is_forfeit_confirmation_open():
@@ -617,7 +722,7 @@ func _battle_popup_visibility_changed(popup: PopupMenu) -> void:
 func _battle_popup_accepts_selection(popup: PopupMenu) -> bool:
 	# Godot hides the popup before signaling a valid selection. Keep accepting
 	# its callbacks until Forfeit invalidates them, and rearm only on reopening.
-	return not is_forfeit_confirmation_open() and popup.get_meta(&"_battle_popup_epoch", 0) == _popup_epoch
+	return not _help_covered and not is_forfeit_confirmation_open() and popup.get_meta(&"_battle_popup_epoch", 0) == _popup_epoch
 
 
 func _build_footer() -> void:
@@ -667,8 +772,13 @@ func _build_footer() -> void:
 	controls.add_child(_actions)
 	var actions_popup := _actions.get_popup()
 	actions_popup.visibility_changed.connect(_battle_popup_visibility_changed.bind(actions_popup))
+	actions_popup.window_input.connect(_popup_help_input.bind(_actions, actions_popup))
 	actions_popup.id_pressed.connect(func(index: int) -> void:
-		if _battle_popup_accepts_selection(actions_popup) and index >= 0 and index < _action_rows.size():
+		if _help_covered:
+			return
+		if index == HELP_MENU_ID:
+			help_from_popup_requested.emit(_actions)
+		elif _battle_popup_accepts_selection(actions_popup) and index >= 0 and index < _action_rows.size():
 			action_selected.emit(str(_action_rows[index].id)))
 	_targets = _menu("Targets", "Choose target")
 	_style_rail_button(_targets)
@@ -676,8 +786,13 @@ func _build_footer() -> void:
 	controls.add_child(_targets)
 	var targets_popup := _targets.get_popup()
 	targets_popup.visibility_changed.connect(_battle_popup_visibility_changed.bind(targets_popup))
+	targets_popup.window_input.connect(_popup_help_input.bind(_targets, targets_popup))
 	targets_popup.id_pressed.connect(func(index: int) -> void:
-		if _battle_popup_accepts_selection(targets_popup) and index >= 0 and index < _target_rows.size():
+		if _help_covered:
+			return
+		if index == HELP_MENU_ID:
+			help_from_popup_requested.emit(_targets)
+		elif _battle_popup_accepts_selection(targets_popup) and index >= 0 and index < _target_rows.size():
 			target_selected.emit(str(_target_rows[index].id)))
 	_orders = _button("StandingOrders", "Standing orders")
 	_orders.toggle_mode = true
@@ -771,6 +886,9 @@ func _leaf_scroll(sheet: VBoxContainer) -> ScrollContainer:
 
 func _toggle_leaf(section: String) -> void:
 	# Assistive activation can bypass GUI input and toggle a button directly.
+	if _help_covered:
+		return
+	var was_forecast := _expanded == "forecast"
 	if not is_forfeit_confirmation_open():
 		_expanded = "" if _expanded == section else section
 	_orders.set_pressed_no_signal(_expanded == "orders")
@@ -784,6 +902,8 @@ func _toggle_leaf(section: String) -> void:
 	_forecast_scroll.visible = _expanded == "forecast"
 	_leaf.visible = not _expanded.is_empty()
 	_layout_page()
+	if was_forecast != (_expanded == "forecast"):
+		forecast_visibility_changed.emit(_expanded == "forecast")
 	if _expanded == "forecast":
 		_forecast_scroll.grab_focus()
 	elif _expanded == "orders":
@@ -791,6 +911,22 @@ func _toggle_leaf(section: String) -> void:
 			if not value.picker.disabled:
 				value.picker.grab_focus()
 				break
+
+
+func close_forecast() -> void:
+	if _expanded == "forecast":
+		_toggle_leaf("forecast")
+
+
+func mount_practice_controls(controls: Control) -> void:
+	_build()
+	assert(not is_instance_valid(_practice_controls) and controls.get_parent() == null)
+	_practice_controls = controls
+	_surface_root.add_child(controls)
+	controls.z_index = 6
+	controls.minimum_size_changed.connect(_layout_page, CONNECT_DEFERRED)
+	_forfeit.hide()
+	_layout_page()
 
 
 func _input(event: InputEvent) -> void:
@@ -816,6 +952,10 @@ func _input(event: InputEvent) -> void:
 
 
 func _forfeit_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F1:
+		get_viewport().set_input_as_handled()
+		help_shortcut_requested.emit()
+		return
 	if not (event is InputEventKey or event is InputEventAction
 			or event is InputEventJoypadButton or event is InputEventJoypadMotion):
 		return  # The full-page scrim handles pointer input in the GUI.
@@ -853,10 +993,20 @@ func _refresh_actions(rows: Array, hero: String, chosen: String, active: bool) -
 				label += " (automatic)"
 			popup.add_radio_check_item(label, index)
 			popup.set_item_disabled(index, not row.get("enabled", true))
-			popup.set_item_tooltip(index, row.get("help", ""))
+			popup.set_item_tooltip(index, row.get("help", "") if _show_hints or not row.get("enabled", true) else "")
+		popup.add_separator()
+		popup.add_item("Help (F1)", HELP_MENU_ID)
+		_set_help_shortcut(popup)
 	var popup := _actions.get_popup()
 	for index in popup.item_count:
 		popup.set_item_checked(index, index == current)
+
+
+func _update_action_tooltips() -> void:
+	var popup := _actions.get_popup()
+	for index in _action_rows.size():
+		var row: Dictionary = _action_rows[index]
+		popup.set_item_tooltip(index, row.get("help", "") if _show_hints or not row.get("enabled", true) else "")
 
 
 func _refresh_targets(rows: Array, active: bool) -> void:
@@ -868,6 +1018,9 @@ func _refresh_targets(rows: Array, active: bool) -> void:
 	popup.clear()
 	for index in rows.size():
 		popup.add_item(rows[index].label, index)
+	popup.add_separator()
+	popup.add_item("Help (F1)", HELP_MENU_ID)
+	_set_help_shortcut(popup)
 
 
 func _refresh_orders(rows: Array) -> void:
@@ -897,6 +1050,9 @@ func _refresh_orders(rows: Array) -> void:
 			picker.clear()
 			for item: Dictionary in items:
 				picker.add_item(item.label)
+			picker.add_separator()
+			picker.add_item("Help (F1)", HELP_MENU_ID)
+			_set_help_shortcut(picker.get_popup())
 		picker.disabled = not row.get("enabled", true) or items.is_empty()
 		widgets.selected_index = items.find_custom(func(item: Dictionary) -> bool: return item.id == row.order_id)
 		picker.select(widgets.selected_index)
@@ -940,6 +1096,7 @@ func _add_order(hero: String, label: String) -> void:
 	row.add_child(picker)
 	var popup := picker.get_popup()
 	popup.visibility_changed.connect(_battle_popup_visibility_changed.bind(popup))
+	popup.window_input.connect(_popup_help_input.bind(picker, popup))
 	var widgets := {"row": row, "rule": rule, "note": note, "detail": detail, "picker": picker,
 		"choices": [], "selected_index": -1}
 	_order_widgets[hero] = widgets
@@ -949,6 +1106,10 @@ func _add_order(hero: String, label: String) -> void:
 			picker.select(widgets.selected_index)
 			return
 		var items: Array = widgets.choices
+		if index == items.size() + 1:
+			picker.select(widgets.selected_index)
+			help_from_popup_requested.emit(picker)
+			return
 		if index >= 0 and index < items.size():
 			order_selected.emit(hero, str(items[index].id)))
 
@@ -982,6 +1143,13 @@ func _layout_page() -> void:
 	var footer_top := size.y - EDGE - 11.0 - footer_height
 	_rail_top = footer_top - 9.0
 	var board_top := EDGE + 65.0
+	if is_instance_valid(_practice_controls) and _practice_controls.visible:
+		var practice_height := maxf(70.0, _practice_controls.get_combined_minimum_size().y)
+		_practice_controls.position = Vector2(margin, board_top + 4.0)
+		_practice_controls.size = Vector2(content_width, practice_height)
+		board_top += practice_height + 8.0
+	else:
+		board_top += 26.0
 	var arena := Rect2(Vector2(EDGE, board_top), Vector2(width, maxf(0.0, _rail_top - board_top - 2.0)))
 	var board_extent := Vector2(_dimensions) * BridgeArt.TILE + BridgeArt.GUTTER * 2.0
 	var region := arena
@@ -1028,6 +1196,10 @@ func _layout_header() -> void:
 	var round_width := maxf(103.0, _round.get_theme_font("font").get_string_size(
 		_round.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 19).x + 2.0)
 	var text_edge := width
+	text_edge = maxf(0.0, text_edge - _help_utility_slot.custom_minimum_size.x)
+	_help_utility_slot.position = Vector2(text_edge, 10.0)
+	_help_utility_slot.size = _help_utility_slot.custom_minimum_size
+	text_edge -= 12.0
 	for button: Button in [_forfeit, _restart, _upgrades, _options]:
 		if not button.visible:
 			continue
@@ -1204,6 +1376,12 @@ func _make_theme() -> Theme:
 	skin.set_color("font_hover_color", "PopupMenu", PARCHMENT)
 	skin.set_color("font_disabled_color", "PopupMenu", MUTED)
 	skin.set_constant("v_separation", "PopupMenu", 9)
+	for checked in [false, true]:
+		var mark := '<path d="M3 7l3 3 5-6" fill="none" stroke="#fff0cc" stroke-width="2"/>' if checked else ""
+		var svg := '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"><rect x="1" y="1" width="12" height="12" rx="2" fill="#38271b" stroke="#f2d6a4" stroke-width="1.5"/>%s</svg>' % mark
+		var image := Image.new()
+		if image.load_svg_from_string(svg) == OK:
+			skin.set_icon("checked" if checked else "unchecked", "PopupMenu", ImageTexture.create_from_image(image))
 	return skin
 
 

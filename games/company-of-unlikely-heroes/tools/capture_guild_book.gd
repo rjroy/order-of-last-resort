@@ -97,7 +97,8 @@ func _run() -> void:
 	if name_edit.text != "The Review Company":
 		_finish_capture("Guild name keyboard input failed: " + name_edit.text)
 		return
-	if not await _press_button("CreateGuild") or not _screen_is("commissions") \
+	if not await _press_button("CreateGuild") or not _screen_is("battle") \
+			or not await _press_button("SkipPractice") or not _screen_is("commissions") \
 			or not await _save_capture("02-commissions"):
 		_finish_capture(failure)
 		return
@@ -333,7 +334,7 @@ func _capture_creation_states() -> String:
 	if not await _save_capture("03-long-name"):
 		return failure
 	await _key(KEY_ENTER)
-	if not _screen_is("commissions"):
+	if not _screen_is("battle") or not await _press_button("SkipPractice") or not _screen_is("commissions"):
 		return failure
 	print("Checked creation with keyboard entry and reached the commission board.")
 	return ""

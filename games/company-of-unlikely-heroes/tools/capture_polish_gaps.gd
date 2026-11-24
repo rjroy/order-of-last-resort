@@ -61,6 +61,7 @@ func _run() -> void:
 	name_edit.text = "The Extraordinarily Long Company of Unlikely Heroes"
 	name_edit.text_changed.emit(name_edit.text)
 	if create.disabled or not await _save_capture("04-long-name") or not await _press_button("CreateGuild") \
+			or not _screen_is("battle") or not await _press_button("SkipPractice") \
 			or not _screen_is("commissions") or not await _save_capture("05-long-name-commissions"):
 		_finish_capture(failure if not failure.is_empty() else "Long guild name failed.")
 		return

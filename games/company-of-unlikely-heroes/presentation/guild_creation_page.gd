@@ -43,8 +43,14 @@ func _mount_cover(leaf: Control, title: String, painting: Texture2D, compact: bo
 func _build_form(leaf: Control, after_missing_profile: bool, create_profile: Callable,
 		compact: bool) -> void:
 	leaf.add_theme_constant_override("separation", 0)
+	var utility := Control.new()
+	utility.name = "HelpUtilitySlot"
+	utility.custom_minimum_size = Vector2(166, 42)
+	utility.size_flags_horizontal = Control.SIZE_SHRINK_END
+	utility.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	leaf.add_child(utility)
 	var margins := MarginContainer.new()
-	margins.add_theme_constant_override("margin_top", 61 if compact else 101)
+	margins.add_theme_constant_override("margin_top", 19 if compact else 59)
 	margins.add_theme_constant_override("margin_right", 5)
 	leaf.add_child(margins)
 	var form := stack(margins, 0)
@@ -53,6 +59,11 @@ func _build_form(leaf: Control, after_missing_profile: bool, create_profile: Cal
 	var intro := text(form, "Once it’s founded, you can take commissions and recruit your company. "
 		+ "Your guild keeps its name between outings.", 21 if compact else 25, INK, "display")
 	intro.add_theme_constant_override("line_spacing", 3)
+	var hint := Control.new()
+	hint.name = "HelpHintSlot"
+	hint.custom_minimum_size.y = 24
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	form.add_child(hint)
 	space(form, 17 if compact else 35)
 	var caption := strong_text(form, "Guild name", 19 if compact else 24)
 	space(form, 7 if compact else 12)

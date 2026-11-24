@@ -152,7 +152,10 @@ func _capture() -> Image:
 func _local_rect(rect: Rect2) -> Rect2i:
 	var scale: float = board.get("_map_scale")
 	var origin: Vector2 = board.cell_center(CELL) - Board.TILE * 0.5 * scale
-	var transform := board.get_global_transform_with_canvas()
+	# The captured viewport texture excludes window letterboxing but may be
+	# larger than the logical canvas when the window is scaled.
+	var image_scale := Vector2(root.get_texture().get_image().get_size()) / root.get_visible_rect().size
+	var transform := Transform2D(0.0, image_scale, 0.0, Vector2.ZERO) * board.get_global_transform_with_canvas()
 	var start := transform * (origin + rect.position * scale)
 	var end := transform * (origin + rect.end * scale)
 	return Rect2i(Vector2i(start.floor()), Vector2i(end.ceil() - start.floor()))

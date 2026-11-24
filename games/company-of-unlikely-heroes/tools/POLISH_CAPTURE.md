@@ -19,9 +19,10 @@ godot --path games/company-of-unlikely-heroes \
 The full guild-book capture's output path must be below `.lore/local/guild-book-review`.
 The supplement accepts paths below `.lore/local`.
 Both reject symbolic-link components. Do not copy a disposable profile
-into another run. The first full-run board and the long-name commission
-screenshot use the game's random board. Subsequent stock outings use board
-seed 6; the full driver also fixes its reward RNG.
+into another run. Both scripts skip the Founders’ Drill after guild creation
+to capture the commission board. The first full-run board and the long-name
+commission screenshot use the game's random board. Subsequent stock outings
+use board seed 6; the full driver also fixes its reward RNG.
 
 ## Coverage
 

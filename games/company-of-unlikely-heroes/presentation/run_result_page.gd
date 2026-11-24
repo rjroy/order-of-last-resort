@@ -60,7 +60,18 @@ func _build_return_leaf(parent: VBoxContainer, model: Dictionary) -> void:
 	parent.add_theme_constant_override("separation", 0)
 	# Align the receipt with the painting and keep its action close to the ledger.
 	var room := clampf((get_viewport_rect().size.y - 700.0) / 120.0, 0.0, 1.0)
-	space(parent, 27 if _compact else lerpf(115, 162, room))
+	var utility := Control.new()
+	utility.name = "HelpUtilitySlot"
+	utility.custom_minimum_size = Vector2(166, 42)
+	utility.size_flags_horizontal = Control.SIZE_SHRINK_END
+	utility.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(utility)
+	var hint := Control.new()
+	hint.name = "HelpHintSlot"
+	hint.custom_minimum_size.y = 24
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(hint)
+	space(parent, 0 if _compact else maxf(0, lerpf(115, 162, room) - 66))
 	var paper := material_panel(parent, Surface.POSTING, 18 if _compact else 29,
 		29 if _compact else 32, 18 if _compact else 25)
 	paper.size_flags_vertical = Control.SIZE_EXPAND_FILL

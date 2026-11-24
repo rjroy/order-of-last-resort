@@ -93,7 +93,7 @@ class GuildLocationTest(unittest.TestCase):
                 self.assertEqual(result["initial_screen"], "guild_creation", result)
                 self.assertEqual(Path(result["user_dir"]), self.new_root)
                 self.assertEqual(Path(result["path"]), self.new_root / filename)
-                self.assertEqual(result["screen"], "commissions", result)
+                self.assertEqual(result["screen"], "battle" if filename == STANDARD else "commissions", result)
                 self.assertEqual(result["profile"].get("name"), name, result)
                 self.assertTrue((self.new_root / filename).is_file())
                 saved = json.loads((self.new_root / filename).read_text())

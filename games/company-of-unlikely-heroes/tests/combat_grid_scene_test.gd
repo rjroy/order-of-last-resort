@@ -7,6 +7,8 @@ extends SceneTree
 const GRID := "Show Grid"
 const GRID_LABELS := "Show Grid Labels"
 const NAMES := "Show Nameplates"
+const HEALTH := "Always show health bar"
+const HINTS := "Show hints"
 var failures: Array[String] = []
 var scene: Node
 var board: Control
@@ -58,6 +60,7 @@ func _run() -> void:
 	board.process_mode = Node.PROCESS_MODE_DISABLED
 	board.set("_ready_ms", 0.0)
 	(board.get_node("CastAndUnitMarkers") as CanvasItem).queue_redraw()
+	await _exercise_health_bar(before, draft, actor)
 	await _exercise_grid_labels(before, draft, actor)
 	var both_shown := await _capture()
 	await _toggle(GRID)
@@ -191,7 +194,7 @@ func _exercise_keyboard_options(before: Dictionary, draft: Dictionary, actor: St
 	await _key(KEY_ESCAPE, false)
 	_check(not menu.visible, "Escape dismisses Options")
 	_check_draft(before, draft, actor)
-	# Restore the selected check through the ordinary pointer path for the
+	# Restore the selected check through the ordinary menu path for the
 	# subsequent four-way rendering checks.
 	if menu.is_item_checked(index) != initially_checked:
 		await _toggle(menu.get_item_text(index))
@@ -224,6 +227,23 @@ func _exercise_grid_labels(before: Dictionary, draft: Dictionary, actor: String)
 			"Both axes immediately restore with grid %s" % grid)
 	_check_draft(before, draft, actor)
 	await _toggle(GRID)
+
+
+func _exercise_health_bar(before: Dictionary, draft: Dictionary, actor: String) -> void:
+	var hidden := await _capture()
+	_check(not bool(board.get("_always_show_health_bar")), "Full-health bars default to hidden")
+	await _toggle(HEALTH)
+	_check(bool(board.get("_always_show_health_bar")), "Health option reaches the actual board")
+	_check_draft(before, draft, actor)
+	var shown := await _capture()
+	_check(_difference(hidden, shown, _board_rect()) > 5,
+		"Enabling full-health bars changes the rendered battle")
+	await _toggle(HEALTH)
+	_check(not bool(board.get("_always_show_health_bar")), "Disabling health bars reaches the board")
+	_check_draft(before, draft, actor)
+	var restored := await _capture()
+	_check(_difference(hidden, restored, _board_rect()) == 0,
+		"Disabling full-health bars restores the rendered battle")
 
 
 func _axis_regions() -> Array[Rect2i]:
@@ -288,12 +308,17 @@ func _key(code: Key, pressed: bool, echo := false) -> void:
 
 
 func _options() -> MenuButton:
+	var found: MenuButton
+	var visible_count := 0
+	for candidate in scene.find_children("*", "Button", true, false):
+		if candidate.is_visible_in_tree() and candidate.text.to_lower() == "options":
+			visible_count += 1
 	for candidate in scene.find_children("*", "MenuButton", true, false):
 		var button := candidate as MenuButton
 		if button.is_visible_in_tree() and button.text.to_lower() == "options":
-			return button
-	_check(false, "Battle exposes an Options menu")
-	return null
+			found = button
+	_check(visible_count == 1 and found != null, "Battle exposes exactly one visible native Options menu")
+	return found
 
 
 func _item(menu: PopupMenu, label: String) -> int:
@@ -314,13 +339,31 @@ func _check_options(grid: bool, names: bool, grid_labels := true) -> bool:
 	var grid_index := _item(menu, GRID)
 	var names_index := _item(menu, NAMES)
 	var labels_index := _item(menu, GRID_LABELS)
-	var valid := grid_index >= 0 and names_index >= 0 and labels_index >= 0
+	var health_index := _item(menu, HEALTH)
+	var hints_index := _item(menu, HINTS)
+	var valid := grid_index >= 0 and names_index >= 0 and labels_index >= 0 \
+		and health_index >= 0 and hints_index >= 0
 	if valid:
+		var check_count := 0
+		for index in menu.item_count:
+			if menu.is_item_checkable(index):
+				check_count += 1
+		_check(check_count == 5, "Options has exactly five checkable entries")
+		var help_index := _item(menu, "Help (F1)")
+		_check(help_index >= 0 and not menu.is_item_checkable(help_index)
+			and not menu.is_item_disabled(help_index), "Options also offers an enabled Help action")
 		_check(menu.is_item_checkable(grid_index) and menu.is_item_checkable(names_index)
-			and menu.is_item_checkable(labels_index), "All display entries are checkable")
+			and menu.is_item_checkable(labels_index) and menu.is_item_checkable(health_index)
+			and menu.is_item_checkable(hints_index), "All five entries are checkable")
+		_check(menu.get_item_id(grid_index) == 0 and menu.get_item_id(names_index) == 1
+			and menu.get_item_id(labels_index) == 2 and menu.get_item_id(health_index) == 3,
+			"Four display controls retain their stable option IDs")
+		_check(menu.get_item_id(hints_index) == 4, "Hints uses a distinct option ID")
 		_check(menu.is_item_checked(grid_index) == grid, "Show Grid reflects the saved choice")
 		_check(menu.is_item_checked(names_index) == names, "Show Nameplates reflects the saved choice")
 		_check(menu.is_item_checked(labels_index) == grid_labels, "Show Grid Labels reflects the saved choice")
+		_check(not menu.is_item_checked(health_index), "Full-health bars reflect the default choice")
+		_check(menu.is_item_checked(hints_index), "Hints default on in legacy display settings")
 	menu.hide()
 	await process_frame
 	return valid
@@ -337,12 +380,19 @@ func _toggle(label: String) -> void:
 		_check(false, "Options opens to allow clicking " + label)
 		menu.hide()
 		return
-	# Route pointer input through the root window so Godot dispatches it to the
-	# embedded popup window, rather than bypassing its window input handling.
-	_check(menu.item_count == 4, "Options has the four display checks")
-	var point := Vector2(menu.position) \
-		+ Vector2(menu.size.x * 0.5, menu.size.y * (index + 0.5) / menu.item_count)
-	await _click(point)
+	# The separator has a different height from check rows, so use the popup's
+	# keyboard navigation rather than guessing row coordinates from its height.
+	for attempt in menu.item_count + 1:
+		if menu.get_focused_item() == index:
+			break
+		await _key(KEY_DOWN, true)
+		await _key(KEY_DOWN, false)
+	if menu.get_focused_item() != index:
+		_check(false, "Keyboard navigation reaches " + label)
+		menu.hide()
+		return
+	await _key(KEY_ENTER, true)
+	await _key(KEY_ENTER, false)
 	if menu.visible:
 		menu.hide()
 	await process_frame

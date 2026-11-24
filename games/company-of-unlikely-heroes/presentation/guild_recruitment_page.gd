@@ -114,7 +114,17 @@ func _build_slot(parent: Control, hero: Dictionary, index: int, filled: int) -> 
 
 func _build_folio(parent: VBoxContainer, model: Dictionary, party: Array, hero: Dictionary) -> void:
 	parent.add_theme_constant_override("separation", 0)
-	_book.space(parent, 24 if _compact else 30)
+	var utility := Control.new()
+	utility.name = "HelpUtilitySlot"
+	utility.custom_minimum_size = Vector2(166, 42)
+	utility.size_flags_horizontal = Control.SIZE_SHRINK_END
+	utility.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(utility)
+	var hint := Control.new()
+	hint.name = "HelpHintSlot"
+	hint.custom_minimum_size.y = 24
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(hint)
 	var sheet := _book.material_panel(parent, BoundPage.Surface.POSTING, 21 if _compact else 31,
 		24 if _compact else 30, 18 if _compact else 24)
 	sheet.size_flags_vertical = Control.SIZE_EXPAND_FILL

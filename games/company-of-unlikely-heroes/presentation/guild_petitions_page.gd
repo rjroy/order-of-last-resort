@@ -59,9 +59,19 @@ func _build_header(parent: VBoxContainer, balance: int, return_summary: String) 
 	var unit := Prep.line(_book, points, "guild point" if balance == 1 else "guild points", 26)
 	unit.name = "GuildPointUnit"
 	unit.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var utility := Control.new()
+	utility.name = "HelpUtilitySlot"
+	utility.custom_minimum_size = Vector2(166, 42)
+	utility.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	heading.add_child(utility)
 	if not return_summary.is_empty():
 		var account := Prep.text(_book, header, return_summary, 20, Prep.QUIET)
 		account.name = "PetitionReturnSummary"
+	var hint := Control.new()
+	hint.name = "HelpHintSlot"
+	hint.custom_minimum_size.y = 24
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.add_child(hint)
 	_book.rule(parent, Prep.RULE)
 
 
@@ -109,9 +119,11 @@ func _build_filter(parent: Control, options: Array, hero_filter: String) -> void
 		if id == hero_filter:
 			selected = index
 	filter.select(selected)
+	var choice_count := filter.item_count
 	parent.add_child(filter)
 	filter.item_selected.connect(func(index: int) -> void:
-		filter_changed.emit(str(filter.get_item_metadata(index))))
+		if index < choice_count:
+			filter_changed.emit(str(filter.get_item_metadata(index))))
 
 
 func _build_group_heading(parent: Control, record: Dictionary) -> void:

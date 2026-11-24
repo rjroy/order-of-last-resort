@@ -41,8 +41,10 @@ func _run() -> void:
 	input.text_changed.emit(input.text)
 	await process_frame
 	await _press("CreateGuild")
-	_check(scene.current_screen() == "commissions", "Creating a guild opens commissions")
-	_check_no_practice("New commission board")
+	_check(scene.current_screen() == "battle", "Creating a guild starts practice")
+	if scene.current_screen() == "battle":
+		await _press("SkipPractice")
+	_check(scene.current_screen() == "commissions", "Skipping practice opens commissions")
 	if scene.current_screen() != "commissions":
 		_cleanup()
 		return
@@ -56,7 +58,6 @@ func _run() -> void:
 	store.renew(profile_path, saved, BOARD_SEED)
 	await _launch_normal()
 	_check(scene.current_screen() == "commissions", "Reloading the saved guild opens its board")
-	_check_no_practice("Reloaded commission board")
 	_check(store.load_profile(profile_path).get("name") == GUILD_NAME, "Reload retains the guild name")
 	_check(store.load_profile(profile_path).get("board_seed") == BOARD_SEED, "Reload retains the controlled board seed")
 	for board_size in [Vector2i(1280, 820), Vector2i(960, 615)]:
@@ -235,7 +236,6 @@ func _run() -> void:
 		var old_seed: int = store.load_profile(profile_path).get("board_seed", -1)
 		await _press("ReturnToGuild")
 		_check(scene.current_screen() == "commissions", "Returning after a terminal outing refreshes the board")
-		_check_no_practice("Board after terminal outing")
 		var refreshed: Dictionary = store.load_profile(profile_path)
 		_check(refreshed.get("name") == GUILD_NAME and refreshed.get("board_seed", -1) != old_seed,
 			"Return persists the same guild name with a fresh board seed")
@@ -313,7 +313,6 @@ func _check_petitions_entry(scenario: String) -> void:
 func _check_no_practice(context: String) -> void:
 	var practice := _node("PracticeOutings") as Control
 	_check(practice == null or not practice.is_visible_in_tree(), context + ": no practice entry")
-	_check("practice" not in _visible_text().to_lower(), context + ": no visible practice navigation")
 
 
 func _test_commission_back_and_forfeit() -> bool:
@@ -328,7 +327,6 @@ func _test_commission_back_and_forfeit() -> bool:
 	if scene.current_screen() != "commissions":
 		_check(false, "Recruitment returns to the commission board")
 		return false
-	_check_no_practice("Board after recruitment back")
 	_check(store.load_profile(profile_path) == before, "Backing out does not change the profile")
 	await _press("Commission_0")
 	for id in FOUNDER_PARTY:
@@ -364,7 +362,6 @@ func _test_commission_back_and_forfeit() -> bool:
 	_check_no_practice("Forfeit result")
 	await _press("ReturnToGuild")
 	_check(scene.current_screen() == "commissions", "Returning after forfeit opens the commission board")
-	_check_no_practice("Board after forfeit")
 	return scene.current_screen() == "commissions"
 
 

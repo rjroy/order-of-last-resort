@@ -18,6 +18,17 @@ var _face: SystemFont
 var _italic: SystemFont
 var _fibers: PackedVector2Array
 var _preparation_paper := false
+var _help_covered := false
+
+
+func set_help_covered(covered: bool) -> void:
+	_help_covered = covered
+	queue_accessibility_update()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_ACCESSIBILITY_UPDATE:
+		AccessibilityServer.update_set_flag(get_accessibility_element(), AccessibilityServer.FLAG_HIDDEN, _help_covered)
 
 
 func build(gutter_at: float) -> VBoxContainer:

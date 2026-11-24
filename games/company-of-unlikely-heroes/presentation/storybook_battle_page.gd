@@ -27,6 +27,7 @@ const FIELD_ART := "res://assets/storybook-field/frontier-field-surround-rgba.pn
 const BOARD_SURROUNDS := {
 	"frontier_field": FIELD_ART,
 	"frontier_line_board": "res://assets/storybook-surrounds/frontier_line_board.png",
+	"frontier_bridge_board": "res://assets/storybook-surrounds/frontier_bridge_board.png",
 }
 const EDGE := 16.0
 const CONTENT_MARGIN := EDGE + 26.0
@@ -988,6 +989,12 @@ func _layout_page() -> void:
 		var grid_start := (_board_host.position + BridgeArt.GUTTER * fitted_scale) / size
 		var grid_end := (_board_host.get_rect().end - BridgeArt.GUTTER * fitted_scale) / size
 		_scenery_registration.set_shader_parameter("aperture", Vector4(grid_start.x, grid_start.y, grid_end.x, grid_end.y))
+		_scenery_registration.set_shader_parameter("board_scale_wings",
+			_surround_behind_foreground and not _expanded.is_empty())
+		var cell_width := BridgeArt.TILE.x * fitted_scale
+		_scenery_registration.set_shader_parameter("right_fade", Vector2(
+			(_board_host.get_rect().end.x + 0.05 * cell_width) / size.x,
+			(_board_host.get_rect().end.x + 0.90 * cell_width) / size.x))
 	_header.position = Vector2(margin, EDGE + 5.0)
 	_header.size = Vector2(content_width, 57.0)
 	_layout_header()

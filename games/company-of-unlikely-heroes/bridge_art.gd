@@ -5,6 +5,7 @@ signal cell_selected(cell: Vector2i)
 signal cell_hovered(cell: Vector2i)
 signal hover_cleared
 signal grid_labels_visibility_changed
+signal foreground_layer_changed(enabled: bool)
 
 const CastSprites := preload("res://presentation/cast_sprites.gd")
 const CastPlayback := preload("res://presentation/cast_playback.gd")
@@ -13,6 +14,7 @@ const BoardPainting := preload("res://presentation/board_painting.gd")
 const TILE := Vector2(96, 80)
 const GUTTER := Vector2(31, 34)
 const FOOT := Vector2(49, 62)
+const FOREGROUND_Z_INDEX := 2
 const INK := Color("#282725")
 const PARCHMENT := Color("#f5e5bd")
 const RIVER := Color("#28474b")
@@ -97,10 +99,15 @@ func _ready() -> void:
 ## remain behind all tactical marks, objects, coordinates and figures.
 func set_foreground_above_scenery(enabled: bool) -> void:
 	_foreground_above_scenery = enabled
-	_tactical.z_index = 2 if enabled else 0
-	_figures.z_index = 2 if enabled else 0
+	_tactical.z_index = FOREGROUND_Z_INDEX if enabled else 0
+	_figures.z_index = FOREGROUND_Z_INDEX if enabled else 0
 	queue_redraw()
 	_tactical.queue_redraw()
+	foreground_layer_changed.emit(enabled)
+
+
+func foreground_above_scenery() -> bool:
+	return _foreground_above_scenery
 
 
 ## The caller supplies a board ID only when launched from the built-in catalog.

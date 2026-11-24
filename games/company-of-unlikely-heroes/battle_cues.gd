@@ -26,6 +26,14 @@ func attach_to(board: BridgeArt) -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	board.resized.connect(queue_redraw)
+	board.foreground_layer_changed.connect(_set_foreground_layer)
+	_set_foreground_layer(board.foreground_above_scenery())
+
+
+func _set_foreground_layer(enabled: bool) -> void:
+	# Cues are appended after the figures; at the same depth they cover both
+	# deck and figures, while the storybook ink remains above them.
+	z_index = BridgeArt.FOREGROUND_Z_INDEX if enabled else 0
 
 
 func update_markers(markers: Dictionary, use_native_exit: bool) -> void:

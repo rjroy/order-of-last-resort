@@ -49,6 +49,7 @@ var _objective_zone: Dictionary[Vector2i, bool] = {}
 var _pen_zone: Dictionary[Vector2i, bool] = {}
 var _painting: BoardPainting.Plate
 var _grid_visible := true
+var _nameplates_visible := true
 var _bounds := Rect2i()
 var _hover: Variant = null
 var _map_origin := Vector2.ZERO
@@ -95,6 +96,12 @@ func set_grid_visible(shown: bool) -> void:
 	if _grid_visible != shown:
 		_grid_visible = shown
 		queue_redraw()
+
+
+func set_nameplates_visible(shown: bool) -> void:
+	if _nameplates_visible != shown:
+		_nameplates_visible = shown
+		_figures.queue_redraw()
 
 
 ## Set only while a replacement pressure-gate prop is actually installed.
@@ -607,24 +614,27 @@ func _draw_figures() -> void:
 		if bool(a.get("visual_defeat", false)) != bool(b.get("visual_defeat", false)):
 			return bool(a.get("visual_defeat", false))
 		return _reading_order(a.cell, b.cell))
+	var marked_units := occupants.filter(func(unit: Dictionary) -> bool:
+		return _cells.has(unit.cell) and not unit.get("transient", false) and not unit.get("visual_defeat", false))
 	for unit in occupants:
 		if _cells.has(unit.cell):
 			_draw_unit_shadow(unit)
+	# Paint every nameplate before any figure so neighboring models can cover the text.
+	for unit in marked_units:
+		_draw_unit_nameplate(unit)
 	for unit in occupants:
 		if _cells.has(unit.cell):
 			_draw_unit(unit, actions.get(unit.id))
 	for entry in active:
 		_draw_committed_feedback(entry)
-	# Draw identifiers over all figures so a tall neighbor cannot cover a name.
-	for unit in occupants:
-		if _cells.has(unit.cell) and not unit.get("transient", false) and not unit.get("visual_defeat", false):
-			_at(_tile_origin(unit.cell))
-			var action: CastPlayback.Entry = actions.get(unit.id)
-			var down := bool(unit.get("prone", false)) or int(unit.get("hp", 1)) <= 0
-			if not unit.get("pre_defeat", false):
-				_draw_health(unit, down and (action == null or (not _is_dose_gesture(action) \
-					and not _ordinary_hit_gesture(unit, action))))
-			_draw_unit_marker(unit)
+	for unit in marked_units:
+		_at(_tile_origin(unit.cell))
+		var action: CastPlayback.Entry = actions.get(unit.id)
+		var down := bool(unit.get("prone", false)) or int(unit.get("hp", 1)) <= 0
+		if not unit.get("pre_defeat", false):
+			_draw_health(unit, down and (action == null or (not _is_dose_gesture(action) \
+				and not _ordinary_hit_gesture(unit, action))))
+		_draw_unit_marker(unit)
 	# Loose equipment is a tile marker, even when a unit occupies that tile.
 	for cell in _overlay.get("forecast_shields", []):
 		if _cells.has(cell):
@@ -1251,19 +1261,26 @@ func _draw_summon(role: String) -> void:
 		_ink_canvas.draw_texture_rect(texture, rect, false)
 
 
+func _draw_unit_nameplate(unit: Dictionary) -> void:
+	if not _nameplates_visible:
+		return
+	var label: String = unit.get("label", "")
+	if label.is_empty():
+		return
+	var font := ThemeDB.fallback_font
+	# Small identification labels distinguish recruits sharing a provisional drawing.
+	var width := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+	if width > 86.0:
+		label = label.get_slice(" ", 0)
+		if font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x > 86.0:
+			label = label.left(8) + "…"
+		width = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+	_at(_tile_origin(unit.cell))
+	_caption(label, Vector2(49.0 + width * 0.5, 78), Color.from_string(unit.get("color", ""), PARCHMENT), 13)
+
+
 func _draw_unit_marker(unit: Dictionary) -> void:
 	_at(_tile_origin(unit.cell))
-	var label: String = unit.get("label", "")
-	if not label.is_empty():
-		var font := ThemeDB.fallback_font
-		# Small identification labels distinguish recruits sharing a provisional drawing.
-		var width := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
-		if width > 86.0:
-			label = label.get_slice(" ", 0)
-			if font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x > 86.0:
-				label = label.left(8) + "…"
-			width = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
-		_caption(label, Vector2(49.0 + width * 0.5, 78), Color.from_string(unit.get("color", ""), PARCHMENT), 13)
 	if _overlay.get("commanded") == unit.cell:
 		if _overlay.get("quiet_manual_move", false):
 			_ink_canvas.draw_circle(Vector2(85, 13), 3.0, AMBER, true, -1.0, true)

@@ -25,6 +25,7 @@ const FIELD_BOARD := "frontier_field"
 const GATE_ART := "res://assets/storybook-gate/"
 const FIELD_ART := "res://assets/storybook-field/frontier-field-surround-rgba.png"
 const BOARD_SURROUNDS := {
+	"village_square": "res://assets/storybook-surrounds/village_square.png",
 	"village_lane": "res://assets/storybook-surrounds/village_lane.png",
 	"village_approach": "res://assets/storybook-surrounds/village_approach.png",
 	"road": "res://assets/storybook-surrounds/road.png",

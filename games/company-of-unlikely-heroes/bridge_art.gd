@@ -54,6 +54,7 @@ var _painting: BoardPainting.Plate
 var _grid_visible := true
 var _grid_labels_visible := true
 var _nameplates_visible := true
+var _always_show_health_bar := false
 var _bounds := Rect2i()
 var _hover: Variant = null
 var _map_origin := Vector2.ZERO
@@ -136,6 +137,12 @@ func are_grid_labels_visible() -> bool:
 func set_nameplates_visible(shown: bool) -> void:
 	if _nameplates_visible != shown:
 		_nameplates_visible = shown
+		_figures.queue_redraw()
+
+
+func set_always_show_health_bar(shown: bool) -> void:
+	if _always_show_health_bar != shown:
+		_always_show_health_bar = shown
 		_figures.queue_redraw()
 
 
@@ -903,7 +910,7 @@ func _draw_object(object: Dictionary) -> void:
 	match str(object.art_key):
 		"obstacle", "crate":
 			_draw_obstacle()
-	_draw_health(object, false)
+	_draw_health(object, false, false)
 
 
 static func _solid(terrain: String) -> bool:
@@ -1342,10 +1349,23 @@ func _draw_unit_marker(unit: Dictionary) -> void:
 			_caption("CMD", Vector2(90, 17), AMBER, 11)
 
 
-func _draw_health(unit: Dictionary, prone: bool) -> void:
+func _draw_health(unit: Dictionary, prone: bool, character := true) -> void:
 	var maximum := maxi(0, int(unit.get("max_hp", 0)))
 	var hp := clampi(int(unit.get("hp", maximum)), 0, maximum)
-	if maximum > 0:
+	if maximum > 0 and character and (_always_show_health_bar or hp < maximum):
+		var top := Vector2(79, 34)
+		var length := 27.0
+		var inner := 3.0
+		var filled := length * float(hp) / maximum
+		var fill := CORAL if hp < maximum and hp * 2 <= maximum else (AMBER if unit.get("objective", false) else MINT)
+		_ink_canvas.draw_rect(Rect2(top - Vector2(2, 2), Vector2(inner + 4, length + 4)), INK)
+		_ink_canvas.draw_rect(Rect2(top, Vector2(inner, length)), Color("#725344"))
+		_ink_canvas.draw_rect(Rect2(top + Vector2(0, length - filled), Vector2(inner, filled)), fill)
+		if maximum < 9:
+			for index in range(1, maximum):
+				var y := top.y + length * float(index) / maximum
+				_ink_canvas.draw_line(Vector2(top.x, y), Vector2(top.x + inner, y), INK, 1.0)
+	elif maximum > 0 and not character:
 		var width := 27.0
 		var top := Vector2(49 - width * 0.5, 63 if not unit.get("label", "").is_empty() else 69)
 		_ink_canvas.draw_rect(Rect2(top - Vector2(2, 2), Vector2(width + 4, 7)), INK)

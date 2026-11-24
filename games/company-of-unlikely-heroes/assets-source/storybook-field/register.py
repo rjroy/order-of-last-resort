@@ -58,7 +58,8 @@ def smooth(t):
     return t * t * (3 - 2 * t)
 
 
-def render(source, output):
+def register_surround(source, destination):
+    """Fit and feather a native painting to the shared storybook aperture."""
     original = decode(source, "rgb")
     h, w, _ = original.shape
     painting = sample(original, X * w / WIDTH, Y * h / HEIGHT)
@@ -70,18 +71,10 @@ def render(source, output):
     alpha = round8((1 - (1 - horizontal) * (1 - vertical)) * 255)
     inside = (LEFT <= X) & (X < RIGHT) & (TOP <= Y) & (Y < BOTTOM)
 
-    board = GAME / "assets/boards"
-    reg = json.loads((board / "manifest.json").read_text())["boards"]["frontier_field"]["registration"]
-    origin, column, row = map(np.asarray, (reg["a1_center_px"], reg["column_px"], reg["row_px"]))
-    cols, rows = (X - LEFT) / CELL_W - .5, (Y - TOP) / CELL_H - .5
-    ground_x = origin[0] + column[0] * cols + row[0] * rows
-    ground_y = origin[1] + column[1] * cols + row[1] * rows
-    ground = sample(decode(board / "frontier_field.png", "rgb"), ground_x, ground_y)
-
     rgba = np.dstack((round8(painting), alpha))
-    encode(output / "frontier-field-surround-rgba.png", rgba)
+    encode(destination, rgba)
     # Prove on the actual re-opened export, not just the pre-encode array.
-    saved = decode(output / "frontier-field-surround-rgba.png", "rgba")
+    saved = decode(destination, "rgba")
     assert np.array_equal(saved, rgba)
     a = saved[..., 3]
     assert np.all(a[inside] == 0)
@@ -89,14 +82,28 @@ def render(source, output):
         for cell_x in range(7):
             assert a[int(TOP + (cell_y + .5) * CELL_H), int(LEFT + (cell_x + .5) * CELL_W)] == 0
     assert np.any(a == 255) and np.any((0 < a) & (a < 255))
+    print(f"Grid x {LEFT:.6f}–{RIGHT:.6f}, y {TOP:.6f}–{BOTTOM:.6f}")
+    print(f"{inside.sum()} transparent grid pixels; "
+          f"{(a == 0).sum()} transparent, {((0 < a) & (a < 255)).sum()} feathered, "
+          f"{(a == 255).sum()} opaque")
+    return saved, inside
+
+
+def render(source, output):
+    saved, inside = register_surround(source, output / "frontier-field-surround-rgba.png")
+    board = GAME / "assets/boards"
+    reg = json.loads((board / "manifest.json").read_text())["boards"]["frontier_field"]["registration"]
+    origin, column, row = map(np.asarray, (reg["a1_center_px"], reg["column_px"], reg["row_px"]))
+    cols, rows = (X - LEFT) / CELL_W - .5, (Y - TOP) / CELL_H - .5
+    ground_x = origin[0] + column[0] * cols + row[0] * rows
+    ground_y = origin[1] + column[1] * cols + row[1] * rows
+    ground = sample(decode(board / "frontier_field.png", "rgb"), ground_x, ground_y)
+    a = saved[..., 3]
     amount = a[..., None] / 255
     composite = round8((1 - amount) * ground + amount * saved[..., :3])
     assert np.array_equal(composite[inside], round8(ground)[inside])
     encode(output / "registered-ground-composite.png", composite)
-    print(f"Grid x {LEFT:.6f}–{RIGHT:.6f}, y {TOP:.6f}–{BOTTOM:.6f}")
-    print(f"{inside.sum()} ground pixels unchanged; "
-          f"{(a == 0).sum()} transparent, {((0 < a) & (a < 255)).sum()} feathered, "
-          f"{(a == 255).sum()} opaque")
+    print(f"{inside.sum()} ground pixels unchanged")
 
 
 if __name__ == "__main__":

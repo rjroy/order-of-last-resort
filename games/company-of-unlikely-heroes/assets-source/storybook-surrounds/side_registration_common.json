@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "reference_page_px": [1280, 820],
+  "reference_live_aperture_ltrb_px": [192.717948717949, 126.260683760684, 1087.282051282051, 658.739316239316],
+  "authored_aperture_ltrb_px": [185.538461538462, 126.987179487179, 1094.461538461538, 668.012820512821],
+  "side_alpha": {
+    "west": {"full_x": 150.5, "clear_x": 191.5},
+    "east": {"clear_x": 1088.5, "full_x": 1129.5}
+  },
+  "outward_x_anchor_distance_px": 192,
+  "destination_y_knots_px": [0, 240, 320, 392, 455, 580, 820],
+  "rgb_gain": 0.96
+}

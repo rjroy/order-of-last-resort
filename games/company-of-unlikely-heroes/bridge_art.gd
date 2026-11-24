@@ -5,6 +5,7 @@ signal cell_selected(cell: Vector2i)
 signal cell_hovered(cell: Vector2i)
 signal hover_cleared
 signal grid_labels_visibility_changed
+signal foreground_layer_changed(enabled: bool)
 
 const CastSprites := preload("res://presentation/cast_sprites.gd")
 const CastPlayback := preload("res://presentation/cast_playback.gd")
@@ -13,6 +14,7 @@ const BoardPainting := preload("res://presentation/board_painting.gd")
 const TILE := Vector2(96, 80)
 const GUTTER := Vector2(31, 34)
 const FOOT := Vector2(49, 62)
+const FOREGROUND_Z_INDEX := 2
 const INK := Color("#282725")
 const PARCHMENT := Color("#f5e5bd")
 const RIVER := Color("#28474b")
@@ -62,6 +64,8 @@ var _summon_textures: Dictionary[String, Texture2D] = {}
 var _cast := CastSprites.new()
 var _playback := CastPlayback.new()
 var _figures := Node2D.new()
+var _tactical := Node2D.new()
+var _foreground_above_scenery := false
 var _ink_canvas: CanvasItem = self
 var _units_by_id: Dictionary = {}
 var _targets_by_id: Dictionary = {}
@@ -81,11 +85,29 @@ func _ready() -> void:
 	for role: String in SUMMON_SPRITES:
 		_summon_textures[role] = CastSprites.load_texture(SUMMON_SPRITES[role].path)
 	_cast.load_manifest()
+	_tactical.name = "TacticalForeground"
+	_tactical.draw.connect(_draw_tactical_layer)
+	add_child(_tactical)
 	_figures.name = "CastAndUnitMarkers"
 	_figures.draw.connect(_draw_figures)
 	add_child(_figures)
 	_set_ready_clips()
 	_layout()
+
+
+## Used for transparent-aperture scenery that must cover terrain gutters but
+## remain behind all tactical marks, objects, coordinates and figures.
+func set_foreground_above_scenery(enabled: bool) -> void:
+	_foreground_above_scenery = enabled
+	_tactical.z_index = FOREGROUND_Z_INDEX if enabled else 0
+	_figures.z_index = FOREGROUND_Z_INDEX if enabled else 0
+	queue_redraw()
+	_tactical.queue_redraw()
+	foreground_layer_changed.emit(enabled)
+
+
+func foreground_above_scenery() -> bool:
+	return _foreground_above_scenery
 
 
 ## The caller supplies a board ID only when launched from the built-in catalog.
@@ -378,6 +400,25 @@ func _draw() -> void:
 		for cell: Vector2i in cells:
 			_at(_tile_origin(cell))
 			_draw_escapement(cell)
+	if _foreground_above_scenery:
+		_tactical.queue_redraw()
+	else:
+		_draw_tactical()
+
+
+func _draw_tactical_layer() -> void:
+	if not _foreground_above_scenery or _map_scale <= 0.0:
+		return
+	_ink_canvas = _tactical
+	_draw_tactical()
+	_ink_canvas = self
+
+
+func _draw_tactical() -> void:
+	var painted: bool = _painting != null and _bounds.position == Vector2i.ZERO \
+		and _bounds.size == _painting.dimensions
+	var cells := _cells.keys()
+	cells.sort_custom(_reading_order)
 	var shore: Dictionary = _overlay.get("safe", {})
 	var gate: Dictionary = _overlay.get("pressure_gate", {})
 	for cell: Vector2i in cells:
@@ -421,7 +462,7 @@ func _draw_painted_tile(cell: Vector2i) -> void:
 		"bridge":
 			_draw_deck(cell)
 		"broken", "water":
-			draw_rect(Rect2(Vector2.ZERO, TILE), GAP_WASH)
+			_ink_canvas.draw_rect(Rect2(Vector2.ZERO, TILE), GAP_WASH)
 			# Mark the drop even where the painted rock or shoreline wanders into the cell.
 			_line([Vector2(6, 19), Vector2(6, 6), Vector2(19, 6)], GAP_TICKS, 1.55)
 			_line([TILE - Vector2(6, 19), TILE - Vector2(6, 6), TILE - Vector2(19, 6)], GAP_TICKS, 1.55)
@@ -451,7 +492,7 @@ func _draw_deck(cell: Vector2i) -> void:
 		_draw_deck_sill(TILE.x, -1.0)
 	var x0 := 2.0 if not _solid(left) else 0.0
 	var x1 := TILE.x - 2.0 if not _solid(right) else TILE.x
-	draw_rect(Rect2(x0, top, x1 - x0, bottom - top), Color("#4d3c30"))
+	_ink_canvas.draw_rect(Rect2(x0, top, x1 - x0, bottom - top), Color("#4d3c30"))
 	for i in range(8):
 		var a := lerpf(x0, x1, i / 8.0)
 		var b := lerpf(x0, x1, (i + 1) / 8.0)
@@ -466,9 +507,9 @@ func _draw_deck(cell: Vector2i) -> void:
 			_line([Vector2(grain_x, grain_y), Vector2(grain_x - 0.6, grain_y + 9.0)],
 				Color("#523e29", 0.35), 0.85)
 		if top > 0.0:
-			draw_circle(Vector2((a + b) * 0.5, top + 5.0), 1.15, Color("#523e29"))
+			_ink_canvas.draw_circle(Vector2((a + b) * 0.5, top + 5.0), 1.15, Color("#523e29"))
 		if bottom < TILE.y:
-			draw_circle(Vector2((a + b) * 0.5, bottom - 6.0), 1.15, Color("#523e29"))
+			_ink_canvas.draw_circle(Vector2((a + b) * 0.5, bottom - 6.0), 1.15, Color("#523e29"))
 	if top > 0.0:
 		_line([Vector2(x0, top + 1.0), Vector2(x1, top + 1.0)], Color("#e1c696", 0.76), 1.25)
 	if bottom < TILE.y:
@@ -490,7 +531,7 @@ func _draw_deck_sill(edge: float, inward: float) -> void:
 
 
 func _draw_pen(cell: Vector2i) -> void:
-	draw_rect(Rect2(Vector2.ZERO, TILE), PEN_WASH)
+	_ink_canvas.draw_rect(Rect2(Vector2.ZERO, TILE), PEN_WASH)
 	for edge in [
 		[Vector2i.UP, Vector2.ZERO, Vector2(TILE.x, 0)],
 		[Vector2i.RIGHT, Vector2(TILE.x, 0), TILE],
@@ -512,8 +553,8 @@ func _draw_pressure_gate(open: bool) -> void:
 			_line([Vector2(43, y + 1), Vector2(53, y - 1)], Color("#ca9f70"), 1.6)
 		_line([Vector2(48, 16), Vector2(49, 65)], Color("#3c322c"), 1.7)
 	for y in [12, 68]:
-		draw_circle(Vector2(48, y), 5.5, Color("#3b3328"), true, -1.0, true)
-		draw_circle(Vector2(47, y - 1), 2.5, Color("#b69667"), true, -1.0, true)
+		_ink_canvas.draw_circle(Vector2(48, y), 5.5, Color("#3b3328"), true, -1.0, true)
+		_ink_canvas.draw_circle(Vector2(47, y - 1), 2.5, Color("#b69667"), true, -1.0, true)
 
 
 func _draw_figures() -> void:
@@ -665,7 +706,7 @@ static func _reading_order(a: Vector2i, b: Vector2i) -> bool:
 
 
 func _draw_water() -> void:
-	draw_rect(Rect2(Vector2.ZERO, _map_size), RIVER)
+	_ink_canvas.draw_rect(Rect2(Vector2.ZERO, _map_size), RIVER)
 	_rng.seed = 4602
 	for y in range(6, int(_map_size.y) - 8, 14):
 		for x in range(6, int(_map_size.x) - 8, 35):
@@ -682,9 +723,9 @@ func _draw_water() -> void:
 	for y in range(4, int(_map_size.y) - 5, 6):
 		for x in range(4, int(_map_size.x) - 5, 9):
 			var p := Vector2(x + _rng.randf_range(-3, 3), y + _rng.randf_range(-2, 2))
-			draw_line(p, p + Vector2(_rng.randf_range(0.4, 2.8), 0), Color(FOAM, 0.085), 0.65)
-	draw_rect(Rect2(Vector2(2, 2), _map_size - Vector2(4, 4)), Color("#7d906f"), false, 1.0)
-	draw_rect(Rect2(Vector2(6, 6), _map_size - Vector2(12, 12)), Color("#182f32"), false, 1.0)
+			_ink_canvas.draw_line(p, p + Vector2(_rng.randf_range(0.4, 2.8), 0), Color(FOAM, 0.085), 0.65)
+	_ink_canvas.draw_rect(Rect2(Vector2(2, 2), _map_size - Vector2(4, 4)), Color("#7d906f"), false, 1.0)
+	_ink_canvas.draw_rect(Rect2(Vector2(6, 6), _map_size - Vector2(12, 12)), Color("#182f32"), false, 1.0)
 	for corner in [Vector2(9, 9), Vector2(_map_size.x - 9, 9),
 			Vector2(9, _map_size.y - 9), _map_size - Vector2(9, 9)]:
 		var p: Vector2 = corner
@@ -734,14 +775,14 @@ func _draw_tile(cell: Vector2i) -> void:
 		_line([Vector2(5, 75), Vector2(34, 73), Vector2(62, 76), Vector2(88, 74)], Color(INK, 0.30), 1.3)
 	else:
 		# Keep the terrain tint while filling the inset gaps left by the grid.
-		draw_rect(Rect2(Vector2.ZERO, TILE), tile_tint)
+		_ink_canvas.draw_rect(Rect2(Vector2.ZERO, TILE), tile_tint)
 	for i in range(12):
 		var p := Vector2(_rng.randf_range(5, 72), _rng.randf_range(7, 69))
 		var tint := Color(PARCHMENT, _rng.randf_range(0.06, 0.20)) if i % 3 > 0 else Color(INK, 0.11)
 		_wash(p, Vector2(_rng.randf_range(7, 18), _rng.randf_range(3, 10)), tint)
 	for i in range(28):
 		var p := Vector2(_rng.randf_range(6, 90), _rng.randf_range(5, 74))
-		draw_line(p, p + Vector2(_rng.randf_range(0.4, 3.5), -0.5), Color(INK, 0.18), 0.8, true)
+		_ink_canvas.draw_line(p, p + Vector2(_rng.randf_range(0.4, 3.5), -0.5), Color(INK, 0.18), 0.8, true)
 	match terrain:
 		"safe", "exit":
 			_draw_safe()
@@ -815,7 +856,7 @@ func _draw_safe() -> void:
 
 func _draw_exit() -> void:
 	# Shuttered guide lantern and arrow are kept to the left of the unit silhouette.
-	draw_circle(Vector2(17, 24), 13.0, Color(AMBER, 0.20), true, -1.0, true)
+	_ink_canvas.draw_circle(Vector2(17, 24), 13.0, Color(AMBER, 0.20), true, -1.0, true)
 	_line([Vector2(13, 55), Vector2(12, 20), Vector2(16, 17), Vector2(24, 18)], INK, 3.1)
 	_line([Vector2(13, 49), Vector2(13, 27)], Color("#a08a56"), 1.0)
 	_piece([Vector2(18, 21), Vector2(25, 21), Vector2(24, 31), Vector2(19, 32)],
@@ -875,8 +916,8 @@ func _draw_path(path: Array) -> void:
 			continue
 		var a := _tile_origin(path[index - 1]) + TILE * 0.5
 		var b := _tile_origin(path[index]) + TILE * 0.5
-		draw_dashed_line(a, b, INK, 5.0, 7.0, true, true)
-		draw_dashed_line(a, b, AMBER, 2.0, 7.0, true, true)
+		_ink_canvas.draw_dashed_line(a, b, INK, 5.0, 7.0, true, true)
+		_ink_canvas.draw_dashed_line(a, b, AMBER, 2.0, 7.0, true, true)
 		var n := (b - a).normalized()
 		var arrow := b - n * 18.0
 		_piece([arrow + n * 5.0, arrow - n * 5.0 + n.orthogonal() * 5.0,
@@ -892,7 +933,7 @@ func _draw_overlays(cell: Vector2i) -> void:
 		_line([Vector2(72, 17), Vector2(81, 9), Vector2(88, 17), Vector2(81, 25), Vector2(72, 17)], CORAL, 1.8)
 	if cell in targets:
 		if _overlay.get("quiet_manual_move", false):
-			draw_circle(Vector2(50, 15), 3.0, MINT, true, -1.0, true)
+			_ink_canvas.draw_circle(Vector2(50, 15), 3.0, MINT, true, -1.0, true)
 		else:
 			_brackets(MINT, 6, 2.0)
 			_piece([Vector2(45, 15), Vector2(50, 10), Vector2(55, 15), Vector2(50, 20)], MINT, INK, 1.15)
@@ -944,7 +985,7 @@ func _draw_coordinates() -> void:
 func _axis_mark(label: String, p: Vector2) -> void:
 	var font := ThemeDB.fallback_font
 	var width := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-	draw_string(font, p - Vector2(width * 0.5, 0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, PARCHMENT)
+	_ink_canvas.draw_string(font, p - Vector2(width * 0.5, 0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, PARCHMENT)
 
 
 func _caption(label: String, right_baseline: Vector2, color: Color, font_size: int) -> void:

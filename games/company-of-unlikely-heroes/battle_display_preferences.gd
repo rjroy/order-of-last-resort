@@ -4,11 +4,16 @@ extends RefCounted
 const PATH := "user://battle_display.cfg"
 const SECTION := "battle"
 const GRID_VISIBLE := "grid_visible"
+const GRID_LABELS_VISIBLE := "grid_labels_visible"
 const NAMEPLATES_VISIBLE := "nameplates_visible"
 
 
 static func load_grid_visible() -> bool:
 	return _load_visibility(GRID_VISIBLE, "grid")
+
+
+static func load_grid_labels_visible() -> bool:
+	return _load_visibility(GRID_LABELS_VISIBLE, "grid labels")
 
 
 static func load_nameplates_visible() -> bool:
@@ -17,6 +22,10 @@ static func load_nameplates_visible() -> bool:
 
 static func save_grid_visible(shown: bool) -> void:
 	_save_visibility(GRID_VISIBLE, "grid", shown)
+
+
+static func save_grid_labels_visible(shown: bool) -> void:
+	_save_visibility(GRID_LABELS_VISIBLE, "grid labels", shown)
 
 
 static func save_nameplates_visible(shown: bool) -> void:

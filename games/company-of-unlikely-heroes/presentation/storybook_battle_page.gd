@@ -9,9 +9,10 @@ signal commit_requested
 signal restart_requested
 signal forfeit_requested
 signal grid_visibility_changed(shown: bool)
+signal grid_labels_visibility_changed(shown: bool)
 signal nameplate_visibility_changed(shown: bool)
 
-enum DisplayOption { GRID, NAMEPLATES }
+enum DisplayOption { GRID, NAMEPLATES, GRID_LABELS }
 
 const Ink := preload("res://presentation/storybook_battle_ink.gd")
 const Surround := preload("res://presentation/storybook_battle_surround.gd")
@@ -223,11 +224,12 @@ func is_forfeit_confirmation_open() -> bool:
 	return is_instance_valid(_forfeit_modal) and _forfeit_modal.is_visible_in_tree()
 
 
-func set_display_options(grid_shown: bool, nameplates_shown: bool) -> void:
+func set_display_options(grid_shown: bool, nameplates_shown: bool, grid_labels_shown: bool) -> void:
 	_build()
 	var popup := _options.get_popup()
 	popup.set_item_checked(popup.get_item_index(DisplayOption.GRID), grid_shown)
 	popup.set_item_checked(popup.get_item_index(DisplayOption.NAMEPLATES), nameplates_shown)
+	popup.set_item_checked(popup.get_item_index(DisplayOption.GRID_LABELS), grid_labels_shown)
 
 
 func render_ink(cues: Dictionary) -> void:
@@ -329,12 +331,13 @@ func _build_header() -> void:
 	_objective = _label("", 15, PARCHMENT)
 	_header.add_child(_objective)
 	_options = _menu("Options", "Options")
-	_options.accessibility_description = "Show or hide the battlefield grid and unit nameplates."
+	_options.accessibility_description = "Show or hide the battlefield grid, grid labels, and unit nameplates."
 	_style_rail_button(_options)
 	_options.custom_minimum_size = Vector2(104, 41)
 	_header.add_child(_options)
 	var options_popup := _options.get_popup()
 	options_popup.add_check_item("Show Grid", DisplayOption.GRID)
+	options_popup.add_check_item("Show Grid Labels", DisplayOption.GRID_LABELS)
 	options_popup.add_check_item("Show Nameplates", DisplayOption.NAMEPLATES)
 	options_popup.hide_on_checkable_item_selection = false
 	options_popup.visibility_changed.connect(_battle_popup_visibility_changed.bind(options_popup))
@@ -530,6 +533,8 @@ func _apply_display_option() -> void:
 	match option:
 		DisplayOption.GRID:
 			grid_visibility_changed.emit(shown)
+		DisplayOption.GRID_LABELS:
+			grid_labels_visibility_changed.emit(shown)
 		DisplayOption.NAMEPLATES:
 			nameplate_visibility_changed.emit(shown)
 

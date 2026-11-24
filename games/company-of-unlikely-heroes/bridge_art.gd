@@ -71,6 +71,8 @@ var _ink_canvas: CanvasItem = self
 var _units_by_id: Dictionary = {}
 var _targets_by_id: Dictionary = {}
 var _ready_clips: Array[CastSprites.Clip] = []
+var _ready_samples: Array[Dictionary] = []
+var _ready_rates: Dictionary[String, float] = {}
 var _ready_ms := 0.0
 var _pull_facing: Dictionary[String, float] = {}
 var _pull_recovery_facing: Dictionary[String, float] = {}
@@ -281,14 +283,33 @@ func action_playback_remaining_ms() -> float:
 
 func _set_ready_clips() -> void:
 	_ready_clips.clear()
+	_ready_samples.clear()
+	_ready_rates.clear()
 	for unit in _units:
+		var id := str(unit.get("id", ""))
+		var rate := _ready_rate(id)
+		_ready_rates[id] = rate
 		if bool(unit.get("prone", false)) or int(unit.get("hp", 1)) <= 0 \
 				or bool(unit.get("shield_away", false)):
 			continue
 		var clip := _cast.clip_for(str(unit.get("cast_key", "")), "ready")
-		if clip != null and clip.loop and clip.frames.size() > 1 and not _ready_clips.has(clip):
-			_ready_clips.append(clip)
+		if clip != null and clip.loop and clip.frames.size() > 1:
+			_ready_samples.append({"clip": clip, "rate": rate})
+			if not _ready_clips.has(clip):
+				_ready_clips.append(clip)
 	_set_processing()
+
+
+func _ready_rate(id: String) -> float:
+	if id.is_empty():
+		return 1.0
+	# Mix the stable string hash so similar placement IDs do not produce
+	# nearly identical rates. Keep the full range rather than discrete buckets.
+	var value := id.hash() & 0xffffffff
+	value = ((value ^ (value >> 16)) * 0x45d9f3b) & 0xffffffff
+	value = ((value ^ (value >> 16)) * 0x45d9f3b) & 0xffffffff
+	value = value ^ (value >> 16)
+	return 0.94 + 0.12 * float(value) / 4294967295.0
 
 
 func _set_processing() -> void:
@@ -310,8 +331,10 @@ func _process(delta: float) -> void:
 				_defeat_facing[entry.cue.unit_id] = entry.facing
 		_set_processing()
 	else:
-		for clip in _ready_clips:
-			if clip.frame_index(previous_ms) != clip.frame_index(_ready_ms):
+		for sample in _ready_samples:
+			var clip: CastSprites.Clip = sample.clip
+			var rate: float = sample.rate
+			if clip.frame_index(previous_ms * rate) != clip.frame_index(_ready_ms * rate):
 				redraw = true
 				break
 	if redraw:
@@ -1155,6 +1178,8 @@ func _draw_cast(unit: Dictionary, foot: Vector2, facing: float, prone: bool, act
 		turned_down = false
 	elif prone and not bool(unit.get("pre_defeat", false)):
 		time_ms = 0.0
+	if key == "ready" and time_ms == _ready_ms:
+		time_ms *= _ready_rates.get(str(unit.get("id", "")), 1.0)
 	var clip := _cast.clip_for(cast_key, key)
 	if clip == null:
 		return false

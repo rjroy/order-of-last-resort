@@ -10,7 +10,8 @@ existing board painting remain unchanged. The runtime derivative has SHA-256
 - Native surround:
   `.lore/work/games/company-of-unlikely-heroes/art/pilots/map-edge-surrounds/village_square/native.png`,
   SHA-256 `8312c3c17b625f7e918d5b7641143a57fa551cc2726b5a73ac622708f16a7365`.
-  Its adjacent README records generation provenance.
+  The [surround source index](../../../../.lore/work/games/company-of-unlikely-heroes/art/pilots/map-edge-surrounds/README.md)
+  records generation provenance.
 - Existing ground: `games/company-of-unlikely-heroes/assets/boards/village_square.png`,
   SHA-256 `bba9c65ea75cece6e376cd56e15f4a02115d4373aee75bcb382b18548681911e`.
   Its provenance and registration are in `assets/boards/manifest.json`.

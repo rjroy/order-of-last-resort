@@ -1,15 +1,11 @@
 # Storybook board surrounds
 
-`frontier_line_board-native.png` is the exact approved Hold the Line source,
+`frontier_line_board-native.png` is the exact Hold the Line source the user directed us to integrate,
 an unmodified 1566 × 1004 8-bit RGB PNG. SHA-256:
 `24c89a8fb925939ba54606c2ac6561eb929955faaf338681d2d1c3eb3d16abdd`.
-It was generated on 2026-11-23 with one native OpenAI `image_gen` call via
-Codex CLI 0.172.0 and ChatGPT login; the model was not reported. The generation
-referenced the Line board for terrain and the Field native for composition.
-The native call was `call_9e80193c49f841a08db95cc533c61689`, thread
-`01a20bd3-ccea-7a53-a578-b8256cee98bc`. The preserved pilot record is
-`.lore/work/games/company-of-unlikely-heroes/art/pilots/hold-the-line-surround/README.md`.
-The game does not read that record.
+The
+[pilot record](../../../../.lore/work/games/company-of-unlikely-heroes/art/pilots/hold-the-line-surround/README.md)
+records its generation and distinguishes integration authorization from human acceptance of the in-game appearance.
 
 From the repository root, with Python 3.14.8, NumPy 2.5.4 and ImageMagick
 7.1.2-34, reproduce the runtime derivative without overwriting any original:
@@ -37,13 +33,10 @@ The native source is
 `.lore/work/games/company-of-unlikely-heroes/art/pilots/map-edge-surrounds/frontier_bridge_board/native.png`.
 It is the unmodified 1567 × 1004 8-bit RGB PNG, SHA-256
 `933adca861bc98fae656b344cc7c5cc9bc3e30a82a8f2159eea1041a109cfd92`.
-The source was generated 2026-11-23 with one OpenAI `image_gen` call through
-Codex CLI 0.172.0 and ChatGPT login; the model was not reported. Thread
-`01a20be0-b4d0-7001-996e-e2ff079042f4`, call
-`call_f5e7637d62a24aa89c4e8c5756779668`. Its references were the
-`frontier_bridge_board.png` ground master and an opening capture for page
-placement. See the native source's adjacent README for provenance. Neither
-the capture nor `.lore/local` is an input to registration or gameplay.
+See the
+[surround source index](../../../../.lore/work/games/company-of-unlikely-heroes/art/pilots/map-edge-surrounds/README.md)
+for the ten native sources and their provenance. Neither the capture nor
+`.lore/local` is an input to registration or gameplay.
 
 From the repository root, with the same Python, NumPy and ImageMagick versions
 above, reproduce the runtime image:
@@ -62,9 +55,10 @@ live-to-authored aperture transform from `side_registration_common.json` and
 the board's independent west and east warps from its JSON. It feathers only the wings, leaving the whole central
 strip transparent through the header and footer, and verifies the reopened
 RGBA export. The runtime shader performs the aperture refit once for the
-actual viewport. The optional row offsets and dry-patch support in the recipe
-permit later approved boards to provide their own settings; no other boards
-are enabled or configured by this package.
+actual viewport. The same side-only recipe serves The Last Ferryman, The Last
+Wagon, Trouble on the Road, and The Goblin Mob with per-board settings. See
+the [runtime board records](../../assets/storybook-surrounds/) for the
+integrated boards and their derivative recipes.
 
 ### Side-only settings coordinates
 

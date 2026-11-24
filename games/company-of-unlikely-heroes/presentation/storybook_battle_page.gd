@@ -25,6 +25,7 @@ const FIELD_BOARD := "frontier_field"
 const GATE_ART := "res://assets/storybook-gate/"
 const FIELD_ART := "res://assets/storybook-field/frontier-field-surround-rgba.png"
 const BOARD_SURROUNDS := {
+	"frontier_treasure_board": "res://assets/storybook-surrounds/frontier_treasure_board.png",
 	"frontier_field": FIELD_ART,
 	"frontier_line_board": "res://assets/storybook-surrounds/frontier_line_board.png",
 	"frontier_bridge_board": "res://assets/storybook-surrounds/frontier_bridge_board.png",

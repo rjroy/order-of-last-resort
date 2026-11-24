@@ -6,6 +6,7 @@ const SECTION := "battle"
 const GRID_VISIBLE := "grid_visible"
 const GRID_LABELS_VISIBLE := "grid_labels_visible"
 const NAMEPLATES_VISIBLE := "nameplates_visible"
+const ALWAYS_SHOW_HEALTH_BAR := "always_show_health_bar"
 
 
 static func load_grid_visible() -> bool:
@@ -20,6 +21,10 @@ static func load_nameplates_visible() -> bool:
 	return _load_visibility(NAMEPLATES_VISIBLE, "nameplate")
 
 
+static func load_always_show_health_bar() -> bool:
+	return _load_visibility(ALWAYS_SHOW_HEALTH_BAR, "always show health bar", false)
+
+
 static func save_grid_visible(shown: bool) -> void:
 	_save_visibility(GRID_VISIBLE, "grid", shown)
 
@@ -32,15 +37,19 @@ static func save_nameplates_visible(shown: bool) -> void:
 	_save_visibility(NAMEPLATES_VISIBLE, "nameplate", shown)
 
 
-static func _load_visibility(key: String, label: String) -> bool:
+static func save_always_show_health_bar(shown: bool) -> void:
+	_save_visibility(ALWAYS_SHOW_HEALTH_BAR, "always show health bar", shown)
+
+
+static func _load_visibility(key: String, label: String, default := true) -> bool:
 	var config := ConfigFile.new()
 	if _load(config) != OK:
-		return true
-	var stored: Variant = config.get_value(SECTION, key, true)
+		return default
+	var stored: Variant = config.get_value(SECTION, key, default)
 	if stored is bool:
 		return stored
 	push_warning("Ignoring an invalid battlefield %s preference." % label)
-	return true
+	return default
 
 
 static func _save_visibility(key: String, label: String, shown: bool) -> void:

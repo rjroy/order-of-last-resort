@@ -65,6 +65,7 @@ var _storybook_page: Control
 var _grid_visible := true
 var _grid_labels_visible := true
 var _nameplates_visible := true
+var _always_show_health_bar := false
 var _storybook_inspection := ""
 var _storybook_inspected_cell: Variant = null
 var _storybook_focus_cell: Variant = null
@@ -105,6 +106,7 @@ func _ready() -> void:
 	_grid_visible = BattleDisplayPreferences.load_grid_visible()
 	_grid_labels_visible = BattleDisplayPreferences.load_grid_labels_visible()
 	_nameplates_visible = BattleDisplayPreferences.load_nameplates_visible()
+	_always_show_health_bar = BattleDisplayPreferences.load_always_show_health_bar()
 	var args: PackedStringArray = OS.get_cmdline_user_args() if _launch_args == null else _launch_args
 	var launch := _read_launch_options(args)
 	if launch.has("error"):
@@ -1226,8 +1228,10 @@ func _show_storybook_battle() -> void:
 	_board.set_grid_visible(_grid_visible)
 	_board.set_grid_labels_visible(_grid_labels_visible)
 	_board.set_nameplates_visible(_nameplates_visible)
+	_board.set_always_show_health_bar(_always_show_health_bar)
 	_storybook_page.mount_board(_board, trusted_board_id, Vector2i(_state.width, _state.height))
-	_storybook_page.set_display_options(_grid_visible, _nameplates_visible, _grid_labels_visible)
+	_storybook_page.set_display_options(_grid_visible, _nameplates_visible, _grid_labels_visible,
+		_always_show_health_bar)
 	_board_cues = null
 	if trusted_board_id != "frontier_gate_board" or _state.objective.handler != "pressure_gate":
 		_board_cues = BattleCues.new()
@@ -1250,6 +1254,7 @@ func _show_storybook_battle() -> void:
 	_storybook_page.grid_visibility_changed.connect(_set_grid_visible)
 	_storybook_page.grid_labels_visibility_changed.connect(_set_grid_labels_visible)
 	_storybook_page.nameplate_visibility_changed.connect(_set_nameplates_visible)
+	_storybook_page.always_show_health_bar_changed.connect(_set_always_show_health_bar)
 	_begin_attempt()
 
 
@@ -1275,6 +1280,14 @@ func _set_nameplates_visible(shown: bool) -> void:
 	if is_instance_valid(_terminal_board):
 		_terminal_board.set_nameplates_visible(shown)
 	BattleDisplayPreferences.save_nameplates_visible(shown)
+
+
+func _set_always_show_health_bar(shown: bool) -> void:
+	_always_show_health_bar = shown
+	_board.set_always_show_health_bar(shown)
+	if is_instance_valid(_terminal_board):
+		_terminal_board.set_always_show_health_bar(shown)
+	BattleDisplayPreferences.save_always_show_health_bar(shown)
 
 
 func _storybook_board_focused() -> void:

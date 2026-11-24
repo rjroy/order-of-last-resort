@@ -339,7 +339,7 @@ func _toggle(label: String) -> void:
 		return
 	# Route pointer input through the root window so Godot dispatches it to the
 	# embedded popup window, rather than bypassing its window input handling.
-	_check(menu.item_count == 3, "Options has the three display checks")
+	_check(menu.item_count == 4, "Options has the four display checks")
 	var point := Vector2(menu.position) \
 		+ Vector2(menu.size.x * 0.5, menu.size.y * (index + 0.5) / menu.item_count)
 	await _click(point)

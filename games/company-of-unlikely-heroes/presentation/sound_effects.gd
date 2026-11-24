@@ -17,11 +17,13 @@ const WAVS := {
 }
 
 var volume := 0.8
+var master_volume := 1.0
 var _tones := {}
 
 
 func _ready() -> void:
 	volume = Preferences.load_sound_effects_volume()
+	master_volume = Preferences.load_master_volume()
 	_tones = {
 		"heal": _tone([660.0, 990.0], 0.26),
 		"melody": _tone([523.25, 659.25, 783.99], 0.39),
@@ -35,13 +37,22 @@ func _ready() -> void:
 func set_volume(value: float) -> void:
 	volume = clampf(value, 0.0, 1.0)
 	Preferences.save_sound_effects_volume(volume)
+	_update_players()
+
+
+func set_master_volume(value: float) -> void:
+	master_volume = clampf(value, 0.0, 1.0)
+	_update_players()
+
+
+func _update_players() -> void:
 	for player in get_children():
 		if player is AudioStreamPlayer:
-			if volume == 0.0:
+			if volume * master_volume == 0.0:
 				player.stop()
 				player.queue_free()
 			else:
-				player.volume_db = linear_to_db(volume * float(player.get_meta("base_gain")))
+				player.volume_db = linear_to_db(volume * master_volume * float(player.get_meta("base_gain")))
 
 
 func planning(unit_id: String) -> void:
@@ -100,13 +111,13 @@ func _family(ability: String, handler: String, recipe: String) -> String:
 
 
 func _play(kind: String, unit_id: String, ability_id: String, cue_id: String, base_gain: float) -> void:
-	if volume <= 0.0:
+	if volume <= 0.0 or master_volume <= 0.0:
 		return
 	var stream: AudioStream = WAVS.get(cue_id, _tones.get(cue_id))
 	if stream == null:
 		push_warning("Missing sound effect %s for %s." % [cue_id, ability_id])
 		return
-	var gain := volume * base_gain
+	var gain := volume * master_volume * base_gain
 	var player := AudioStreamPlayer.new()
 	player.stream = stream
 	player.volume_db = linear_to_db(gain)

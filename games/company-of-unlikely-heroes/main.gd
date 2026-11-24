@@ -1327,6 +1327,8 @@ func _show_storybook_battle() -> void:
 	_storybook_page.nameplate_visibility_changed.connect(_set_nameplates_visible)
 	_storybook_page.always_show_health_bar_changed.connect(_set_always_show_health_bar)
 	_storybook_page.sound_effects_volume_changed.connect(_set_sound_effects_volume)
+	_storybook_page.master_volume_changed.connect(_set_master_volume)
+	_storybook_page.music_volume_changed.connect(_set_music_volume)
 	if _practice != null:
 		_practice_instructions = PracticeInstructions.new()
 		_practice_instructions.skip_requested.connect(_leave_practice.bind("skipped"))
@@ -1362,6 +1364,17 @@ func _set_grid_visible(shown: bool) -> void:
 
 func _set_sound_effects_volume(value: float) -> void:
 	_sound_effects.set_volume(value)
+
+
+func _set_master_volume(value: float) -> void:
+	BattleDisplayPreferences.save_master_volume(value)
+	_sound_effects.set_master_volume(value)
+	_music.set_master_volume(value)
+
+
+func _set_music_volume(value: float) -> void:
+	BattleDisplayPreferences.save_music_volume(value)
+	_music.set_volume(value)
 
 
 func _set_grid_labels_visible(shown: bool) -> void:

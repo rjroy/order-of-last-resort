@@ -296,9 +296,9 @@ func _open_volume(options: MenuButton, volume: Range) -> void:
 	await process_frame
 	var index := -1
 	for item in popup.item_count:
-		if popup.get_item_text(item) == "Sound effects volume…":
+		if popup.get_item_text(item) == "Volume…":
 			index = item
-	if not _check(index >= 0, "Options offers Sound effects volume"):
+	if not _check(index >= 0, "Options offers Volume"):
 		return
 	popup.id_pressed.emit(popup.get_item_id(index))
 	await process_frame

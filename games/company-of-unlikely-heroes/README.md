@@ -204,7 +204,7 @@ The [stock scene verification guide](tools/cast/verify_stock_scenes.md) provides
 
 Preview updates the forecast without resolving the round or starting action playback. Commit resolves the round, then plays supported actions from that committed round in order of their key moments; recoveries can overlap later actions. Playback is cosmetic, and not every ability has its own clip.
 
-Battle **Options** includes a **Sound effects volume** control that persists between launches. Staging an authored move makes a quiet pencil sound; forecasts stay silent. Committed movement and actions play their sounds during playback. To try the Friendly Crypter, launch `goblin_mob` and follow the opening above.
+**Options** includes persistent **Master**, **Music**, and **Sound effects** volume controls. In battle, open **Options → Volume**. Master scales both categories; setting any control to zero mutes it without changing the other settings. Music continues playing while muted. Staging an authored move makes a quiet pencil sound; forecasts stay silent. Committed movement and actions play their sounds during playback. To try the Friendly Crypter, launch `goblin_mob` and follow the opening above.
 
 Use **Forfeit** during an ongoing battle to concede without playing the next round. Confirm to end the mission as a defeat, or cancel to keep your plans. In a commission, defeat ends the run without a reward; returning to the guild clears its upgrades. In a standalone mission, use **Restart** to try again.
 

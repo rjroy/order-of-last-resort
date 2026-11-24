@@ -2,6 +2,7 @@ extends Node
 ## Persistent music playback, separate from effects and gameplay randomness.
 
 const Playlist = preload("res://presentation/music_playlist.gd")
+const Preferences = preload("res://battle_display_preferences.gd")
 const MUSIC_ROOT := "res://assets/music"
 const SETS := ["main", "road", "destination"]
 const GAIN_DB := -14.0
@@ -10,13 +11,17 @@ var _rng := RandomNumberGenerator.new()
 var _playlists := {}
 var _current_set := ""
 var _player: AudioStreamPlayer
+var _volume := 1.0
+var _master_volume := 1.0
 
 
 func _ready() -> void:
 	_rng.randomize()
 	_player = AudioStreamPlayer.new()
 	_player.name = "MusicPlayer"
-	_player.volume_db = GAIN_DB
+	_volume = Preferences.load_music_volume()
+	_master_volume = Preferences.load_master_volume()
+	_apply_volume()
 	add_child(_player)
 	_player.finished.connect(_play_next)
 	for set_name in SETS:
@@ -33,6 +38,20 @@ func _ready() -> void:
 		if tracks.is_empty():
 			push_warning("No background music found in %s." % directory)
 		_playlists[set_name] = Playlist.new(tracks, _rng)
+
+
+func set_volume(value: float) -> void:
+	_volume = clampf(value, 0.0, 1.0)
+	_apply_volume()
+
+
+func set_master_volume(value: float) -> void:
+	_master_volume = clampf(value, 0.0, 1.0)
+	_apply_volume()
+
+
+func _apply_volume() -> void:
+	_player.volume_db = GAIN_DB + linear_to_db(_volume * _master_volume)
 
 
 func set_context(set_name: String) -> void:

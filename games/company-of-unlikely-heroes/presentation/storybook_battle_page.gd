@@ -18,10 +18,13 @@ signal help_from_popup_requested(source: Control)
 signal help_shortcut_requested
 signal help_from_dialog_requested(dialog: Window, focus: Control)
 signal sound_effects_volume_changed(value: float)
+signal master_volume_changed(value: float)
+signal music_volume_changed(value: float)
 
 enum DisplayOption { GRID, NAMEPLATES, GRID_LABELS, ALWAYS_SHOW_HEALTH_BAR, SHOW_HINTS }
 
 const DisplayPreferences := preload("res://battle_display_preferences.gd")
+const VolumeControls := preload("res://presentation/volume_controls.gd")
 const HELP_MENU_ID := 1000000
 const SOUND_VOLUME_MENU_ID := 1000001
 const Ink := preload("res://presentation/storybook_battle_ink.gd")
@@ -98,8 +101,7 @@ var _round: Label
 var _objective: Label
 var _options: MenuButton
 var _sound_volume_dialog: AcceptDialog
-var _sound_volume_slider: HSlider
-var _sound_volume_value: Label
+var _volume_controls
 var _help_utility_slot: Control
 var _pending_display_option := -1
 var _restart: Button
@@ -402,7 +404,7 @@ func _build_header() -> void:
 	options_popup.add_check_item("Show Nameplates", DisplayOption.NAMEPLATES)
 	options_popup.add_check_item("Always show health bar", DisplayOption.ALWAYS_SHOW_HEALTH_BAR)
 	options_popup.add_check_item("Show hints", DisplayOption.SHOW_HINTS)
-	options_popup.add_item("Sound effects volume…", SOUND_VOLUME_MENU_ID)
+	options_popup.add_item("Volume…", SOUND_VOLUME_MENU_ID)
 	options_popup.add_separator()
 	options_popup.add_item("Help (F1)", HELP_MENU_ID)
 	_set_help_shortcut(options_popup)
@@ -633,52 +635,29 @@ func _queue_display_option(option: int) -> void:
 func _build_sound_volume_dialog() -> void:
 	_sound_volume_dialog = AcceptDialog.new()
 	_sound_volume_dialog.name = "SoundEffectsDialog"
-	_sound_volume_dialog.title = "Sound effects volume"
-	_sound_volume_dialog.min_size = Vector2i(360, 150)
+	_sound_volume_dialog.title = "Volume"
+	_sound_volume_dialog.min_size = Vector2i(360, 300)
 	add_child(_sound_volume_dialog)
 	_sound_volume_dialog.get_ok_button().text = "Close"
 	_sound_volume_dialog.close_requested.connect(func(): _restore_options_focus.call_deferred())
 	_sound_volume_dialog.confirmed.connect(func(): _restore_options_focus.call_deferred())
-	var stack := VBoxContainer.new()
-	_sound_volume_dialog.add_child(stack)
-	var heading := Label.new()
-	heading.text = "Sound effects"
-	stack.add_child(heading)
-	var row := HBoxContainer.new()
-	stack.add_child(row)
-	_sound_volume_slider = HSlider.new()
-	_sound_volume_slider.name = "SoundEffectsVolume"
-	_sound_volume_slider.min_value = 0.0
-	_sound_volume_slider.max_value = 1.0
-	_sound_volume_slider.step = 0.01
-	_sound_volume_slider.focus_mode = Control.FOCUS_ALL
-	_sound_volume_slider.value = DisplayPreferences.load_sound_effects_volume()
-	_sound_volume_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_sound_volume_slider.custom_minimum_size.x = 230
-	_sound_volume_slider.accessibility_name = "Sound effects volume"
-	row.add_child(_sound_volume_slider)
-	_sound_volume_value = Label.new()
-	_sound_volume_value.custom_minimum_size.x = 52
-	row.add_child(_sound_volume_value)
-	_update_sound_volume_label(_sound_volume_slider.value)
-	_sound_volume_slider.value_changed.connect(_sound_volume_changed)
+	_volume_controls = VolumeControls.new()
+	_sound_volume_dialog.add_child(_volume_controls)
+	_volume_controls.volume_changed.connect(_volume_changed)
 
 
 func _open_sound_volume() -> void:
 	if not _help_covered and not is_forfeit_confirmation_open():
-		_sound_volume_slider.set_value_no_signal(DisplayPreferences.load_sound_effects_volume())
-		_update_sound_volume_label(_sound_volume_slider.value)
+		_volume_controls.refresh()
 		_sound_volume_dialog.popup_centered()
-		_sound_volume_slider.grab_focus()
+		_volume_controls.focus_master()
 
 
-func _sound_volume_changed(value: float) -> void:
-	_update_sound_volume_label(value)
-	sound_effects_volume_changed.emit(value)
-
-
-func _update_sound_volume_label(value: float) -> void:
-	_sound_volume_value.text = "%d%%" % roundi(value * 100.0)
+func _volume_changed(category: String, value: float) -> void:
+	match category:
+		"master": master_volume_changed.emit(value)
+		"music": music_volume_changed.emit(value)
+		"sfx": sound_effects_volume_changed.emit(value)
 
 
 func _handle_options_window_input(event: InputEvent) -> void:

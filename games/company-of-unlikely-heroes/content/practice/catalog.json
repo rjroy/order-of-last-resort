@@ -1,0 +1,9 @@
+{
+  "parts": [
+    "../common.json",
+    "../first_outing.json",
+    "../village_troubles.json",
+    "../frontier_combats.json",
+    "encounter.json"
+  ]
+}

@@ -16,9 +16,21 @@ func populate(page: VBoxContainer, context: String, known_destination: bool, rep
 	_compact = viewport.x < 1100 or viewport.y < 700
 	bind_cover(34 if _compact else 51, 26 if _compact else 33, 29 if _compact else 43)
 	page.add_theme_constant_override("separation", 10 if _compact else 14)
-	var heading := stack(page, 0)
+	var heading_row := row(page, 12)
+	var heading := stack(heading_row, 0)
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	strong_text(heading, "Field reports", 39 if _compact else 52)
 	text(heading, context, 18 if _compact else 23, INK, "display")
+	var utility := Control.new()
+	utility.name = "HelpUtilitySlot"
+	utility.custom_minimum_size = Vector2(166, 42)
+	utility.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	heading_row.add_child(utility)
+	var hint := Control.new()
+	hint.name = "HelpHintSlot"
+	hint.custom_minimum_size.y = 24
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	page.add_child(hint)
 	rule(page, PRINT_RULE)
 
 	var spread := row(page, 27 if _compact else 49)

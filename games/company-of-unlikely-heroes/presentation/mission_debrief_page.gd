@@ -13,7 +13,14 @@ func populate(page: VBoxContainer, model: Dictionary) -> void:
 	bind_cover(30 if _compact else 36, 23 if _compact else 25, 29 if _compact else 36)
 	page.add_theme_constant_override("separation", 8 if _compact else 11)
 	var title := "Choose one reward" if model.pending else "Reward claimed"
-	var heading := stack(page, 0)
+	var heading_row := row(page, 12)
+	var heading := stack(heading_row, 0)
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var utility := Control.new()
+	utility.name = "HelpUtilitySlot"
+	utility.custom_minimum_size = Vector2(166, 42)
+	utility.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	heading_row.add_child(utility)
 	strong_text(heading, title, 36 if _compact else 48)
 	var subtitle: String = model.mission
 	if model.pending:
@@ -21,6 +28,13 @@ func populate(page: VBoxContainer, model: Dictionary) -> void:
 	else:
 		subtitle += " cleared."
 	_bound_title(text(heading, subtitle, 18 if _compact else 23, SUBTLE, "italic"), "DebriefMissionTitle")
+	var hint := Control.new()
+	hint.name = "HelpHintSlot"
+	hint.set_meta("help_next_step", "Review the debrief and choose a reward before continuing." if model.pending
+		else "Review the claimed reward, then continue.")
+	hint.custom_minimum_size.y = 24
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	page.add_child(hint)
 	rule(page, PRINT_RULE)
 	if not model.receipt.is_empty():
 		text(page, model.receipt, 16 if _compact else 19, FOREST, "display")

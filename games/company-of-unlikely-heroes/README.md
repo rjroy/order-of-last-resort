@@ -29,7 +29,9 @@ In the first fight, inspect the forecast for who stands next to a dying Bomber. 
 
 ### Take a commission
 
-The normal launch opens the illustrated guild book as the game, not a separate mockup. Name your guild and select **Create guild** on first launch. The board offers three commissions: two of **5 missions** and one of **10 missions**, each counting its named finale. Use **Choose commission**, then **Recruit** three distinct heroes from the available roster. Use **Earlier** and **Later** to set deployment order: the top hero acts first, and the order also determines starting positions. Select **Read field reports** once your company is ready.
+The normal launch opens the illustrated guild book as the game, not a separate mockup. Name your guild and select **Create guild** on first launch. A new stock guild starts with a practice lesson using the Knight, Healer and Caster. Complete it or select **Skip** to reach the commission board; either way, practice has no payout or effect on guild progress. You can replay it from the board. Existing guilds go straight to the board, including after leaving during practice. The board offers three commissions: two of **5 missions** and one of **10 missions**, each counting its named finale. Use **Choose commission**, then **Recruit** three distinct heroes from the available roster. Use **Earlier** and **Later** to set deployment order: the top hero acts first, and the order also determines starting positions. Select **Read field reports** once your company is ready.
+
+Hints are on by default. The shared **Show hints** switch in Options persists in and out of combat; turning hints off leaves practice instructions and the indexed **?** help book available. The book covers the game controls and includes engine credits.
 
 At each fork, choose between two field reports using **Take Route A** or **Take Route B**. Each describes the immediate mission and hints at the type of mission beyond it, not its exact identity. At the next fork, exactly one report matches the type hinted at by your previous choice. The commission's destination is visible from the start and both choices at the last fork lead there. After each nonfinal victory, choose one temporary hero reward if offered, then continue to the next reports or the finale.
 
@@ -214,7 +216,7 @@ The built-in catalog starts at `content/catalog.json`. Shared definitions and ad
 
 ### Recheck the build
 
-The [guild book art review instructions](assets-source/guild-book/README.md) describe how to regenerate captioned sheets and run the review tool's self-test. For a graphical capture of the actual game flow with an isolated profile, use the command and output requirements in [capture_guild_book.gd](tools/capture_guild_book.gd). Its battle driver uses a mixture of input and menu signals, and its commission defeat is controlled; captures are disposable local evidence.
+The [guild book art review instructions](assets-source/guild-book/README.md) describe how to regenerate captioned sheets and run the review tool's self-test. For a graphical capture of the actual game flow with an isolated profile, use the command and output requirements in [capture_guild_book.gd](tools/capture_guild_book.gd). Its battle driver uses a mixture of input and menu signals, and its commission defeat is controlled; captures are disposable local evidence. The [help screenshot recipe](assets/help/README.md) describes how to reproduce the book's game captures.
 
 From the repository root, check the default commission flow through the game controls with an isolated test profile:
 
@@ -231,6 +233,8 @@ From the game directory, run the suites with `godot --headless --script res://te
 | `commission_catalog_test` | Validation of commission settings, reports, and mission pools |
 | `commission_routes_test` | Seeded boards, both commission lengths, clue matching, rewards, and destination transitions |
 | `commission_scene_test` | Guild creation and reload, recruitment before reports, reward gating, carryover, and board renewal |
+| `practice_scene_test` | Founding practice, relaunch, skip, replay, lesson controls, and unchanged guild progress |
+| `help_book_scene_test` | Help navigation and screen state, hints preference, practice access, and battle help |
 | `guild_profile_test` | Local profile creation, reload, seed renewal, and invalid data |
 | `content_test` | Extra crate, alternate knight kit and habit, relocated escort destination |
 | `single_battle_ui_test` | Stock and custom standalone missions through the same battle controls |
@@ -248,6 +252,22 @@ From the game directory, run the suites with `godot --headless --script res://te
 | `storybook_gate_scene_test` | Board clicks, keyboard movement, automatic and aimed actions, and standing orders |
 | `commission_storybook_scene_test` | Normal launch through commission, recruitment, route selection, board input, and round commitment |
 | `storybook_gate_outcome_scene_test` | Forecast-vacated movement, tile inspection, and a legal eight-round victory followed by restart |
+
+These two scene tests should use fresh isolated player data; the help test requires `OLR_TEST_SANDBOX` and `XDG_DATA_HOME` to be the same fresh absolute directory. From the repository root:
+
+For OS-delivered F1, rerun `help_book_scene_test` on graphical X11 with XTEST and Python 3, a fresh matching sandbox and `XDG_DATA_HOME`, and no `--headless`; headless skips this assertion, and the game runtime needs neither Python nor X11 test dependencies.
+
+```sh
+(
+  set -e
+  sandbox=$(mktemp -d /tmp/opencode/olr-scene-tests.XXXXXX)
+  export OLR_TEST_SANDBOX="$sandbox" XDG_DATA_HOME="$sandbox"
+  godot --headless --path games/company-of-unlikely-heroes --script res://tests/help_book_scene_test.gd
+  sandbox=$(mktemp -d /tmp/opencode/olr-scene-tests.XXXXXX)
+  export OLR_TEST_SANDBOX="$sandbox" XDG_DATA_HOME="$sandbox"
+  godot --headless --path games/company-of-unlikely-heroes --script res://tests/practice_scene_test.gd
+)
+```
 
 Run `godot --script res://tests/bridge_art_test.gd` from this game directory in a graphical session to check the **rendered** shore tint and exit flag. It compares the board before and after moving the objective; no reference screenshot is required.
 

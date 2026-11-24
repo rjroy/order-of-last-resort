@@ -1,0 +1,30 @@
+{
+  "missions": {
+    "founders_practice": {
+      "title": "The Founders’ Drill",
+      "encounter": "founders_practice",
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat the Archer in two practice rounds.",
+        "victory_text": "The Archer is down. Practice complete.",
+        "defeat_text": "The drill has ended.",
+        "victory_event": "The Caster’s Blast takes down the Archer."
+      },
+      "failures": [
+        {"handler": "party_wiped", "event": "The company has fallen."}
+      ]
+    }
+  },
+  "encounters": {
+    "founders_practice": {
+      "board": "frontier_field",
+      "seed": 1,
+      "placements": [
+        {"id": "knight", "character": "knight", "at": [2, 2]},
+        {"id": "healer", "character": "healer", "at": [3, 2], "hp": 5},
+        {"id": "wizard", "character": "wizard", "at": [5, 2]},
+        {"id": "practice_archer", "character": "archer", "at": [4, 2]}
+      ]
+    }
+  }
+}

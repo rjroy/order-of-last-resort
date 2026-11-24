@@ -23,6 +23,9 @@ const RunResultPage = preload("res://presentation/run_result_page.gd")
 const DiagnosticBookPage = preload("res://presentation/diagnostic_book_page.gd")
 const ReceiptCopy = preload("res://presentation/guild_receipt_copy.gd")
 const GuildPetitionViewModel = preload("res://presentation/guild_petition_view_model.gd")
+const PracticeEncounter = preload("res://content/practice/practice_encounter.gd")
+const PracticeLesson = preload("res://presentation/practice_lesson.gd")
+const PracticeInstructions = preload("res://presentation/practice_instructions.gd")
 const TERMINAL_REPLAY_STALL_MS := 3200
 
 const PAPER := Color("#f1dfb8")
@@ -62,6 +65,8 @@ var _selected_hero_id := ""
 var _recruitment_folio := "recruits"
 var _fixed_mission := ""
 var _storybook_page: Control
+var _practice: PracticeLesson
+var _practice_instructions: PracticeInstructions
 var _grid_visible := true
 var _grid_labels_visible := true
 var _nameplates_visible := true
@@ -376,8 +381,53 @@ func _create_guild(guild_name: String) -> String:
 		return str(created.error)
 	_guild_profile = created
 	print_verbose("Guild profile created.")
-	_show_commissions()
+	if not _begin_practice():
+		_show_commissions()
 	return ""
+
+
+func can_replay_practice() -> bool:
+	return _screen == "commissions" and _practice_available()
+
+
+func replay_practice() -> void:
+	if can_replay_practice():
+		_begin_practice()
+
+
+func _practice_available() -> bool:
+	return _uses_builtin_catalog and not _guild_profile.is_empty() and not _guild_profile.has("error") \
+		and _commission.is_empty() and _run.is_empty() and _practice == null
+
+
+func _begin_practice() -> bool:
+	if not _practice_available():
+		return false
+	print_verbose("Opening the Founders’ Drill.")
+	var opening := PracticeEncounter.open()
+	if opening.is_empty():
+		print_verbose("The Founders’ Drill could not be opened.")
+		return false
+	_practice = PracticeLesson.new()
+	_show_battle(opening)
+	var orders := _storybook_page.find_child("StandingOrders", true, false) as Button
+	orders.grab_focus()
+	return true
+
+
+func _leave_practice(reason: String) -> void:
+	if _screen != "battle" or _practice == null:
+		return
+	if reason == "completed" and _ongoing():
+		return
+	print_verbose("Leaving the Founders’ Drill (%s); guild profile unchanged." % reason)
+	_practice = null
+	_practice_instructions = null
+	_show_commissions()
+	_state = {}
+	_planned_state = {}
+	_plan = {}
+	_last_events.clear()
 
 
 func _show_commissions(board_refresh_failed := false) -> void:
@@ -398,6 +448,7 @@ func _show_commissions(board_refresh_failed := false) -> void:
 		"balance": GuildProfile.balance(_guild_profile),
 		"receipt": _receipt_summary(_guild_profile.get("last_receipt", {})) if _uses_builtin_catalog else "",
 		"petitions": _show_petitions if _uses_builtin_catalog else Callable(),
+		"replay_practice": replay_practice if can_replay_practice() else Callable(),
 		"postings": postings,
 	})
 
@@ -1255,7 +1306,29 @@ func _show_storybook_battle() -> void:
 	_storybook_page.grid_labels_visibility_changed.connect(_set_grid_labels_visible)
 	_storybook_page.nameplate_visibility_changed.connect(_set_nameplates_visible)
 	_storybook_page.always_show_health_bar_changed.connect(_set_always_show_health_bar)
+	if _practice != null:
+		_practice_instructions = PracticeInstructions.new()
+		_practice_instructions.skip_requested.connect(_leave_practice.bind("skipped"))
+		_practice_instructions.continue_requested.connect(_leave_practice.bind("completed"))
+		_storybook_page.mount_practice_controls(_practice_instructions)
+		_storybook_page.forecast_visibility_changed.connect(_practice_forecast_visibility_changed)
 	_begin_attempt()
+
+
+func _practice_forecast_visibility_changed(opened: bool) -> void:
+	if _practice == null:
+		return
+	_practice.forecast_visibility_changed(opened, _plan, _unpreviewed_edit)
+	_render_storybook()
+
+
+func _practice_allows_action(ability: String) -> bool:
+	return _practice == null or _practice.allows_action(_state, _actor_id, ability)
+
+
+func _can_change_battle_order(hero: String) -> bool:
+	return _ongoing() and _find(hero).get("hp", 0) > 0 \
+		and (_practice == null or _practice.allows_order(_state, hero))
 
 
 func _set_grid_visible(shown: bool) -> void:
@@ -1331,7 +1404,8 @@ func _storybook_board_input(event: InputEvent) -> void:
 
 
 func _storybook_action(ability: String) -> void:
-	if _forfeit_confirmation_open() or not _ongoing() or _actor_id.is_empty():
+	if _forfeit_confirmation_open() or not _ongoing() or _actor_id.is_empty() \
+			or not _practice_allows_action(ability):
 		return
 	var available := _rules.options(_state, _actor_id).any(
 		func(choice: Dictionary) -> bool: return choice.kind == "action" and choice.id == ability)
@@ -1363,7 +1437,8 @@ func _storybook_action(ability: String) -> void:
 
 
 func _storybook_target(target: String) -> void:
-	if _forfeit_confirmation_open() or not _targets.any(func(choice: Dictionary) -> bool: return choice.id == target):
+	if _forfeit_confirmation_open() or not _practice_allows_action(_ability_id) \
+			or not _targets.any(func(choice: Dictionary) -> bool: return choice.id == target):
 		return
 	_storybook_ambiguous.clear()
 	_target_id = target
@@ -1371,13 +1446,16 @@ func _storybook_target(target: String) -> void:
 
 
 func _storybook_order(hero: String, order: String) -> void:
-	if _forfeit_confirmation_open() or not _ongoing() or _find(hero).get("hp", 0) <= 0:
+	if _forfeit_confirmation_open() or not _can_change_battle_order(hero):
 		return
 	if not _rules.options(_state, hero).any(
 			func(choice: Dictionary) -> bool: return choice.kind == "order" and choice.id == order):
 		return
 	_state = _rules.set_order(_state, hero, order)
 	_planned_state = _rules.set_order(_planned_state, hero, order)
+	if _practice != null and order != PracticeLesson.BLAST_ORDER:
+		_clear_command()
+		return
 	_refresh()
 
 
@@ -1403,7 +1481,7 @@ func _storybook_select_board(cell: Vector2i) -> void:
 				_refresh()
 			return
 	# With no Move marks already offered, an empty destination can start a Move.
-	if _ability_id == "move" or _unpreviewed_edit or not _editor_can_act:
+	if _ability_id == "move" or _unpreviewed_edit or not _editor_can_act or not _practice_allows_action("move"):
 		return
 	for choice in _rules.targets(_editor_context(), _actor_id, "move"):
 		if choice.position == cell:
@@ -1423,7 +1501,7 @@ func _render_storybook() -> void:
 	var actions: Array = []
 	var context := _editor_context()
 	for choice in _rules.options(_state, _actor_id):
-		if choice.kind == "action":
+		if choice.kind == "action" and _practice_allows_action(choice.id):
 			var definition := _action_definition(choice.id)
 			var kind: String = definition.get("targeting", {}).get("kind", "")
 			var enabled := _ongoing() and _editor_can_act
@@ -1444,7 +1522,7 @@ func _render_storybook() -> void:
 				choices.append({"id": choice.id, "label": choice.label})
 		orders.append({"hero_id": unit.id, "hero_label": _name_for(unit.id),
 			"order_id": _state.orders.get(unit.id, ""), "choices": choices,
-			"enabled": _ongoing() and unit.hp > 0, "overridden": _ongoing() and unit.id == _commanded_hero(),
+			"enabled": _can_change_battle_order(unit.id), "overridden": _ongoing() and unit.id == _commanded_hero(),
 			"hp": "%d/%d HP" % [unit.hp, unit.max_hp]})
 	var summary := "Standing orders only"
 	var commanded := _commanded_hero()
@@ -1522,10 +1600,13 @@ func _render_storybook() -> void:
 		"forecast": "\n".join(events), "can_clear": _ongoing() and (not commanded.is_empty() or _unpreviewed_edit),
 		"clear_label": "Clear command", "can_commit": _can_commit(), "outcome": _state.outcome,
 		"can_restart": not _fixed_mission.is_empty(), "upgrades_text": "\n".join(upgrades)})
+	if _practice != null:
+		_practice_instructions.render(_practice.step(_state, _plan, _unpreviewed_edit),
+			_practice.forecast_open, _practice.can_commit(), _actor_id == PracticeLesson.CASTER)
 
 
 func _restart_fixed() -> void:
-	if _forfeit_confirmation_open():
+	if _forfeit_confirmation_open() or _fixed_mission.is_empty():
 		return
 	_state = _opening_state.duplicate(true)
 	_begin_attempt()
@@ -1636,12 +1717,13 @@ func _is_selectable(target_kind: String) -> bool:
 
 
 func _can_stage_command() -> bool:
-	return _ongoing() and _ready_to_command() and _editor_can_act
+	return _ongoing() and _ready_to_command() and _editor_can_act and _practice_allows_action(_ability_id)
 
 
 func _commit() -> void:
 	if _forfeit_confirmation_open() or not _can_commit():
 		return
+	var round_number: int = _state.round
 	var committed := _rules.commit_round(_planned_state, _plan)
 	if committed == _planned_state:
 		return
@@ -1655,7 +1737,7 @@ func _commit() -> void:
 	_storybook_ambiguous.clear()
 	_storybook_inspected_cell = null
 	_set_inspection("")
-	if not _ongoing() and _fixed_mission.is_empty():
+	if not _ongoing() and _fixed_mission.is_empty() and _practice == null:
 		_run = Adventure.settle_mission(_run, _state)
 		if _run.phase in ["reward", "route", "ready", "finished"]:
 			var replay := _take_terminal_board(cues, reactions)
@@ -1670,10 +1752,18 @@ func _commit() -> void:
 	_refresh()
 	_board.play_committed_actions(cues)
 	_storybook_page.play_committed_reactions(reactions)
+	if _practice != null:
+		print_verbose("Committed practice round %d." % round_number)
+		if _ongoing():
+			_storybook_page.close_forecast()
+			var forecast := _storybook_page.find_child("ForecastDetails", true, false) as Button
+			forecast.grab_focus()
+		else:
+			_practice_instructions.focus_continue()
 
 
 func _forfeit() -> void:
-	if _screen != "battle" or not _ongoing():
+	if _screen != "battle" or not _ongoing() or _practice != null:
 		return
 	_state = _rules.forfeit(_state)
 	_planned_state = _state
@@ -1841,6 +1931,8 @@ func _clear_terminal_replay() -> void:
 
 func _refresh() -> void:
 	_plan = _rules.preview_round(_planned_state)
+	if _practice != null:
+		_practice.preview_changed(_plan)
 	_sync_targets()
 	_refresh_board()
 	_sync_inspection()
@@ -1858,7 +1950,8 @@ func _unavailable_hero_reason() -> String:
 
 
 func _can_commit() -> bool:
-	return _ongoing() and not _unpreviewed_edit and _plan.get("valid", false)
+	return _ongoing() and not _unpreviewed_edit and _plan.get("valid", false) \
+		and (_practice == null or _practice.can_commit())
 
 
 func _commanded_hero() -> String:
@@ -2036,6 +2129,9 @@ func _refresh_board() -> void:
 			var selected := _find(_actor_id)
 			overlay["selected"] = selected.position
 			var offered := _board_targets()
+			if offered.is_empty() and _practice != null and _ability_id.is_empty() \
+					and _editor_can_act and _practice_allows_action("move"):
+				offered = _rules.targets(_editor_context(), _actor_id, "move")
 			if not offered.is_empty():
 				var positions: Array = []
 				for target in offered:

@@ -134,8 +134,11 @@ func _found_with_keyboard() -> bool:
 	_check(input.has_focus(), "Shift+Tab returns to the name field")
 	await _key_in_window(KEY_TAB)
 	await _key_in_window(KEY_ENTER)
-	_check(scene.current_screen() == "commissions" and Profile.load_profile(profile_path).get("name") == long_name,
-		"Keyboard activation opens commissions and saves the complete long name")
+	_check(scene.current_screen() == "battle" and Profile.load_profile(profile_path).get("name") == long_name,
+		"Keyboard activation starts practice and saves the complete long name")
+	if scene.current_screen() == "battle":
+		await _press("SkipPractice")
+	_check(scene.current_screen() == "commissions", "Skipping practice opens commissions")
 	return scene.current_screen() == "commissions"
 
 

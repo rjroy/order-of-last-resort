@@ -15,6 +15,11 @@ func populate(page: VBoxContainer, model: Dictionary) -> void:
 	bind_cover(26 if _compact else 32, 24 if _compact else 39, 30 if _compact else 43)
 	page.add_theme_constant_override("separation", 10 if _compact else 16)
 	_build_header(page, model.guild_name, model.balance, model.petitions)
+	var hint := Control.new()
+	hint.name = "HelpHintSlot"
+	hint.custom_minimum_size.y = 24
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	page.add_child(hint)
 	rule(page, PRINT_RULE)
 	_build_board_status(page, model.refresh_failed, model.receipt)
 
@@ -28,10 +33,16 @@ func populate(page: VBoxContainer, model: Dictionary) -> void:
 		var right := actions[index]
 		left.focus_neighbor_right = left.get_path_to(right)
 		right.focus_neighbor_left = right.get_path_to(left)
-	var foot := row(page, 0)
+	var foot := row(page, 12)
 	space(foot, 8 if _compact else 14)
 	var note := text(foot, "The mission count includes the final mission.", 17 if _compact else 21, INK, "italic")
 	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var replay_practice: Callable = model.get("replay_practice", Callable())
+	if replay_practice.is_valid():
+		var replay := button(foot, "ReplayPractice", "Replay practice", "QuietButton")
+		replay.tooltip_text = "Repeat the Founders’ Drill with the three starter heroes. No guild progress changes."
+		replay.accessibility_description = replay.tooltip_text
+		replay.pressed.connect(replay_practice)
 	if not actions.is_empty():
 		actions[0].grab_focus()
 	_queue_illustration_fit()
@@ -49,18 +60,21 @@ func _build_header(page: Control, guild_name: String, points: int, open_petition
 	guild.max_lines_visible = 2
 	guild.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	guild.tooltip_text = guild_name
-	if not open_petitions.is_valid():
-		return
-
 	var ledger := row(masthead, 14 if _compact else 24)
 	ledger.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var balance := text(ledger, "Guild points: %d" % points, 19 if _compact else 25, INK, "display")
-	balance.autowrap_mode = TextServer.AUTOWRAP_OFF
-	balance.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var petitions := button(ledger, "Petitions", "Guild petitions")
-	petitions.custom_minimum_size = Vector2(147, 39) if _compact else Vector2(202, 49)
-	_style_button(petitions, 20 if _compact else 25, false)
-	petitions.pressed.connect(open_petitions)
+	if open_petitions.is_valid():
+		var balance := text(ledger, "Guild points: %d" % points, 19 if _compact else 25, INK, "display")
+		balance.autowrap_mode = TextServer.AUTOWRAP_OFF
+		balance.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var petitions := button(ledger, "Petitions", "Guild petitions")
+		petitions.custom_minimum_size = Vector2(147, 39) if _compact else Vector2(202, 49)
+		_style_button(petitions, 20 if _compact else 25, false)
+		petitions.pressed.connect(open_petitions)
+	var utility := Control.new()
+	utility.name = "HelpUtilitySlot"
+	utility.custom_minimum_size = Vector2(166, 42)
+	utility.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ledger.add_child(utility)
 
 
 func _build_board_status(page: Control, refresh_failed: bool, receipt: String) -> void:

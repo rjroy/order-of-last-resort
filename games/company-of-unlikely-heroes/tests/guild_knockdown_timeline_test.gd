@@ -8,6 +8,8 @@ var failures: Array[String] = []
 
 
 func _initialize() -> void:
+	_test_action_order()
+	_test_move_action_order()
 	var art := Sprites.new()
 	art.set("_actors", {
 		"wizard": {"blast": _clip([1, 17], [500.0, 500.0])},
@@ -79,6 +81,59 @@ func _initialize() -> void:
 	if failures.is_empty():
 		print("PASS: guild knockdown playback chronology")
 	quit(0 if failures.is_empty() else 1)
+
+
+func _test_action_order() -> void:
+	var art := Sprites.new()
+	art.set("_actors", {
+		"wizard": {"blast": _clip([1, 17, 25], [500.0, 100.0, 900.0])},
+		"healer": {"bonk": _clip([1, 15, 20], [100.0, 100.0, 800.0])},
+	})
+	var timeline := Playback.new()
+	timeline.enqueue([
+		{"unit_id": "first", "cast_key": "wizard", "clip": "blast"},
+		{"unit_id": "second", "cast_key": "healer", "clip": "bonk"},
+	], art)
+	# Windups may overlap. Only the consequential moments must retain order.
+	var first_impact := -1
+	var second_impact := -1
+	for time_ms in range(0, 4001, 10):
+		for entry in timeline.active():
+			if entry.elapsed_ms >= entry.impact_ms:
+				if entry.cue.unit_id == "first" and first_impact < 0:
+					first_impact = time_ms
+				if entry.cue.unit_id == "second" and second_impact < 0:
+					second_impact = time_ms
+		timeline.advance(10.0)
+	_check(first_impact >= 0 and second_impact > first_impact,
+		"Different performers show both committed action impacts in resolution order")
+
+
+func _test_move_action_order() -> void:
+	var art := Sprites.new()
+	art.set("_actors", {
+		"scout": {"run": _clip([1, 8, 16], [400.0, 100.0, 700.0])},
+		"wizard": {"blast": _clip([1, 17, 25], [100.0, 100.0, 800.0])},
+	})
+	var timeline := Playback.new()
+	timeline.enqueue([
+		{"unit_id": "mover", "cast_key": "scout", "clip": "run",
+			"ordinary_presentation": true, "ordinary_role": "action", "ordinary_handler": "move",
+			"source_cell": Vector2i(1, 1), "actor_cell": Vector2i(2, 1), "impact_frame": 8},
+		{"unit_id": "caster", "cast_key": "wizard", "clip": "blast"},
+	], art)
+	var move_moment := -1
+	var blast_moment := -1
+	for time_ms in range(0, 4001, 10):
+		for entry in timeline.active():
+			if entry.elapsed_ms >= entry.impact_ms:
+				if entry.cue.unit_id == "mover" and move_moment < 0:
+					move_moment = time_ms
+				if entry.cue.unit_id == "caster" and blast_moment < 0:
+					blast_moment = time_ms
+		timeline.advance(10.0)
+	_check(move_moment >= 0 and blast_moment > move_moment,
+		"A committed move's key moment precedes the later performer's action impact")
 
 
 func _clip(frames: Array[int], durations: Array[float]) -> Sprites.Clip:

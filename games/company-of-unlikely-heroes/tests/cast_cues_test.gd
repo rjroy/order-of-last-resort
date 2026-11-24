@@ -23,6 +23,12 @@ func _initialize() -> void:
 		_test_repeated_performers_and_reactions()
 		_test_reflection()
 		_test_committed_round()
+		_test_committed_plain_move()
+		_test_multistep_presentation()
+		_test_displacement_at_impact()
+		_test_rapid_commit_does_not_overtake_motion()
+		_test_push_then_exit_strategy_onset()
+		_test_next_commit_move_onset()
 		_test_swap_waits_for_queued_throw()
 		_test_non_actions_and_aliases()
 		_test_custom_ability_handlers()
@@ -271,6 +277,269 @@ func _test_committed_round() -> void:
 	var result: Dictionary = rules.commit_round(selected, plan)
 	_check(result == plan.result, "Round commit agrees with forecast")
 	_cue(_build(selected, result, plan.events), "wizard_instance", "wizard", "blast", "foe")
+
+
+func _test_committed_plain_move() -> void:
+	var state := _state([_unit("knight_instance", "knight", Vector2i(3, 3)),
+		_unit("foe", "harpooner", Vector2i(8, 8)),
+		_unit("civilian", "ferryman", Vector2i(10, 10))])
+	var selected: Dictionary = rules.choose_manual(state, "knight_instance", "move", "4,3")
+	var plan: Dictionary = rules.preview_round(selected)
+	_check(plan.get("valid", false), "Plain hero move round is valid")
+	if not plan.get("valid", false):
+		return
+	var result: Dictionary = rules.commit_round(selected, plan)
+	_check(result == plan.result, "Plain move commits the forecast result")
+	var cues := _build(selected, result, plan.events)
+	_check(cues.any(func(cue): return cue.get("unit_id") == "knight_instance" \
+		and cue.get("source_cell") == Vector2i(3, 3) \
+		and cue.get("actor_cell") == Vector2i(4, 3)),
+		"A committed ordinary hero move has a presentation moment from its old cell to its new cell")
+
+
+func _test_multistep_presentation() -> void:
+	var state := _state([_unit("swift", "bandit_swift", Vector2i(2, 2)),
+		_unit("fallen", "bandit_guard", Vector2i(8, 8), 0)])
+	var plan: Dictionary = rules.preview(state, "swift", "move", "4,2")
+	_check(plan.get("valid", false), "Empowered Swift Bandit has a legal two-step move")
+	if not plan.get("valid", false):
+		return
+	var steps: Array = plan.events.filter(func(event): return event.get("type") == "move" \
+		and event.get("unit_id") == "swift")
+	_check(steps.size() == 2 and steps[0].position == Vector2i(3, 2) \
+		and steps[1].position == Vector2i(4, 2), "Swift Bandit really resolves two ordered steps")
+	var timeline = _timeline(mapper.build(state, plan.result, plan.events, true))
+	var first_seen := false
+	var second_seen := false
+	var reversed := false
+	for time_ms in range(0, 3001, 10):
+		var position := _visual_position(timeline, "swift", Vector2i(4, 2))
+		if position.x > 2.05 and position.x < 2.95:
+			first_seen = true
+			reversed = reversed or second_seen
+		if position.x > 3.05 and position.x < 3.95:
+			second_seen = true
+			reversed = reversed or not first_seen
+		timeline.advance(10.0)
+	_check(first_seen and second_seen and not reversed,
+		"Two-step move visibly traverses each segment once in resolution order")
+
+
+func _test_displacement_at_impact() -> void:
+	for example in [
+		["wizard", "wizard_pull", "foe"],
+		["rogue", "rogue_confusing_dodge", ""],
+	]:
+		var state := _state([_unit("actor", example[0], Vector2i(3, 3)),
+			_unit("foe", "harpooner", Vector2i(5, 3)),
+			_unit("friend", "knight", Vector2i(3, 7))])
+		var plan: Dictionary = rules.preview(state, "actor", example[1], example[2])
+		_check(plan.get("valid", false), example[1] + " resolves")
+		if not plan.get("valid", false):
+			continue
+		var timeline = _timeline(mapper.build(state, plan.result, plan.events, true))
+		var entries: Array = timeline.get("_entries")
+		var own := entries.filter(func(entry): return entry.cue.get("unit_id") == "actor" \
+			and entry.cue.get("action_beat", false))
+		_check(not own.is_empty(), example[1] + " has an action beat")
+		if own.is_empty():
+			continue
+		var entry = own[0]
+		timeline.advance(maxf(0.0, entry.impact_ms - entry.elapsed_ms - 1.0))
+		_check(_visual_position(timeline, "actor", plan.result.units[0].position) == Vector2(3, 3),
+			example[1] + " keeps the owner at source until its impact")
+
+
+func _test_rapid_commit_does_not_overtake_motion() -> void:
+	var state := _state([_unit("actor", "wizard", Vector2i(3, 3)),
+		_unit("foe", "harpooner", Vector2i(5, 3))])
+	var plan: Dictionary = rules.preview(state, "actor", "wizard_pull", "foe")
+	_check(plan.get("valid", false), "Rapid-commit Pull fixture resolves")
+	if not plan.get("valid", false):
+		return
+	var timeline = _timeline(mapper.build(state, plan.result, plan.events, true))
+	var entries: Array = timeline.get("_entries")
+	var own := entries.filter(func(entry): return entry.cue.get("unit_id") == "actor" \
+		and entry.cue.get("action_beat", false))
+	if own.is_empty():
+		_check(false, "Rapid-commit Pull has a source beat")
+		return
+	timeline.advance(own[0].impact_ms - own[0].elapsed_ms + 1.0)
+	var before := _visual_position(timeline, "foe", plan.result.units[1].position)
+	_check(before != Vector2(plan.result.units[1].position), "Pull target is still in flight")
+	var later := {"unit_id": "later", "cast_key": "test", "clip": "gesture", "action_beat": true}
+	var art = preload("res://presentation/cast_sprites.gd").new()
+	var clip = preload("res://presentation/cast_sprites.gd").Clip.new()
+	clip.total_ms = 100.0
+	art.set("_actors", {"test": {"gesture": clip}})
+	timeline.enqueue([later], art)
+	var next: Array = timeline.get("_entries").filter(func(entry): return entry.cue.unit_id == "later")
+	_check(not next.is_empty(), "Later committed action is queued")
+	if not next.is_empty():
+		var next_impact: float = next[0].impact_ms - next[0].elapsed_ms
+		timeline.advance(maxf(0.0, next_impact))
+		_check(_visual_position(timeline, "foe", plan.result.units[1].position) \
+			== Vector2(plan.result.units[1].position),
+			"A later commit cannot reach its impact before the earlier displacement lands")
+
+
+func _test_push_then_exit_strategy_onset() -> void:
+	var state := _state([_unit("knight", "knight", Vector2i(2, 4)),
+		_unit("rogue", "rogue", Vector2i(3, 4)),
+		_unit("enemy", "harpooner", Vector2i(6, 4)),
+		_unit("civilian", "ferryman", Vector2i(10, 10))])
+	state.units[1]["upgrades"] = {"rogue_exit_strategy": 1}
+	state = rules.set_order(state, "rogue", "order_retreat")
+	var selected: Dictionary = rules.choose_manual(state, "knight", "knight_push", "rogue")
+	var plan: Dictionary = rules.preview_round(selected)
+	_check(plan.get("valid", false), "Knight Push and Rogue Exit Strategy round resolves")
+	if not plan.get("valid", false):
+		return
+	var result: Dictionary = rules.commit_round(selected, plan)
+	_check(result == plan.result, "Push and retreat round commits its forecast")
+	var push_index: int = plan.events.find_custom(func(event): return event.get("type") == "push" \
+		and event.get("unit_id") == "knight" and event.get("target_id") == "rogue")
+	var steps: Array = plan.events.filter(func(event): return event.get("type") == "move" \
+		and event.get("unit_id") == "rogue")
+	if not _check_fixture(push_index >= 0 and steps.size() == 2 \
+			and plan.events.find(steps[0]) > push_index and plan.events.find(steps[1]) > plan.events.find(steps[0]),
+			"Knight pushes the Rogue before two actual Exit Strategy steps"):
+		return
+	var origin := Vector2(3, 4)
+	var pushed := Vector2(plan.events[push_index].position)
+	var first := Vector2(steps[0].position)
+	var second := Vector2(steps[1].position)
+	var timeline = _timeline(mapper.build(selected, result, plan.events, true))
+	var reached_push := false
+	var first_leg := false
+	var second_leg := false
+	var out_of_order := false
+	for tick in range(0, 4001):
+		var at := _visual_position(timeline, "rogue", Vector2i(second))
+		if at.distance_to(pushed) < 0.025:
+			reached_push = true
+		if reached_push and _within_segment(at, pushed, first):
+			first_leg = true
+		if _within_segment(at, first, second):
+			second_leg = true
+			if not first_leg:
+				out_of_order = true
+		# Until the push has landed, the later retreat must not displace
+		# the figure away from the actual Push trajectory.
+		if not reached_push and at.distance_to(origin) > 0.025 \
+				and not _on_segment(at, origin, pushed):
+			out_of_order = true
+		timeline.advance(1.0)
+	_check(reached_push and first_leg and second_leg and not out_of_order,
+		"Push settles before Rogue's first retreat onset; both Exit Strategy legs visibly follow in order")
+
+
+func _test_next_commit_move_onset() -> void:
+	var state := _state([_unit("knight", "knight", Vector2i(2, 4)),
+		_unit("pushed", "rogue", Vector2i(3, 4)),
+		_unit("swift", "bandit_swift", Vector2i(2, 7)),
+		_unit("fallen", "bandit_guard", Vector2i(8, 8), 0)])
+	var push: Dictionary = rules.preview(state, "knight", "knight_push", "pushed")
+	if not _check_fixture(push.get("valid", false), "Rapid-commit Knight Push resolves"):
+		return
+	var pushed: Dictionary = rules.apply_plan(state, push)
+	var move: Dictionary = rules.preview(pushed, "swift", "move", "4,7")
+	var steps: Array = move.get("events", []).filter(func(event): return event.get("type") == "move" \
+		and event.get("unit_id") == "swift")
+	if not _check_fixture(move.get("valid", false) and steps.size() == 2,
+			"A different Swift Bandit can commit a real two-step move after the Push"):
+		return
+	var push_cues: Array = mapper.build(state, pushed, push.events, true)
+	var move_cues: Array = mapper.build(pushed, move.result, move.events, true)
+	var art = _test_art(push_cues + move_cues)
+	var timeline = preload("res://presentation/cast_playback.gd").new()
+	timeline.enqueue(push_cues, art)
+	var entries: Array = timeline.get("_entries")
+	var owners := entries.filter(func(entry): return entry.cue.get("unit_id") == "knight" \
+		and entry.cue.get("action_beat", false))
+	if not _check_fixture(not owners.is_empty(), "The Push has a presentation impact"):
+		return
+	timeline.advance(owners[0].impact_ms - owners[0].elapsed_ms + 1.0)
+	var pushed_cell := Vector2(pushed.units[1].position)
+	_check(_visual_position(timeline, "pushed", pushed.units[1].position).distance_to(pushed_cell) > 0.01,
+		"Second commit starts while the Push displacement is still in flight")
+	timeline.enqueue(move_cues, art)
+	var move_started_early := false
+	var reached_push := false
+	var first_leg := false
+	var second_leg := false
+	for tick in range(0, 4001):
+		var target_at := _visual_position(timeline, "pushed", pushed.units[1].position)
+		var swift_at := _visual_position(timeline, "swift", move.result.units[2].position)
+		if target_at.distance_to(pushed_cell) < 0.025:
+			reached_push = true
+		if not reached_push and swift_at.distance_to(Vector2(2, 7)) > 0.025:
+			move_started_early = true
+		if reached_push and _within_segment(swift_at, Vector2(2, 7), Vector2(steps[0].position)):
+			first_leg = true
+		if _within_segment(swift_at, Vector2(steps[0].position), Vector2(steps[1].position)):
+			second_leg = first_leg
+		timeline.advance(1.0)
+	_check(not move_started_early and reached_push and first_leg and second_leg,
+		"Next commit's different actor begins moving only after Push settles, then shows both steps")
+
+
+func _within_segment(at: Vector2, start: Vector2, end: Vector2) -> bool:
+	var direction := end - start
+	if direction.is_zero_approx():
+		return false
+	var fraction := (at - start).dot(direction) / direction.length_squared()
+	return fraction > 0.1 and fraction < 0.9 \
+		and at.distance_to(start.lerp(end, fraction)) < 0.025
+
+
+func _on_segment(at: Vector2, start: Vector2, end: Vector2) -> bool:
+	var direction := end - start
+	if direction.is_zero_approx():
+		return at.distance_to(start) < 0.025
+	var fraction := (at - start).dot(direction) / direction.length_squared()
+	return fraction >= -0.001 and fraction <= 1.001 \
+		and at.distance_to(start.lerp(end, fraction)) < 0.025
+
+
+func _check_fixture(condition: bool, message: String) -> bool:
+	_check(condition, message)
+	return condition
+
+
+func _timeline(cues: Array):
+	var art = _test_art(cues)
+	var timeline = preload("res://presentation/cast_playback.gd").new()
+	timeline.enqueue(cues, art)
+	return timeline
+
+
+func _test_art(cues: Array):
+	var Sprites = preload("res://presentation/cast_sprites.gd")
+	var art = Sprites.new()
+	var actors := {}
+	for cue: Dictionary in cues:
+		var role: String = cue.get("cast_key", "")
+		var key: String = cue.get("clip", "")
+		if role.is_empty() or key.is_empty():
+			continue
+		var clip = Sprites.Clip.new()
+		clip.total_ms = 1200.0
+		clip.source_frames.assign([1, 13, 15, 17, 25])
+		clip.frame_ends.assign([400.0, 600.0, 800.0, 1000.0, 1200.0])
+		if not actors.has(role):
+			actors[role] = {}
+		actors[role][key] = clip
+	art.set("_actors", actors)
+	return art
+
+
+func _visual_position(timeline, id: String, fallback: Vector2i) -> Vector2:
+	var source: Variant = timeline.movement_source(id)
+	var destination: Variant = timeline.movement_destination(id)
+	if source is Vector2i and destination is Vector2i:
+		return Vector2(source).lerp(Vector2(destination), timeline.movement_fraction(id))
+	return Vector2(timeline.actor_cell(id, fallback))
 
 
 func _test_swap_waits_for_queued_throw() -> void:

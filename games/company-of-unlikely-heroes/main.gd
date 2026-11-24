@@ -5,6 +5,7 @@ const BridgeArt = preload("res://bridge_art.gd")
 const BattleCues = preload("res://battle_cues.gd")
 const BattleDisplayPreferences = preload("res://battle_display_preferences.gd")
 const CastCues = preload("res://presentation/cast_cues.gd")
+const SoundEffects = preload("res://presentation/sound_effects.gd")
 const StorybookInk = preload("res://presentation/storybook_battle_ink.gd")
 const Catalog = preload("res://content/catalog.gd")
 const Adventure = preload("res://adventure.gd")
@@ -103,10 +104,14 @@ var _terminal_replay: PanelContainer
 var _terminal_board: BridgeArt
 var _terminal_replay_until := 0
 var _terminal_remaining_ms := 0.0
+var _sound_effects
 
 
 func _ready() -> void:
 	set_process(false)
+	_sound_effects = SoundEffects.new()
+	_sound_effects.name = "SoundEffects"
+	add_child(_sound_effects)
 	_make_theme()
 	_grid_visible = BattleDisplayPreferences.load_grid_visible()
 	_grid_labels_visible = BattleDisplayPreferences.load_grid_labels_visible()
@@ -1272,6 +1277,7 @@ func _show_storybook_battle() -> void:
 	add_child(_storybook_page)
 	_storybook_page.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_board = BridgeArt.new()
+	_board.sound_beat.connect(_sound_effects.dispatch_beat)
 	_board.name = "BridgeBoard"
 	_board.focus_mode = Control.FOCUS_ALL
 	var trusted_board_id: String = _state.board_id if _uses_builtin_catalog else ""
@@ -1306,6 +1312,7 @@ func _show_storybook_battle() -> void:
 	_storybook_page.grid_labels_visibility_changed.connect(_set_grid_labels_visible)
 	_storybook_page.nameplate_visibility_changed.connect(_set_nameplates_visible)
 	_storybook_page.always_show_health_bar_changed.connect(_set_always_show_health_bar)
+	_storybook_page.sound_effects_volume_changed.connect(_set_sound_effects_volume)
 	if _practice != null:
 		_practice_instructions = PracticeInstructions.new()
 		_practice_instructions.skip_requested.connect(_leave_practice.bind("skipped"))
@@ -1337,6 +1344,10 @@ func _set_grid_visible(shown: bool) -> void:
 	if is_instance_valid(_terminal_board):
 		_terminal_board.set_grid_visible(shown)
 	BattleDisplayPreferences.save_grid_visible(shown)
+
+
+func _set_sound_effects_volume(value: float) -> void:
+	_sound_effects.set_volume(value)
 
 
 func _set_grid_labels_visible(shown: bool) -> void:
@@ -1669,7 +1680,11 @@ func _stage_command() -> void:
 	if not _can_stage_command():
 		_refresh()
 		return
+	var previous: Dictionary = _planned_state.overrides.get(_actor_id, {}).duplicate()
 	_planned_state = _rules.choose_manual(_rules.clear_manual(_planned_state), _actor_id, _ability_id, _target_id)
+	var staged: Dictionary = _planned_state.overrides.get(_actor_id, {})
+	if _ability_id == "move" and not staged.is_empty() and staged != previous:
+		_sound_effects.planning(_actor_id)
 	_unpreviewed_edit = false
 	_refresh()
 
@@ -1728,7 +1743,7 @@ func _commit() -> void:
 	if committed == _planned_state:
 		return
 	_last_events = _plan.events.duplicate(true)
-	var cues := CastCues.build(_state, committed, _last_events)
+	var cues := CastCues.build(_state, committed, _last_events, true)
 	_state = committed
 	var reactions := _committed_reactions()
 	_planned_state = _state
@@ -1818,7 +1833,7 @@ func _take_terminal_board(cues: Array, reactions: Array) -> BridgeArt:
 		var pending: Array = ink.get("_committed_reactions").duplicate(true) if ink != null else []
 		pending.append_array(reactions)
 		_storybook_page.play_committed_reactions(pending)
-	if _board.action_playback_snapshot().is_empty() and (ink == null or not ink.has_committed_reactions()):
+	if not _board.action_playback_pending() and (ink == null or not ink.has_committed_reactions()):
 		return null
 	# Keep the resolved board only, not its controls or callbacks into the
 	# battle editor. A commission can deploy a new board synchronously.
@@ -1847,7 +1862,7 @@ func _show_terminal_replay(board: BridgeArt) -> void:
 		var ink := board.get_node_or_null("StorybookInk") as StorybookInk
 		if ink != null:
 			ink.play_committed_reactions([])
-		if board.action_playback_snapshot().is_empty():
+		if not board.action_playback_pending():
 			board.queue_free()
 			return
 	var panel := PanelContainer.new()
@@ -1875,7 +1890,7 @@ func _show_terminal_replay(board: BridgeArt) -> void:
 
 func _process(_delta: float) -> void:
 	var ink := _terminal_board.get_node_or_null("StorybookInk") as StorybookInk
-	if _terminal_board.action_playback_snapshot().is_empty() \
+	if not _terminal_board.action_playback_pending() \
 			and (ink == null or not ink.has_committed_reactions()):
 		_clear_terminal_replay()
 		return

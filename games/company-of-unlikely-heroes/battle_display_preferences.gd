@@ -8,6 +8,7 @@ const GRID_LABELS_VISIBLE := "grid_labels_visible"
 const NAMEPLATES_VISIBLE := "nameplates_visible"
 const ALWAYS_SHOW_HEALTH_BAR := "always_show_health_bar"
 const SHOW_HINTS := "show_hints"
+const SOUND_EFFECTS_VOLUME := "sound_effects_volume"
 
 
 static func load_grid_visible() -> bool:
@@ -48,6 +49,32 @@ static func save_always_show_health_bar(shown: bool) -> void:
 
 static func save_show_hints(shown: bool) -> void:
 	_save_visibility(SHOW_HINTS, "hints", shown)
+
+
+static func load_sound_effects_volume() -> float:
+	var config := ConfigFile.new()
+	if _load(config) != OK:
+		return 0.8
+	var stored: Variant = config.get_value(SECTION, SOUND_EFFECTS_VOLUME, 0.8)
+	if (stored is float or stored is int) and is_finite(float(stored)) \
+			and float(stored) >= 0.0 and float(stored) <= 1.0:
+		return float(stored)
+	push_warning("Ignoring an invalid sound effects volume preference.")
+	return 0.8
+
+
+static func save_sound_effects_volume(volume: float) -> void:
+	var config := ConfigFile.new()
+	var load_error := _load(config)
+	if load_error != OK and load_error != ERR_FILE_NOT_FOUND:
+		return
+	config.set_value(SECTION, SOUND_EFFECTS_VOLUME, clampf(volume, 0.0, 1.0))
+	print_verbose("Saving sound effects volume to %s." % PATH)
+	var error := config.save(PATH)
+	if error != OK:
+		push_warning("Could not save sound effects volume to %s: %s" % [PATH, error_string(error)])
+	else:
+		print_verbose("Sound effects volume saved.")
 
 
 static func _load_visibility(key: String, label: String, default := true) -> bool:

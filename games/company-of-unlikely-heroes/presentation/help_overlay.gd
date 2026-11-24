@@ -367,6 +367,8 @@ func _open_options() -> void:
 		_begin_overlay()
 	_overlay_kind = "options"
 	_set_panel_compact(true)
+	_panel.offset_top = -175
+	_panel.offset_bottom = 175
 	_add_header("Options")
 	var hints := CheckButton.new()
 	hints.text = "Show hints"
@@ -382,6 +384,31 @@ func _open_options() -> void:
 		Preferences.save_show_hints(enabled)
 		_update_next_step()
 		_refresh_hints())
+	var sound_label := Label.new()
+	sound_label.text = "Sound effects"
+	sound_label.add_theme_font_override("font", Prep.serif())
+	sound_label.add_theme_font_size_override("font_size", 20)
+	sound_label.add_theme_color_override("font_color", Color("#302419"))
+	_body.add_child(sound_label)
+	var sound_row := HBoxContainer.new()
+	_body.add_child(sound_row)
+	var sound_slider := HSlider.new()
+	sound_slider.name = "SoundEffectsVolume"
+	sound_slider.min_value = 0.0
+	sound_slider.max_value = 1.0
+	sound_slider.step = 0.01
+	sound_slider.focus_mode = Control.FOCUS_ALL
+	sound_slider.value = Preferences.load_sound_effects_volume()
+	sound_slider.accessibility_name = "Sound effects volume"
+	sound_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sound_row.add_child(sound_slider)
+	var sound_value := Label.new()
+	sound_value.custom_minimum_size.x = 52
+	sound_value.text = "%d%%" % roundi(sound_slider.value * 100.0)
+	sound_row.add_child(sound_value)
+	sound_slider.value_changed.connect(func(value: float) -> void:
+		sound_value.text = "%d%%" % roundi(value * 100.0)
+		get_parent().call("_set_sound_effects_volume", value))
 	if get_parent().current_screen() == "battle":
 		_add_display_option("Show Grid", Preferences.load_grid_visible(), "_set_grid_visible")
 		_add_display_option("Show Grid Labels", Preferences.load_grid_labels_visible(), "_set_grid_labels_visible")

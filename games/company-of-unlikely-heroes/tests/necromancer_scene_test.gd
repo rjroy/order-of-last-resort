@@ -112,7 +112,8 @@ func _ambiguous_target_after_commit() -> void:
 		return
 	var state: Dictionary = scene.battle_snapshot()
 	var corpse := _unit(state, "fallen_raider")
-	for id in ["ambiguous_corpse_one", "ambiguous_corpse_two"]:
+	var identities := ["ambiguous_corpse_one", "ambiguous_corpse_two"]
+	for id in identities:
 		var extra: Dictionary = corpse.duplicate(true)
 		extra.id = id
 		extra.position = Vector2i(3, 3)
@@ -128,11 +129,11 @@ func _ambiguous_target_after_commit() -> void:
 		_check(false, "Single corpse can be staged: " + driver.error)
 		return
 	var board := _node("BridgeBoard") as Control
-	await driver._click(board.get_global_transform_with_canvas() * board.cell_center(Vector2i(3, 3)))
+	var cell := Vector2i(3, 3)
+	await driver._click(board.get_global_transform_with_canvas() * board.cell_center(cell))
 	var menu := _node("Targets") as MenuButton
-	_check(menu != null and menu.is_visible_in_tree() and menu.get_popup().item_count == 2,
-		"Clicking two legal corpses offers their ambiguous target choices: targets=%s aiming=%s menu=%s" % [
-			str(scene.get("_targets")), str(scene.get("_storybook_aiming")), str(menu)])
+	_check(_matches_ambiguous_choices(menu, identities),
+		"Clicking the shared tile offers both distinct enabled corpse choices")
 	# A refresh with no legal targets must discard the old choices as well.
 	scene.set("_ability_id", "")
 	scene.call("_sync_targets")
@@ -142,9 +143,25 @@ func _ambiguous_target_after_commit() -> void:
 		"Refreshing with no current legal targets dismisses stale choices")
 	scene.call("_sync_command")
 	scene.call("_refresh")
-	await driver._click(board.get_global_transform_with_canvas() * board.cell_center(Vector2i(3, 3)))
-	_check(menu != null and menu.is_visible_in_tree() and menu.get_popup().item_count == 2,
+	await driver._click(board.get_global_transform_with_canvas() * board.cell_center(cell))
+	_check(_matches_ambiguous_choices(menu, identities),
 		"Legal ambiguous choices can be opened again before committing")
+	for id in identities:
+		var choices := _ambiguous_menu_choices(menu)
+		if not choices.has(id):
+			_check(false, "Cannot select missing enabled corpse " + id)
+			return
+		menu.get_popup().id_pressed.emit(choices[id])
+		await process_frame
+		var drafted: Dictionary = scene.get("_planned_state").overrides.get("necromancer", {})
+		_check(drafted.get("ability_id") == "raise_dead" and drafted.get("target_id") == id,
+			"Choosing the menu entry stages precisely " + id)
+		await driver._click(board.get_global_transform_with_canvas() * board.cell_center(cell))
+	if not await driver.target("fallen_raider"):
+		_check(false, "Can restore the original staged Raise Dead: " + driver.error)
+		return
+	await driver._click(board.get_global_transform_with_canvas() * board.cell_center(cell))
+	_check(_matches_ambiguous_choices(menu, identities), "Both choices remain available before Commit")
 	var plan: Dictionary = scene.get("_plan").duplicate(true)
 	_check(plan.get("valid", false) and _has_summon(plan, "necromancer_zombie", Vector2i(4, 3), 3),
 		"Ambiguous re-aiming retains the previously staged valid Raise Dead")
@@ -155,6 +172,28 @@ func _ambiguous_target_after_commit() -> void:
 		"Committing dismisses the previous round's ambiguous target menu")
 	_check((scene.get("_storybook_ambiguous") as Array).is_empty(),
 		"Previous ambiguous choices are discarded after commitment")
+
+
+func _ambiguous_menu_choices(menu: MenuButton) -> Dictionary:
+	if menu == null or not menu.is_visible_in_tree() or menu.disabled:
+		return {}
+	var rows: Array = scene.get("_storybook_page").get("_target_rows")
+	var popup := menu.get_popup()
+	var choices := {}
+	for index in popup.item_count:
+		var id := popup.get_item_id(index)
+		# Only target IDs are indexes into rows; the menu can also contain Help.
+		if id >= 0 and id < rows.size() and not popup.is_item_separator(index) \
+				and not popup.is_item_disabled(index) and popup.get_item_text(index) == rows[id].label:
+			if choices.has(rows[id].id):
+				return {}
+			choices[rows[id].id] = id
+	return choices
+
+
+func _matches_ambiguous_choices(menu: MenuButton, expected: Array) -> bool:
+	var choices := _ambiguous_menu_choices(menu)
+	return choices.size() == expected.size() and expected.all(func(id): return choices.has(id))
 
 
 func _command(actor: String, ability: String, target: String) -> bool:

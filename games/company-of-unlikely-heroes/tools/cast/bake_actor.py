@@ -16,9 +16,12 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from takes import DERIVED_TAKES, PILOT, RELEASES, TAKES
 from learner_poses import VIAL_FRAMES
-from recipe import action_name, capture_config, load_fragment, load_registered, release_prop_hidden, rig_name
+from motion_library import append_actions_only, append_motion_library
+from recipe import (
+    ART, action_name, capture_config, load_fragment, load_registered, load_supplement,
+    prop_hidden_clips, release_prop_hidden, rig_name,
+)
 
-ART = HERE.parents[3] / ".lore/work/games/company-of-unlikely-heroes/art"
 # Pilot's exact pixels/metre, enlarged symmetrically to protect tall/extending poses.
 SIZE = 320
 ANCHOR = [160, 248]
@@ -216,19 +219,40 @@ def render_ink(scene, raw, out, size):
     )
 
 
-def bake(role, work, recipe=None):
+def ground_travel(origin, position, axis):
+    """Follow only the selected ground axis, preserving sway and vertical motion."""
+    if axis not in ("X", "Y"):
+        raise ValueError("in-place capture needs a world ground axis (X or Y)")
+    component = "XY".index(axis)
+    offset = Vector((0, 0, 0))
+    offset[component] = position[component] - origin[component]
+    return offset
+
+
+def bake(role, work, recipe=None, supplementary=False):
     masters, takes, releases = load_registered(
         HERE / "actors", json.loads((HERE / "masters.json").read_text()), TAKES, RELEASES, [role]
     )
     masters, takes, releases = load_fragment(recipe, masters, takes, releases)
     master = masters[role]
-    path = ART / master["source"]
+    actor_takes = takes[role]
+    release = releases.get(role)
+    action_sources = []
+    if supplementary:
+        master, actor_takes, release, action_sources = load_supplement(role, master, actor_takes)
+    inputs = [master]
+    library = master.get("motion_library")
+    if library:
+        inputs.append(library)
+    inputs.extend(action_sources)
 
     def verify():
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == master["sha256"], path
+        for source in inputs:
+            path = ART / source["source"]
+            assert hashlib.sha256(path.read_bytes()).hexdigest() == source["sha256"], path
 
     verify()
-    bpy.ops.wm.open_mainfile(filepath=str(path))
+    bpy.ops.wm.open_mainfile(filepath=str(ART / master["source"]))
     s = bpy.context.scene
     assert bpy.app.version[:3] == (5, 2, 2) and not bpy.data.libraries
     for o in s.objects:
@@ -248,35 +272,62 @@ def bake(role, work, recipe=None):
         ):
             o.hide_render = True
     size, anchor = capture_config(master)
-    if role in PILOT and size != SIZE:
+    if not supplementary and role in PILOT and size != SIZE:
         raise ValueError("pilot strip reuse requires the original 320px canvas")
     rig = bpy.data.objects[rig_name(role, master)]
+    if library:
+        append_motion_library(
+            bpy, s, rig, library,
+            (action_name(role, master, action) for action, *_ in actor_takes.values()),
+            ART / library["source"],
+        )
+    if action_sources:
+        append_actions_only(
+            bpy, (action_name(role, master, action) for action, *_ in actor_takes.values()),
+            [ART / library["source"] for library in action_sources],
+        )
     vial = None
-    if role == "rogue":
+    if role == "rogue" and not supplementary:
         from rogue_vial import GRIP, GRIP_LOCAL, vial_for
         vial = vial_for(s)
     setup(s, role, anchor, size)
-    release = releases.get(role)
+    registration = s.camera.location.copy()
+    in_place = master.get("in_place", {})
+    if unknown := set(in_place) - actor_takes.keys():
+        raise ValueError(f"{role}: in-place capture for unknown takes {sorted(unknown)}")
+    prop = set()
     if release:
         actor_clip, prop_clip, prop_name, release_frame, marker = release
+        if in_place.keys() & {actor_clip, prop_clip}:
+            raise ValueError(f"{role}: in-place capture does not support detached prop takes")
         root = bpy.data.objects[prop_name]
         prop = {root, *root.children_recursive}
-        visibility = {
-            o: o.hide_render
-            for o in s.objects
-            if o.type in {"MESH", "CURVE", "SURFACE", "FONT"}
-        }
+    visibility = {
+        o: o.hide_render
+        for o in s.objects if o.type in {"MESH", "CURVE", "SURFACE", "FONT"}
+    }
+    hidden_parts = {clip: set() for clip in actor_takes}
+    for name, draw_in in master.get("prop_visibility", {}).items():
+        part = bpy.data.objects[name]
+        for clip in prop_hidden_clips(draw_in, actor_takes.keys()):
+            hidden_parts[clip].update([part, *part.children_recursive])
     cache = {}
     data = {}
-    pilot_clip = {"knight": "guard", "healer": "ally_heal"}.get(role)
+    pilot_clip = None if supplementary else {"knight": "guard", "healer": "ally_heal"}.get(role)
     shield_draw = {}
     if role == "knight":
         shield_draw = {
             part: part.hide_render
             for part in bpy.data.objects["Shield_L_Detachable"].children_recursive
         }
-    for clip, (action, frames, end, loop) in takes[role].items():
+    for clip, (action, frames, end, loop) in actor_takes.items():
         performance = DERIVED_TAKES.get((role, clip))
+        motion = in_place.get(clip)
+        if motion and performance:
+            raise ValueError(f"{role}/{clip}: in-place capture requires a native take")
+        motion_origin = None
+        clip_hidden = hidden_parts[clip]
+        clip_mask = frozenset(o.name for o in clip_hidden)
         source_action = performance.source_action if performance else action
         data[clip] = {
             "frames": [], "loop": loop, "anchor": anchor,
@@ -288,8 +339,18 @@ def bake(role, work, recipe=None):
             take = bpy.data.actions[action_name(role, master, native_action)]
             if rig.animation_data.action != take:
                 rig.animation_data.action = take
+                if supplementary:
+                    assert len(take.slots) == 1
+                    rig.animation_data.action_slot = take.slots[0]
             native_frame = pose.source if pose else f
             s.frame_set(int(native_frame), subframe=native_frame % 1)
+            travel = Vector((0, 0, 0))
+            if motion:
+                bone, axis = motion
+                position = rig.matrix_world @ rig.pose.bones[bone].head
+                if motion_origin is None:
+                    motion_origin = position
+                travel = ground_travel(motion_origin, position, axis)
             variant = ""
             without_shield = role == "knight" and clip in (
                 "shield_away", "rescue_line_unshielded", "bonk_unshielded",
@@ -301,17 +362,12 @@ def bake(role, work, recipe=None):
             for part, hidden in shield_draw.items():
                 part.hide_render = without_shield or hidden
             at_release = False
+            prop_only = hidden_prop = False
             if release:
                 prop_only = clip == prop_clip
                 empty_hand = clip == actor_clip and f >= release_frame
                 window = master.get("release_visible_frames")
                 hidden_prop = empty_hand or (window is not None and release_prop_hidden(window, clip, f))
-                for o, hidden in visibility.items():
-                    o.hide_render = (
-                        hidden or (prop_only and o not in prop)
-                        or (not prop_only and hidden_prop and o in prop)
-                        or (without_shield and o in shield_draw)
-                    )
                 if prop_only:
                     variant = "prop_only"
                 elif empty_hand:
@@ -322,6 +378,13 @@ def bake(role, work, recipe=None):
                 if at_release:
                     if marker:
                         assert take.pose_markers[marker].frame == f
+            if release or master.get("prop_visibility"):
+                for o, hidden in visibility.items():
+                    o.hide_render = (
+                        hidden or o in clip_hidden or (prop_only and o not in prop)
+                        or (not prop_only and hidden_prop and o in prop)
+                        or (without_shield and o in shield_draw)
+                    )
             turns = pose.turns if pose else ()
             carried = pose.carried if pose else None
             shifts = pose.shifts if pose else ()
@@ -333,11 +396,14 @@ def bake(role, work, recipe=None):
             use_pilot = pilot_clip is not None and (
                 clip == pilot_clip or (
                     performance is not None and not turns and carried is None and not shifts
-                    and not variant and (clip != "ready" or i == 0)
+                    and not variant and not clip_hidden and (clip != "ready" or i == 0)
                     and native_frame in takes[role][pilot_clip][1]
                 )
             )
-            key = (native_action, native_frame, variant, turns, carried, shifts, held_vial, use_pilot)
+            key = (
+                native_action, native_frame, variant, turns, carried, shifts,
+                held_vial, use_pilot, tuple(travel), clip_mask,
+            )
             if at_release:
                 # A derived release must use the same evaluated pose as the
                 # drawing, including any offset inherited by the prop socket.
@@ -376,7 +442,13 @@ def bake(role, work, recipe=None):
                     with ready_turns(rig, turns, carried, shifts):
                         if held_vial:
                             vial.matrix_world = rig.matrix_world @ rig.pose.bones[GRIP].matrix @ GRIP_LOCAL
-                        render_ink(s, work / f"{role}-raw.png", out, size)
+                        if motion:
+                            s.camera.location = registration + travel
+                        try:
+                            render_ink(s, work / f"{role}-raw.png", out, size)
+                        finally:
+                            if motion:
+                                s.camera.location = registration
             start = frames[0]
             stop = frames[i + 1] if i + 1 < len(frames) else end
             ms = round((stop - start) * 1000 / 24) - round((f - start) * 1000 / 24)
@@ -392,5 +464,6 @@ if __name__ == "__main__":
     parser.add_argument("role")
     parser.add_argument("work", type=Path)
     parser.add_argument("--recipe", type=Path)
+    parser.add_argument("--supplement", action="store_true")
     args = parser.parse_args(sys.argv[sys.argv.index("--") + 1 :])
-    bake(args.role, args.work, args.recipe)
+    bake(args.role, args.work, args.recipe, args.supplement)

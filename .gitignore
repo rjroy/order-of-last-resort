@@ -60,4 +60,4 @@ yarn-error.log*
 .beads/proxieddb/
 /.lore/local/
 
-.slim/deepwork/
+.slim/

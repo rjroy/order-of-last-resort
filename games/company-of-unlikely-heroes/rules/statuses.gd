@@ -82,14 +82,19 @@ static func labels(state: Dictionary, unit: Dictionary, active_handler := "") ->
 	return result
 
 
-static func expire(state: Dictionary, unit: Dictionary, timing: String) -> void:
+static func expire(state: Dictionary, unit: Dictionary, timing: String, events: Variant = null) -> void:
 	for id in unit.statuses.keys():
 		if definition(state, id).get("expiry", "") == timing:
 			unit.statuses.erase(id)
+			if events != null and id in ["keep_your_head_down", "lend_a_shield", STEADY_HANDS]:
+				Board.event(events, "status_expired", "%s: %s expires." % [
+					Board.display_name(state, unit), definition(state, id).label],
+					{"unit_id": unit.id, "target_id": unit.id, "status_id": id,
+						"timing": timing, "removed": true})
 
 
-static func begin_turn(state: Dictionary, actor: Dictionary) -> void:
-	expire(state, actor, "actor_turn_start")
+static func begin_turn(state: Dictionary, actor: Dictionary, events: Array) -> void:
+	expire(state, actor, "actor_turn_start", events)
 	if Upgrades.amount(state, actor, "borrowed_courage") == 0:
 		return
 	for unit in state.units:

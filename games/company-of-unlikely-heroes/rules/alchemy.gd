@@ -100,6 +100,10 @@ static func administer(state: Dictionary, actor: Dictionary, target: Dictionary,
 static func administer_resolved(state: Dictionary, actor: Dictionary, target: Dictionary, dose: Dictionary,
 		reaction: Dictionary, bonus: int, events: Array) -> void:
 	var amount := int(dose.amount) + bonus
+	var first := events.size()
+	var delivery := {"recipe_id": dose.recipe, "delivery_form_id": dose.form, "polarity": dose.polarity,
+		"recipient_id": target.id, "cell": target.position, "amount": amount,
+		"reach": int(dose.targeting.get("range", -1))}
 	if dose.has("recipient"):
 		actor.erase("bottled_reaction")
 	elif not reaction.is_empty():
@@ -133,6 +137,9 @@ static func administer_resolved(state: Dictionary, actor: Dictionary, target: Di
 	if damaging and dose.source_handler == "healing_potion" and Upgrades.amount(state, actor, "brittle_glass") > 0:
 		Board.event(events, "perk_idle", "Brittle Glass: only Acid and Etching Paste recipes splash.",
 			{"unit_id": actor.id, "upgrade_effect": "brittle_glass"})
+	if events.size() > first:
+		# The bottle may already be empty and the recipient may have moved or fallen.
+		events[first]["dose_delivery"] = delivery
 
 
 static func _react(state: Dictionary, actor: Dictionary, target: Dictionary, reaction: Dictionary, events: Array) -> void:
@@ -153,6 +160,7 @@ static func _react(state: Dictionary, actor: Dictionary, target: Dictionary, rea
 
 static func finish_round(state: Dictionary, events: Array) -> void:
 	# Snapshot who qualifies before any reaction changes HP or removes a neighbor.
+	var first := events.size()
 	var healing: Array = []
 	var damage: Array = []
 	for target in state.units:
@@ -178,6 +186,8 @@ static func finish_round(state: Dictionary, events: Array) -> void:
 		var source := Board.entity(state, effect.source_id)
 		Combat.lose_hp(state, source if not source.is_empty() else effect.target, effect.target, 1,
 			Reactions.POOLS.harmful[effect.id].label, events)
+	for index in range(first, events.size()):
+		events[index]["effect_timing"] = "round_end"
 
 
 static func _meets_adjacency(state: Dictionary, target: Dictionary, relationship: String) -> bool:

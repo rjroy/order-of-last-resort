@@ -9,6 +9,1047 @@
     -0.435386419
   ],
   "actors": {
+    "blacksmith": {
+      "source": "art/models/hobby-smith/hobby-smith-candidate.blend",
+      "sha256": "a9d1113d0fb555accd4e0817890e3050d147bf45e2bf448a0fbe8f3b6e0da361",
+      "supplements": [
+        {
+          "source": "art/models/hobby-smith/supplementary/motion.blend",
+          "sha256": "eabc37bbbcc11f999e5a342d125bdc1400426840d597ad73fa1aa2faff207db2"
+        }
+      ],
+      "clips": {
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                1278,
+                1622,
+                143,
+                227
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                1421,
+                1622,
+                143,
+                227
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                1564,
+                1622,
+                143,
+                227
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                1849,
+                143,
+                227
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 166,
+              "rect": [
+                1564,
+                1622,
+                143,
+                227
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                1421,
+                1622,
+                143,
+                227
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            66,
+            209
+          ],
+          "action": "Hobby Smith | Ready",
+          "path": "res://assets/cast/blacksmith.png"
+        },
+        "try_this": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                1431,
+                937,
+                174,
+                228
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 83,
+              "rect": [
+                1605,
+                937,
+                174,
+                228
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                1167,
+                174,
+                228
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 84,
+              "rect": [
+                174,
+                1167,
+                174,
+                228
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 83,
+              "rect": [
+                348,
+                1167,
+                174,
+                228
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 83,
+              "rect": [
+                522,
+                1167,
+                174,
+                228
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 125,
+              "rect": [
+                696,
+                1167,
+                174,
+                228
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 84,
+              "rect": [
+                870,
+                1167,
+                174,
+                228
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 125,
+              "rect": [
+                1044,
+                1167,
+                174,
+                228
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 125,
+              "rect": [
+                1218,
+                1167,
+                174,
+                228
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                1392,
+                1167,
+                174,
+                228
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 166,
+              "rect": [
+                1566,
+                1167,
+                174,
+                228
+              ]
+            },
+            {
+              "source_frame": 33,
+              "duration_ms": 42,
+              "rect": [
+                1431,
+                937,
+                174,
+                228
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            66,
+            210
+          ],
+          "action": "Hobby Smith | Try This",
+          "path": "res://assets/cast/blacksmith.png"
+        },
+        "hammer_time": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                1026,
+                707,
+                159,
+                230
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 167,
+              "rect": [
+                1185,
+                707,
+                159,
+                230
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 83,
+              "rect": [
+                1344,
+                707,
+                159,
+                230
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 83,
+              "rect": [
+                1503,
+                707,
+                159,
+                230
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 84,
+              "rect": [
+                1662,
+                707,
+                159,
+                230
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 41,
+              "rect": [
+                0,
+                937,
+                159,
+                230
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 42,
+              "rect": [
+                159,
+                937,
+                159,
+                230
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                318,
+                937,
+                159,
+                230
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 83,
+              "rect": [
+                477,
+                937,
+                159,
+                230
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 83,
+              "rect": [
+                636,
+                937,
+                159,
+                230
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 125,
+              "rect": [
+                795,
+                937,
+                159,
+                230
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 167,
+              "rect": [
+                954,
+                937,
+                159,
+                230
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 125,
+              "rect": [
+                1113,
+                937,
+                159,
+                230
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 125,
+              "rect": [
+                1272,
+                937,
+                159,
+                230
+              ]
+            },
+            {
+              "source_frame": 34,
+              "duration_ms": 42,
+              "rect": [
+                1026,
+                707,
+                159,
+                230
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            81,
+            212
+          ],
+          "action": "Hobby Smith | Hammer Time",
+          "path": "res://assets/cast/blacksmith.png"
+        },
+        "pursue": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                0,
+                144,
+                240
+              ]
+            },
+            {
+              "source_frame": 3,
+              "duration_ms": 125,
+              "rect": [
+                144,
+                0,
+                144,
+                240
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 84,
+              "rect": [
+                288,
+                0,
+                144,
+                240
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 83,
+              "rect": [
+                432,
+                0,
+                144,
+                240
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 125,
+              "rect": [
+                576,
+                0,
+                144,
+                240
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 125,
+              "rect": [
+                720,
+                0,
+                144,
+                240
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 125,
+              "rect": [
+                864,
+                0,
+                144,
+                240
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 125,
+              "rect": [
+                1008,
+                0,
+                144,
+                240
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 125,
+              "rect": [
+                1152,
+                0,
+                144,
+                240
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 125,
+              "rect": [
+                1296,
+                0,
+                144,
+                240
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 42,
+              "rect": [
+                1440,
+                0,
+                144,
+                240
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            68,
+            210
+          ],
+          "action": "Hobby Smith | Pursue Step",
+          "path": "res://assets/cast/blacksmith.png"
+        },
+        "bonk": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                1584,
+                0,
+                224,
+                236
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                0,
+                240,
+                224,
+                236
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 125,
+              "rect": [
+                224,
+                240,
+                224,
+                236
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 125,
+              "rect": [
+                448,
+                240,
+                224,
+                236
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 125,
+              "rect": [
+                672,
+                240,
+                224,
+                236
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 167,
+              "rect": [
+                896,
+                240,
+                224,
+                236
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 250,
+              "rect": [
+                1120,
+                240,
+                224,
+                236
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 83,
+              "rect": [
+                1584,
+                0,
+                224,
+                236
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            69,
+            218
+          ],
+          "action": "Hobby Smith | Crook Bonk",
+          "path": "res://assets/cast/blacksmith.png"
+        },
+        "acid": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                1165,
+                476,
+                171,
+                230
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 208,
+              "rect": [
+                1336,
+                476,
+                171,
+                230
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 167,
+              "rect": [
+                1507,
+                476,
+                171,
+                230
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                707,
+                171,
+                230
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 83,
+              "rect": [
+                171,
+                707,
+                171,
+                230
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 125,
+              "rect": [
+                342,
+                707,
+                171,
+                230
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                513,
+                707,
+                171,
+                230
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 292,
+              "rect": [
+                684,
+                707,
+                171,
+                230
+              ]
+            },
+            {
+              "source_frame": 32,
+              "duration_ms": 125,
+              "rect": [
+                855,
+                707,
+                171,
+                230
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            65,
+            212
+          ],
+          "action": "Hobby Smith | Acid Toss",
+          "release": {
+            "time_ms": 708,
+            "offset": [
+              92.713,
+              -143.02
+            ],
+            "clip": "acid_flask"
+          },
+          "path": "res://assets/cast/blacksmith.png"
+        },
+        "acid_flask": {
+          "frames": [
+            {
+              "source_frame": 18,
+              "duration_ms": 42,
+              "rect": [
+                143,
+                1849,
+                39,
+                30
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            18.713,
+            13.98
+          ],
+          "action": "Hobby Smith | Acid Toss",
+          "path": "res://assets/cast/blacksmith.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 83,
+              "rect": [
+                1068,
+                1395,
+                165,
+                227
+              ]
+            },
+            {
+              "source_frame": 3,
+              "duration_ms": 84,
+              "rect": [
+                1233,
+                1395,
+                165,
+                227
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 125,
+              "rect": [
+                1398,
+                1395,
+                165,
+                227
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                1563,
+                1395,
+                165,
+                227
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                1622,
+                165,
+                227
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 83,
+              "rect": [
+                1068,
+                1395,
+                165,
+                227
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            85,
+            209
+          ],
+          "action": "Hobby Smith | Hit",
+          "path": "res://assets/cast/blacksmith.png"
+        },
+        "down": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                1395,
+                178,
+                227
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 167,
+              "rect": [
+                178,
+                1395,
+                178,
+                227
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                356,
+                1395,
+                178,
+                227
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                534,
+                1395,
+                178,
+                227
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                712,
+                1395,
+                178,
+                227
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 166,
+              "rect": [
+                890,
+                1395,
+                178,
+                227
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 167,
+              "rect": [
+                890,
+                1395,
+                178,
+                227
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            85,
+            209
+          ],
+          "action": "Hobby Smith | Down",
+          "path": "res://assets/cast/blacksmith.png"
+        },
+        "recover": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                165,
+                1622,
+                159,
+                227
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                324,
+                1622,
+                159,
+                227
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 209,
+              "rect": [
+                483,
+                1622,
+                159,
+                227
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 166,
+              "rect": [
+                642,
+                1622,
+                159,
+                227
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 167,
+              "rect": [
+                801,
+                1622,
+                159,
+                227
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 167,
+              "rect": [
+                960,
+                1622,
+                159,
+                227
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                1119,
+                1622,
+                159,
+                227
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            65,
+            209
+          ],
+          "action": "Hobby Smith | Recover",
+          "path": "res://assets/cast/blacksmith.png"
+        },
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                1344,
+                240,
+                233,
+                231
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 167,
+              "rect": [
+                1577,
+                240,
+                233,
+                231
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                0,
+                476,
+                233,
+                231
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                233,
+                476,
+                233,
+                231
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                466,
+                476,
+                233,
+                231
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 166,
+              "rect": [
+                699,
+                476,
+                233,
+                231
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 167,
+              "rect": [
+                932,
+                476,
+                233,
+                231
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            138,
+            209
+          ],
+          "action": "Hobby Smith | Defeat",
+          "path": "res://assets/cast/blacksmith.png"
+        }
+      }
+    },
     "ferryman": {
       "source": "art/models/ferryman/ferryman.blend",
       "sha256": "6094dbf00ae9b19aa514b35abc939c472513553e11f0b2d3449fd2394dff6eea",
@@ -1472,8 +2513,336 @@
           ],
           "action": "Mixologist | Defeat",
           "path": "res://assets/cast/alchemist.png"
+        },
+        "send_off": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 83,
+              "rect": [
+                120,
+                2115,
+                123,
+                230
+              ]
+            },
+            {
+              "source_frame": 3,
+              "duration_ms": 84,
+              "rect": [
+                243,
+                2115,
+                123,
+                230
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 83,
+              "rect": [
+                366,
+                2115,
+                123,
+                230
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 83,
+              "rect": [
+                489,
+                2115,
+                123,
+                230
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 84,
+              "rect": [
+                612,
+                2115,
+                123,
+                230
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 83,
+              "rect": [
+                735,
+                2115,
+                123,
+                230
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                2347,
+                123,
+                230
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 84,
+              "rect": [
+                123,
+                2347,
+                123,
+                230
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 83,
+              "rect": [
+                246,
+                2347,
+                123,
+                230
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 83,
+              "rect": [
+                369,
+                2347,
+                123,
+                230
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 84,
+              "rect": [
+                492,
+                2347,
+                123,
+                230
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 83,
+              "rect": [
+                615,
+                2347,
+                123,
+                230
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 83,
+              "rect": [
+                738,
+                2347,
+                123,
+                230
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                2577,
+                123,
+                230
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 42,
+              "rect": [
+                123,
+                2577,
+                123,
+                230
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            58,
+            212
+          ],
+          "action": "Mixologist | Fitted | Send-Off",
+          "path": "res://assets/cast/alchemist.png"
+        },
+        "hostile_dose": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                1651,
+                120,
+                232
+              ]
+            },
+            {
+              "source_frame": 3,
+              "duration_ms": 84,
+              "rect": [
+                120,
+                1651,
+                120,
+                232
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 83,
+              "rect": [
+                240,
+                1651,
+                120,
+                232
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 83,
+              "rect": [
+                360,
+                1651,
+                120,
+                232
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 84,
+              "rect": [
+                480,
+                1651,
+                120,
+                232
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 83,
+              "rect": [
+                600,
+                1651,
+                120,
+                232
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 83,
+              "rect": [
+                720,
+                1651,
+                120,
+                232
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 84,
+              "rect": [
+                0,
+                1883,
+                120,
+                232
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 83,
+              "rect": [
+                120,
+                1883,
+                120,
+                232
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 83,
+              "rect": [
+                240,
+                1883,
+                120,
+                232
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 84,
+              "rect": [
+                360,
+                1883,
+                120,
+                232
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 83,
+              "rect": [
+                480,
+                1883,
+                120,
+                232
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 83,
+              "rect": [
+                600,
+                1883,
+                120,
+                232
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                720,
+                1883,
+                120,
+                232
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                2115,
+                120,
+                232
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            60,
+            214
+          ],
+          "action": "Mixologist | Fitted | Hostile Dose",
+          "path": "res://assets/cast/alchemist.png"
         }
-      }
+      },
+      "supplements": [
+        {
+          "source": "art/models/remaining-fitted/remaining-fitted-actions.blend",
+          "sha256": "024912f109deb844faad9a13a267abc80ea79a0b1fe92dc5330a24595d3d3fb9"
+        }
+      ]
     },
     "bard": {
       "source": "art/models/bard/bard-blockout.blend",
@@ -2165,8 +3534,185 @@
           ],
           "action": "Bard | Defeat",
           "path": "res://assets/cast/bard.png"
+        },
+        "fitted_pull": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                1597,
+                178,
+                224
+              ]
+            },
+            {
+              "source_frame": 3,
+              "duration_ms": 84,
+              "rect": [
+                178,
+                1597,
+                178,
+                224
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 83,
+              "rect": [
+                356,
+                1597,
+                178,
+                224
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 83,
+              "rect": [
+                534,
+                1597,
+                178,
+                224
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 84,
+              "rect": [
+                0,
+                1821,
+                178,
+                224
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 83,
+              "rect": [
+                178,
+                1821,
+                178,
+                224
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 42,
+              "rect": [
+                356,
+                1821,
+                178,
+                224
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 41,
+              "rect": [
+                534,
+                1821,
+                178,
+                224
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 84,
+              "rect": [
+                0,
+                2045,
+                178,
+                224
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 83,
+              "rect": [
+                178,
+                2045,
+                178,
+                224
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 83,
+              "rect": [
+                356,
+                2045,
+                178,
+                224
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 84,
+              "rect": [
+                534,
+                2045,
+                178,
+                224
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                2269,
+                178,
+                224
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 83,
+              "rect": [
+                178,
+                2269,
+                178,
+                224
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 84,
+              "rect": [
+                356,
+                2269,
+                178,
+                224
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 41,
+              "rect": [
+                534,
+                2269,
+                178,
+                224
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            78,
+            208
+          ],
+          "action": "Bard | Fitted | Pull",
+          "path": "res://assets/cast/bard.png"
         }
-      }
+      },
+      "supplements": [
+        {
+          "source": "art/models/remaining-fitted/remaining-fitted-actions.blend",
+          "sha256": "024912f109deb844faad9a13a267abc80ea79a0b1fe92dc5330a24595d3d3fb9"
+        }
+      ]
     },
     "healer": {
       "source": "art/models/healer/healer-blockout.blend",
@@ -2879,8 +4425,185 @@
           ],
           "action": "Healer | Defeat",
           "path": "res://assets/cast/healer.png"
+        },
+        "keep_your_head_down": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                1478,
+                201,
+                207
+              ]
+            },
+            {
+              "source_frame": 3,
+              "duration_ms": 84,
+              "rect": [
+                201,
+                1478,
+                201,
+                207
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 83,
+              "rect": [
+                402,
+                1478,
+                201,
+                207
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 42,
+              "rect": [
+                603,
+                1478,
+                201,
+                207
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 41,
+              "rect": [
+                0,
+                1685,
+                201,
+                207
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 84,
+              "rect": [
+                201,
+                1685,
+                201,
+                207
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 83,
+              "rect": [
+                402,
+                1685,
+                201,
+                207
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 83,
+              "rect": [
+                603,
+                1685,
+                201,
+                207
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 84,
+              "rect": [
+                0,
+                1892,
+                201,
+                207
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 83,
+              "rect": [
+                201,
+                1892,
+                201,
+                207
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 83,
+              "rect": [
+                402,
+                1892,
+                201,
+                207
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 84,
+              "rect": [
+                603,
+                1892,
+                201,
+                207
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                2099,
+                201,
+                207
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 83,
+              "rect": [
+                201,
+                2099,
+                201,
+                207
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                402,
+                2099,
+                201,
+                207
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 42,
+              "rect": [
+                603,
+                2099,
+                201,
+                207
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            136,
+            186
+          ],
+          "action": "Healer | Fitted | Keep Your Head Down",
+          "path": "res://assets/cast/healer.png"
         }
-      }
+      },
+      "supplements": [
+        {
+          "source": "art/models/remaining-fitted/remaining-fitted-actions.blend",
+          "sha256": "024912f109deb844faad9a13a267abc80ea79a0b1fe92dc5330a24595d3d3fb9"
+        }
+      ]
     },
     "knight": {
       "source": "art/models/knight/knight-guard-blockout.blend",
@@ -4108,8 +5831,965 @@
           ],
           "action": "Knight | Defeat",
           "path": "res://assets/cast/knight.png"
+        },
+        "fitted_pull": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                1845,
+                146,
+                227
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                146,
+                1845,
+                146,
+                227
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 42,
+              "rect": [
+                292,
+                1845,
+                146,
+                227
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 83,
+              "rect": [
+                438,
+                1845,
+                146,
+                227
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 84,
+              "rect": [
+                584,
+                1845,
+                146,
+                227
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 83,
+              "rect": [
+                730,
+                1845,
+                146,
+                227
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                876,
+                1845,
+                146,
+                227
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 166,
+              "rect": [
+                1022,
+                1845,
+                146,
+                227
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                1168,
+                1845,
+                146,
+                227
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 167,
+              "rect": [
+                1314,
+                1845,
+                146,
+                227
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 41,
+              "rect": [
+                1460,
+                1845,
+                146,
+                227
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            66,
+            212
+          ],
+          "action": "Knight | Fitted | Pull",
+          "path": "res://assets/cast/knight.png"
+        },
+        "fitted_pull_unshielded": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                2072,
+                137,
+                227
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                137,
+                2072,
+                137,
+                227
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 42,
+              "rect": [
+                274,
+                2072,
+                137,
+                227
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 83,
+              "rect": [
+                411,
+                2072,
+                137,
+                227
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 84,
+              "rect": [
+                548,
+                2072,
+                137,
+                227
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 83,
+              "rect": [
+                685,
+                2072,
+                137,
+                227
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                822,
+                2072,
+                137,
+                227
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 166,
+              "rect": [
+                959,
+                2072,
+                137,
+                227
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                1096,
+                2072,
+                137,
+                227
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 167,
+              "rect": [
+                1233,
+                2072,
+                137,
+                227
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 41,
+              "rect": [
+                1370,
+                2072,
+                137,
+                227
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            66,
+            212
+          ],
+          "action": "Knight | Fitted | Pull",
+          "path": "res://assets/cast/knight.png"
+        },
+        "clear_the_floor": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                2299,
+                179,
+                226
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                179,
+                2299,
+                179,
+                226
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 42,
+              "rect": [
+                358,
+                2299,
+                179,
+                226
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 83,
+              "rect": [
+                537,
+                2299,
+                179,
+                226
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 84,
+              "rect": [
+                716,
+                2299,
+                179,
+                226
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 83,
+              "rect": [
+                895,
+                2299,
+                179,
+                226
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                1074,
+                2299,
+                179,
+                226
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 166,
+              "rect": [
+                1253,
+                2299,
+                179,
+                226
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                1432,
+                2299,
+                179,
+                226
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                2525,
+                179,
+                226
+              ]
+            },
+            {
+              "source_frame": 30,
+              "duration_ms": 42,
+              "rect": [
+                179,
+                2525,
+                179,
+                226
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            75,
+            211
+          ],
+          "action": "Knight | Fitted | Clear the Floor",
+          "path": "res://assets/cast/knight.png"
+        },
+        "safety_distance": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                620,
+                2751,
+                137,
+                226
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                757,
+                2751,
+                137,
+                226
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 125,
+              "rect": [
+                894,
+                2751,
+                137,
+                226
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 42,
+              "rect": [
+                1031,
+                2751,
+                137,
+                226
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 125,
+              "rect": [
+                1168,
+                2751,
+                137,
+                226
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                1305,
+                2751,
+                137,
+                226
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 166,
+              "rect": [
+                1442,
+                2751,
+                137,
+                226
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                2977,
+                137,
+                226
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 250,
+              "rect": [
+                137,
+                2977,
+                137,
+                226
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 42,
+              "rect": [
+                274,
+                2977,
+                137,
+                226
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            57,
+            211
+          ],
+          "action": "Knight | Fitted | Safety Distance",
+          "path": "res://assets/cast/knight.png"
+        },
+        "safety_distance_unshielded": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                3203,
+                128,
+                226
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                128,
+                3203,
+                128,
+                226
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 125,
+              "rect": [
+                256,
+                3203,
+                128,
+                226
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 42,
+              "rect": [
+                384,
+                3203,
+                128,
+                226
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 125,
+              "rect": [
+                512,
+                3203,
+                128,
+                226
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                640,
+                3203,
+                128,
+                226
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 166,
+              "rect": [
+                768,
+                3203,
+                128,
+                226
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                896,
+                3203,
+                128,
+                226
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 250,
+              "rect": [
+                1024,
+                3203,
+                128,
+                226
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 42,
+              "rect": [
+                1152,
+                3203,
+                128,
+                226
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            57,
+            211
+          ],
+          "action": "Knight | Fitted | Safety Distance",
+          "path": "res://assets/cast/knight.png"
+        },
+        "lend_a_shield": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                358,
+                2525,
+                155,
+                226
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                513,
+                2525,
+                155,
+                226
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 125,
+              "rect": [
+                668,
+                2525,
+                155,
+                226
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 84,
+              "rect": [
+                823,
+                2525,
+                155,
+                226
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 83,
+              "rect": [
+                978,
+                2525,
+                155,
+                226
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                1133,
+                2525,
+                155,
+                226
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 41,
+              "rect": [
+                1288,
+                2525,
+                155,
+                226
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 125,
+              "rect": [
+                1443,
+                2525,
+                155,
+                226
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                2751,
+                155,
+                226
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 42,
+              "rect": [
+                155,
+                2751,
+                155,
+                226
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 250,
+              "rect": [
+                310,
+                2751,
+                155,
+                226
+              ]
+            },
+            {
+              "source_frame": 32,
+              "duration_ms": 41,
+              "rect": [
+                465,
+                2751,
+                155,
+                226
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            53,
+            211
+          ],
+          "action": "Knight | Fitted | Lend a Shield",
+          "release": {
+            "time_ms": 708,
+            "offset": [
+              63.731,
+              -99.813
+            ],
+            "clip": "lend_a_shield_prop"
+          },
+          "path": "res://assets/cast/knight.png"
+        },
+        "lend_a_shield_prop": {
+          "frames": [
+            {
+              "source_frame": 18,
+              "duration_ms": 42,
+              "rect": [
+                889,
+                3429,
+                92,
+                103
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            53.731,
+            59.187
+          ],
+          "action": "Knight | Fitted | Lend a Shield",
+          "path": "res://assets/cast/knight.png"
+        },
+        "keep_your_head_down": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                411,
+                2977,
+                136,
+                226
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                547,
+                2977,
+                136,
+                226
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 84,
+              "rect": [
+                683,
+                2977,
+                136,
+                226
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 83,
+              "rect": [
+                819,
+                2977,
+                136,
+                226
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 83,
+              "rect": [
+                955,
+                2977,
+                136,
+                226
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 84,
+              "rect": [
+                1091,
+                2977,
+                136,
+                226
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 208,
+              "rect": [
+                1227,
+                2977,
+                136,
+                226
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 250,
+              "rect": [
+                1363,
+                2977,
+                136,
+                226
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 42,
+              "rect": [
+                1499,
+                2977,
+                136,
+                226
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            57,
+            211
+          ],
+          "action": "Knight | Fitted | Keep Your Head Down",
+          "path": "res://assets/cast/knight.png"
+        },
+        "keep_your_head_down_unshielded": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                1280,
+                3203,
+                127,
+                226
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                1407,
+                3203,
+                127,
+                226
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 84,
+              "rect": [
+                0,
+                3429,
+                127,
+                226
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 83,
+              "rect": [
+                127,
+                3429,
+                127,
+                226
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 83,
+              "rect": [
+                254,
+                3429,
+                127,
+                226
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 84,
+              "rect": [
+                381,
+                3429,
+                127,
+                226
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 208,
+              "rect": [
+                508,
+                3429,
+                127,
+                226
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 250,
+              "rect": [
+                635,
+                3429,
+                127,
+                226
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 42,
+              "rect": [
+                762,
+                3429,
+                127,
+                226
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            57,
+            211
+          ],
+          "action": "Knight | Fitted | Keep Your Head Down",
+          "path": "res://assets/cast/knight.png"
         }
-      }
+      },
+      "supplements": [
+        {
+          "source": "art/models/knight-fitted-candidate/knight-fitted-actions.blend",
+          "sha256": "79626de03bee6b7074310de17212d4461b7b52663de600c17b19612d08b3f675"
+        },
+        {
+          "source": "art/models/knight-fitted-candidate/knight-cover-actions.blend",
+          "sha256": "3128a8e40d6619be5dca7d12580aa9edd91864bc13648a0dd21efeeb0daa06f6"
+        }
+      ]
     },
     "necromancer": {
       "source": "art/models/necromancer/necromancer-blockout.blend",
@@ -4973,8 +7653,447 @@
           ],
           "action": "Necromancer | Defeat",
           "path": "res://assets/cast/necromancer.png"
+        },
+        "recall": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                1691,
+                143,
+                213
+              ]
+            },
+            {
+              "source_frame": 3,
+              "duration_ms": 84,
+              "rect": [
+                143,
+                1691,
+                143,
+                213
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 83,
+              "rect": [
+                286,
+                1691,
+                143,
+                213
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 83,
+              "rect": [
+                429,
+                1691,
+                143,
+                213
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 84,
+              "rect": [
+                572,
+                1691,
+                143,
+                213
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 83,
+              "rect": [
+                715,
+                1691,
+                143,
+                213
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 83,
+              "rect": [
+                858,
+                1691,
+                143,
+                213
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 84,
+              "rect": [
+                0,
+                1904,
+                143,
+                213
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 83,
+              "rect": [
+                143,
+                1904,
+                143,
+                213
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 83,
+              "rect": [
+                286,
+                1904,
+                143,
+                213
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 84,
+              "rect": [
+                429,
+                1904,
+                143,
+                213
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 83,
+              "rect": [
+                572,
+                1904,
+                143,
+                213
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 83,
+              "rect": [
+                715,
+                1904,
+                143,
+                213
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                858,
+                1904,
+                143,
+                213
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            54,
+            197
+          ],
+          "action": "Try This | recall",
+          "path": "res://assets/cast/necromancer.png"
+        },
+        "hush": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 83,
+              "rect": [
+                882,
+                2329,
+                136,
+                211
+              ]
+            },
+            {
+              "source_frame": 3,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                2541,
+                136,
+                211
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 84,
+              "rect": [
+                136,
+                2541,
+                136,
+                211
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 125,
+              "rect": [
+                272,
+                2541,
+                136,
+                211
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 125,
+              "rect": [
+                408,
+                2541,
+                136,
+                211
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 125,
+              "rect": [
+                544,
+                2541,
+                136,
+                211
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 125,
+              "rect": [
+                680,
+                2541,
+                136,
+                211
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 125,
+              "rect": [
+                816,
+                2541,
+                136,
+                211
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 125,
+              "rect": [
+                952,
+                2541,
+                136,
+                211
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                2752,
+                136,
+                211
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 125,
+              "rect": [
+                136,
+                2752,
+                136,
+                211
+              ]
+            },
+            {
+              "source_frame": 32,
+              "duration_ms": 125,
+              "rect": [
+                272,
+                2752,
+                136,
+                211
+              ]
+            },
+            {
+              "source_frame": 35,
+              "duration_ms": 41,
+              "rect": [
+                408,
+                2752,
+                136,
+                211
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            55,
+            195
+          ],
+          "action": "Try This | hush",
+          "path": "res://assets/cast/necromancer.png"
+        },
+        "stay_close": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                2117,
+                147,
+                212
+              ]
+            },
+            {
+              "source_frame": 3,
+              "duration_ms": 125,
+              "rect": [
+                147,
+                2117,
+                147,
+                212
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 84,
+              "rect": [
+                294,
+                2117,
+                147,
+                212
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 83,
+              "rect": [
+                441,
+                2117,
+                147,
+                212
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 83,
+              "rect": [
+                588,
+                2117,
+                147,
+                212
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 125,
+              "rect": [
+                735,
+                2117,
+                147,
+                212
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 84,
+              "rect": [
+                882,
+                2117,
+                147,
+                212
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                2329,
+                147,
+                212
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 125,
+              "rect": [
+                147,
+                2329,
+                147,
+                212
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 125,
+              "rect": [
+                294,
+                2329,
+                147,
+                212
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                441,
+                2329,
+                147,
+                212
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 125,
+              "rect": [
+                588,
+                2329,
+                147,
+                212
+              ]
+            },
+            {
+              "source_frame": 32,
+              "duration_ms": 41,
+              "rect": [
+                735,
+                2329,
+                147,
+                212
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            53,
+            196
+          ],
+          "action": "Try This | stay_close",
+          "path": "res://assets/cast/necromancer.png"
         }
-      }
+      },
+      "supplements": [
+        {
+          "source": "art/models/crypter-try-this/necromancer-try-this.blend",
+          "sha256": "844e74433ba90ca11c2b523d75034cbf69cd374a0383323742dcd1e8621b727c"
+        }
+      ]
     },
     "rogue": {
       "source": "art/models/rogue/rogue-blockout.blend",
@@ -5778,8 +8897,398 @@
           ],
           "action": "Rogue | Defeat",
           "path": "res://assets/cast/rogue.png"
+        },
+        "it_was_me": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                444,
+                1813,
+                152,
+                223
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 167,
+              "rect": [
+                596,
+                1813,
+                152,
+                223
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 125,
+              "rect": [
+                748,
+                1813,
+                152,
+                223
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 250,
+              "rect": [
+                0,
+                2063,
+                152,
+                223
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 250,
+              "rect": [
+                152,
+                2063,
+                152,
+                223
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 208,
+              "rect": [
+                304,
+                2063,
+                152,
+                223
+              ]
+            },
+            {
+              "source_frame": 30,
+              "duration_ms": 209,
+              "rect": [
+                456,
+                2063,
+                152,
+                223
+              ]
+            },
+            {
+              "source_frame": 35,
+              "duration_ms": 41,
+              "rect": [
+                444,
+                1813,
+                152,
+                223
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            62,
+            199
+          ],
+          "action": "Rogue | It Was Me",
+          "path": "res://assets/cast/rogue.png"
+        },
+        "clear_jump": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                1563,
+                148,
+                250
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 83,
+              "rect": [
+                148,
+                1563,
+                148,
+                250
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 83,
+              "rect": [
+                296,
+                1563,
+                148,
+                250
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 125,
+              "rect": [
+                444,
+                1563,
+                148,
+                250
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 125,
+              "rect": [
+                592,
+                1563,
+                148,
+                250
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 84,
+              "rect": [
+                740,
+                1563,
+                148,
+                250
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                1813,
+                148,
+                250
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 166,
+              "rect": [
+                148,
+                1813,
+                148,
+                250
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 125,
+              "rect": [
+                296,
+                1813,
+                148,
+                250
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                1563,
+                148,
+                250
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            65,
+            226
+          ],
+          "action": "Rogue | Clear Jump",
+          "path": "res://assets/cast/rogue.png"
+        },
+        "cut_the_wire": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                730,
+                2286,
+                131,
+                223
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 167,
+              "rect": [
+                861,
+                2286,
+                131,
+                223
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                2509,
+                131,
+                223
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 83,
+              "rect": [
+                131,
+                2509,
+                131,
+                223
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 125,
+              "rect": [
+                262,
+                2509,
+                131,
+                223
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 209,
+              "rect": [
+                393,
+                2509,
+                131,
+                223
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 166,
+              "rect": [
+                524,
+                2509,
+                131,
+                223
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                730,
+                2286,
+                131,
+                223
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            54,
+            199
+          ],
+          "action": "Rogue | Cut the Wire",
+          "path": "res://assets/cast/rogue.png"
+        },
+        "bitter_medicine": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                608,
+                2063,
+                146,
+                223
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 167,
+              "rect": [
+                754,
+                2063,
+                146,
+                223
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                2286,
+                146,
+                223
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 42,
+              "rect": [
+                146,
+                2286,
+                146,
+                223
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 125,
+              "rect": [
+                292,
+                2286,
+                146,
+                223
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                438,
+                2286,
+                146,
+                223
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                584,
+                2286,
+                146,
+                223
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 41,
+              "rect": [
+                608,
+                2063,
+                146,
+                223
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            64,
+            199
+          ],
+          "action": "Rogue | Bitter Medicine",
+          "path": "res://assets/cast/rogue.png"
         }
-      }
+      },
+      "supplements": [
+        {
+          "source": "art/models/rogue-try-this/rogue-try-this.blend",
+          "sha256": "2fa08088d5da15c27f22debe0911ebbe4749a3d0062b4f66b0a159675347d3d1"
+        }
+      ]
     },
     "skeleton": {
       "source": "art/models/skeleton/skeleton-blockout.blend",
@@ -6147,8 +9656,115 @@
           ],
           "action": "Skeleton | Don't Go",
           "path": "res://assets/cast/skeleton.png"
+        },
+        "recall_tuck": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                1111,
+                108,
+                202
+              ]
+            },
+            {
+              "source_frame": 3,
+              "duration_ms": 84,
+              "rect": [
+                108,
+                1111,
+                108,
+                202
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 83,
+              "rect": [
+                216,
+                1111,
+                108,
+                202
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 83,
+              "rect": [
+                324,
+                1111,
+                108,
+                202
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 84,
+              "rect": [
+                0,
+                1313,
+                108,
+                202
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 83,
+              "rect": [
+                108,
+                1313,
+                108,
+                202
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 83,
+              "rect": [
+                216,
+                1313,
+                108,
+                202
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 84,
+              "rect": [
+                324,
+                1313,
+                108,
+                202
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 41,
+              "rect": [
+                0,
+                1515,
+                108,
+                202
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            43,
+            181
+          ],
+          "action": "Try This | recall_tuck",
+          "path": "res://assets/cast/skeleton.png"
         }
-      }
+      },
+      "supplements": [
+        {
+          "source": "art/models/crypter-try-this/skeleton-try-this.blend",
+          "sha256": "6c180aa4b087d12a0655e54e4d47d4ccb71375f1bfa26f52ab5970dadea24cfd"
+        }
+      ]
     },
     "wizard": {
       "source": "art/models/wizard/wizard-blockout.blend",
@@ -6962,8 +10578,377 @@
           ],
           "action": "Wizard | Defeat",
           "path": "res://assets/cast/wizard.png"
+        },
+        "mending_blast_self": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                169,
+                2229,
+                122,
+                218
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 167,
+              "rect": [
+                291,
+                2229,
+                122,
+                218
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 208,
+              "rect": [
+                413,
+                2229,
+                122,
+                218
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                535,
+                2229,
+                122,
+                218
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 166,
+              "rect": [
+                657,
+                2229,
+                122,
+                218
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                779,
+                2229,
+                122,
+                218
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 83,
+              "rect": [
+                901,
+                2229,
+                122,
+                218
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                2460,
+                122,
+                218
+              ]
+            },
+            {
+              "source_frame": 30,
+              "duration_ms": 84,
+              "rect": [
+                122,
+                2460,
+                122,
+                218
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            56,
+            203
+          ],
+          "action": "Wizard | Mending Blast \u00b7 Self",
+          "path": "res://assets/cast/wizard.png"
+        },
+        "send_off": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                244,
+                2460,
+                125,
+                216
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 83,
+              "rect": [
+                369,
+                2460,
+                125,
+                216
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 125,
+              "rect": [
+                494,
+                2460,
+                125,
+                216
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 84,
+              "rect": [
+                619,
+                2460,
+                125,
+                216
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 83,
+              "rect": [
+                744,
+                2460,
+                125,
+                216
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 83,
+              "rect": [
+                869,
+                2460,
+                125,
+                216
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                2678,
+                125,
+                216
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 167,
+              "rect": [
+                125,
+                2678,
+                125,
+                216
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 125,
+              "rect": [
+                250,
+                2678,
+                125,
+                216
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 125,
+              "rect": [
+                375,
+                2678,
+                125,
+                216
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 83,
+              "rect": [
+                500,
+                2678,
+                125,
+                216
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            58,
+            201
+          ],
+          "action": "Wizard | Send-Off",
+          "path": "res://assets/cast/wizard.png"
+        },
+        "clear_jump": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                1767,
+                169,
+                231
+              ]
+            },
+            {
+              "source_frame": 3,
+              "duration_ms": 125,
+              "rect": [
+                169,
+                1767,
+                169,
+                231
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 42,
+              "rect": [
+                338,
+                1767,
+                169,
+                231
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 42,
+              "rect": [
+                507,
+                1767,
+                169,
+                231
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 83,
+              "rect": [
+                676,
+                1767,
+                169,
+                231
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 83,
+              "rect": [
+                845,
+                1767,
+                169,
+                231
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                1998,
+                169,
+                231
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 84,
+              "rect": [
+                169,
+                1998,
+                169,
+                231
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 83,
+              "rect": [
+                338,
+                1998,
+                169,
+                231
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 42,
+              "rect": [
+                507,
+                1998,
+                169,
+                231
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 166,
+              "rect": [
+                676,
+                1998,
+                169,
+                231
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 167,
+              "rect": [
+                845,
+                1998,
+                169,
+                231
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                2229,
+                169,
+                231
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            83,
+            216
+          ],
+          "action": "Wizard | Clear Jump",
+          "path": "res://assets/cast/wizard.png"
         }
-      }
+      },
+      "supplements": [
+        {
+          "source": "art/models/wizard/fitted-candidate/wizard-fitted-candidate.blend",
+          "sha256": "c00126258b0a893de3862d95e3c599446586d737ab025321f27e64853ff1e2c7"
+        }
+      ]
     },
     "zombie": {
       "source": "art/models/zombie/zombie-blockout.blend",
@@ -7350,8 +11335,135 @@
           ],
           "action": "Zombie | Offer Flower",
           "path": "res://assets/cast/zombie.png"
+        },
+        "play_dead": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                1000,
+                188,
+                203
+              ]
+            },
+            {
+              "source_frame": 3,
+              "duration_ms": 84,
+              "rect": [
+                188,
+                1000,
+                188,
+                203
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 83,
+              "rect": [
+                376,
+                1000,
+                188,
+                203
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                1203,
+                188,
+                203
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 125,
+              "rect": [
+                188,
+                1203,
+                188,
+                203
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 83,
+              "rect": [
+                376,
+                1203,
+                188,
+                203
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                1406,
+                188,
+                203
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 125,
+              "rect": [
+                188,
+                1406,
+                188,
+                203
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 84,
+              "rect": [
+                376,
+                1406,
+                188,
+                203
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                1609,
+                188,
+                203
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 41,
+              "rect": [
+                188,
+                1609,
+                188,
+                203
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            115,
+            176
+          ],
+          "action": "Try This | play_dead",
+          "path": "res://assets/cast/zombie.png"
         }
-      }
+      },
+      "supplements": [
+        {
+          "source": "art/models/crypter-try-this/zombie-try-this.blend",
+          "sha256": "ae138e94b2867adc2be9b5c2cf9fc639fb417460f01e468690f4150495a731f4"
+        }
+      ]
     },
     "harpooner": {
       "source": "art/models/harpooner/harpooner.blend",

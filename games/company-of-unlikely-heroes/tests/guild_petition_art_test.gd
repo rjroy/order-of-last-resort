@@ -37,6 +37,9 @@ const PLATES := {
 	"wizard_ring_sparks": "wizard_ring_sparks",
 	"wizard_stand_back": "wizard_stand_back",
 	"wizard_learn_dodge": "wizard_learn_dodge",
+	"recruit_blacksmith": "recruit_blacksmith",
+	"blacksmith_learn_bonk": "blacksmith_learn_bonk",
+	"blacksmith_learn_acid": "blacksmith_learn_acid",
 }
 
 var failures := 0
@@ -57,7 +60,7 @@ func _run() -> void:
 	var actual_ids := {}
 	for row: Dictionary in rows:
 		actual_ids[row.id] = true
-	_check(PLATES.size() == 26 and actual_ids.size() == 26, "Expected exactly 26 stock petitions")
+	_check(PLATES.size() == 29 and actual_ids.size() == 29, "Expected exactly 29 stock petitions")
 	for id in PLATES:
 		_check(actual_ids.has(id), "Stock register includes " + id)
 		var path := "res://assets/guild-book/petitions/%s.png" % PLATES[id]
@@ -107,7 +110,7 @@ func _check_register_portraits(rows: Array) -> void:
 				if image.texture is AtlasTexture and image.texture.atlas == portrait:
 					found = true
 		_check(found, hero + ": register heading retains the opted-in class portrait")
-	_check(checked.size() == 7, "All seven stock hero headings have portraits")
+	_check(checked.size() == 8, "All eight stock hero headings have portraits")
 
 
 func _check_illustrated_recipient(rows: Array) -> void:

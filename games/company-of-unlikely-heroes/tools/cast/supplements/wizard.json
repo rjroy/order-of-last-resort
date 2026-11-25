@@ -1,0 +1,12 @@
+{
+  "source": "models/wizard/fitted-candidate/wizard-fitted-candidate.blend",
+  "sha256": "c00126258b0a893de3862d95e3c599446586d737ab025321f27e64853ff1e2c7",
+  "kind": "scene",
+  "capture_size": 352,
+  "capture_anchor": [176, 272],
+  "takes": {
+    "mending_blast_self": ["Mending Blast · Self", [1, 4, 8, 13, 17, 21, 25, 27, 30], 32, false],
+    "send_off": ["Send-Off", [1, 4, 6, 9, 11, 13, 15, 18, 22, 25, 28], 30, false],
+    "clear_jump": ["Clear Jump", [1, 3, 6, 7, 8, 10, 12, 15, 17, 19, 20, 24, 28], 30, false]
+  }
+}

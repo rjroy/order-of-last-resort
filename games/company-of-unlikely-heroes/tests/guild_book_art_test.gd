@@ -20,7 +20,8 @@ func _initialize() -> void:
 				var portrait_id: String = defs.characters[id].get("guild_portrait", "")
 				_check(not portrait_id.is_empty(), "Recruit %s opts into a portrait identity" % id)
 				_check_texture(art.call("class_portrait", portrait_id), "classes", portrait_id)
-			_check_texture(art.call("class_portrait", "blacksmith"), "classes", "blacksmith")
+			_check(defs.characters.blacksmith.get("guild_portrait", "") == "blacksmith",
+				"Stock Hobby Smith explicitly selects the accepted portrait identity")
 			var destinations: Dictionary = {}
 			for id in defs.mission_reports:
 				if defs.mission_reports[id].has("destination_descriptors"):

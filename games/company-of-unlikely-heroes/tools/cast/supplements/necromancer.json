@@ -1,0 +1,11 @@
+{
+  "kind": "scene",
+  "source": "models/crypter-try-this/necromancer-try-this.blend",
+  "sha256": "844e74433ba90ca11c2b523d75034cbf69cd374a0383323742dcd1e8621b727c",
+  "action_prefix": "",
+  "takes": {
+    "recall": ["Try This | recall", [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27], 28, false],
+    "hush": ["Try This | hush", [1, 3, 6, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35], 36, false],
+    "stay_close": ["Try This | stay_close", [1, 3, 6, 8, 10, 12, 15, 17, 20, 23, 26, 29, 32], 33, false]
+  }
+}

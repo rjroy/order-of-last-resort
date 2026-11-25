@@ -207,11 +207,19 @@ func _build_preview(parent: VBoxContainer, record: Dictionary, balance: int, fee
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var title := str(record.get("preview_title", record.get("title", "")))
 	var painting := ViewModel.action_plate(str(record.id))
+	var details_parent := body
+	var print: TextureRect
+	var illustration_row: BoxContainer
+	var preview_title: Label
 	if painting != null:
-		_build_preview_heading(body, title, str(record.get("recipient_label", "")))
-		var print := Prep.action_plate(body, painting)
+		preview_title = _build_preview_heading(body, title, str(record.get("recipient_label", "")))
+		illustration_row = BoxContainer.new()
+		illustration_row.add_theme_constant_override("separation", 9)
+		body.add_child(illustration_row)
+		print = Prep.action_plate(illustration_row, painting)
 		print.name = "PetitionActionPlate"
-		print.custom_minimum_size.y = 145 if _compact else 215
+		details_parent = _book.stack(illustration_row, 9)
+		details_parent.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	else:
 		var heading := _book.row(body, 14)
 		var portrait := record.get("portrait") as Texture2D
@@ -224,26 +232,55 @@ func _build_preview(parent: VBoxContainer, record: Dictionary, balance: int, fee
 		copy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		_build_preview_heading(copy, title, str(record.get("recipient_label", "")))
 	var details: Array = record.get("details", [])
+	var effects: Array[Label] = []
 	for line_index in details.size():
 		if line_index == 1:
-			_book.rule(body, Prep.RULE)
-		var detail := Prep.text(_book, body, str(details[line_index]), 20 if _compact else 23)
+			_book.rule(details_parent, Prep.RULE)
+		var detail := Prep.text(_book, details_parent, str(details[line_index]), 20 if _compact else 23)
 		detail.name = "PetitionEffect_%d" % line_index
+		effects.append(detail)
 	var requirement := str(record.get("requirement", ""))
 	if not requirement.is_empty():
 		Prep.text(_book, body, requirement, 19, Prep.GOLD).name = "PetitionRequirement"
 	var note := str(record.get("note", ""))
 	if not note.is_empty():
 		Prep.text(_book, body, note, 19, Prep.QUIET, "italic").name = "PetitionNote"
+	if print != null:
+		_fit_illustrated_preview(body, illustration_row, details_parent, print, preview_title, effects)
 	if not feedback.is_empty():
 		Prep.text(_book, live, feedback, 16, Prep.INK).name = "PetitionFeedback"
 	_build_purchase(live, record, balance)
 
 
-func _build_preview_heading(parent: Control, title: String, recipient := "") -> void:
-	Prep.text(_book, parent, title, 33 if _compact else 40).name = "PetitionPreviewTitle"
+func _fit_illustrated_preview(body: VBoxContainer, illustration_row: BoxContainer, details: VBoxContainer,
+		print: TextureRect, title: Label, effects: Array[Label]) -> void:
+	var viewport := _book.get_viewport()
+	var reflow := func() -> void:
+		var area := viewport.get_visible_rect().size
+		var short_leaf := area.y < 700
+		# Read the effect beside the full print on short leaves, not below it.
+		body.add_theme_constant_override("separation", 6 if short_leaf else 9)
+		details.add_theme_constant_override("separation", 6 if short_leaf else 9)
+		illustration_row.vertical = not short_leaf
+		illustration_row.size_flags_vertical = Control.SIZE_FILL if short_leaf else Control.SIZE_EXPAND_FILL
+		illustration_row.add_theme_constant_override("separation", 14 if short_leaf else 9)
+		print.custom_minimum_size = Vector2(112, 112) if short_leaf else Vector2(0, 145 if area.x < 1100 else 215)
+		print.size_flags_horizontal = Control.SIZE_FILL if short_leaf else Control.SIZE_EXPAND_FILL
+		print.size_flags_vertical = Control.SIZE_SHRINK_BEGIN if short_leaf else Control.SIZE_EXPAND_FILL
+		title.add_theme_font_size_override("font_size", 30 if short_leaf else (33 if area.x < 1100 else 40))
+		for effect in effects:
+			effect.add_theme_font_size_override("font_size", 20 if short_leaf or area.x < 1100 else 23)
+	reflow.call()
+	viewport.size_changed.connect(reflow)
+	_book.tree_exiting.connect(func() -> void: viewport.size_changed.disconnect(reflow), CONNECT_ONE_SHOT)
+
+
+func _build_preview_heading(parent: Control, title: String, recipient := "") -> Label:
+	var heading := Prep.text(_book, parent, title, 33 if _compact else 40)
+	heading.name = "PetitionPreviewTitle"
 	if not recipient.is_empty() and recipient != title:
 		Prep.text(_book, parent, recipient, 18, Prep.QUIET).name = "PetitionRecipient"
+	return heading
 
 
 func _build_purchase(parent: Control, record: Dictionary, balance: int) -> void:

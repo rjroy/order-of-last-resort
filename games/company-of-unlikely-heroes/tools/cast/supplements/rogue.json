@@ -1,0 +1,18 @@
+{
+  "source": "models/rogue-try-this/rogue-try-this.blend",
+  "sha256": "2fa08088d5da15c27f22debe0911ebbe4749a3d0062b4f66b0a159675347d3d1",
+  "kind": "scene",
+  "action_prefix": "Rogue",
+  "capture_size": 320,
+  "capture_anchor": [160, 248],
+  "takes": {
+    "it_was_me": ["It Was Me", [1, 6, 10, 13, 19, 25, 30, 35], 36, false],
+    "clear_jump": ["Clear Jump", [1, 5, 7, 9, 12, 15, 17, 20, 24, 27], 28, false],
+    "cut_the_wire": ["Cut the Wire", [1, 6, 10, 13, 15, 18, 23, 27], 28, false],
+    "bitter_medicine": ["Bitter Medicine", [1, 6, 10, 12, 13, 16, 21, 26], 27, false]
+  },
+  "prop_visibility": {
+    "Try This | held ticket punch": {"only": ["cut_the_wire"]},
+    "Try This | cordial vial": {"only": ["bitter_medicine"]}
+  }
+}

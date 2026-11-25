@@ -349,12 +349,12 @@ func _matches_board_outcome(state: Dictionary) -> bool:
 
 func _resolve_turns(state: Dictionary, events: Array, stop_before := "") -> void:
 	for actor in Board.turn_order(state):
-		Statuses.begin_turn(state, actor)
+		Statuses.begin_turn(state, actor, events)
 		if actor.id == stop_before:
 			return
 		if Board.alive(actor):
 			_resolve_turn(state, actor, events)
-			Statuses.expire(state, actor, "actor_turn_end")
+			Statuses.expire(state, actor, "actor_turn_end", events)
 
 
 func _resolve_turn(state: Dictionary, actor: Dictionary, events: Array) -> void:

@@ -63,3 +63,41 @@ The reopened-file check verifies the T-pose, weights and topology, detachable ro
 | Motion comparison | `0677a97fcf9a1ffa14f5d3dde092e3d4b8fc82693b37cdd66d31bbd62efc4754` |
 
 An independent rebuild matched the geometry and action-key fingerprint and all check measurements. The fingerprint covers mesh coordinates, topology and action keys. It is not a promise of byte-identical `.blend` serialization across builds or Blender versions. The model and recipe are maintained sources; generated captures and logs stay in `.lore/local/`.
+
+## Battle atlas
+
+The [one-role bake recipe](../../../../../../../games/company-of-unlikely-heroes/tools/cast/actors/blacksmith.json) renders the exact approved model above and appends the SHA-pinned [supplementary Actions and hand kit](supplementary/motion.blend) in memory. It reads their frame selections from [supplementary/takes.json](supplementary/takes.json). Neither source is saved during the bake. The stock cast renderer supplies its 320 × 320 orthographic capture, `[160,248]` ground origin, warm contour ink, 104.918 px/m and 0.375 display scale. The atlas has no grid: the manifest stores per-frame rectangles in playback order and one anchor per clip. Godot owns tile placement and facing.
+
+| Clip | Drawings at variable holds from 24 fps | Duration | Visible beat |
+| --- | ---: | ---: | --- |
+| `ready` | 6 (4 unique), loops | 1000 ms | Breath and weight shift; no feedback beat |
+| `try_this` | 13, once | 1375 ms | F13, 500 ms: present the fitting. Hold through F18; no release. |
+| `hammer_time` | 15, once | 1417 ms | F12 wind-up; F17, 667 ms: contact. |
+| `pursue` | 11, once | 1167 ms | Foot plants F13 and F28, 500 and 1125 ms. |
+| `bonk` | 8, once | 1208 ms | F15, 583 ms: crook contact. |
+| `acid` | 9, once | 1417 ms | Last held drawing F16; F18, 708 ms: release. |
+| `acid_flask` | 1 | 42 ms | F18 isolates the vial. Its launch offset is `[92.713, -143.020]` atlas pixels from the Smith's ground anchor. |
+| `hit` | 6, once | 750 ms | F3, 83 ms: recoil. |
+| `down` | 7, once | 1125 ms | F16, 625 ms: contact; F24 matches Recover's first drawing. |
+| `recover` | 7, once | 1167 ms | F22, 875 ms: rise; F26 matches Ready. |
+| `defeat` | 7, once | 1125 ms | F16, 625 ms: contact; F24 remains a separate fallen pose. |
+
+For Pursue, the capture camera follows only the pelvis's native world Y travel. This removes the authored 0.493 m translation from the sheet and keeps the other weight shifts. The board moves the ground anchor exactly once. For Acid, the original hammer and fitting are hidden only for the hand-kit actions that replace them; the crook is visible only during Bonk. The vial is held through the last F16 drawing and absent from the actor at and after F18. The atlas contains no flight or impact effect. Apply facing and display scale to the launch offset, then fly the isolated vial to the committed recipient.
+
+Rebuild from the repository root with Blender **5.2.2 LTS**, ImageMagick **7.1.2-34**, Python **3.14.8** and Fontconfig (the latter is only for the proof):
+
+```sh
+tools=games/company-of-unlikely-heroes/tools/cast
+model=.lore/work/games/company-of-unlikely-heroes/art/models/hobby-smith
+scratch="$PWD/.lore/local/cast-bake"
+mkdir -p "$scratch/tmp"
+stage="$(mktemp -d "$scratch/blacksmith.XXXXXXXX")"
+TMPDIR="$scratch/tmp" MAGICK_TEMPORARY_PATH="$scratch/tmp" \
+  python3 "$tools/bake_subset.py" "$stage" blacksmith --threads 6
+python3 "$tools/verify_cast.py" --assets "$stage" blacksmith
+python3 "$model/review_smith_atlas.py" "$stage" "$stage/board-proof.png"
+```
+
+Publish the atlas to `res://assets/cast/blacksmith.png` and the matching `.actors.blacksmith` entry together. The staged manifest is not a replacement for the shared runtime manifest. Regenerate the texture sidecar with Godot **4.7.2** as described in the [cast recipe guide](../../../../../../../games/company-of-unlikely-heroes/tools/cast/README.md).
+
+The unified atlas is 1824 × 2076, SHA-256 `20ce9d428d443ca25f49cad3843d053c41a1010eb1f5977c3c5ff27d8d1a4f01`. A second build with the same tools reproduced the PNG and staging manifest byte for byte. All 45 primary drawings retain the exact crop pixels, timing and anchors of the original four-clip bake. The [proof at 65 × 54 cell size](../../../../../../local/cast-bake/blacksmith-full.mRNqzdd8/board-proof.png) shows the shipped cast for comparison, the fitting and hammer beats, the release handoff, and the living versus defeated poses. The standard verifier checks frame bounds, clear alpha padding and release timing for all 90 samples. Neither the proof nor the automated checks replaces visual acceptance in play.

@@ -1,0 +1,27 @@
+{
+  "source": "models/knight-fitted-candidate/knight-fitted-actions.blend",
+  "sha256": "79626de03bee6b7074310de17212d4461b7b52663de600c17b19612d08b3f675",
+  "kind": "actions",
+  "additional_actions": [
+    {
+      "source": "models/knight-fitted-candidate/knight-cover-actions.blend",
+      "sha256": "3128a8e40d6619be5dca7d12580aa9edd91864bc13648a0dd21efeeb0daa06f6"
+    }
+  ],
+  "action_prefix": "Knight | Fitted",
+  "takes": {
+    "fitted_pull": ["Pull", [1, 5, 9, 10, 12, 14, 16, 17, 21, 25, 29], 30, false],
+    "fitted_pull_unshielded": ["Pull", [1, 5, 9, 10, 12, 14, 16, 17, 21, 25, 29], 30, false],
+    "clear_the_floor": ["Clear the Floor", [1, 5, 9, 10, 12, 14, 16, 17, 21, 25, 30], 31, false],
+    "safety_distance": ["Safety Distance", [1, 5, 9, 12, 13, 16, 17, 21, 25, 31], 32, false],
+    "safety_distance_unshielded": ["Safety Distance", [1, 5, 9, 12, 13, 16, 17, 21, 25, 31], 32, false],
+    "lend_a_shield": ["Lend a Shield", [1, 5, 9, 12, 14, 16, 17, 18, 21, 25, 26, 32], 33, false],
+    "lend_a_shield_prop": ["Lend a Shield", [18], 19, false],
+    "keep_your_head_down": ["Keep Your Head Down", [1, 5, 9, 11, 13, 15, 17, 22, 28], 29, false],
+    "keep_your_head_down_unshielded": ["Keep Your Head Down", [1, 5, 9, 11, 13, 15, 17, 22, 28], 29, false]
+  },
+  "release": ["lend_a_shield", "lend_a_shield_prop", "Shield_L_Detachable", 18, "Release / shield handoff"],
+  "prop_visibility": {
+    "Shield_L_Detachable": {"except": ["fitted_pull_unshielded", "safety_distance_unshielded", "keep_your_head_down_unshielded"]}
+  }
+}

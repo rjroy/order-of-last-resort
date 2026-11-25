@@ -1,0 +1,9 @@
+{
+  "kind": "scene",
+  "source": "models/crypter-try-this/zombie-try-this.blend",
+  "sha256": "ae138e94b2867adc2be9b5c2cf9fc639fb417460f01e468690f4150495a731f4",
+  "action_prefix": "",
+  "takes": {
+    "play_dead": ["Try This | play_dead", [1, 3, 5, 7, 10, 13, 15, 18, 21, 23, 26], 27, false]
+  }
+}

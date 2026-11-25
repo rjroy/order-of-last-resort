@@ -196,6 +196,9 @@
     "blacksmith": {
       "class": "blacksmith",
       "label": "Hobby Smith",
+      "guild_portrait": "blacksmith",
+      "cast_key": "blacksmith",
+      "cast_art_key": "blacksmith",
       "description": "Fit a teammate with Try This to change their next eligible ability. Hammer Time lands a close-range hit."
     },
     "healer": {

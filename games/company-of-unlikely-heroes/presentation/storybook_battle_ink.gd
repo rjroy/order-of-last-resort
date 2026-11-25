@@ -7,7 +7,6 @@ const GRAPHITE := Color("#44392e")
 const PAPER := Color("#f5dfaa")
 const DARK := Color("#2b1e17")
 const GOLD := Color("#f5c779")
-const REACTION_SECONDS := 1.45
 const REACTION_FADE_SECONDS := 0.25
 const STAMP_SHADER := """
 shader_type canvas_item;
@@ -23,8 +22,6 @@ void fragment() {
 
 var _board: BridgeArt
 var _cues: Dictionary = {}
-var _committed_reactions: Array = []
-var _reaction_time_left := 0.0
 var _stamp := Node2D.new()
 var _prop_layer := Node2D.new()
 var _props: Dictionary = {}
@@ -35,13 +32,13 @@ var _cast := CastSprites.new()
 func mount(board: Control) -> void:
 	_board = board as BridgeArt
 	assert(_board != null, "Storybook ink requires the live BridgeArt board.")
-	set_process(false)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	focus_mode = Control.FOCUS_NONE
 	z_index = 3
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_board.resized.connect(_redraw)
 	_board.grid_labels_visibility_changed.connect(queue_redraw)
+	_board.committed_reactions_changed.connect(queue_redraw)
 	_cast.load_manifest()
 	var shader := Shader.new()
 	shader.code = STAMP_SHADER
@@ -66,29 +63,6 @@ func render(cues: Dictionary) -> void:
 	_redraw()
 
 
-func play_committed_reactions(reactions: Array) -> void:
-	_committed_reactions = reactions.duplicate(true)
-	_reaction_time_left = REACTION_SECONDS if has_committed_reactions() else 0.0
-	set_process(has_committed_reactions())
-	queue_redraw()
-
-
-func has_committed_reactions() -> bool:
-	return not _committed_reactions.is_empty()
-
-
-func committed_reactions_remaining_ms() -> float:
-	return maxf(0.0, _reaction_time_left * 1000.0)
-
-
-func _process(delta: float) -> void:
-	_reaction_time_left -= delta
-	if _reaction_time_left <= 0.0:
-		play_committed_reactions([])
-	else:
-		queue_redraw()
-
-
 func set_scene_props(props: Dictionary) -> void:
 	_props = props.duplicate(true)
 	_sync_gate_art()
@@ -108,6 +82,8 @@ func _notification(what: int) -> void:
 		_board.resized.disconnect(_redraw)
 	if _board.grid_labels_visibility_changed.is_connected(queue_redraw):
 		_board.grid_labels_visibility_changed.disconnect(queue_redraw)
+	if _board.committed_reactions_changed.is_connected(queue_redraw):
+		_board.committed_reactions_changed.disconnect(queue_redraw)
 	if not _board.is_queued_for_deletion():
 		_board.set_pressure_gate_prop_installed(false)
 	_board = null
@@ -164,8 +140,10 @@ func _draw() -> void:
 		_gate(_board.cell_center(gate.cell), step, gate.get("opens", false))
 	for reaction: Dictionary in _cues.get("alchemy", []):
 		_forecast_alchemy_mark(reaction, step)
-	for reaction: Dictionary in _committed_reactions:
+	var reactions := _board.committed_reaction_marks()
+	for reaction: Dictionary in reactions:
 		_committed_alchemy_mark(reaction, step)
+	_board.record_actual_draw_reactions(reactions)
 	if context_cell is Vector2i and not context_text.is_empty():
 		var target := _board.cell_center(context_cell)
 		_tag(context_text, target + Vector2(0.0, -step.y * 0.67), true)
@@ -183,8 +161,8 @@ func _forecast_alchemy_mark(reaction: Dictionary, step: Vector2) -> void:
 
 
 func _committed_alchemy_mark(reaction: Dictionary, step: Vector2) -> void:
-	var age := REACTION_SECONDS - _reaction_time_left
-	var opacity := minf(1.0, _reaction_time_left / REACTION_FADE_SECONDS)
+	var age := float(reaction.age_ms) / 1000.0
+	var opacity := minf(1.0, (BridgeArt.REACTION_MS / 1000.0 - age) / REACTION_FADE_SECONDS)
 	var cell := _board.cell_center(reaction.position)
 	var center := cell + step * Vector2(0.24, 0.03)
 	var radius := clampf(step.y * 0.245, 12.0, 20.0) * (1.0 + 0.12 * exp(-age * 12.0))

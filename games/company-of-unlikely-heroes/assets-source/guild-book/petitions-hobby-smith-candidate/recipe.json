@@ -1,0 +1,10 @@
+{
+  "source": "hobby-smith-petitions-native.png",
+  "source_sha256": "34bc41de865c4e8a9fcd52c97c34787f48bc8a1fbaa34b2a7caea9ba2d9a8353",
+  "edge_feather_px": 0,
+  "plates": {
+    "recruit_blacksmith": {"label": "Recruit the Hobby Smith", "offset": [0, 0]},
+    "blacksmith_learn_bonk": {"label": "Learn Bonk and Taunt", "offset": [627, 0]},
+    "blacksmith_learn_acid": {"label": "Learn Acid", "offset": [0, 627]}
+  }
+}

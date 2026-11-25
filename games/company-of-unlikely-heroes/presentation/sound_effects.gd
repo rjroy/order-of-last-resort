@@ -5,6 +5,7 @@ signal sound_requested(kind: String, unit_id: String, ability_id: String, cue_id
 
 const Preferences = preload("res://battle_display_preferences.gd")
 const Recipes = preload("res://presentation/sound_recipes.gd")
+const Palette = preload("res://presentation/fitted_sound_palette.gd")
 # Mix target for an ability impact at 80% SFX and full Master.
 const IMPACT_REFERENCE_DB := -14.0
 const REFERENCE_SFX_VOLUME := 0.8
@@ -76,6 +77,19 @@ func dispatch_beat(kind: String, unit_id: String, ability_id: String, handler: S
 		_play(kind, unit_id, ability_id, key, 1.0)
 
 
+## Returns true when the palette owns this beat, including deliberately silent
+## beats. The caller must suppress the corresponding ordinary beat in that case.
+func dispatch_performance(performance: Dictionary) -> bool:
+	if not Palette.handles(performance):
+		return false
+	for request: Dictionary in Palette.route(performance):
+		var cue_id := str(request.get("cue_id", ""))
+		_play(str(request.get("kind", "")), str(request.get("unit_id", "")),
+			str(request.get("ability_id", "")), cue_id,
+			float(request.get("gain", 1.0)), Palette.get_stream(cue_id))
+	return true
+
+
 func _family(ability: String, handler: String, recipe: String) -> String:
 	if handler == "repeat_batch":
 		match recipe:
@@ -96,6 +110,7 @@ func _family(ability: String, handler: String, recipe: String) -> String:
 			return "shepherd" if ability == "frontier_shepherd_wave" else "gesture"
 		"attack":
 			match ability:
+				"blacksmith_hammer_time": return "smith_hammer"
 				"knight_shield_throw": return "shield_throw"
 				"offer_flower": return "flower"
 				"goblin_jab", "trickster_strike": return "point"
@@ -109,6 +124,10 @@ func _family(ability: String, handler: String, recipe: String) -> String:
 			return "shield"
 		"bonk":
 			return "bonk" if ability == "healer_bonk" else "shield"
+		"fit":
+			return "smith_fit" if ability == "blacksmith_try_this" else "gesture"
+		"quick_release":
+			return "smith_release" if ability == "smith_quick_release" else "gesture"
 		"push":
 			return "shunt" if ability == "knight_push" else "shield"
 		"apply_status":
@@ -165,10 +184,12 @@ func _family(ability: String, handler: String, recipe: String) -> String:
 	return ""
 
 
-func _play(kind: String, unit_id: String, ability_id: String, cue_id: String, relative_gain: float) -> void:
+func _play(kind: String, unit_id: String, ability_id: String, cue_id: String, relative_gain: float, selected_stream: AudioStream = null) -> void:
 	if volume <= 0.0 or master_volume <= 0.0:
 		return
-	var stream: AudioStream = WAVS.get(cue_id)
+	var stream: AudioStream = selected_stream
+	if stream == null:
+		stream = WAVS.get(cue_id)
 	if stream == null:
 		stream = Recipes.get_stream(cue_id)
 	if stream == null:

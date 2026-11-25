@@ -88,6 +88,7 @@ static func summon(state: Dictionary, actor: Dictionary, ability: Dictionary, po
 		minion["raised_from_id"] = corpse.id
 		corpse["corpse_consumed"] = true
 		data["target_id"] = corpse.id
+		data["corpse_id"] = corpse.id
 		copy["corpse"] = Board.display_name(state, corpse)
 	Board.authored_event(state, events, "summon", "raise" if raising else "summon", copy, data)
 

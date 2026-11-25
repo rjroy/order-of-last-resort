@@ -94,13 +94,19 @@ func _test_cosmetic() -> void:
 	var forecast := await _frame()
 	if not await _commit_cosmetic():
 		return
+	board.set_process(false)
+	var before_impact := await _frame()
+	if not _advance_to_reaction():
+		return
 	var committed := await _frame()
-	await create_timer(0.50).timeout
+	_tick_board(0.5)
 	var readable := await _frame()
-	await create_timer(2.25).timeout
+	_tick_board(2.25)
 	var settled := await _frame()
 	_check(_changed_pixels(forecast, clean, recipient) >= MIN_MARK_PIXELS,
 		"Staged cosmetic displays a forecast mark on the chosen recipient")
+	_check(_changed_pixels(before_impact, settled, recipient) < MIN_MARK_PIXELS,
+		"Committed seal does not display during the action windup")
 	_check(_changed_pixels(committed, settled, recipient) >= MIN_MARK_PIXELS,
 		"Committed cosmetic visibly marks the actual recipient")
 	_check(_changed_pixels(committed, forecast, recipient) >= MIN_MARK_PIXELS,
@@ -120,6 +126,9 @@ func _test_cosmetic() -> void:
 	_isolate_reaction_ink()
 	if not await _stage_cosmetic(opening) or not await _commit_cosmetic():
 		return
+	board.set_process(false)
+	if not _advance_to_reaction():
+		return
 	var replayed := await _frame()
 	_check(_changed_pixels(replayed, clean, recipient) >= MIN_MARK_PIXELS,
 		"Second commit starts a visible cosmetic before the battle transition")
@@ -132,6 +141,21 @@ func _test_cosmetic() -> void:
 	_check(next_recipient == recipient, "The next battle uses the same recipient tile and layout")
 	_check(_changed_pixels(next_frame, clean, next_recipient) < MIN_MARK_PIXELS,
 		"Next battle starts without the prior battle's active cosmetic")
+
+
+func _advance_to_reaction() -> bool:
+	for _frame_index in 1000:
+		if not board.committed_reaction_marks().is_empty():
+			return true
+		if not board.action_playback_pending():
+			break
+		_tick_board(0.01)
+	return _check(false, "Committed dose never reached its reaction marker")
+
+
+func _tick_board(delta: float) -> void:
+	board.call("_process", delta)
+	board.set_process(false)
 
 
 func _isolate_reaction_ink() -> void:

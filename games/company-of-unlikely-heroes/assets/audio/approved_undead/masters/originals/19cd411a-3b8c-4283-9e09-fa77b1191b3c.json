@@ -1,0 +1,20 @@
+{
+  "id": "19cd411a-3b8c-4283-9e09-fa77b1191b3c",
+  "filename": "19cd411a-3b8c-4283-9e09-fa77b1191b3c.wav",
+  "created_at": "2026-11-25T00:48:37.112Z",
+  "model": "audiocpp-stable-audio-3-sfx",
+  "prompt": "A sleepy friendly zombie being pulled upright from loose grave dirt. An unmistakable low throaty waking groan, 'urrh', coarse vocal fry then a little crumbly earth scraping off a coat. A single compact performance, no words, dry and close.",
+  "negative_prompt": "music, accompaniment, ambient scene, long reverb, screaming, gore sounds, English dialogue, repeated sequence",
+  "lyrics": null,
+  "seed": 8425,
+  "steps": null,
+  "cfg": null,
+  "duration_s": 1.05,
+  "sample_rate": 44100,
+  "channels": 2,
+  "parent_id": null,
+  "source": "mcp",
+  "edit": null,
+  "edit_options": null,
+  "sha256": "fb3fb14bc2d92d53f4bb48b4d97d93beca5895fd1ee37a5e9da6631de0e4dbe6"
+}

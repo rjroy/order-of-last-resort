@@ -1,0 +1,20 @@
+{
+  "id": "7e2372b5-3174-4b93-94f4-dec0cc7fc6aa",
+  "filename": "7e2372b5-3174-4b93-94f4-dec0cc7fc6aa.wav",
+  "created_at": "2026-11-25T00:49:51.897Z",
+  "model": "audiocpp-stable-audio-3-sfx",
+  "prompt": "A friendly enchanted skeleton swings one loose arm in a wide enthusiastic greeting. A thin airy hollow groan of effort and a fast fan of three distinct dry hollow bone clacks, then stop. Close natural foley, a single swinging action.",
+  "negative_prompt": "music, ambient bed, screaming, intelligible speech, English, long reverberation, battle crowd, horror trailer, bell",
+  "lyrics": null,
+  "seed": 8427,
+  "steps": null,
+  "cfg": null,
+  "duration_s": 0.75,
+  "sample_rate": 44100,
+  "channels": 2,
+  "parent_id": null,
+  "source": "mcp",
+  "edit": null,
+  "edit_options": null,
+  "sha256": "228af388fa8e4adea27404d61604c8f64b59e5645b6668eb6b464d5474241218"
+}

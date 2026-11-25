@@ -1,0 +1,20 @@
+{
+  "id": "a82ad608-edfc-4ac3-ad48-9d56d06ad97a",
+  "filename": "a82ad608-edfc-4ac3-ad48-9d56d06ad97a.wav",
+  "created_at": "2026-11-25T00:51:18.259Z",
+  "model": "audiocpp-stable-audio-3-sfx",
+  "prompt": "One pebble wrapped in a flower lands with a small dull stone tock and a papery leaf rustle; a shy zombie makes a brief soft throaty grunt of satisfaction. Impact first, voice immediately behind, a single dry close foley gag.",
+  "negative_prompt": "music, ambient bed, screaming, intelligible speech, English, long reverberation, battle crowd, horror trailer, bell",
+  "lyrics": null,
+  "seed": 8430,
+  "steps": null,
+  "cfg": null,
+  "duration_s": 0.165,
+  "sample_rate": 44100,
+  "channels": 2,
+  "parent_id": null,
+  "source": "mcp",
+  "edit": null,
+  "edit_options": null,
+  "sha256": "03c5b1881553fea5386d557d2eaf4d56c85083bd1bd259ef2285e275c82a7e84"
+}

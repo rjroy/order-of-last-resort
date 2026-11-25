@@ -15,7 +15,7 @@ const SHIELD = preload("res://assets/audio/shield_strike.wav")
 const ROPE = preload("res://assets/audio/rope_pull.wav")
 const GLASS = preload("res://assets/audio/potion_smash.wav")
 const BLAST = preload("res://assets/audio/magical_blast.wav")
-const BONES = preload("res://assets/audio/bone_summon.wav")
+const APPROVED_UNDEAD := "res://assets/audio/approved_undead/"
 var rules := Rules.new()
 var service
 var heard: Array[Dictionary] = []
@@ -102,6 +102,13 @@ func _custom_handlers() -> void:
 			_check(expected != null and _same_audio(result.stream, expected),
 				example.label + ": actual handler determines sound, not the stock ID")
 
+	var custom_summon := _dispatch("impact", "custom_summon", "summon", "")
+	if _check(custom_summon != null, "custom summon retains a playable fallback"):
+		_check(custom_summon.resource_path != APPROVED_UNDEAD + "grave_bell.wav",
+			"custom summon fallback is not the stock Grave Bell recording")
+		_check(custom_summon.resource_path != APPROVED_UNDEAD + "summon_skeleton.wav",
+			"custom summon fallback is not the stock Summon Skeleton recording")
+
 	# A zero-damage Harpoon is a gesture, not either the close shaft or bow,
 	# even at the cells where stock playback selects those two action-time sounds.
 	var defs: Dictionary = Catalog.read_default()
@@ -152,7 +159,22 @@ func _dispatch_catalog() -> void:
 	if sounds.has("bard_take_the_stage") and sounds.has("frontier_war_drum"):
 		_check(not _same_audio(sounds.bard_take_the_stage, sounds.frontier_war_drum),
 			"Take the Stage is a song, not a war drum")
-	for preserved in [["wizard_blast", BLAST], ["summon_skeleton", BONES],
+	for approved in [
+		["necro_grave_bell", "grave_bell"],
+		["summon_skeleton", "summon_skeleton"],
+		["raise_dead", "raise_dead"],
+		["necromancer_say_hello_to_that_one", "say_hello_to_that_one"],
+		["wave", "skeleton_wave"],
+		["dont_go", "skeleton_dont_go"],
+		["say_hello", "zombie_say_hello"],
+		["offer_flower", "zombie_offer_flower"],
+		["wizard_ring_sparks", "ring_of_sparks"],
+		["rogue_wasnt_me", "wasnt_me"],
+	]:
+		if sounds.has(approved[0]):
+			_check(sounds[approved[0]].resource_path == APPROVED_UNDEAD + approved[1] + ".wav",
+				approved[0] + ": dispatch plays its approved recording")
+	for preserved in [["wizard_blast", BLAST],
 			["enemy_harpoon", BOW], ["alchemist_acid", GLASS]]:
 		if sounds.has(preserved[0]):
 			_check(sounds[preserved[0]] == preserved[1], preserved[0] + ": suitable approved recording is retained")

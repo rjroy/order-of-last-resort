@@ -1,0 +1,20 @@
+{
+  "id": "704375d8-8f64-4350-8ca0-a85460338321",
+  "filename": "704375d8-8f64-4350-8ca0-a85460338321.wav",
+  "created_at": "2026-11-25T00:46:41.173Z",
+  "model": "audiocpp-stable-audio-3-sfx",
+  "prompt": "Fantasy spell foley: a magician sweeps a sleeve and a circle of living embers blossoms outward all at once. Soft breathy rush into an expanding spray of tiny real firework stars, delicate dry crackling flame and a faint singing glass overtone, then gone. Organic, enchanted, intimate, single compact burst.",
+  "negative_prompt": "digital, electronic zaps, video game beeps, laser, synthesizer arpeggio, gunfire, music, drumbeat",
+  "lyrics": null,
+  "seed": 8421,
+  "steps": null,
+  "cfg": null,
+  "duration_s": 1.1,
+  "sample_rate": 44100,
+  "channels": 2,
+  "parent_id": null,
+  "source": "mcp",
+  "edit": null,
+  "edit_options": null,
+  "sha256": "961656f75c4fd165972e49779bac78e3924f124c740446ea8d95c2f482911177"
+}

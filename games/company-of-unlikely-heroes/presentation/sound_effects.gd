@@ -15,6 +15,16 @@ const WAVS := {
 	"rope": preload("res://assets/audio/rope_pull.wav"),
 	"drum": preload("res://assets/audio/war_drum.wav"),
 	"potion": preload("res://assets/audio/potion_smash.wav"),
+	"bell": preload("res://assets/audio/approved_undead/grave_bell.wav"),
+	"skeleton_summon": preload("res://assets/audio/approved_undead/summon_skeleton.wav"),
+	"raise": preload("res://assets/audio/approved_undead/raise_dead.wav"),
+	"nominate": preload("res://assets/audio/approved_undead/say_hello_to_that_one.wav"),
+	"bone_wave": preload("res://assets/audio/approved_undead/skeleton_wave.wav"),
+	"bone_hold": preload("res://assets/audio/approved_undead/skeleton_dont_go.wav"),
+	"zombie_hello": preload("res://assets/audio/approved_undead/zombie_say_hello.wav"),
+	"flower": preload("res://assets/audio/approved_undead/zombie_offer_flower.wav"),
+	"sparks": preload("res://assets/audio/approved_undead/ring_of_sparks.wav"),
+	"misdirect": preload("res://assets/audio/approved_undead/wasnt_me.wav"),
 }
 
 var volume := 0.8
@@ -127,7 +137,10 @@ func _family(ability: String, handler: String, recipe: String) -> String:
 				"say_hello": return "zombie_hello"
 			return "gesture"
 		"summon":
-			return "raise" if ability == "raise_dead" else "bones"
+			match ability:
+				"raise_dead": return "raise"
+				"summon_skeleton": return "skeleton_summon"
+			return "bones"
 		"perform":
 			match ability:
 				"frontier_war_drum": return "drum"
@@ -182,7 +195,6 @@ static func _legacy_tone(key: String) -> AudioStreamWAV:
 		"sonnet": stream = _tone([440.0, 523.25, 622.25], 0.39)
 		"stage": stream = _tone([440.0, 523.25, 622.25, 880.0], 0.52)
 		"gesture": stream = _tone([392.0, 493.88], 0.19)
-		"bell": stream = _bell()
 	if stream != null:
 		_tones[key] = stream
 	return stream
@@ -200,27 +212,6 @@ static func _tone(notes: Array, duration: float) -> AudioStreamWAV:
 		var local := fposmod(t, duration / notes.size())
 		var envelope := minf(1.0, local * 80.0) * exp(-local * 11.0) * minf(1.0, (duration - t) * 40.0)
 		var sample := sin(TAU * float(notes[note_index]) * local) * envelope * 0.28
-		bytes.encode_s16(i * 2, int(clampf(sample, -1.0, 1.0) * 32767.0))
-	var stream := AudioStreamWAV.new()
-	stream.format = AudioStreamWAV.FORMAT_16_BITS
-	stream.mix_rate = RATE
-	stream.data = bytes
-	return stream
-
-
-static func _bell() -> AudioStreamWAV:
-	# A small struck bell: an immediate, decaying fundamental and metal partials.
-	const RATE := 22050
-	const DURATION := 0.45
-	var count := int(RATE * DURATION)
-	var bytes := PackedByteArray()
-	bytes.resize(count * 2)
-	for i in count:
-		var t := float(i) / RATE
-		var attack := minf(1.0, t * 300.0)
-		var sample := attack * (0.20 * sin(TAU * 740.0 * t) * exp(-t * 7.0) \
-			+ 0.08 * sin(TAU * 1850.0 * t) * exp(-t * 14.0) \
-			+ 0.04 * sin(TAU * 2960.0 * t) * exp(-t * 20.0))
 		bytes.encode_s16(i * 2, int(clampf(sample, -1.0, 1.0) * 32767.0))
 	var stream := AudioStreamWAV.new()
 	stream.format = AudioStreamWAV.FORMAT_16_BITS

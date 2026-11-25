@@ -1,6 +1,12 @@
 # Combat and planning audio
 
-Ronald approved these nine cues for integration. The filenames in this directory are the runtime assets at `res://assets/audio/`. The eight Mirli WAVs are exact copies of the accepted auditions, not fresh generations. The pencil runtime cut removes audition padding from a separately preserved master.
+Ronald approved the original nine cues for integration. The filenames in this directory are runtime assets at `res://assets/audio/`. The eight Mirli WAVs are exact copies of the accepted auditions, not fresh generations. The pencil runtime cut removes audition padding from a separately preserved master.
+
+The revised ten-cue audition is also approved for integration. Its runtime WAVs
+are in `approved_undead/`, including Ring of Sparks and the user-supplied
+Wasn't Me. See that directory's provenance record for source and processing
+details. Stock Summon Skeleton uses its new recording; `bone_summon.wav`
+remains the generic custom summon fallback.
 
 ## Mirli cues
 

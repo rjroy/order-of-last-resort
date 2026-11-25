@@ -1,0 +1,49 @@
+{
+  "sources": {
+    "grave_bell": {
+      "id": "3b0882a4-1285-47bf-987c-e8b7d98fdf7f",
+      "start_ms": 0,
+      "end_ms": 575,
+      "fade_out_ms": 480,
+      "fade_out_power": 2
+    },
+    "summon_skeleton": {
+      "id": "dd5cdbf2-ec41-46da-a42b-7e1095addf64",
+      "fade_out_ms": 75
+    },
+    "raise_dead": {
+      "id": "19cd411a-3b8c-4283-9e09-fa77b1191b3c",
+      "fade_out_ms": 115
+    },
+    "say_hello_to_that_one": {
+      "id": "8cb60a84-c781-4054-9145-64caa643fda6"
+    },
+    "skeleton_wave": {
+      "id": "7e2372b5-3174-4b93-94f4-dec0cc7fc6aa"
+    },
+    "skeleton_dont_go": {
+      "id": "aae73c0d-e8d5-4d6a-a91d-eba4694a515b"
+    },
+    "zombie_say_hello": {
+      "id": "e85d2092-10e8-42f4-817c-56b158c13043"
+    },
+    "zombie_offer_flower": {
+      "id": "a82ad608-edfc-4ac3-ad48-9d56d06ad97a"
+    },
+    "ring_of_sparks": {
+      "id": "704375d8-8f64-4350-8ca0-a85460338321",
+      "fade_out_ms": 120,
+      "fade_out_power": 1.5
+    }
+  },
+  "summon_mix": {
+    "summon_skeleton": {
+      "body_delay_ms": 110,
+      "bell_gain_db": -3
+    },
+    "raise_dead": {
+      "body_delay_ms": 170,
+      "bell_gain_db": -3
+    }
+  }
+}

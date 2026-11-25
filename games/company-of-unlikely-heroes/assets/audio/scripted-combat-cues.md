@@ -13,7 +13,7 @@ and low-pass-filtered noise with attack and release ramps into mono 16-bit PCM
 at 22,050 Hz. Each noise layer uses a locally seeded integer generator, not
 Godot's gameplay RNG. The service generates each requested stream lazily and
 caches it across service instances. The pre-existing Heal, Melody, Sonnet,
-gesture, and Grave Bell synthesis is also cached lazily. Take the Stage extends
+and gesture synthesis is also cached lazily. Take the Stage extends
 the Sonnet's three notes with a higher fourth note at the same note length.
 
 ## Stock mapping
@@ -22,13 +22,13 @@ the Sonnet's three notes with a higher fourth note at the same note length.
 |---|---|
 | Shield Throw / Push / Reflecting Aura | `shield_throw` / `shunt` / `aura` |
 | Bonk, including rival / Field Dressing / Heal | `bonk` / `dressing` / `heal` |
-| Force Blast, including rival / Ring of Sparks / Pull and recoil | approved `blast` / `sparks` / `magic_pull` |
+| Force Blast, including rival / Ring of Sparks / Pull and recoil | approved `blast` / approved `sparks` / `magic_pull` |
 | Rescue Line and Hookhand pull | approved `rope` |
-| Tripwire / Confusing Dodge / Wasn't Me | `tripwire` / `dodge` / `misdirect` |
+| Tripwire / Confusing Dodge / Wasn't Me | `tripwire` / `dodge` / approved `misdirect` |
 | Inspiring Melody / Healing Sonnet / Take the Stage / War Drum | `melody` / `sonnet` / `stage` / approved `drum` |
-| Summon Skeleton / Raise Dead / Grave Bell / nominate | approved `bones` / `raise` / `bell` / `nominate` |
-| Skeleton Wave / Don't Go | `bone_wave` / `bone_hold` |
-| Zombie Say Hello / Offer Flower | `zombie_hello` / `flower` |
+| Summon Skeleton / Raise Dead / Grave Bell / nominate | approved `skeleton_summon` / approved `raise` / approved `bell` / approved `nominate` |
+| Skeleton Wave / Don't Go | approved `bone_wave` / approved `bone_hold` |
+| Zombie Say Hello / Offer Flower | approved `zombie_hello` / approved `flower` |
 | Healing Potion and Plain Tonic / Acid / Etching Paste | `dose` / approved `potion` / `paste` |
 | Harpoon at close range / ranged harpoon and arrow | `shaft` / approved `bow` |
 | Generic attack and Shield Bash | approved `shield` |
@@ -40,11 +40,11 @@ the Sonnet's three notes with a higher fourth note at the same note length.
 The Bomber cue is for its ordinary strike, not a death explosion. The existing
 playback selects the Harpooner's close shaft using the action-time source and
 target cells. Other handlers retain a generic fallback for custom catalog
-abilities; unknown handlers remain silent rather than inventing a mapping.
+abilities, including the original approved `bones` recording for other summon
+IDs; unknown handlers remain silent rather than inventing a mapping.
 Pull currently has one combined suction/recoil sound because the dispatch beat
 does not carry recoil outcome or target material. Likewise, a strike's sound
 identifies its action, not a separately detected surface. These mappings and
-waveforms are reproducible technical candidates, not evidence of human auditory
-approval. For audition, request the key through
-`sound_recipes.gd.get_stream(key)` or dispatch the action through
+unapproved synthesized waveforms are reproducible technical candidates, not
+evidence of human auditory approval. For audition, dispatch the action through
 `sound_effects.gd` and capture its player stream.

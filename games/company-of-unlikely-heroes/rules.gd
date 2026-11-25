@@ -208,7 +208,10 @@ func dose_forecast(state: Dictionary, unit_id: String, ability_id: String) -> Di
 	var actor := Board.entity(state, unit_id)
 	if state.outcome != "ongoing" or not Actions.can_act(state, actor):
 		return {}
-	return Alchemy.reaction_forecast(state, actor, Actions.owned_ability(state, actor, ability_id).get("handler", ""))
+	var form := Actions.action_form(state, actor, ability_id)
+	if form.converted:
+		return form.alternate.get("reaction_forecast", {})
+	return Alchemy.reaction_forecast(state, actor, form.base.get("handler", ""))
 
 
 func preview(state: Dictionary, unit_id: String, ability_id: String, target_id := "") -> Dictionary:
@@ -395,7 +398,7 @@ func _execute_action(state: Dictionary, actor: Dictionary, action: Dictionary, e
 	var gate_was_open := Board.pressure_gate_open(state)
 	var first := events.size()
 	var origin: Variant = actor.get("position")
-	var form := Actions.action_form(state, actor, action.ability_id)
+	var form: Dictionary = action["form"] if action.has("form") else Actions.action_form(state, actor, action.ability_id)
 	var ability: Dictionary = form.alternate if form.converted else form.base
 	var bonus_stat := ""
 	match ability.get("handler"):
@@ -405,7 +408,7 @@ func _execute_action(state: Dictionary, actor: Dictionary, action: Dictionary, e
 			bonus_stat = "damage"
 	var fallen_bonus := FrontierCombat.ally_death_bonus(state, actor, bonus_stat) if not bonus_stat.is_empty() else 0
 	var recipe: String = actor.get("bottled_reaction", {}).get("recipe", "") \
-		if ability.get("handler") == "repeat_batch" else ""
+		if form.base.get("handler") == "repeat_batch" else ""
 	if not Actions.execute(state, actor, action, form, events):
 		return false
 	if first < events.size():

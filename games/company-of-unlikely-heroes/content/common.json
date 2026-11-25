@@ -344,6 +344,7 @@
   },
   "abilities": {
     "inspiring_melody": {
+      "fitted_form": "inspiring_melody_in_tune",
       "label": "Inspiring Melody",
       "help": "A random eligible opponent skips its next turn laughing, then is immune to laughter through the following round.",
       "handler": "perform",
@@ -351,6 +352,7 @@
       "targeting": {"kind": "automatic", "teams": ["enemies"]}
     },
     "healing_sonnet": {
+      "fitted_form": "healing_sonnet_in_tune",
       "label": "Healing Sonnet",
       "help": "Deals 1 damage to a random living opponent. Despite the name, nobody is healed.",
       "handler": "perform",
@@ -358,6 +360,7 @@
       "targeting": {"kind": "automatic", "teams": ["enemies"]}
     },
     "raise_dead": {
+      "fitted_form": "play_dead",
       "label": "Raise Dead",
       "help": "Choose an unoccupied enemy corpse. It becomes a zombie with half the enemy's maximum HP, rounded up.",
       "handler": "summon",
@@ -365,6 +368,7 @@
       "targeting": {"kind": "entity", "teams": ["enemies"]}
     },
     "summon_skeleton": {
+      "fitted_form": "recall_skeleton",
       "label": "Summon Skeleton",
       "help": "Choose an open neighboring tile for a 1 HP skeleton. It first acts next round.",
       "handler": "summon",
@@ -400,6 +404,7 @@
       "targeting": {"kind": "entity", "range": 2, "teams": ["enemies"]}
     },
     "rogue_confusing_dodge": {
+      "fitted_form": "clear_jump",
       "label": "Confusing Dodge",
       "help": "Swap with the furthest other living character, friend or foe. Distance ties go to the lowest character ID.",
       "handler": "swap_furthest",
@@ -407,6 +412,7 @@
       "targeting": {"kind": "automatic"}
     },
     "rogue_wasnt_me": {
+      "fitted_form": "it_was_me",
       "label": "Wasn't Me",
       "help": "Choose an enemy beside another living character. Its next attack redirects to an adjacent character other than its original target, lowest ID first. If none exists, the attack proceeds normally.",
       "handler": "misdirect",
@@ -467,6 +473,7 @@
       "targeting": {"kind": "entity"}
     },
     "healer_bonk": {
+      "fitted_form": "keep_your_head_down",
       "label": "Bonk and taunt",
       "help": "Bonk an adjacent enemy or obstacle. Taunts enemies into targeting the user.",
       "handler": "bonk",
@@ -487,6 +494,7 @@
       }
     },
     "healer_heal": {
+      "fitted_form": "doctors_orders",
       "label": "Heal self or nearest ally",
       "help": "Heals self when wounded; otherwise heals the nearest other hero, even at full health.",
       "handler": "heal",
@@ -505,6 +513,7 @@
       }
     },
     "wizard_blast": {
+      "fitted_form": "mending_blast",
       "label": "Blast nearest",
       "help": "Hits and knocks down the nearest unit, friend or foe. Obstacles can take the hit.",
       "handler": "blast",
@@ -521,6 +530,7 @@
       }
     },
     "alchemist_potion": {
+      "fitted_form": "bitter_medicine",
       "label": "Healing Potion",
       "help": "Heal yourself or a friendly character within reach. The forecast shows the exact reaction (70% beneficial, 20% harmful, 10% cosmetic).",
       "handler": "healing_potion",
@@ -528,6 +538,7 @@
       "targeting": {"kind": "entity", "range": 1}
     },
     "alchemist_acid": {
+      "fitted_form": "buffer_solution",
       "label": "Acid",
       "help": "Damage a hostile character within reach. The forecast shows the exact reaction (70% harmful, 20% beneficial, 10% cosmetic).",
       "handler": "acid",
@@ -535,6 +546,7 @@
       "targeting": {"kind": "entity", "range": 3}
     },
     "wizard_pull": {
+      "fitted_form": "send_off",
       "label": "Pull and recoil",
       "help": "Pull a target onto your tile. Recoil hurts and knocks you down.",
       "handler": "pull",

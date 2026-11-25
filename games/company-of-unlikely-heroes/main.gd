@@ -10,7 +10,6 @@ const BackgroundMusic = preload("res://presentation/background_music.gd")
 const StorybookInk = preload("res://presentation/storybook_battle_ink.gd")
 const Catalog = preload("res://content/catalog.gd")
 const Adventure = preload("res://adventure.gd")
-const Upgrades = preload("res://rules/upgrades.gd")
 const Commissions = preload("res://commissions.gd")
 const GuildProfile = preload("res://guild_profile.gd")
 const Progression = preload("res://guild_progression.gd")
@@ -1742,14 +1741,7 @@ func _target_kind() -> String:
 func _action_definition(ability: String, actor_id: String, context: Dictionary) -> Dictionary:
 	if ability.is_empty():
 		return {}
-	var definition: Dictionary = _rules.command_ability(context, actor_id, ability)
-	if ability == "healer_heal" and definition.get("handler") == "heal" \
-			and Upgrades.amount(context, _find(actor_id, context), "me_or_you") > 0:
-		return definition.merged({
-			"label": "Heal self or split among allies",
-			"help": "If hurt, heal self; otherwise split among other living deployed heroes, unused shares lost."
-		}, true)
-	return definition
+	return _rules.command_ability(context, actor_id, ability)
 
 
 func _is_summon() -> bool:

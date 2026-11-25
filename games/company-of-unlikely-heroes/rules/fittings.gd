@@ -2,6 +2,11 @@ extends RefCounted
 ## A fitting belongs to the wearer, not the Smith's turn or current health.
 
 const Board = preload("res://rules/board.gd")
+const AlchemyForms = preload("res://rules/fitted_alchemy.gd")
+const Catalog = preload("res://content/catalog.gd")
+const PerformanceForms = preload("res://rules/fitted_performances.gd")
+const SummonForms = preload("res://rules/fitted_summons.gd")
+const TacticalForms = preload("res://rules/fitted_tactical.gd")
 const FittingState = preload("res://rules/fitting_state.gd")
 const Movement = preload("res://rules/movement.gd")
 const Shield = preload("res://rules/shield.gd")
@@ -58,16 +63,19 @@ static func report_pending(state: Dictionary, events: Array) -> void:
 			Board.event(events, "fitted_pending", "%s stays Fitted (by %s)." % [
 				Board.display_name(state, hero), Board.display_name(state, Board.entity(state, smith_id))],
 				{"unit_id": hero.id, "source_id": smith_id, "status_id": "fitted"})
+		if Board.alive(hero) and Statuses.inspired(hero):
+			Board.event(events, "inspired_pending", "%s stays Inspired for their next performed ability." % [
+				Board.display_name(state, hero)], {"unit_id": hero.id, "status_id": Statuses.INSPIRED})
 
 
 static func clear_mission(state: Dictionary) -> void:
 	for unit in state.units:
 		FittingState.clear(unit)
-		unit.statuses.erase(Statuses.STEADY_HANDS)
+		Statuses.clear_fitting_effects(unit)
 
 
 ## Return the registered form even when unavailable so callers can explain why the base branch wins.
-static func alternate(state: Dictionary, actor: Dictionary, base: Dictionary) -> Dictionary:
+static func alternate(state: Dictionary, actor: Dictionary, source_id: String, base: Dictionary) -> Dictionary:
 	if FittingState.source(actor).is_empty():
 		return {}
 	match base.get("fitted_form"):
@@ -75,7 +83,24 @@ static func alternate(state: Dictionary, actor: Dictionary, base: Dictionary) ->
 			return _pull_form(state, actor)
 		"clear_the_floor":
 			return _clear_floor_form(state, actor, base)
-	return {}
+	var adapter := _adapter(base.fitted_form)
+	return adapter.describe(state, actor, source_id, base) if adapter != null else {}
+
+
+static func _adapter(id: String) -> GDScript:
+	var registration: Array = Catalog.FITTED_FORMS.get(id, [])
+	if registration.is_empty():
+		return null
+	match registration[1]:
+		"alchemy":
+			return AlchemyForms
+		"performances":
+			return PerformanceForms
+		"summons":
+			return SummonForms
+		"tactical":
+			return TacticalForms
+	return null
 
 
 static func _pull_form(state: Dictionary, actor: Dictionary) -> Dictionary:
@@ -96,13 +121,15 @@ static func _pull_form(state: Dictionary, actor: Dictionary) -> Dictionary:
 				"destination": destination, "direction": direction})
 	return {"id": "fitted_pull", "label": "Pull",
 		"help": "Draw a character or movable obstacle two or three tiles away one open step closer. No recoil or collision damage.",
-		"targeting": {"kind": "entity"}, "choices": choices, "unavailable_reason": "no open pull"}
+		"targeting": {"kind": "entity"}, "choices": choices, "unavailable_reason": "no open pull",
+		"primary": "steady"}
 
 
 static func _clear_floor_form(state: Dictionary, actor: Dictionary, base: Dictionary) -> Dictionary:
 	var form := {"id": "clear_the_floor", "label": "Clear the Floor",
 		"help": "Shove everyone and movable obstacles in Guard's reach one open step away. No damage or reflection.",
-		"targeting": {"kind": "none"}, "choices": [], "unavailable_reason": "shield away"}
+		"targeting": {"kind": "none"}, "choices": [], "unavailable_reason": "shield away",
+		"primary": "steady"}
 	if actor.has("shield_position"):
 		return form
 	var radius := Statuses.guard_range(state, actor, Statuses.definition(state, base.params.status))
@@ -125,26 +152,28 @@ static func _clear_floor_form(state: Dictionary, actor: Dictionary, base: Dictio
 	return form
 
 
-static func perform(state: Dictionary, actor: Dictionary, base_id: String, base: Dictionary,
+static func consume(state: Dictionary, actor: Dictionary, base_id: String, base: Dictionary,
 		form: Dictionary, choice: Dictionary, events: Array) -> void:
 	var smith := FittingState.source(actor)
-	# Select one primary improvement before spending the fitting. Inspiration can
-	# supply the same +1 at this seam, not a second bonus to the converted action.
-	var improved := Upgrades.amount(state, Board.entity(state, smith), "fine_adjustment") > 0
 	FittingState.clear(actor)
+	var data := {"unit_id": actor.id, "source_id": smith, "status_id": "fitted",
+		"source_ability_id": base_id, "ability_id": form.id, "consumed": true}
+	if not choice.id.is_empty():
+		data["target_id"] = choice.id
 	Board.event(events, "fitted_conversion", "%s: %s → %s (Fitted spent)." % [
-		Board.display_name(state, actor), base.label, form.label],
-		{"unit_id": actor.id, "source_id": smith, "status_id": "fitted",
-			"source_ability_id": base_id, "ability_id": form.id, "consumed": true})
-	# Pull and Clear the Floor have no primary amount to improve.
-	if improved:
-		Statuses.grant_steady_hands(state, actor, "Fine Adjustment", events)
+		Board.display_name(state, actor), base.label, form.label], data)
+
+
+static func apply(state: Dictionary, actor: Dictionary, source_id: String, base: Dictionary,
+		form: Dictionary, choice: Dictionary, bonus: int, events: Array) -> void:
 	match form.id:
 		"fitted_pull":
 			_displace(state, actor, choice, form.label, "pull", events)
 		"clear_the_floor":
 			for recipient in choice.recipients:
 				_displace(state, actor, recipient, form.label, "push", events)
+		_:
+			_adapter(form.id).apply(state, actor, source_id, base, form, choice, bonus, events)
 
 
 static func _displace(state: Dictionary, actor: Dictionary, choice: Dictionary, label: String,

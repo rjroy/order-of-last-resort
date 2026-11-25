@@ -26,7 +26,8 @@ static func attack_damage(state: Dictionary, actor: Dictionary, damage: int, eve
 	return amount
 
 
-static func reduce_damage(state: Dictionary, target: Dictionary, damage: int, events: Array) -> int:
+static func reduce_damage(state: Dictionary, target: Dictionary, damage: int, events: Array,
+		unimproved: Dictionary = {}) -> int:
 	if damage <= 0:
 		return 0
 	var amount := damage
@@ -36,6 +37,8 @@ static func reduce_damage(state: Dictionary, target: Dictionary, damage: int, ev
 				continue
 			var prevented := mini(amount, int(trait_spec.reduction))
 			amount -= prevented
+			if not unimproved.is_empty():
+				unimproved.amount = maxi(0, int(unimproved.amount) - int(trait_spec.reduction))
 			Board.event(events, "adjacent_guard", "%s shields %s from %d damage." % [
 				Board.display_name(state, ally), Board.display_name(state, target), prevented],
 				{"unit_id": ally.id, "target_id": target.id, "amount": prevented})
@@ -44,7 +47,10 @@ static func reduce_damage(state: Dictionary, target: Dictionary, damage: int, ev
 	# Bandit armor blunts heavier hits but must not make a party with only
 	# one-damage attacks unable to finish the survivor. Shieldbearers can
 	# still absorb a hit completely because their formation can be broken.
-	var armor := mini(amount - 1, ally_death_bonus(state, target, "reduction"))
+	var protection := ally_death_bonus(state, target, "reduction")
+	if not unimproved.is_empty() and unimproved.amount > 0:
+		unimproved.amount = maxi(1, int(unimproved.amount) - protection)
+	var armor := mini(amount - 1, protection)
 	if armor > 0:
 		Board.event(events, "ally_death_guard", "%s’s fallen allies harden their guard, preventing %d damage." % [
 			Board.display_name(state, target), armor],

@@ -134,7 +134,7 @@ static func _summon_choices(state: Dictionary, actor: Dictionary, ability: Dicti
 		for corpse in raisable_corpses(state, actor, ability):
 			if not Board.is_vacant(state, corpse.position):
 				continue
-			var hp := Summons.starting_hp(state, actor, ability.params.character, corpse)
+			var hp := Summons.starting_hp(state, actor, ability.params.character, corpse, int(Statuses.inspired(actor)))
 			result.append({"id": corpse.id,
 				"label": "%s corpse (%d HP %s)" % [Board.display_name(state, corpse), hp, minion_name.to_lower()],
 				"position": corpse.position})
@@ -170,14 +170,9 @@ static func _legal_choices(state: Dictionary, actor: Dictionary, ability: Dictio
 		return result
 	if ability.handler == "summon":
 		return _summon_choices(state, actor, ability)
-	var target_ability := ability
-	var prior_recipient := ""
 	if ability.handler == "repeat_batch":
-		target_ability = Alchemy.bottled_recipe(state, actor)
-		if target_ability.is_empty():
-			return result
-		prior_recipient = actor.bottled_reaction.recipient
-	var targeting: Dictionary = target_ability.targeting
+		return Alchemy.repeat_choices(state, actor)
+	var targeting: Dictionary = ability.targeting
 	match targeting.kind:
 		"cell":
 			if not can_move(state, actor):
@@ -196,7 +191,7 @@ static func _legal_choices(state: Dictionary, actor: Dictionary, ability: Dictio
 					result.append({"id": id, "label": Board.coordinate(position), "position": position})
 		"entity", "automatic":
 			for candidate in Board.occupants(state, targeting):
-				if candidate.id != prior_recipient and _entity_allowed(state, actor, candidate, target_ability):
+				if _entity_allowed(state, actor, candidate, ability):
 					var choice := {"id": candidate.id, "label": Board.display_name(state, candidate),
 						"position": candidate.position}
 					if ability.handler == "hook" and not _digs_in(state, actor, candidate):
@@ -250,7 +245,7 @@ static func extra_sweep_reaches(state: Dictionary, actor: Dictionary, candidate:
 ## Resolve the form at the actor's slot, before selecting any manual or standing target.
 static func action_form(state: Dictionary, actor: Dictionary, id: String) -> Dictionary:
 	var base := owned_ability(state, actor, id)
-	var alternate := Fittings.alternate(state, actor, base) if base.has("fitted_form") and can_act(state, actor) else {}
+	var alternate := Fittings.alternate(state, actor, id, base) if base.has("fitted_form") and can_act(state, actor) else {}
 	return {"base": base, "alternate": alternate, "converted": not alternate.get("choices", []).is_empty()}
 
 
@@ -258,32 +253,84 @@ static func command_ability(state: Dictionary, actor: Dictionary, id: String) ->
 	var form := action_form(state, actor, id)
 	var alternate: Dictionary = form.alternate
 	if form.converted:
-		return alternate.merged({"label": "%s → %s" % [form.base.label, alternate.label]}, true)
+		var reason := _improvement_reason(actor, _fine_adjustment(state, actor))
+		var help: String = alternate.help
+		if not reason.is_empty():
+			var benefit := "adds 1 to the primary amount" if alternate.primary == "amount" else "grants Steady Hands"
+			help += " %s %s." % [reason, benefit]
+		return alternate.merged({"label": "%s → %s" % [form.base.label, alternate.label], "help": help}, true)
+	var base: Dictionary = form.base
+	if base.is_empty():
+		return {}
+	if id == "healer_heal" and Upgrades.amount(state, actor, "me_or_you") > 0:
+		base = base.merged({"label": "Heal self or split among allies",
+			"help": "If hurt, heal self; otherwise split among other living deployed heroes, unused shares lost."}, true)
+	var blocked := false
+	if base.targeting.kind in ["automatic", "none"]:
+		blocked = _base_preflight(state, actor, {"ability_id": id}, base).is_empty()
 	if not alternate.is_empty():
 		var reason: String = alternate.unavailable_reason
-		var blocked := reason == "shield away"
-		var label := " (shield away; Fitted stays)" if blocked else " (ordinary; Fitted stays)"
-		return form.base.merged({"label": form.base.label + label, "command_blocked": blocked,
-			"help": "%s unavailable: %s. %s" % [alternate.label, reason, form.base.help]}, true)
-	return form.base
+		var shield_away := not Shield.available(actor, id)
+		var label := " (%s; Fitted stays)" % reason if shield_away or blocked else " (ordinary; Fitted stays)"
+		return base.merged({"label": base.label + label, "command_blocked": blocked or shield_away,
+			"help": "%s unavailable: %s. %s" % [alternate.label, reason, base.help]}, true)
+	return base.merged({"command_blocked": true}) if blocked else base
 
 
-static func standing_alternate(state: Dictionary, actor: Dictionary, id: String, prefer_opponents := false) -> Dictionary:
+static func standing_alternate(state: Dictionary, actor: Dictionary, id: String, policy := "") -> Dictionary:
 	if FittingState.source(actor).is_empty():
 		return {}
 	var form := action_form(state, actor, id)
 	if not form.converted:
 		return {}
 	var alternate: Dictionary = form.alternate
-	if alternate.targeting.kind == "none":
-		return {"ability_id": id, "target_id": ""}
+	var intent := {"ability_id": id, "target_id": "", "form": form}
+	if alternate.targeting.kind in ["none", "automatic"]:
+		return intent
 	var choices: Array = alternate.choices
-	if prefer_opponents:
+	if policy == "pursue" and alternate.id == "fitted_pull":
 		var opponents := choices.filter(func(choice: Dictionary) -> bool:
 			return Board.opponents(state, actor, Board.entity(state, choice.id)))
 		if not opponents.is_empty():
 			choices = opponents
-	return {"ability_id": id, "target_id": Board.nearest(actor, choices, true).id}
+	var choice := _standing_choice(state, actor, alternate, choices, policy)
+	intent.target_id = choice.id
+	return intent
+
+
+static func _standing_choice(state: Dictionary, actor: Dictionary, alternate: Dictionary,
+		choices: Array, policy: String) -> Dictionary:
+	match policy:
+		"make_friend":
+			var opponents := Board.occupants(state, {}).filter(func(unit: Dictionary) -> bool:
+				return Board.opponents(state, actor, unit))
+			if opponents.is_empty():
+				return choices[0]
+			var best: Dictionary = choices[0]
+			var distance := 2147483647
+			for candidate in choices:
+				var nearest := Board.nearest(candidate, opponents, true)
+				var reach := Board.distance(candidate.position, nearest.position)
+				if reach < distance:
+					best = candidate
+					distance = reach
+			return best
+		"most_injured", "nearest_target":
+			# Unpick the Stitch already supplies all candidates in Triage priority order.
+			if alternate.get("selection") == "first":
+				return choices[0]
+			if policy == "nearest_target" and alternate.get("standing_policy") == "most_injured":
+				var best: Dictionary = {}
+				var most_missing := 0
+				for candidate in choices:
+					var unit := Board.entity(state, candidate.id)
+					var missing := int(candidate.get("missing_hp", unit.max_hp - unit.hp))
+					if missing > most_missing:
+						best = candidate
+						most_missing = missing
+				if not best.is_empty():
+					return best
+	return Board.nearest(actor, choices, true)
 
 
 static func targets(state: Dictionary, actor: Dictionary, ability_id: String) -> Array:
@@ -301,8 +348,24 @@ static func selection(state: Dictionary, actor: Dictionary, id: String, target_i
 		automatic_target_id := "", form: Dictionary = {}) -> Dictionary:
 	var resolved := action_form(state, actor, id) if form.is_empty() else form
 	if resolved.converted:
-		return _target_choice(resolved.alternate.choices, target_id)
+		return _alternate_selection(state, actor, resolved.alternate, target_id)
 	return _base_selection(state, actor, resolved.base, target_id, id, automatic_target_id)
+
+
+static func _alternate_selection(state: Dictionary, actor: Dictionary, alternate: Dictionary,
+		target_id: String) -> Dictionary:
+	if not accepts_target_argument(alternate, target_id):
+		return {}
+	var choices: Array = alternate.choices
+	if alternate.targeting.kind == "automatic":
+		match alternate.get("selection", ""):
+			"random":
+				var draw := EncounterRandom.uniform_draw(state.rng_state, choices.size())
+				return choices[draw.index].merged({"rng_seed": draw.seed}, true)
+			"first":
+				return choices[0]
+		return Board.nearest(actor, choices, true)
+	return _target_choice(choices, target_id)
 
 
 static func _base_selection(state: Dictionary, actor: Dictionary, ability: Dictionary, target_id: String,
@@ -383,11 +446,23 @@ static func execute(state: Dictionary, actor: Dictionary, action: Dictionary, fo
 	var ability: Dictionary = form.base
 	var target_id: String = action.get("target_id", "")
 	if form.converted:
-		var choice := selection(state, actor, id, target_id, "", form)
+		var alternate: Dictionary = form.alternate
+		var choice := _alternate_selection(state, actor, alternate, target_id)
 		# A stale manual target must not retarget, even if ordinary use on it would work.
 		if choice.is_empty():
 			return false
-		Fittings.perform(state, actor, id, ability, form.alternate, choice, events)
+		var fine_adjustment := _fine_adjustment(state, actor)
+		var primary: String = alternate.get("primary", "steady")
+		Fittings.consume(state, actor, id, ability, alternate, choice, events)
+		var improvement := _spend_improvement(state, actor, primary, fine_adjustment, events)
+		var first := events.size()
+		Fittings.apply(state, actor, id, ability, alternate, choice,
+			int(not improvement.is_empty() and primary == "amount"), events)
+		for index in range(first, events.size()):
+			events[index]["ability_id"] = alternate.id
+			events[index]["source_ability_id"] = id
+		_finish_improvement(state, actor, primary, improvement, events)
+		_weave(state, actor, id, events)
 		return true
 	var performed := _execute_base(state, actor, action, ability, events)
 	if performed and not form.alternate.is_empty():
@@ -398,27 +473,50 @@ static func execute(state: Dictionary, actor: Dictionary, action: Dictionary, fo
 	return performed
 
 
-static func _execute_base(state: Dictionary, actor: Dictionary, action: Dictionary,
-		ability: Dictionary, events: Array) -> bool:
+## An empty choice can mean a legal dry song or a non-aimed special branch, not an invalid use.
+static func _base_preflight(state: Dictionary, actor: Dictionary, action: Dictionary,
+		ability: Dictionary) -> Dictionary:
 	var id: String = action.ability_id
 	var target_id: String = action.get("target_id", "")
 	if ability.is_empty() or not can_act(state, actor) or not accepts_target_argument(ability, target_id) \
 			or not Shield.available(actor, id):
-		return false
-	var choice := _base_selection(state, actor, ability, target_id, id, action.get("automatic_target_id", ""))
-	var first_event := events.size()
-	if ability.handler == "perform":
-		return _perform(state, actor, ability, id, choice, events)
+		return {}
 	if ability.handler == "move" and action.get("retrieve_shield", false) and Shield.can_retrieve(actor):
-		Shield.retrieve(state, actor, events)
-	elif id == "healer_heal" and Upgrades.amount(state, actor, "me_or_you") > 0:
-		var amount := int(ability.params.amount)
-		if actor.hp < actor.max_hp:
-			Support.heal(state, actor, actor, amount, events)
-		else:
-			Support.split_heal(state, actor, amount, events)
-	elif choice.is_empty() or not _execute_choice(state, actor, action, ability, choice, events):
+		return {"kind": "retrieve", "choice": {}}
+	if id == "healer_heal" and Upgrades.amount(state, actor, "me_or_you") > 0:
+		return {"kind": "split", "choice": {}}
+	var choice := _base_selection(state, actor, ability, target_id, id, action.get("automatic_target_id", ""))
+	if ability.handler == "perform":
+		return {"kind": "song", "choice": choice}
+	return {"kind": "choice", "choice": choice} if not choice.is_empty() else {}
+
+
+static func _execute_base(state: Dictionary, actor: Dictionary, action: Dictionary,
+		ability: Dictionary, events: Array) -> bool:
+	var use := _base_preflight(state, actor, action, ability)
+	if use.is_empty():
 		return false
+	var id: String = action.ability_id
+	var primary := _base_primary(ability, use)
+	var improvement := _spend_improvement(state, actor, primary, false, events)
+	var bonus := int(not improvement.is_empty() and primary == "amount")
+	var first_event := events.size()
+	match use.kind:
+		"song":
+			Performances.perform(state, actor, ability, id, use.choice, events, false, bonus)
+			_finish_improvement(state, actor, primary, improvement, events)
+			_weave(state, actor, id, events)
+			return true
+		"retrieve":
+			Shield.retrieve(state, actor, events)
+		"split":
+			var amount := int(ability.params.amount) + bonus
+			if actor.hp < actor.max_hp:
+				Support.heal(state, actor, actor, amount, events)
+			else:
+				Support.split_heal(state, actor, amount, events)
+		_:
+			_execute_choice(state, actor, action, ability, use.choice, bonus, events)
 	var limit := _use_limit(ability)
 	if limit >= 0:
 		var used := _uses(actor, id) + 1
@@ -433,32 +531,79 @@ static func _execute_base(state: Dictionary, actor: Dictionary, action: Dictiona
 			event.text += " Uses left this battle: %d." % (limit - used)
 	for index in range(first_event, events.size()):
 		events[index]["ability_id"] = id
+	_finish_improvement(state, actor, primary, improvement, events)
 	return true
 
 
-static func _perform(state: Dictionary, actor: Dictionary, ability: Dictionary, id: String,
-		choice: Dictionary, events: Array) -> bool:
-	if not Performances.perform(state, actor, ability, id, choice, events):
-		return false
+static func _base_primary(ability: Dictionary, use: Dictionary) -> String:
+	match ability.handler:
+		"move", "quick_release":
+			return ""
+		"attack", "bonk", "blast", "sweep", "heal", "enemy_heal", "healing_potion", "acid", \
+				"plain_tonic", "repeat_batch", "summon":
+			return "amount"
+		"perform":
+			if ability.params.has("damage"):
+				return "dry" if use.choice.is_empty() else "amount"
+	return "steady"
+
+
+static func _spend_improvement(state: Dictionary, actor: Dictionary, primary: String,
+		fine_adjustment: bool, events: Array) -> String:
+	if primary.is_empty():
+		return ""
+	var reason := _improvement_reason(actor, fine_adjustment)
+	if reason.is_empty():
+		return ""
+	var inspired := Statuses.inspired(actor)
+	if inspired:
+		actor.statuses.erase(Statuses.INSPIRED)
+	var effect := "adds 1 to the primary amount"
+	if primary == "steady":
+		effect = "provides Steady Hands after the action"
+	elif primary == "dry":
+		effect = "has no listener to improve"
+	Board.event(events, "primary_improvement", "%s: %s %s." % [reason, Board.display_name(state, actor), effect],
+		{"unit_id": actor.id, "status_id": Statuses.INSPIRED if inspired else "fine_adjustment",
+			"consumed": inspired, "amount": int(primary == "amount")})
+	return reason
+
+
+static func _fine_adjustment(state: Dictionary, actor: Dictionary) -> bool:
+	return Upgrades.amount(state, Board.entity(state, FittingState.source(actor)), "fine_adjustment") > 0
+
+
+static func _improvement_reason(actor: Dictionary, fine_adjustment: bool) -> String:
+	if Statuses.inspired(actor):
+		return "Inspired and Fine Adjustment" if fine_adjustment else "Inspired"
+	return "Fine Adjustment" if fine_adjustment else ""
+
+
+static func _finish_improvement(state: Dictionary, actor: Dictionary, primary: String,
+		improvement: String, events: Array) -> void:
+	if primary == "steady" and not improvement.is_empty() and Board.alive(actor):
+		Statuses.grant_steady_hands(state, actor, improvement, events)
+
+
+static func _weave(state: Dictionary, actor: Dictionary, id: String, events: Array) -> void:
 	if id not in BASE_SONGS or "song_weaving" not in Board.profile(state, actor).get("guild_techniques", []):
-		return true
+		return
 	var previous: Dictionary = actor.get("last_base_song", {})
 	# A dry performance still counts. Only the live song writes history.
 	actor["last_base_song"] = {"ability_id": id, "round": state.round}
 	var prior_id: String = previous.get("ability_id", "")
 	if previous.get("round", 0) != state.round - 1 or prior_id == id or prior_id not in BASE_SONGS \
 			or not can_act(state, actor):
-		return true
+		return
 	var echo := owned_ability(state, actor, prior_id)
 	if echo.get("handler") == "perform":
 		# The live performance may have changed the legal listeners and committed a draw.
 		var listener := _base_selection(state, actor, echo, "", prior_id)
 		Performances.perform(state, actor, echo, prior_id, listener, events, true)
-	return true
 
 
 static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictionary, ability: Dictionary,
-		choice: Dictionary, events: Array) -> bool:
+		choice: Dictionary, bonus: int, events: Array) -> void:
 	var target := Board.entity(state, choice.id)
 	var params: Dictionary = ability.params
 	var name := Board.display_name(state, actor)
@@ -470,7 +615,7 @@ static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictio
 			Fittings.release(state, actor, events)
 			_move_step(state, actor, {}, choice.position, events)
 		"summon":
-			Summons.summon(state, actor, ability, choice.position, target, events)
+			Summons.summon(state, actor, ability, choice.position, target, events, bonus)
 		"nominate":
 			Summons.nominate(state, actor, target, events)
 		"fit":
@@ -481,11 +626,10 @@ static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictio
 				{"actor": name, "ability": ability.label}, {"unit_id": actor.id})
 			var retaliation := Combat.RetaliationBatch.new() if choice.recipients.size() > 1 else null
 			for recipient in choice.recipients:
-				Combat.hurt(state, actor, recipient, int(params.damage), name, "", events, {}, retaliation)
+				Combat.hurt(state, actor, recipient, int(params.damage) + bonus, name, "", events, {}, retaliation)
 			Combat.flush_retaliation(state, actor, events, retaliation)
 		"stop_target":
-			if not Statuses.apply(state, target, params.status, actor):
-				return false
+			Statuses.apply(state, target, params.status, actor)
 			var data := {"unit_id": actor.id, "target_id": target.id, "status_id": params.status}
 			var status := Statuses.definition(state, params.status)
 			if status.handler == "block_voluntary_move":
@@ -496,7 +640,7 @@ static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictio
 					{"actor": name, "target": target_name, "ability": ability.label, "movement": "use Move"}, data)
 		"repel":
 			if Movement.blocks_forced(state, target, events):
-				return true
+				return
 			target.position = Movement.forced_destination(state, target, choice.destination,
 				-_pull_step(actor, target), events)
 			Board.authored_event(state, events, "repel", "repel",
@@ -508,7 +652,7 @@ static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictio
 			var destination: Vector2i = target.position + direction
 			if Board.can_enter(state, destination):
 				if _blocks_aimed_shift(state, target, target, events):
-					return true
+					return
 				destination = Movement.forced_destination(state, target, destination, direction, events)
 				target.position = destination
 				Board.authored_event(state, events, "push", "push",
@@ -524,10 +668,8 @@ static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictio
 		"apply_status":
 			var id: String = params.status
 			var application := Statuses.apply_result(state, actor, id, actor, events)
-			if application == Statuses.Application.RESISTED:
-				return true
 			if application != Statuses.Application.APPLIED:
-				return false
+				return
 			var status := Statuses.definition(state, id)
 			var data := {"unit_id": actor.id, "target_id": actor.id, "source_id": actor.id, "status_id": id}
 			if status.handler == "reflect":
@@ -542,25 +684,21 @@ static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictio
 				Board.authored_event(state, events, "status", "gain_status",
 					{"actor": name, "status": status.label}, data)
 		"bonk", "blast", "attack":
-			_attack(state, actor, target, action.ability_id, ability, events)
+			_attack(state, actor, target, action.ability_id, ability, bonus, events)
 		"swap_furthest", "swap_ally":
 			_swap(state, actor, target, events)
 		"misdirect":
-			if not Statuses.apply(state, target, params.status, actor):
-				return false
+			Statuses.apply(state, target, params.status, actor)
 			var victim := Statuses.misdirection_victim(state, target, actor)
 			Board.authored_event(state, events, "misdirect", "misdirect_mark",
 				{"actor": name, "target": target_name, "victim": Board.display_name(state, victim)},
 				{"unit_id": actor.id, "target_id": target.id, "victim_id": victim.id, "status_id": params.status})
 		"heal", "enemy_heal":
-			Support.heal(state, actor, target, int(params.amount), events)
+			Support.heal(state, actor, target, int(params.amount) + bonus, events)
 		"healing_potion", "acid", "plain_tonic", "repeat_batch":
-			Alchemy.administer(state, actor, target, ability, action.ability_id, events)
+			Alchemy.administer(state, actor, target, ability, action.ability_id, events, bonus)
 		"pull", "hook":
 			_pull(state, actor, target, action.ability_id, ability, choice, events)
-		_:
-			return false
-	return true
 
 
 static func _move(state: Dictionary, actor: Dictionary, action: Dictionary, route: Array, events: Array) -> void:
@@ -603,7 +741,7 @@ static func _move_step(state: Dictionary, actor: Dictionary, action: Dictionary,
 
 
 static func _attack(state: Dictionary, actor: Dictionary, target: Dictionary, id: String, ability: Dictionary,
-		events: Array) -> void:
+		bonus: int, events: Array) -> void:
 	var heckler := heckler_target(state, actor, ability)
 	actor.statuses.erase("heckler")
 	if not heckler.is_empty():
@@ -622,7 +760,7 @@ static func _attack(state: Dictionary, actor: Dictionary, target: Dictionary, id
 	if ability.handler == "blast" and not params.has("source_suffix"):
 		suffix = Board.text(state, "blast_suffix")
 	var strike := {"source_name": Board.display_name(state, actor) + suffix,
-		"status": params.get("status", ""), "ability_id": id}
+		"status": params.get("status", ""), "ability_id": id, "primary_bonus": bonus}
 	if params.has("surround_bonus"):
 		strike["surround_bonus"] = params.surround_bonus
 	var retaliation := Combat.RetaliationBatch.new() if recipients.size() > 1 else null

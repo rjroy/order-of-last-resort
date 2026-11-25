@@ -8,7 +8,7 @@ const Upgrades = preload("res://rules/upgrades.gd")
 
 
 static func perform(state: Dictionary, actor: Dictionary, ability: Dictionary, ability_id: String,
-		choice: Dictionary, events: Array, echoed := false) -> bool:
+		choice: Dictionary, events: Array, echoed := false, bonus := 0) -> bool:
 	var name := Board.display_name(state, actor)
 	var copy := {"actor": name, "ability": ability.label}
 	var data := {"unit_id": actor.id, "ability_id": ability_id}
@@ -36,7 +36,7 @@ static func perform(state: Dictionary, actor: Dictionary, ability: Dictionary, a
 				Board.event(events, "performance", "%s performs %s. %s resists the knockdown." % [
 					name, ability.label, choice.label], data)
 		else:
-			_sonnet(state, actor, ability, ability_id, listener, events)
+			_sonnet(state, actor, ability, ability_id, listener, events, bonus)
 		state.rng_state = choice.rng_seed
 	for index in range(first_event, events.size()):
 		events[index]["ability_id"] = ability_id
@@ -48,7 +48,7 @@ static func perform(state: Dictionary, actor: Dictionary, ability: Dictionary, a
 
 
 static func _sonnet(state: Dictionary, actor: Dictionary, ability: Dictionary, id: String,
-		listener: Dictionary, events: Array) -> void:
+		listener: Dictionary, events: Array, bonus: int) -> void:
 	var recipients := [listener]
 	if id == "bard_take_the_stage":
 		for candidate in Board.occupants(state, ability.targeting):
@@ -57,7 +57,7 @@ static func _sonnet(state: Dictionary, actor: Dictionary, ability: Dictionary, i
 					and Board.capable(state, candidate, "damageable"):
 				recipients.append(candidate)
 	var heckler := id in ["healing_sonnet", "bard_take_the_stage"] and Upgrades.amount(state, actor, "heckler") > 0
-	var damage := int(ability.params.damage)
+	var damage := int(ability.params.damage) + bonus
 	var name := Board.display_name(state, actor)
 	var retaliation := Combat.RetaliationBatch.new() if recipients.size() > 1 else null
 	for recipient in recipients:

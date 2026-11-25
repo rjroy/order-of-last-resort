@@ -1,6 +1,7 @@
 {
   "abilities": {
     "knight_rescue_line": {
+      "fitted_form": "safety_distance",
       "label": "Rescue Line",
       "help": "Pull a friendly character exactly two tiles away one open tile toward the Knight, without recoil.",
       "handler": "hook",
@@ -16,6 +17,7 @@
       }
     },
     "healer_field_dressing": {
+      "fitted_form": "unpick_the_stitch",
       "label": "Field Dressing",
       "help": "Heal a chosen healable hero, including yourself, within one tile for 2 HP.",
       "handler": "heal",
@@ -35,6 +37,7 @@
       }
     },
     "wizard_ring_sparks": {
+      "fitted_form": "ring_of_salve",
       "label": "Ring of Sparks",
       "help": "Deal 2 damage to all adjacent living characters, including allies.",
       "handler": "sweep",
@@ -47,6 +50,7 @@
       }
     },
     "rogue_tripwire": {
+      "fitted_form": "cut_the_wire",
       "label": "Tripwire",
       "help": "Hold the nearest eligible opponent within two tiles against its next voluntary movement.",
       "handler": "stop_target",
@@ -60,6 +64,7 @@
       }
     },
     "necro_grave_bell": {
+      "fitted_form": "dinner_bell",
       "label": "Grave Bell",
       "help": "Repel the nearest other character one tile if clear, friend or foe.",
       "handler": "repel",
@@ -69,6 +74,7 @@
       }
     },
     "alchemist_etching_paste": {
+      "fitted_form": "sealing_paste",
       "label": "Etching Paste",
       "help": "Deal 2 acid damage at range 1 with the forecast acid reaction.",
       "handler": "acid",

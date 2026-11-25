@@ -38,7 +38,7 @@ static func decide(state: Dictionary, actor: Dictionary, behavior_id: String) ->
 				if Shield.can_retrieve(actor):
 					return {"ability_id": params.move_ability, "retrieve_shield": true}
 				return _move(state, actor, params.move_ability, actor.shield_position, 1)
-			var alternate := Actions.standing_alternate(state, actor, ability_id, true)
+			var alternate := Actions.standing_alternate(state, actor, ability_id, "pursue")
 			if not alternate.is_empty():
 				return alternate
 			var heckler := Actions.heckler_target(state, actor, Actions.owned_ability(state, actor, ability_id))
@@ -62,16 +62,31 @@ static func decide(state: Dictionary, actor: Dictionary, behavior_id: String) ->
 				return Board.allied(state, actor, unit))
 			return _follow(state, actor, params.move_ability, allies, "follow_ally")
 		"most_injured":
+			var alternate := Actions.standing_alternate(state, actor, params.ability, "most_injured")
+			if not alternate.is_empty():
+				return alternate
 			return _most_injured(state, actor, params.ability)
 		"pass_blame":
+			var alternate := Actions.standing_alternate(state, actor, params.ability)
+			if not alternate.is_empty():
+				return alternate
 			return _pass_blame(state, actor, params.ability)
 		"make_friend":
+			var alternate := Actions.standing_alternate(state, actor, params.ability, "make_friend")
+			if not alternate.is_empty():
+				return alternate
 			return _make_friend(state, actor, params.ability)
 		"nearest_target":
+			var alternate := Actions.standing_alternate(state, actor, params.ability, "nearest_target")
+			if not alternate.is_empty():
+				return alternate
 			var target := Board.nearest(actor, Actions.targets(state, actor, params.ability), true)
 			if not target.is_empty():
 				return _action(params.ability, target.id)
 		"rescue":
+			var alternate := Actions.standing_alternate(state, actor, params.ability)
+			if not alternate.is_empty():
+				return alternate
 			if state.objective.handler != "escort":
 				return {}
 			var subject := Board.entity(state, state.objective.subject)
@@ -275,8 +290,6 @@ static func _greet(state: Dictionary, actor: Dictionary, params: Dictionary) -> 
 		opponents = Board.occupants(state, {"teams": [params.team]}).filter(func(unit: Dictionary) -> bool:
 			return Board.opponents(state, actor, unit))
 		enemy = Board.nearest(actor, opponents)
-	if enemy.is_empty():
-		return {"wait": "hold"}
 	var reach: int = params.greeting_range
 	var options: Array = []
 	var best_distance := 2147483647
@@ -291,6 +304,11 @@ static func _greet(state: Dictionary, actor: Dictionary, params: Dictionary) -> 
 	if not options.is_empty():
 		state.rng_state = EncounterRandom.step(state.rng_state)
 		return options[state.rng_state % options.size()]
+	var rally := Summons.rally_target(state, actor)
+	if not rally.is_empty():
+		return _move(state, actor, params.move_ability, rally.position, 1)
+	if enemy.is_empty():
+		return {"wait": "hold"}
 	if Actions.targets(state, actor, params.move_ability).is_empty():
 		return {"wait": "cannot_advance"}
 	var start: Vector2i = actor.position

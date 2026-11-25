@@ -17,26 +17,47 @@ static func nominated_target(state: Dictionary, actor: Dictionary) -> Dictionary
 
 
 static func nominate(state: Dictionary, actor: Dictionary, target: Dictionary, events: Array) -> void:
+	actor.erase("rally_target_id")
 	actor["nominated_target_id"] = target.id
 	Board.event(events, "nominate", "%s sends both undead to greet %s." % [
 		Board.display_name(state, actor), Board.display_name(state, target)],
 		{"unit_id": actor.id, "target_id": target.id})
 
 
-static func capped(state: Dictionary, actor: Dictionary, character: String) -> bool:
+static func rally_target(state: Dictionary, minion: Dictionary) -> Dictionary:
+	var summoner := owner(state, minion) if minion.has("summoner_id") else minion
+	var id: String = summoner.get("rally_target_id", "")
+	var target := {} if id.is_empty() else Board.entity(state, id)
+	return target if Board.alive(target) else {}
+
+
+static func rally(state: Dictionary, actor: Dictionary, target: Dictionary, events: Array) -> void:
+	actor.erase("nominated_target_id")
+	actor["rally_target_id"] = target.id
+	Board.event(events, "rally", "%s asks both undead to stay close to %s." % [
+		Board.display_name(state, actor), Board.display_name(state, target)],
+		{"unit_id": actor.id, "target_id": target.id})
+
+
+static func owned_living(state: Dictionary, actor: Dictionary, character: String) -> Dictionary:
 	for unit in state.units:
 		if unit.get("summoner_id") == actor.id and unit.character_id == character and Board.alive(unit):
-			return true
-	return false
+			return unit
+	return {}
+
+
+static func capped(state: Dictionary, actor: Dictionary, character: String) -> bool:
+	return not owned_living(state, actor, character).is_empty()
 
 
 @warning_ignore("integer_division")
-static func starting_hp(state: Dictionary, summoner: Dictionary, character: String, corpse: Dictionary = {}) -> int:
+static func starting_hp(state: Dictionary, summoner: Dictionary, character: String, corpse: Dictionary = {},
+		bonus: int = 0) -> int:
 	if not corpse.is_empty():
 		return (int(corpse.max_hp) + 1) / 2 + (
-			Upgrades.amount(state, summoner, "good_soil") if character == "zombie" else 0)
+			Upgrades.amount(state, summoner, "good_soil") if character == "zombie" else 0) + bonus
 	var profile := Board.profile(state, {"character_id": character})
-	return int(profile.max_hp) + (Upgrades.amount(state, summoner, "spare_ribs") if character == "skeleton" else 0)
+	return int(profile.max_hp) + (Upgrades.amount(state, summoner, "spare_ribs") if character == "skeleton" else 0) + bonus
 
 
 static func _spawn(state: Dictionary, summoner: Dictionary, character: String, position: Vector2i,
@@ -55,9 +76,9 @@ static func _spawn(state: Dictionary, summoner: Dictionary, character: String, p
 
 
 static func summon(state: Dictionary, actor: Dictionary, ability: Dictionary, position: Vector2i,
-		corpse: Dictionary, events: Array) -> void:
+		corpse: Dictionary, events: Array, bonus: int = 0) -> void:
 	var character: String = ability.params.character
-	var hp := starting_hp(state, actor, character, corpse)
+	var hp := starting_hp(state, actor, character, corpse, bonus)
 	var minion := _spawn(state, actor, character, position, hp, int(ability.params.priority))
 	var raising := not corpse.is_empty()
 	var data := {"unit_id": actor.id, "summon_id": minion.id, "position": position, "hp": hp}
@@ -75,6 +96,8 @@ static func on_fall(state: Dictionary, fallen: Dictionary, events: Array) -> voi
 	for unit in state.units:
 		if unit.get("nominated_target_id") == fallen.id:
 			unit.erase("nominated_target_id")
+		if unit.get("rally_target_id") == fallen.id:
+			unit.erase("rally_target_id")
 	if fallen.get("character_id") != "zombie" or not fallen.has("raised_from_id"):
 		return
 	var summoner := owner(state, fallen)

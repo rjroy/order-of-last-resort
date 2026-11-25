@@ -611,6 +611,10 @@ func _draw_figures() -> void:
 	var actions := {}
 	var occupants: Array = []
 	for original: Dictionary in _units:
+		if original.get("playback_only", false) \
+				and not _playback.has_pending_ordinary_role(str(original.id), "defeat") \
+				and not _playback.has_pending_clip(str(original.id), "defeat"):
+			continue
 		var occupant := original
 		var key := str(original.get("cast_key", ""))
 		var id := str(original.get("id", ""))

@@ -63,14 +63,93 @@ func _run() -> void:
 	if scene.current_screen() != "battle":
 		_check(false, "Stock mission launches")
 	else:
-		for hero in HEROES:
-			await _case(hero, false)
-		await _case("knight", true)
+		if not "--enemy-only" in OS.get_cmdline_user_args():
+			for hero in HEROES:
+				await _case(hero, false)
+			await _case("knight", true)
+		await _enemy_without_corpse_marker()
 	for failure in failures:
 		push_error("FAIL: " + failure)
 	if failures.is_empty():
 		print("PASS: committed guild defeat presentations")
 	quit(0 if failures.is_empty() else 1)
+
+
+func _enemy_without_corpse_marker() -> void:
+	var state: Dictionary = scene.battle_snapshot().duplicate(true)
+	state.width = 12
+	state.height = 12
+	state.default_tile = "stone"
+	state.terrain = []
+	state.obstacles = []
+	state.objective = {"handler": "survive", "turns": 99, "reserves": []}
+	state.outcome = "ongoing"
+	state.units = [_unit("caster", "wizard", Vector2i(2, 3), 20),
+		_unit("victim", "goblin", CELL, 1),
+		_unit("other", "harpooner", Vector2i(10, 10), 20)]
+	state.party = ["caster"]
+	state.orders = {}
+	state.overrides = {}
+	scene.call("_show_battle", state)
+	scene.set("_planned_state", rules.choose_manual(state, "caster", "wizard_blast"))
+	scene.call("_refresh")
+	var plan: Dictionary = scene.get("_plan")
+	if not plan.get("valid", false) or _entity(plan.result, "victim").hp > 0:
+		_check(false, "Enemy fixture forecasts a lethal blast")
+		return
+	var commit := scene.find_child("Commit", true, false) as BaseButton
+	commit.pressed.emit()
+	var board = scene.get("_board")
+	board.set_process(false)
+	_check(not rules.corpse_markers(scene.battle_snapshot()).has(CELL),
+		"Enemy has no raisable corpse marker without a Crypter")
+	var entries: Array = board.get("_playback").get("_entries").filter(func(entry): return \
+		entry.cue.get("unit_id") == "victim" and entry.cue.get("ordinary_role") == "defeat")
+	if entries.size() != 1:
+		_check(false, "Enemy defeat cue is queued")
+		return
+	var defeat = entries[0]
+	_check(defeat.elapsed_ms < 0.0, "Enemy defeat waits for the blast")
+	await _enemy_pixels(board, "Enemy visible at playback start")
+	board._process(maxf(0.0, -defeat.elapsed_ms * 0.5) / 1000.0)
+	board.set_process(false)
+	await _enemy_pixels(board, "Enemy remains visible before the defeating action")
+	board._process((-defeat.elapsed_ms + 1.0) / 1000.0)
+	board.set_process(false)
+	_check(defeat in board.get("_playback").active(), "Enemy defeat animation starts at the hit")
+	await _enemy_pixels(board, "Enemy defeat animation is visible")
+	board._process((board.action_playback_remaining_ms() + 1.0) / 1000.0)
+	board.set_process(false)
+	await _enemy_pixels(board, "Enemy disappears after its defeat animation", false)
+	var remaining: Array = board.get("_units").filter(func(row): return row.get("id") == "victim" \
+		and not row.get("playback_only", false))
+	_check(remaining.is_empty(), "Playback does not create a persistent corpse marker")
+
+
+func _enemy_pixels(board: Control, label: String, visible := true) -> void:
+	var figures: CanvasItem = board.get("_figures")
+	figures.queue_redraw()
+	var drawn := await _capture()
+	var rows: Array = board.get("_units")
+	var by_id: Dictionary = board.get("_units_by_id")
+	var playback = board.get("_playback")
+	var entries: Array = playback.get("_entries")
+	var without_rows := rows.filter(func(row): return row.get("id") != "victim")
+	var without_by_id := by_id.duplicate()
+	without_by_id.erase("victim")
+	var without_entries := entries.duplicate()
+	without_entries.assign(entries.filter(func(entry): return entry.cue.get("unit_id") != "victim"))
+	board.set("_units", without_rows)
+	board.set("_units_by_id", without_by_id)
+	playback.set("_entries", without_entries)
+	figures.queue_redraw()
+	var without := await _capture()
+	board.set("_units", rows)
+	board.set("_units_by_id", by_id)
+	playback.set("_entries", entries)
+	figures.queue_redraw()
+	var pixels := _difference(drawn, without)
+	_check(pixels > 30 if visible else pixels == 0, label + " (%d changed pixels)" % pixels)
 
 
 func _case(hero: String, shield_away: bool) -> void:

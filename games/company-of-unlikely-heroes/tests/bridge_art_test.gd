@@ -25,6 +25,7 @@ const CELLS := {
 var failures := 0
 var board := Board.new()
 var viewport := SubViewport.new()
+var draws := {"board": 0, "tactical": 0, "figures": 0}
 
 
 func _initialize() -> void:
@@ -45,6 +46,9 @@ func _run() -> void:
 	var preview := SubViewportContainer.new()
 	preview.add_child(viewport)
 	root.add_child(preview)
+	board.draw.connect(func(): draws.board += 1)
+	board.get("_tactical").draw.connect(func(): draws.tactical += 1)
+	board.get("_figures").draw.connect(func(): draws.figures += 1)
 
 	var shore := {}
 	for cell in CELLS:
@@ -104,12 +108,14 @@ func _run() -> void:
 	_check(grid_shown.get_data() == grid_restored.get_data(),
 		"Showing the grid restores the procedural board rendering")
 	await _pushed_obstacle_timing()
+	for split in [false, true]:
+		await _invalidation(split)
 
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("--capture="):
 			_save_comparison([plain, first, moved], argument.trim_prefix("--capture="))
 	if failures == 0:
-		print("Bridge art test passed: shore tint preserves tile art and the exit marker follows the objective.")
+		print("Bridge art test passed: terrain, objective, obstacle timing and layer redraws.")
 	quit(1 if failures else 0)
 
 
@@ -195,6 +201,117 @@ func _blocked_obstacle_contact(state: Dictionary, rules) -> void:
 	var impact := viewport.get_texture().get_image()
 	_check(_changed_fraction(before, impact, CUSTOM_CELL) > 0.001,
 		"Clipless blocked Push shows visible contact feedback on the damaged crate")
+
+
+func _invalidation(split: bool) -> void:
+	var mode := "split" if split else "combined"
+	board.clear_action_playback()
+	board.set_foreground_above_scenery(split)
+	board.set_render_state(CELLS, [
+		{"id": "idle", "art_key": "healer", "cast_key": "healer", "cell": STONE_CELL}
+	], {"obstacles": [{"id": "crate", "art_key": "crate", "position": CONTROL_CELL,
+		"hp": 10, "max_hp": 10}]})
+	board.set_process(false)
+	var ready = board.get("_cast").clip_for("healer", "ready")
+	if ready == null or not ready.loop or ready.frame_ends.size() < 2:
+		_check(false, "Animated idle fixture is available")
+		return
+	var rate: float = board.get("_ready_rates")["idle"]
+	board.set("_ready_ms", (ready.frame_ends[0] - 1.0) / rate)
+	await _flush_draws()
+	_reset_draws()
+	board._process(2.0 / rate / 1000.0)
+	board.set_process(false)
+	await _flush_draws()
+	_check(draws.figures > 0, "%s: idle frame redraws figures" % mode)
+	_check(draws.board == 0 and draws.tactical == 0,
+		"%s: idle frame does not redraw board or tactical layer" % mode)
+
+	# A silent action carries a deterministic obstacle displacement, while a
+	# later action keeps playback alive after the crate has settled.
+	var destination_image := viewport.get_texture().get_image()
+	var cues := [
+		{"unit_id": "actor", "silent_action": true, "motions": [
+			{"unit_id": "crate", "from": CUSTOM_CELL, "to": CONTROL_CELL}]},
+		{"unit_id": "later", "silent_action": true},
+	]
+	_reset_draws()
+	board.play_committed_actions(cues)
+	board.set_process(false)
+	await _flush_draws()
+	var source_image := viewport.get_texture().get_image()
+	_check(draws.tactical > 0 if split else draws.board > 0,
+		"%s: enqueue redraws the obstacle's layer" % mode)
+	if split:
+		_check(draws.board == 0, "split: enqueue leaves terrain alone")
+	_check(_changed_fraction(destination_image, source_image, CUSTOM_CELL) > 0.001 \
+		and _changed_fraction(destination_image, source_image, CONTROL_CELL) > 0.001,
+		"%s: enqueue displays the obstacle at its source" % mode)
+	var motions: Array = board.get("_playback").get("_motions")
+	if motions.is_empty():
+		_check(false, "%s: displacement fixture enters playback" % mode)
+		return
+	var motion: Dictionary = motions[0]
+	var start_ms: float = -motion.elapsed_ms
+	var duration_ms: float = motion.duration_ms
+	await _flush_draws()
+	_reset_draws()
+	board._process((start_ms + duration_ms * 0.5) / 1000.0)
+	board.set_process(false)
+	await _flush_draws()
+	var moving := viewport.get_texture().get_image()
+	_check(draws.tactical > 0 if split else draws.board > 0,
+		"%s: moving obstacle redraws its layer" % mode)
+	if split:
+		_check(draws.board == 0, "split: obstacle movement leaves terrain alone")
+	_reset_draws()
+	board.clear_action_playback()
+	board.set_process(false)
+	await _flush_draws()
+	var cleared := viewport.get_texture().get_image()
+	_check(draws.tactical > 0 if split else draws.board > 0,
+		"%s: clearing a moving obstacle redraws its layer" % mode)
+	if split:
+		_check(draws.board == 0, "split: clearing movement leaves terrain alone")
+	_check(_same_tile(destination_image, cleared, CUSTOM_CELL) \
+		and _same_tile(destination_image, cleared, CONTROL_CELL),
+		"%s: clearing movement restores the obstacle to the board state" % mode)
+
+	board.play_committed_actions(cues)
+	board.set_process(false)
+	await _flush_draws()
+	board._process((start_ms + duration_ms * 0.5) / 1000.0)
+	board.set_process(false)
+	await _flush_draws()
+	moving = viewport.get_texture().get_image()
+	_reset_draws()
+	board._process((duration_ms * 0.5 + 1.0) / 1000.0)
+	board.set_process(false)
+	await _flush_draws()
+	var landed := viewport.get_texture().get_image()
+	_check(draws.tactical > 0 if split else draws.board > 0,
+		"%s: obstacle landing redraws its layer" % mode)
+	_check(_changed_fraction(moving, landed, CONTROL_CELL) > 0.001,
+		"%s: obstacle visibly reaches its destination" % mode)
+	_check(board.action_playback_pending(), "%s: later action keeps playback pending" % mode)
+	_reset_draws()
+	board._process(0.01)
+	board.set_process(false)
+	await _flush_draws()
+	_check(draws.board == 0 and draws.tactical == 0,
+		"%s: settled obstacle does not keep redrawing its layer" % mode)
+	board.clear_action_playback()
+	board.set_process(false)
+
+
+func _flush_draws() -> void:
+	await process_frame
+	await RenderingServer.frame_post_draw
+
+
+func _reset_draws() -> void:
+	for key in draws:
+		draws[key] = 0
 
 
 func _tile_region(cell: Vector2i) -> Rect2i:

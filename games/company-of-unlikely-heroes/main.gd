@@ -1793,6 +1793,7 @@ func _commit() -> void:
 		_storybook_inspected_cell = _storybook_focus_cell
 	_refresh()
 	_board.play_committed_actions(cues)
+	_refresh_board()
 	_storybook_page.play_committed_reactions(reactions)
 	if _practice != null:
 		print_verbose("Committed practice round %d." % round_number)
@@ -1855,6 +1856,7 @@ func _show_settled_mission() -> void:
 func _take_terminal_board(cues: Array, reactions: Array) -> BridgeArt:
 	_refresh_board()
 	_board.play_committed_actions(cues)
+	_refresh_board()
 	var ink := _board.get_node_or_null("StorybookInk") as StorybookInk
 	if not reactions.is_empty():
 		var pending: Array = ink.get("_committed_reactions").duplicate(true) if ink != null else []
@@ -2075,6 +2077,7 @@ func _target_description(hero: String, ability: String, target: String) -> Strin
 func _refresh_board() -> void:
 	_painted_cells = _terrain()
 	var units: Array = []
+	var playback_cues: Array = _board.action_playback_snapshot()
 	_corpse_markers = _rules.corpse_markers(_state)
 	for corpse in _corpse_markers.values():
 		var profile: Dictionary = _rules.entity_profile(_state, corpse.id)
@@ -2095,7 +2098,11 @@ func _refresh_board() -> void:
 			or unit.id in _state.objective.get("subjects", [])
 		var visual_defeat: bool = unit.hp <= 0 and not is_objective \
 			and not CastCues.guild_hero_key(_state, unit).is_empty()
-		if unit.hp <= 0 and not is_objective and not visual_defeat:
+		var playback_only: bool = unit.hp <= 0 and not is_objective and not visual_defeat \
+			and not units.any(func(row): return row.id == unit.id) \
+			and playback_cues.any(func(cue): return cue.get("unit_id") == unit.id \
+				and (cue.get("ordinary_role") == "defeat" or cue.get("clip") == "defeat"))
+		if unit.hp <= 0 and not is_objective and not visual_defeat and not playback_only:
 			continue
 		var profile: Dictionary = _rules.entity_profile(_state, unit.id)
 		var show_label: bool = "commandable" in profile.capabilities or "minion" in profile.capabilities
@@ -2110,6 +2117,10 @@ func _refresh_board() -> void:
 			"shield_away": _rules.shield_position(_state, unit.id) is Vector2i}
 		if visual_defeat:
 			figure["visual_defeat"] = true
+			figure["label"] = ""
+		if playback_only:
+			figure["playback_only"] = true
+			figure["transient"] = true
 			figure["label"] = ""
 		var cast_key := CastCues.cast_key_for(_state, unit, profile)
 		if not cast_key.is_empty():

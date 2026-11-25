@@ -529,7 +529,28 @@ func _check_index() -> void:
 		_check("made with godot engine" in text, "Credits say Made with Godot Engine")
 		_check("godot" in text and ("contributors" in text or "contributor" in text),
 			"Credits thank Godot contributors")
-		_check("https://godotengine.org/license/" in text, "Credits show the Godot license URL")
+		_check("game designer" in text, "Credits identify the game designer")
+		var expected := {
+			"Ronald Roy": "https://rjroy.github.io/",
+			"Godot Engine license": "https://godotengine.org/license/",
+			"OpenCode": "https://opencode.ai/",
+			"OpenAI": "https://openai.com/",
+			"Mirli": "https://mirli.app/",
+		}
+		for link: LinkButton in scene.find_children("*", "LinkButton", true, false):
+			if not link.is_visible_in_tree():
+				continue
+			_check(link.uri == expected.get(link.text, ""), "Credit destination: " + link.text)
+			expected.erase(link.text)
+			var panel := link.get_parent()
+			while not panel is PanelContainer:
+				panel = panel.get_parent()
+			var paper := panel.get_theme_stylebox("panel") as StyleBoxFlat
+			for state in ["font_color", "font_hover_color", "font_focus_color", "font_pressed_color", "font_hover_pressed_color"]:
+				var ink := link.get_theme_color(state).srgb_to_linear().get_luminance()
+				var page := paper.bg_color.srgb_to_linear().get_luminance()
+				_check((page + 0.05) / (ink + 0.05) >= 4.5, "Readable credit link: " + state)
+		_check(expected.is_empty(), "Missing credit links: " + str(expected.keys()))
 
 
 func _open_help() -> bool:

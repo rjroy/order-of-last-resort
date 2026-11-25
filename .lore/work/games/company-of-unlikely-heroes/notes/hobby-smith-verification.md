@@ -12,6 +12,8 @@ related: [.lore/work/games/company-of-unlikely-heroes/notes/hobby-smith-design.m
 
 The saved machine evidence covers all **25 native forms and seven borrowed wielders** in the actual battle scene. Ronald approved the source model, supplemental sheet, petition and reward illustrations, and wearer motion libraries for integration (`olr-12b.5`, 05:46 comment). His earlier positive audition was for two source clips only. Neither approval is a human verdict on final in-game legibility or audibility. The automated evidence below does not supply that verdict.
 
+**Final player verdict (2026-11-25):** Asked whether the Smith’s in-game presentation looked and sounded right, Ronald replied, “It's perfect, we can close out, then create the PR.” This accepts the finished class; the per-case results below are from the recorded checks, not a claim that Ronald individually tested each case.
+
 ## Evidence
 
 - **Forecast and commit:** `olr-12b.1` and `.3` recorded the rules and initiative checks. The live visual driver staged each action through the game's controls in a controlled fixture, checked that the preview left the board unchanged and silent (no requests, zero Master PCM), and checked that Commit matched the forecast. These fixtures use the real battle scene, not all unmodified stock openings. The separate stock `hold_the_line` launch in the game guide was headlessly checked: the Smith fits the Knight, Pull takes the Bruiser G3 → F3, and clearing the command restores fitted Guard.

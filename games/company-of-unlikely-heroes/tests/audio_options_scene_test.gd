@@ -98,7 +98,10 @@ func _run() -> void:
 			await process_frame
 			_check(_near_ratio(_effective_gain(music), music_full, 0.5), "Music level changes music live")
 			_check(_near_ratio(_effect_gain(), sfx_full, 1.0), "Music level does not change effects")
+			var live_effect: AudioStreamPlayer = effects.get_child(-1) as AudioStreamPlayer
 			controls.sfx.value = 0.5
+			_check(is_instance_valid(live_effect) and _near_ratio(_effective_gain(live_effect), sfx_full, 0.5),
+				"An already-playing effect keeps its cue trim during live volume changes")
 			await process_frame
 			_check(_near_ratio(_effect_gain(), sfx_full, 0.5), "Effects level changes effects live")
 			_check(_near_ratio(_effective_gain(music), music_full, 0.5), "Effects level does not change music")

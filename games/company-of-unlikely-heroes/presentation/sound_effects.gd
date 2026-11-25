@@ -5,6 +5,9 @@ signal sound_requested(kind: String, unit_id: String, ability_id: String, cue_id
 
 const Preferences = preload("res://battle_display_preferences.gd")
 const Recipes = preload("res://presentation/sound_recipes.gd")
+# Mix target for an ability impact at 80% SFX and full Master.
+const IMPACT_REFERENCE_DB := -14.0
+const REFERENCE_SFX_VOLUME := 0.8
 const WAVS := {
 	"pencil": preload("res://assets/audio/pencil_flick.wav"),
 	"step": preload("res://assets/audio/light_footfall.wav"),
@@ -59,18 +62,18 @@ func _update_players() -> void:
 
 
 func planning(unit_id: String) -> void:
-	_play("planning", unit_id, "move", "pencil", 0.22)
+	_play("planning", unit_id, "move", "pencil", 0.22 / 0.7)
 
 
 func dispatch_beat(kind: String, unit_id: String, ability_id: String, handler: String, recipe: String) -> void:
 	if kind == "step":
-		_play(kind, unit_id, ability_id, "step", 0.45)
+		_play(kind, unit_id, ability_id, "step", 0.45 / 0.7)
 		return
 	if kind != "impact":
 		return
 	var key := _family(ability_id, handler, recipe)
 	if not key.is_empty():
-		_play(kind, unit_id, ability_id, key, 0.7)
+		_play(kind, unit_id, ability_id, key, 1.0)
 
 
 func _family(ability: String, handler: String, recipe: String) -> String:
@@ -162,7 +165,7 @@ func _family(ability: String, handler: String, recipe: String) -> String:
 	return ""
 
 
-func _play(kind: String, unit_id: String, ability_id: String, cue_id: String, base_gain: float) -> void:
+func _play(kind: String, unit_id: String, ability_id: String, cue_id: String, relative_gain: float) -> void:
 	if volume <= 0.0 or master_volume <= 0.0:
 		return
 	var stream: AudioStream = WAVS.get(cue_id)
@@ -173,6 +176,7 @@ func _play(kind: String, unit_id: String, ability_id: String, cue_id: String, ba
 	if stream == null:
 		push_warning("Missing sound effect %s for %s." % [cue_id, ability_id])
 		return
+	var base_gain := db_to_linear(IMPACT_REFERENCE_DB) / REFERENCE_SFX_VOLUME * relative_gain
 	var gain := volume * master_volume * base_gain
 	var player := AudioStreamPlayer.new()
 	player.stream = stream

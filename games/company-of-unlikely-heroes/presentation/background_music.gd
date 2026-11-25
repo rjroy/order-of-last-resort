@@ -5,7 +5,7 @@ const Playlist = preload("res://presentation/music_playlist.gd")
 const Preferences = preload("res://battle_display_preferences.gd")
 const MUSIC_ROOT := "res://assets/music"
 const SETS := ["main", "road", "destination"]
-const GAIN_DB := -14.0
+const GAIN_DB := -5.0
 
 var _rng := RandomNumberGenerator.new()
 var _playlists := {}

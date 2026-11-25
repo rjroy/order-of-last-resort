@@ -1,0 +1,106 @@
+{
+  "classes": {
+    "healer": {
+      "team": "heroes",
+      "max_hp": 7,
+      "capabilities": [
+        "blocks_movement",
+        "mobile",
+        "pushable",
+        "pullable",
+        "damageable",
+        "healable",
+        "protectable",
+        "commandable",
+        "recoverable"
+      ],
+      "abilities": [
+        "move",
+        "healer_bonk",
+        "healer_heal"
+      ],
+      "habits": {
+        "order_support": "support",
+        "order_aggressive": "aggressive"
+      },
+      "default_order": "order_support",
+      "art_key": "healer",
+      "color": "#e6cfa2"
+    }
+  },
+  "characters": {
+    "healer": {
+      "class": "healer",
+      "label": "Unimpressed Healer",
+      "guild_portrait": "healer",
+      "cast_key": "healer",
+      "cast_art_key": "healer"
+    }
+  },
+  "abilities": {
+    "healer_bonk": {
+      "fitted_form": "keep_your_head_down",
+      "label": "Bonk and taunt",
+      "help": "Bonk an adjacent enemy or obstacle. Taunts enemies into targeting the user.",
+      "handler": "bonk",
+      "params": {
+        "damage": 2,
+        "status": "taunt"
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 1,
+        "teams": [
+          "enemies"
+        ],
+        "objects": true,
+        "capabilities": [
+          "damageable"
+        ]
+      }
+    },
+    "healer_heal": {
+      "fitted_form": "doctors_orders",
+      "label": "Heal self or nearest ally",
+      "help": "Heals self when wounded; otherwise heals the nearest other hero, even at full health.",
+      "handler": "heal",
+      "params": {
+        "amount": 3,
+        "prefer_wounded_self": true
+      },
+      "targeting": {
+        "kind": "automatic",
+        "teams": [
+          "heroes"
+        ],
+        "capabilities": [
+          "healable"
+        ]
+      }
+    }
+  },
+  "orders": {
+    "order_support": {
+      "label": "Support"
+    },
+    "order_aggressive": {
+      "label": "Pursue and bonk"
+    }
+  },
+  "behaviors": {
+    "support": {
+      "handler": "use_ability",
+      "params": {
+        "ability": "healer_heal"
+      }
+    },
+    "aggressive": {
+      "handler": "pursue",
+      "params": {
+        "ability": "healer_bonk",
+        "move_ability": "move",
+        "team": "enemies"
+      }
+    }
+  }
+}

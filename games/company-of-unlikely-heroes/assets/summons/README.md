@@ -18,7 +18,7 @@ The sprites below are playtest derivatives, not new model revisions. Both use th
 | [Skeleton](skeleton.png) | 192 × 236 | `(68, 233)` |
 | [Zombie](zombie.png) | 99 × 207 | `(52, 204)` |
 
-[`bridge_art.gd`](../../bridge_art.gd) draws these sprites for `skeleton` and `zombie` art keys, at one board unit per three texture pixels before the usual standing or prone transform. The foot pivots are deliberately not the canvas centers: the skeleton's wave and the zombie's outstretched hand shift their visible bounds. Facing, ground shadow, HP and board overlays remain under the board's existing drawing rules. Source runs decode the packaged PNGs directly, without a prior editor import. A Godot export with a restricted resource list needs to include both texture paths.
+[`bridge_art.gd`](../../presentation/battle/bridge_art.gd) draws these sprites for `skeleton` and `zombie` art keys, at one board unit per three texture pixels before the usual standing or prone transform. The foot pivots are deliberately not the canvas centers: the skeleton's wave and the zombie's outstretched hand shift their visible bounds. Facing, ground shadow, HP and board overlays remain under the board's existing drawing rules. Source runs decode the packaged PNGs directly, without a prior editor import. A Godot export with a restricted resource list needs to include both texture paths.
 
 ## Regenerate offline
 

@@ -1,0 +1,72 @@
+{
+  "missions": {
+    "dont_wake_the_giant": {
+      "title": "Don't Wake the Giant",
+      "encounter": "frontier_treasure",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "treasure_noise",
+        "treasure": "treasure",
+        "threshold": 12,
+        "text": "Get any living hero to the treasure at E3 without waking the giant. Noise starts at zero: each executed hero move adds 1, another hero ability adds 2, and a performance adds 3. Holding is silent. Finish the whole round at 12 noise or less, even if a hero reaches the treasure earlier in the round.",
+        "victory_text": "The treasure is yours. The giant sleeps on.",
+        "defeat_text": "The giant woke before the treasure was safely taken.",
+        "victory_event": "A hero quietly retrieves the treasure."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ],
+      "tier": 2
+    }
+  },
+  "encounters": {
+    "frontier_treasure": {
+      "board": "frontier_treasure_board",
+      "party_slots": [
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "treasure_guard",
+          "character": "goblin",
+          "at": [
+            5,
+            3
+          ]
+        }
+      ]
+    }
+  },
+  "boards": {
+    "frontier_treasure_board": {
+      "width": 7,
+      "height": 5,
+      "default_tile": "stone",
+      "tiles": [],
+      "locations": {
+        "treasure": [
+          4,
+          2
+        ]
+      }
+    }
+  }
+}

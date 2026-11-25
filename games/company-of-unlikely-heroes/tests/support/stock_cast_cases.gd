@@ -1,6 +1,6 @@
 extends RefCounted
 ## Each actor file is independently stageable; absent future actors are fine.
-const DIRECTORY := "res://tests/support"
+const DIRECTORY := "res://tests/fixtures"
 
 
 static func load_cases() -> Dictionary:

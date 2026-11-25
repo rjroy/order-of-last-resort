@@ -20,9 +20,9 @@ class StockScenesTest(unittest.TestCase):
         self.write("game/content/catalog.json", {"parts": ["a.json", "b.json"]})
         self.write("game/content/a.json", {"missions": {"first": {}}, "characters": {"one": {}}})
         self.write("game/content/b.json", {"missions": {"second": {}}, "characters": {"two": {}}})
-        self.write("game/tests/support/stock_cast_case_one.json",
+        self.write("game/tests/fixtures/stock_cast_case_one.json",
                    {"mission": "first", "actor": "one", "case": {"variants": {"alternate": {}}}})
-        self.write("game/tests/support/stock_cast_case_two.json",
+        self.write("game/tests/fixtures/stock_cast_case_two.json",
                    {"mission": "second", "actor": "two", "case": {}})
 
     def tearDown(self):

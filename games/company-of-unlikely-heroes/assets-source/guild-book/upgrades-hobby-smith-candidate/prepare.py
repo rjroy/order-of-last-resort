@@ -26,7 +26,7 @@ def main():
     if hashlib.sha256(atlas.read_bytes()).hexdigest() != recipe["sha256"]:
         raise ValueError(f"Unexpected native atlas: {atlas}")
 
-    rewards = json.loads((GAME / "content/rewards.json").read_text())["upgrades"]
+    rewards = json.loads((GAME / "content/expedition/rewards.json").read_text())["upgrades"]
     expected = {key for key, value in rewards.items() if value["hero_id"] == "blacksmith"}
     crops = recipe["crops"]
     if set(crops) != expected:

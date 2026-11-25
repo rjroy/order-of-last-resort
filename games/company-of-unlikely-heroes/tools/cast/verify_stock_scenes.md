@@ -18,7 +18,7 @@ python3 "$tool" --output "$PWD/.lore/local/stock-scenes-NEW"
 
 Choose a new output path each time. The wrapper discovers missions from the
 checked-in merged stock catalog and actor/variant cases from checked-in
-`tests/support/stock_cast_case_*.json`; it does not read previous experiment
+`tests/fixtures/stock_cast_case_*.json`; it does not read previous experiment
 history or captures. It runs the existing graphical scene driver sequentially:
 one `--inventory --all-integrated` per mission, then each actor and variant.
 `--dry-run` prints the exact plan and writes nothing.
@@ -29,7 +29,7 @@ script and renderer errors remain failures.
 The full run requires all stock actors to be integrated. For a smaller run,
 repeat `--mission=<id>` and/or `--actor=<character-id>`. Inventories are still
 run for every selected mission, so use an integrated mission or run the
-single-actor command in `tests/stock_cast_mission_test.md` during incremental
+single-actor command in `tests/journeys/stock_cast_mission_test.md` during incremental
 work. Use `--godot=<executable>` if needed.
 
 Output must be a **new** directory beneath this checkout's `.lore/local` and

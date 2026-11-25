@@ -248,37 +248,37 @@ The [guild book art review instructions](assets-source/guild-book/README.md) des
 From the repository root, check the default commission flow through the game controls with an isolated test profile:
 
 ```sh
-godot --headless --path games/company-of-unlikely-heroes --script res://tests/commission_scene_test.gd
+godot --headless --path games/company-of-unlikely-heroes --script res://tests/journeys/commission_scene_test.gd
 ```
 
-From the game directory, run the suites with `godot --headless --script res://tests/<name>.gd`:
+From the game directory, run the suites with `godot --headless --script res://tests/<area>/<name>.gd`:
 
 | Suite | What it checks |
 |---|---|
-| `catalog_test` | Invalid definitions, independent worlds, and interaction capabilities |
-| `catalog_bundle_test` | Authored parts load into one catalog; duplicate IDs and invalid deployment slots are rejected |
-| `commission_catalog_test` | Validation of commission settings, reports, and mission pools |
-| `commission_routes_test` | Seeded boards, both commission lengths, clue matching, rewards, and destination transitions |
-| `commission_scene_test` | Guild creation and reload, recruitment before reports, reward gating, carryover, and board renewal |
-| `practice_scene_test` | Founding practice, relaunch, skip, replay, lesson controls, and unchanged guild progress |
-| `help_book_scene_test` | Help navigation and screen state, hints preference, practice access, and battle help |
-| `guild_profile_test` | Local profile creation, reload, seed renewal, and invalid data |
-| `content_test` | Extra crate, alternate knight kit and habit, relocated escort destination |
-| `single_battle_ui_test` | Stock and custom standalone missions through the same battle controls |
-| `standalone_victory_test` | Independent winning routes for all 15 frontier missions through public standalone launches, with forecast and commit checked through the scene |
-| `village_outing_scene_test` | Standalone village mission openings and three wins using a bounded forecast-driven scene player |
-| `rules_test` | Ability interactions and command rules |
-| `rescues_test` | Fixed-start rescues, loss, and restart |
-| `rewards_test` | Authored hero pools, seeded offers, caps, selection, carryover, and outing reset |
-| `hero_upgrade_effects_test` | Upgrade effects, learned actions and orders, and consistency between preview and commit |
-| `hook_overlay_scene_test` | Hook landing and earlier movement appear as separate forecast paths |
-| `rogue_test` | Rogue dodge, redirect, retreat, and hybrid forecast consistency |
-| `necromancer_test` | Summons, corpse selection, greetings, round order and forecast consistency, and expedition boundaries |
-| `bard_test` | Both persistent songs, seeded listeners, skipped turns and full-round laughter immunity, damage, and direct-command interactions |
-| `laughter_presentation_test` | A laughing hero loses their turn without being shown as knocked down in the command editor or debrief |
-| `storybook_gate_scene_test` | Board clicks, keyboard movement, automatic and aimed actions, and standing orders |
-| `commission_storybook_scene_test` | Normal launch through commission, recruitment, route selection, board input, and round commitment |
-| `storybook_gate_outcome_scene_test` | Forecast-vacated movement, tile inspection, and a legal eight-round victory followed by restart |
+| `content/catalog_test` | Invalid definitions, independent worlds, and interaction capabilities |
+| `content/catalog_bundle_test` | Authored parts load into one catalog; duplicate IDs and invalid deployment slots are rejected |
+| `content/commission_catalog_test` | Validation of commission settings, reports, and mission pools |
+| `expedition/commission_routes_test` | Seeded boards, both commission lengths, clue matching, rewards, and destination transitions |
+| `journeys/commission_scene_test` | Guild creation and reload, recruitment before reports, reward gating, carryover, and board renewal |
+| `presentation/practice_scene_test` | Founding practice, relaunch, skip, replay, lesson controls, and unchanged guild progress |
+| `presentation/help_book_scene_test` | Help navigation and screen state, hints preference, practice access, and battle help |
+| `guild/guild_profile_test` | Local profile creation, reload, seed renewal, and invalid data |
+| `content/content_test` | Extra crate, alternate knight kit and habit, relocated escort destination |
+| `battle/single_battle_ui_test` | Stock and custom standalone missions through the same battle controls |
+| `journeys/standalone_victory_test` | Independent winning routes for all 15 frontier missions through public standalone launches, with forecast and commit checked through the scene |
+| `journeys/village_outing_scene_test` | Standalone village mission openings and three wins using a bounded forecast-driven scene player |
+| `battle/rules_test` | Ability interactions and command rules |
+| `expedition/rescues_test` | Fixed-start rescues, loss, and restart |
+| `expedition/rewards_test` | Authored hero pools, seeded offers, caps, selection, carryover, and outing reset |
+| `battle/hero_upgrade_effects_test` | Upgrade effects, learned actions and orders, and consistency between preview and commit |
+| `presentation/hook_overlay_scene_test` | Hook landing and earlier movement appear as separate forecast paths |
+| `battle/rogue_test` | Rogue dodge, redirect, retreat, and hybrid forecast consistency |
+| `battle/necromancer_test` | Summons, corpse selection, greetings, round order and forecast consistency, and expedition boundaries |
+| `battle/bard_test` | Both persistent songs, seeded listeners, skipped turns and full-round laughter immunity, damage, and direct-command interactions |
+| `presentation/laughter_presentation_test` | A laughing hero loses their turn without being shown as knocked down in the command editor or debrief |
+| `presentation/storybook_gate_scene_test` | Board clicks, keyboard movement, automatic and aimed actions, and standing orders |
+| `journeys/commission_storybook_scene_test` | Normal launch through commission, recruitment, route selection, board input, and round commitment |
+| `presentation/storybook_gate_outcome_scene_test` | Forecast-vacated movement, tile inspection, and a legal eight-round victory followed by restart |
 
 These two scene tests should use fresh isolated player data; the help test requires `OLR_TEST_SANDBOX` and `XDG_DATA_HOME` to be the same fresh absolute directory. From the repository root:
 
@@ -289,13 +289,13 @@ For OS-delivered F1, rerun `help_book_scene_test` on graphical X11 with XTEST an
   set -e
   sandbox=$(mktemp -d /tmp/opencode/olr-scene-tests.XXXXXX)
   export OLR_TEST_SANDBOX="$sandbox" XDG_DATA_HOME="$sandbox"
-  godot --headless --path games/company-of-unlikely-heroes --script res://tests/help_book_scene_test.gd
+  godot --headless --path games/company-of-unlikely-heroes --script res://tests/presentation/help_book_scene_test.gd
   sandbox=$(mktemp -d /tmp/opencode/olr-scene-tests.XXXXXX)
   export OLR_TEST_SANDBOX="$sandbox" XDG_DATA_HOME="$sandbox"
-  godot --headless --path games/company-of-unlikely-heroes --script res://tests/practice_scene_test.gd
+  godot --headless --path games/company-of-unlikely-heroes --script res://tests/presentation/practice_scene_test.gd
 )
 ```
 
-Run `godot --script res://tests/bridge_art_test.gd` from this game directory in a graphical session to check the **rendered** shore tint and exit flag. It compares the board before and after moving the objective; no reference screenshot is required.
+Run `godot --script res://tests/presentation/bridge_art_test.gd` from this game directory in a graphical session to check the **rendered** shore tint and exit flag. It compares the board before and after moving the objective; no reference screenshot is required.
 
-Run `godot --script res://tests/outing_art_test.gd` in a graphical session to check the new figures and the marked objective zone with tactical overlays.
+Run `godot --script res://tests/presentation/outing_art_test.gd` in a graphical session to check the new figures and the marked objective zone with tactical overlays.

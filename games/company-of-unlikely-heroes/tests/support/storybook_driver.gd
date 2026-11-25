@@ -2,7 +2,7 @@ extends RefCounted
 
 var tree: SceneTree
 var scene: Node
-var rules = preload("res://rules.gd").new()
+var rules = preload("res://rules/rules.gd").new()
 var error := ""
 
 

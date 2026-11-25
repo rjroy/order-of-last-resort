@@ -115,7 +115,7 @@ def grouping(out):
     work.mkdir(exist_ok=True)
     base=work/"board.png"
     board_ground(base)
-    catalog=json.loads((GAME/"content/frontier_objectives.json").read_text())
+    catalog=json.loads((GAME/"content/missions/last_wagon.json").read_text())
     encounter=catalog["encounters"]["frontier_wagon_road"]
     heroes=[(tuple(cell),hero_sprite(hero,work),False)
             for cell,hero in zip(encounter["party_slots"],catalog["missions"]["last_wagon"]["default_party"])]

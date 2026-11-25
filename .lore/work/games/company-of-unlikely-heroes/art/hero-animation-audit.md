@@ -75,25 +75,25 @@ The clips below are the complete packaged keys on each guild hero in `assets/cas
 
 ## Verification and limits
 
-From the repository root, run `godot --path games/company-of-unlikely-heroes --script res://tests/NAME.gd` with each name below. All four checks exited 0 during this audit. Use a graphical renderer for the first two; the latter two ran headless. For the guild walkthrough use an isolated `XDG_DATA_HOME`, not a personal save.
+From the repository root, run `godot --path games/company-of-unlikely-heroes --script res://tests/NAME.gd` with each area/name below. The recorded audit checks used the paths that existed at the time and all four exited 0. Use a graphical renderer for the first two; the latter two ran headless. For the guild walkthrough use an isolated `XDG_DATA_HOME`, not a personal save.
 
-* `cast_state_art_test`: actual rendered prone/KO poses, shield recovery, Caster Pull seating and Mixologist playback timing. The KO fixture passes a figure straight to the renderer; it does **not** bypass the production scene's filter in a real mission.
-* `move_preview_scene_test`: all seven heroes; the board ready clock advances while destination stamps stay still.
-* `cast_cues_test`: resolved cue mappings and recipients, including Mixologist recipes.
-* `guild_petitions_walkthrough_test`: purchases and commits trained actions, including Knight Rescue Line and Healer Blast. A successful command does not assert a performer clip.
+* `presentation/cast_state_art_test`: actual rendered prone/KO poses, shield recovery, Caster Pull seating and Mixologist playback timing. The KO fixture passes a figure straight to the renderer; it does **not** bypass the production scene's filter in a real mission.
+* `presentation/move_preview_scene_test`: all seven heroes; the board ready clock advances while destination stamps stay still.
+* `presentation/cast_cues_test`: resolved cue mappings and recipients, including Mixologist recipes.
+* `journeys/guild_petitions_walkthrough_test`: purchases and commits trained actions, including Knight Rescue Line and Healer Blast. A successful command does not assert a performer clip.
 
 The per-grant dispatch inventory is source evidence, not a claim that all 13 grants were individually seen in a graphical run. Each linked follow-up specifies what to commit and what to look for in battle. No game code or artwork changed for this audit.
 
 ## After the audit: where to verify the changes
 
-The findings above describe the original baseline, not the current roster. The follow-ups added the following playback and in-repository checks. Run each named script with `godot --path games/company-of-unlikely-heroes --script res://tests/NAME.gd` from the repository root, using a graphical renderer.
+The findings above describe the original baseline, not the current roster. The follow-ups added the following playback and in-repository checks. Run each listed area/name with `godot --path games/company-of-unlikely-heroes --script res://tests/NAME.gd` from the repository root, using a graphical renderer.
 
 | Follow-up | What to look for | Regression |
 |---|---|---|
-| `mind-garage-afz`, `mind-garage-9kt` | The five previously static heroes and the summoned zombie now idle. The zombie’s rock returns after its throw; movement previews remain still. | `cast_sprite_art_test`, `move_preview_scene_test` |
-| `mind-garage-c6r`, `mind-garage-xza` | Purchased actions play on the hero who learned them. The Healer keeps her staff when casting Blast; resisted Mixologist Pull does not show a fall. | `guild_training_cast_test`, `guild_cross_class_cast_test`, `cast_state_art_test` |
-| `mind-garage-dug` | Earned Shield Throw releases the shield toward its resolved drop tile. The Crypter points to the nominated opponent. | `earned_cast_scene_test`, `cast_terminal_scene_test` |
-| `mind-garage-azn` | All seven heroes brace while down and rise on recovery. The Knight’s shield state and both seated Pull finishes are preserved. Laughter is not a knockdown. | `guild_knockdown_cast_test`, `guild_knockdown_timeline_test` |
-| `mind-garage-rcd` | A zero-HP hero settles under any living occupant without becoming a target or blocking movement. A wipe can play to its last frame or be skipped without changing rewards or carryover. | `guild_defeat_scene_test`, `guild_defeat_terminal_test` |
+| `mind-garage-afz`, `mind-garage-9kt` | The five previously static heroes and the summoned zombie now idle. The zombie’s rock returns after its throw; movement previews remain still. | `presentation/cast_sprite_art_test`, `presentation/move_preview_scene_test` |
+| `mind-garage-c6r`, `mind-garage-xza` | Purchased actions play on the hero who learned them. The Healer keeps her staff when casting Blast; resisted Mixologist Pull does not show a fall. | `presentation/guild_training_cast_test`, `presentation/guild_cross_class_cast_test`, `presentation/cast_state_art_test` |
+| `mind-garage-dug` | Earned Shield Throw releases the shield toward its resolved drop tile. The Crypter points to the nominated opponent. | `presentation/earned_cast_scene_test`, `presentation/cast_terminal_scene_test` |
+| `mind-garage-azn` | All seven heroes brace while down and rise on recovery. The Knight’s shield state and both seated Pull finishes are preserved. Laughter is not a knockdown. | `presentation/guild_knockdown_cast_test`, `battle/guild_knockdown_timeline_test` |
+| `mind-garage-rcd` | A zero-HP hero settles under any living occupant without becoming a target or blocking movement. A wipe can play to its last frame or be skipped without changing rewards or carryover. | `guild/guild_defeat_scene_test`, `guild/guild_defeat_terminal_test` |
 
 For the editable sources, pose recipes, and atlas verification commands, see the [cast bake guide](../../../../../games/company-of-unlikely-heroes/tools/cast/README.md). Local contact sheets are useful for comparing silhouettes, but neither the game nor these regressions requires them.

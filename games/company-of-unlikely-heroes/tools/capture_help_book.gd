@@ -55,7 +55,7 @@ func _run() -> void:
 	root.add_child(viewport)
 
 	var profile := output.path_join("profile.json")
-	var created: Dictionary = load("res://guild_profile.gd").create(profile, "The Lantern Company", CAPTURE_SEED)
+	var created: Dictionary = load("res://guild/guild_profile.gd").create(profile, "The Lantern Company", CAPTURE_SEED)
 	if created.has("error"):
 		_finish_capture(str(created.error))
 		return

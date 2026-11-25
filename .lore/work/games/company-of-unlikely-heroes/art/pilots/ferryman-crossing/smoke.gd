@@ -34,8 +34,8 @@ func _check_authored_cells(board: View) -> void:
 	var production := ProjectSettings.globalize_path("res://").path_join(
 			"../../../../../../../games/company-of-unlikely-heroes/content")
 	var common: Variant = JSON.parse_string(FileAccess.get_file_as_string(
-			production.path_join("common.json").simplify_path()))
-	_check(common is Dictionary, "Read authored common.json")
+			production.path_join("shared/common.json").simplify_path()))
+	_check(common is Dictionary, "Read authored shared/common.json")
 	if not common is Dictionary:
 		return
 	var authored: Dictionary = common.boards.bridge

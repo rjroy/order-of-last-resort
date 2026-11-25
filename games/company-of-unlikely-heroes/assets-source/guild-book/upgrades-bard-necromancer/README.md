@@ -1,6 +1,6 @@
 # Guild book upgrades: Bard and Necromancer
 
-The fifteen vignette briefs below come from `content/rewards.json`. The
+The fifteen vignette briefs below come from `content/expedition/rewards.json`. The
 illustrations show a prop or an action, not the hero portrait, label, rarity, or
 the full rules. A repeated upgrade uses the same illustration.
 

@@ -28,7 +28,7 @@ see and hear when they commit an action.
 ## Verify and produce assets
 
 ```sh
-godot --headless --path games/company-of-unlikely-heroes --script res://tests/commission_scene_test.gd
+godot --headless --path games/company-of-unlikely-heroes --script res://tests/journeys/commission_scene_test.gd
 python3 games/company-of-unlikely-heroes/tools/cast/test_packing.py
 python3 games/company-of-unlikely-heroes/tools/cast/verify_cast.py
 ```

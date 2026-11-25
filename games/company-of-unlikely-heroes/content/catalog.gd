@@ -2,7 +2,7 @@ extends RefCounted
 ## Reads authored JSON and builds independent encounters without embedding definitions in snapshots.
 
 const DEFAULT_PATH := "res://content/catalog.json"
-const Rewards = preload("res://rewards.gd")
+const Rewards = preload("res://expedition/rewards.gd")
 const Objectives = preload("res://content/objectives.gd")
 const TABLES := ["missions", "encounters", "boards", "tiles", "classes", "characters",
 	"capabilities", "objects", "abilities", "orders", "behaviors", "statuses", "events", "presentation"]

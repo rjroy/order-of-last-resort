@@ -1,0 +1,91 @@
+{
+  "classes": {
+    "wizard": {
+      "team": "heroes",
+      "max_hp": 6,
+      "capabilities": [
+        "blocks_movement",
+        "mobile",
+        "pushable",
+        "pullable",
+        "damageable",
+        "healable",
+        "protectable",
+        "commandable",
+        "recoverable"
+      ],
+      "abilities": [
+        "move",
+        "wizard_blast",
+        "wizard_pull"
+      ],
+      "habits": {
+        "order_cautious": "hold",
+        "order_blast": "blast"
+      },
+      "default_order": "order_cautious",
+      "art_key": "wizard",
+      "color": "#d9b3ce"
+    }
+  },
+  "characters": {
+    "wizard": {
+      "class": "wizard",
+      "label": "Enthusiastic Caster",
+      "guild_portrait": "wizard",
+      "cast_key": "wizard",
+      "cast_art_key": "wizard"
+    }
+  },
+  "abilities": {
+    "wizard_blast": {
+      "fitted_form": "mending_blast",
+      "label": "Blast nearest",
+      "help": "Hits and knocks down the nearest unit, friend or foe. Obstacles can take the hit.",
+      "handler": "blast",
+      "params": {
+        "damage": 4,
+        "status": "knockdown"
+      },
+      "targeting": {
+        "kind": "automatic",
+        "objects": true,
+        "capabilities": [
+          "damageable"
+        ]
+      }
+    },
+    "wizard_pull": {
+      "fitted_form": "send_off",
+      "label": "Pull and recoil",
+      "help": "Pull a target onto your tile. Recoil hurts and knocks you down.",
+      "handler": "pull",
+      "params": {
+        "recoil_damage": 2,
+        "status": "knockdown"
+      },
+      "targeting": {
+        "kind": "entity",
+        "capabilities": [
+          "pullable"
+        ]
+      }
+    }
+  },
+  "orders": {
+    "order_cautious": {
+      "label": "Hold position"
+    },
+    "order_blast": {
+      "label": "Blast nearest"
+    }
+  },
+  "behaviors": {
+    "blast": {
+      "handler": "use_ability",
+      "params": {
+        "ability": "wizard_blast"
+      }
+    }
+  }
+}

@@ -16,7 +16,7 @@ def main():
     parser.add_argument("output", type=Path, help="empty directory for the 20 PNGs")
     args = parser.parse_args()
     manifest = json.loads((HERE / "registration.json").read_text())
-    authored = json.loads((GAME / "content/commissions.json").read_text())["mission_reports"]
+    authored = json.loads((GAME / "content/expedition/commissions.json").read_text())["mission_reports"]
     cuts = manifest["cuts"]
     if set(cuts) != set(authored):
         parser.error(f"Incomplete report mappings: {sorted(set(cuts) ^ set(authored))}")

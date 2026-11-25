@@ -12,7 +12,7 @@ import sys
 
 GAME = Path(__file__).resolve().parents[2]
 ROOT = GAME.parents[1]
-SCRIPT = "res://tests/stock_cast_mission_test.gd"
+SCRIPT = "res://tests/journeys/stock_cast_mission_test.gd"
 SAFE_ID = re.compile(r"^[a-zA-Z0-9_-]+$")
 ERROR_LINE = re.compile(r"(?m)^(?:ERROR:|SCRIPT ERROR:|FAIL:|.*Parse Error:)")
 
@@ -62,7 +62,7 @@ def discover(game):
         raise ValueError("stock catalog has no missions")
     cases = []
     seen = set()
-    for path in sorted((game / "tests/support").glob("stock_cast_case_*.json")):
+    for path in sorted((game / "tests/fixtures").glob("stock_cast_case_*.json")):
         data = _json(path)
         mission, actor = _id(data.get("mission"), "case mission"), _id(data.get("actor"), "case actor")
         config = data.get("case")

@@ -56,7 +56,7 @@ python3 "$source_dir/prepare.py" "$review/repro" \
   --contact-sheet "$review/contact-sheet.png"
 (cd "$review/repro" && sha256sum -c "$OLDPWD/$source_dir/delivery.sha256")
 (cd "$game/assets/guild-book/upgrades" && sha256sum -c "$OLDPWD/$source_dir/delivery.sha256")
-godot --headless --path "$game" --script res://tests/guild_book_art_test.gd
+godot --headless --path "$game" --script res://tests/presentation/guild_book_art_test.gd
 ```
 
 Two recipe runs produced identical bytes. All seven native-size crops and a

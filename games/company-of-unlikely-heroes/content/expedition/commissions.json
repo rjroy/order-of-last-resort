@@ -1,0 +1,289 @@
+{
+  "commission_settings": {
+    "recruitment_roster": [
+      "knight",
+      "healer",
+      "wizard",
+      "alchemist",
+      "rogue",
+      "necromancer",
+      "bard",
+      "blacksmith"
+    ]
+  },
+  "mission_kinds": {
+    "skirmish": {
+      "label": "Skirmish",
+      "descriptors": [
+        "There's a fight ahead. Mind how close you let them get.",
+        "The scout recommends leaving room to step back after the first clash.",
+        "The scout marked where each foe stands. Check their reach before you close."
+      ]
+    },
+    "formation": {
+      "label": "Formation",
+      "descriptors": [
+        "There are several jobs in that crew. Find the one the others depend on.",
+        "The scout marked who stands beside whom, not just how many there are.",
+        "Pick your first target carefully. What one foe does changes what the others can do."
+      ]
+    },
+    "ambush": {
+      "label": "Ambush",
+      "descriptors": [
+        "The scout warns that you might not stay where you start.",
+        "Watch where the heavier threat could end up, not just where it stands now.",
+        "The scout drew arrows between positions rather than marking a front line."
+      ]
+    },
+    "rival_band": {
+      "label": "Rival band",
+      "descriptors": [
+        "A rival band is on the road. The scout says they don't all fight alike.",
+        "The scout's notes read like a rival roster: less about how many, more about what each can do.",
+        "Watch how that band fights together. The one who rushes you first may not be the one to worry about."
+      ]
+    },
+    "ferryman_escort": {
+      "label": "Ferryman escort",
+      "descriptors": [
+        "The ferryman is still on this bank. His ferry is on the other.",
+        "The crossing is blocked, and the passenger in need of an escort is the ferryman himself."
+      ]
+    },
+    "troll_eviction": {
+      "label": "Peaceful eviction",
+      "descriptors": [
+        "The villagers want the troll out of their square, not dead in it.",
+        "Someone needs to lead the troll out of the square. The villagers were quite firm about keeping it alive."
+      ]
+    },
+    "pressure_gate": {
+      "label": "Pressure gate",
+      "descriptors": [
+        "The gate lifts only while a living character stands on the plate.",
+        "The scout found a gate that opens for whoever stands on the plate, friend or foe."
+      ]
+    },
+    "holdout": {
+      "label": "Holdout",
+      "descriptors": [
+        "Attackers are coming from both sides. Help is on its way, but not yet.",
+        "The line needs someone alive when relief arrives. It doesn't need an empty battlefield."
+      ]
+    },
+    "sheep_herding": {
+      "label": "Sheep herding",
+      "descriptors": [
+        "Three sheep are loose, and they move away from anyone who gets too close.",
+        "The east pen is ready. The flock is not, and following right behind a sheep works better than greeting it head-on."
+      ]
+    },
+    "collapsing_bridge": {
+      "label": "Collapsing crossing",
+      "descriptors": [
+        "The bridge is losing its spans in stages. The scout marked which go first.",
+        "The far bank is still reachable, but the planks won't wait for everyone."
+      ]
+    },
+    "quiet_retrieval": {
+      "label": "Quiet retrieval",
+      "descriptors": [
+        "There's treasure ahead, and a giant asleep close enough to hear you.",
+        "The scout whispered this one: take the treasure, leave the giant sleeping."
+      ]
+    },
+    "ritual_circles": {
+      "label": "Ritual circles",
+      "descriptors": [
+        "Three circles need occupants. The marks don't care whose side they're on.",
+        "The ritual needs all its circles occupied at the same time, and one round won't do."
+      ]
+    },
+    "wagon_defense": {
+      "label": "Wagon defense",
+      "descriptors": [
+        "The supply wagon can't make headway with raiders beside it.",
+        "The road leads to the village, but the scout saw raiders bearing down on the wagon."
+      ]
+    }
+  },
+  "mission_reports": {
+    "bridge_patrol": {
+      "kind": "skirmish",
+      "descriptors": [
+        "Two Harpooners wait on opposite sides of the road. Each can hit from two tiles away, so check both before stepping between them.",
+        "These harpoons wound but don't pull. Stay more than two tiles from both raiders, or close on one without stepping into the other's reach."
+      ]
+    },
+    "goblin_mob": {
+      "kind": "skirmish",
+      "descriptors": [
+        "Five goblins are closing from both sides. They hit harder when two get beside the same target.",
+        "The goblins are weak on their own. Watch the gaps a second goblin could use to join the first."
+      ]
+    },
+    "harpoon_squad": {
+      "kind": "ambush",
+      "descriptors": [
+        "A Hookhand and a Harpooner cover the lane. The Bruiser is already close enough to make a bad pull hurt.",
+        "The Hookhand can drag a hero within reach of the slower Bruiser. Look at where the hero would land, not just where they stand."
+      ]
+    },
+    "shield_wall": {
+      "kind": "formation",
+      "descriptors": [
+        "Two Shieldbearers flank an Archer. Each one beside the Archer cuts the damage the Archer takes.",
+        "The Archer is the threat at range. Separate each Shieldbearer from the Archer to break that protection."
+      ]
+    },
+    "cowardly_captain": {
+      "kind": "formation",
+      "descriptors": [
+        "The Captain tries to back away when heroes get beside him, but the two Grunts hit harder at his side.",
+        "The Grunts aren't stronger everywhere. It's standing next to the Captain that puts extra force behind their blows."
+      ]
+    },
+    "explosive_situation": {
+      "kind": "ambush",
+      "descriptors": [
+        "Two Bombers go off when they fall. A blast hits anyone next to the Bomber, even its own allies.",
+        "Watch the Harpooner's two-tile reach when picking a spot clear of the blast. The Bombers can set each other off while they're side by side."
+      ]
+    },
+    "unfortunate_healer": {
+      "kind": "formation",
+      "descriptors": [
+        "Two Bruisers have a Healer who can patch up a wounded ally within two tiles.",
+        "The enemy Healer has only two heals. A Bruiser out of reach gets neither."
+      ]
+    },
+    "duelists": {
+      "kind": "skirmish",
+      "descriptors": [
+        "Two Duelists are waiting. A Duelist who survives a hit can strike back if the attacker is still beside them.",
+        "These two punish a clean hit at arm's length. Attack from farther away or leave a gap before the return blow."
+      ]
+    },
+    "odd_couple": {
+      "kind": "ambush",
+      "descriptors": [
+        "The Trickster can trade places with the Ogre once. Watch for it to move closer to your company than the Ogre is.",
+        "The Ogre hits hard up close. A gap that looks safe from the Ogre may not be safe from a swap."
+      ]
+    },
+    "mirror_company": {
+      "kind": "rival_band",
+      "descriptors": [
+        "They brought a Knight who pushes, a Wizard who blasts the nearest character, and a Healer who patches up wounded allies.",
+        "The rival Healer gets two heals. Their Wizard can hit their own side, and their Knight answers a taunt."
+      ]
+    },
+    "last_one_standing": {
+      "kind": "rival_band",
+      "descriptors": [
+        "When a Bandit falls, the Fierce one hits harder and the Swift one moves farther. Those gains stack.",
+        "The Guard Bandit shrugs off part of a heavy hit once another Bandit is down. Small hits still get through, and the armor only improves once."
+      ]
+    },
+    "company_rescue": {
+      "kind": "ferryman_escort",
+      "descriptors": [
+        "A crate sits in the ferryman's path to the narrow bridge. A Harpooner waits across the gap.",
+        "Get the ferryman to the far bank by the end of round ten. Clearing the Harpooner alone won't get him to the ferry."
+      ],
+      "destination_descriptors": [
+        "The last ferryman is stranded on the wrong bank. Get him to his ferry before the crossing gives way.",
+        "The ferryman can't get past a crate and a Harpooner on his own. Bring him across alive."
+      ]
+    },
+    "unwelcome_guest": {
+      "kind": "troll_eviction",
+      "descriptors": [
+        "The troll follows the nearest living hero and stops beside them. Draw it out of the marked square.",
+        "A shove will do if the troll ends the round outside the square. It has to survive the round."
+      ],
+      "destination_descriptors": [
+        "A troll has taken over the village square. The villagers want the square back and the troll in one piece.",
+        "The village has asked for someone to show a stubborn guest the way out. Lead or shove the troll out alive."
+      ]
+    },
+    "wrong_side_of_the_door": {
+      "kind": "pressure_gate",
+      "descriptors": [
+        "The plate at C2 opens the gate at D3 while any living character stands on it. Send a hero through to F3.",
+        "A goblin waits beyond the gate. The plate works under a goblin too, and the gate closes as soon as the plate is empty."
+      ],
+      "destination_descriptors": [
+        "There's no key for this gate. Hold down the pressure plate long enough to get a hero to the far exit.",
+        "A goblin is watching the only way through. Put a living body on the plate and get one of your own out the far side."
+      ]
+    },
+    "hold_the_line": {
+      "kind": "holdout",
+      "descriptors": [
+        "Goblins close in from both sides with a Bruiser to the east. Keep one hero alive through round six, when help arrives.",
+        "From round four, an Archer and a War Drummer join the attack when their entry tiles are clear. You don't need to defeat them to hold the line."
+      ],
+      "destination_descriptors": [
+        "Relief is six rounds away and the line is under attack from both sides. Keep someone standing until help arrives.",
+        "The attackers have an Archer and a War Drummer in reserve. Hold long enough for your own relief to arrive."
+      ]
+    },
+    "great_sheep_escape": {
+      "kind": "sheep_herding",
+      "descriptors": [
+        "All three sheep need to reach the east pen alive. At round's end, loose sheep react to the nearest non-sheep within two tiles.",
+        "A sheep that can't get farther from whoever startled it may step toward the pen instead. Once penned, it settles."
+      ],
+      "destination_descriptors": [
+        "Three sheep have bolted. Get the whole flock back into the east pen without losing one.",
+        "The shepherd is scattering the flock too. Put your heroes where the sheep will run toward the pen, not away from it."
+      ]
+    },
+    "bridge_is_out": {
+      "kind": "collapsing_bridge",
+      "descriptors": [
+        "The C span drops at the end of round four and the E span at the end of round six. Don't be standing on either when it goes.",
+        "Get a living hero to G3 by the end of round eight. You can leave the raider behind; reaching the bank is what matters."
+      ],
+      "destination_descriptors": [
+        "The bridge is coming down in sections. Get a hero to the far bank before the last of it goes.",
+        "A raider is on the failing bridge. You don't have to win that fight; you have to get across."
+      ]
+    },
+    "dont_wake_the_giant": {
+      "kind": "quiet_retrieval",
+      "descriptors": [
+        "The treasure is at E3. Each hero move adds one noise, another ability adds two, and a performance adds three.",
+        "Holding is silent. Even if a hero reaches the treasure early, the round has to end at twelve noise or less."
+      ],
+      "destination_descriptors": [
+        "The treasure is within reach of a light-footed hero. Get to it without waking the giant.",
+        "A goblin is near the treasure and a giant is asleep. Take what you came for without making a full fight of it."
+      ]
+    },
+    "unfortunate_ritual": {
+      "kind": "ritual_circles",
+      "descriptors": [
+        "All three circles must have living occupants at the end of two rounds in a row. Enemies and summons count.",
+        "A Hookhand can spoil your placement. One empty circle at round's end resets the count."
+      ],
+      "destination_descriptors": [
+        "Three ritual circles need living occupants. Keep all three filled at the close of two rounds running.",
+        "The circles make no distinction between friend and foe. Use whoever is on hand to finish the ritual."
+      ]
+    },
+    "last_wagon": {
+      "kind": "wagon_defense",
+      "descriptors": [
+        "Two raiders are coming for the wagon. A living enemy next to it stops it from moving that round.",
+        "Keep the route clear and the wagon can take one step at round's end. It has to reach the village intact."
+      ],
+      "destination_descriptors": [
+        "The village is waiting on its last supply wagon. See it safely down the road while raiders close in.",
+        "Raiders are after the supplies. Keep them away from the wagon so it can reach the village under its own power."
+      ]
+    }
+  }
+}

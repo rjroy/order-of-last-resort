@@ -1,6 +1,6 @@
 # Guild book field report artwork
 
-Candidate set, 2026-11-21. The connected study established the visual direction; the complete 20-sketch set is pending exact player acceptance. See [Motifs](motifs.md) for each mission's two alternate descriptions and art brief. The sketches are keyed only to the immediate disclosed mission `id` in [`commissions.json`](../../../content/commissions.json). Eleven are transit sketches and nine cover the immediate reports authored for finales. No onward-kind or hidden-route images are supplied.
+Candidate set, 2026-11-21. The connected study established the visual direction; the complete 20-sketch set is pending exact player acceptance. See [Motifs](motifs.md) for each mission's two alternate descriptions and art brief. The sketches are keyed only to the immediate disclosed mission `id` in [`commissions.json`](../../../content/expedition/commissions.json). Eleven are transit sketches and nine cover the immediate reports authored for finales. No onward-kind or hidden-route images are supplied.
 
 ## Sources and registration
 

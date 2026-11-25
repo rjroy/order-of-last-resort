@@ -1,6 +1,6 @@
 # Ferryman crossing layout guide
 
-`layout-guide.png` is a **1536 × 1024** registration reference for the illustrated ground, not the illustration or a runtime asset. It is derived from `boards.bridge` in `games/company-of-unlikely-heroes/content/common.json` and `encounters.company_crossing` in `first_outing.json` beside it.
+`layout-guide.png` is a **1536 × 1024** registration reference for the illustrated ground, not the illustration or a runtime asset. It is derived from `boards.bridge` in `games/company-of-unlikely-heroes/content/shared/common.json` and `encounters.company_crossing` in `content/missions/company_rescue.json`.
 
 Run from the repository root with Python 3 and `rsvg-convert` (librsvg 2.63.3 used here):
 

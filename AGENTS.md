@@ -4,6 +4,8 @@ Read the [game guide](games/company-of-unlikely-heroes/README.md) and relevant
 game records under `.lore/work/games/company-of-unlikely-heroes/` before
 changing the game. This is a standalone extraction of the Mind Garage game.
 Preserve the existing paths: asset recipes and regression tools depend on them.
+See the [project layout guide](docs/project-layout.md) for directory ownership,
+historical exceptions, and live versus archival commands.
 
 - Keep accepted artwork, native models, recipes and their provenance in source
   control. Place generated captures, logs and temporary evidence in ignored

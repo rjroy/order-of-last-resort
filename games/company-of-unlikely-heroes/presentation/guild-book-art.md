@@ -40,7 +40,7 @@ an undisclosed future mission or the other branch.
 
 ## Rewards
 
-`upgrades/` uses upgrade definition IDs from `content/rewards.json`. Repeated
+`upgrades/` uses upgrade definition IDs from `content/expedition/rewards.json`. Repeated
 copies of an illustrated reward use the same file. Guild perks are not adventure
 upgrades.
 

@@ -1,0 +1,143 @@
+{
+  "missions": {
+    "explosive_situation": {
+      "title": "The Explosive Situation",
+      "encounter": "frontier_explosive_situation",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. When a Bomber dies, it deals 2 damage to every adjacent living character, friend or foe. Bombers can set each other off.",
+        "victory_text": "The company wins the fight.",
+        "defeat_text": "The company falls.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ],
+      "tier": 2
+    }
+  },
+  "encounters": {
+    "frontier_explosive_situation": {
+      "board": "frontier_field",
+      "party_slots": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "bomber_1",
+          "character": "bomber",
+          "at": [
+            4,
+            1
+          ]
+        },
+        {
+          "id": "bomber_2",
+          "character": "bomber",
+          "at": [
+            4,
+            2
+          ]
+        },
+        {
+          "id": "harpooner_3",
+          "character": "harpooner",
+          "at": [
+            5,
+            3
+          ]
+        }
+      ]
+    }
+  },
+  "characters": {
+    "bomber": {
+      "class": "enemy",
+      "label": "Bomber",
+      "art_key": "enemy",
+      "art_variant": "spear",
+      "max_hp": 2,
+      "abilities": [
+        "move",
+        "bomber_strike"
+      ],
+      "behavior": "frontier_bomber_strike",
+      "traits": [
+        {
+          "kind": "death_blast",
+          "damage": 2,
+          "range": 1
+        }
+      ],
+      "cast_key": "bomber",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "move"
+          },
+          "bomber_strike": {
+            "handler": "attack",
+            "clip": "close_strike"
+          }
+        },
+        "hit": "hit",
+        "defeat": "detonate_on_defeat"
+      }
+    }
+  },
+  "abilities": {
+    "bomber_strike": {
+      "label": "Bomber Strike",
+      "help": "Deals 1 damage to a hero or summon within 1 tile.",
+      "handler": "attack",
+      "params": {
+        "damage": 1,
+        "source_suffix": "'s bomber strike"
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 1,
+        "teams": [
+          "heroes"
+        ]
+      }
+    }
+  },
+  "behaviors": {
+    "frontier_bomber_strike": {
+      "handler": "threat",
+      "params": {
+        "fallback_teams": [
+          "heroes"
+        ],
+        "pursue_range": 7,
+        "taunt_status": "taunt",
+        "move_ability": "move",
+        "ability": "bomber_strike"
+      }
+    }
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "classes": {
+    "knight": {
+      "team": "heroes",
+      "max_hp": 8,
+      "capabilities": [
+        "blocks_movement",
+        "mobile",
+        "pushable",
+        "pullable",
+        "damageable",
+        "healable",
+        "protectable",
+        "commandable",
+        "recoverable"
+      ],
+      "abilities": [
+        "move",
+        "knight_push",
+        "knight_aura"
+      ],
+      "habits": {
+        "order_guard": "guard",
+        "order_advance": "advance"
+      },
+      "default_order": "order_guard",
+      "art_key": "knight",
+      "color": "#a7cdcd"
+    }
+  },
+  "characters": {
+    "knight": {
+      "class": "knight",
+      "label": "Anxious Knight",
+      "guild_portrait": "knight",
+      "cast_key": "knight",
+      "cast_art_key": "knight"
+    }
+  },
+  "abilities": {
+    "knight_push": {
+      "label": "Push",
+      "help": "Push a neighboring unit or obstacle one tile. Collision deals damage.",
+      "handler": "push",
+      "fitted_form": "fitted_pull",
+      "params": {
+        "collision_damage": 2
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 1,
+        "objects": true,
+        "capabilities": [
+          "pushable"
+        ]
+      }
+    },
+    "knight_aura": {
+      "label": "Reflecting aura",
+      "help": "Covers everyone within one tile; reflects to the nearest enemy or obstacle.",
+      "handler": "apply_status",
+      "fitted_form": "clear_the_floor",
+      "params": {
+        "status": "aura"
+      },
+      "targeting": {
+        "kind": "none"
+      }
+    }
+  },
+  "orders": {
+    "order_guard": {
+      "label": "Guard"
+    },
+    "order_advance": {
+      "label": "Advance"
+    }
+  },
+  "behaviors": {
+    "guard": {
+      "handler": "use_ability",
+      "params": {
+        "ability": "knight_aura"
+      }
+    },
+    "advance": {
+      "handler": "pursue",
+      "params": {
+        "ability": "knight_push",
+        "move_ability": "move",
+        "team": "enemies"
+      }
+    }
+  }
+}

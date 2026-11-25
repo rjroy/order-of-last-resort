@@ -46,7 +46,7 @@ The standard reviewer uses the current production registration camera and ink li
 At the fixed camera, the carried bow can still overlap the chest in projection. The side views and clearance check show separate geometry. The original shared tactical comparison is retained with the earlier MP4; neither is evidence of a runtime change. The stock Hold the Line graphical case checks reserve entry and shots. For the packaged arrow's launch and tip in both facings, run:
 
 ```sh
-godot --path games/company-of-unlikely-heroes --script res://tests/archer_release_scene_test.gd -- \
+godot --path games/company-of-unlikely-heroes --script res://tests/presentation/archer_release_scene_test.gd -- \
   --output="$PWD/.lore/local/archer-release-check"
 ```
 

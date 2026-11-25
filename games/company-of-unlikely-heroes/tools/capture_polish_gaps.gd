@@ -1,8 +1,8 @@
 extends "res://tools/capture_guild_book.gd"
 ## Supplement capture_guild_book with exceptional and intermediate states.
 
-const Controls = preload("res://tests/forfeit_controls.gd")
-const GapRules = preload("res://rules.gd")
+const Controls = preload("res://tests/support/forfeit_controls.gd")
+const GapRules = preload("res://rules/rules.gd")
 
 
 func _run() -> void:
@@ -65,7 +65,7 @@ func _run() -> void:
 			or not _screen_is("commissions") or not await _save_capture("05-long-name-commissions"):
 		_finish_capture(failure if not failure.is_empty() else "Long guild name failed.")
 		return
-	var store = load("res://guild_profile.gd")
+	var store = load("res://guild/guild_profile.gd")
 	var seeded: Dictionary = store.renew(profile, scene.get("_guild_profile"), BOARD_SEED)
 	if seeded.has("error"):
 		_finish_capture("Cannot seed disposable commission board: " + str(seeded.error))

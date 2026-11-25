@@ -2,7 +2,7 @@ extends RefCounted
 ## A stock-only drill. Never added to the launch catalog or commission pools.
 
 const Catalog := preload("res://content/catalog.gd")
-const Rules := preload("res://rules.gd")
+const Rules := preload("res://rules/rules.gd")
 const MISSION_ID := "founders_practice"
 const CATALOG_PATH := "res://content/practice/catalog.json"
 const FOUNDERS := ["knight", "healer", "wizard"]

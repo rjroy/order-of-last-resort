@@ -1,31 +1,31 @@
 extends Control
 
-const Rules = preload("res://rules.gd")
-const BridgeArt = preload("res://bridge_art.gd")
-const BattleCues = preload("res://battle_cues.gd")
-const BattleDisplayPreferences = preload("res://battle_display_preferences.gd")
-const CastCues = preload("res://presentation/cast_cues.gd")
-const SoundEffects = preload("res://presentation/sound_effects.gd")
-const BackgroundMusic = preload("res://presentation/background_music.gd")
+const Rules = preload("res://rules/rules.gd")
+const BridgeArt = preload("res://presentation/battle/bridge_art.gd")
+const BattleCues = preload("res://presentation/battle/battle_cues.gd")
+const BattleDisplayPreferences = preload("res://presentation/settings/battle_display_preferences.gd")
+const CastCues = preload("res://presentation/cast/cast_cues.gd")
+const SoundEffects = preload("res://presentation/audio/sound_effects.gd")
+const BackgroundMusic = preload("res://presentation/audio/background_music.gd")
 const Catalog = preload("res://content/catalog.gd")
-const Adventure = preload("res://adventure.gd")
-const Commissions = preload("res://commissions.gd")
-const GuildProfile = preload("res://guild_profile.gd")
-const Progression = preload("res://guild_progression.gd")
-const GuildBookPage = preload("res://presentation/guild_book_page.gd")
-const GuildBookArt = preload("res://presentation/guild_book_art.gd")
-const GuildCreationPage = preload("res://presentation/guild_creation_page.gd")
-const GuildBoundPage = preload("res://presentation/guild_bound_page.gd")
-const CommissionBoardPage = preload("res://presentation/commission_board_page.gd")
-const FieldReportsPage = preload("res://presentation/field_reports_page.gd")
-const MissionDebriefPage = preload("res://presentation/mission_debrief_page.gd")
-const RunResultPage = preload("res://presentation/run_result_page.gd")
-const DiagnosticBookPage = preload("res://presentation/diagnostic_book_page.gd")
-const ReceiptCopy = preload("res://presentation/guild_receipt_copy.gd")
-const GuildPetitionViewModel = preload("res://presentation/guild_petition_view_model.gd")
+const Adventure = preload("res://expedition/adventure.gd")
+const Commissions = preload("res://expedition/commissions.gd")
+const GuildProfile = preload("res://guild/guild_profile.gd")
+const Progression = preload("res://guild/guild_progression.gd")
+const GuildBookPage = preload("res://presentation/book/guild_book_page.gd")
+const GuildBookArt = preload("res://presentation/book/guild_book_art.gd")
+const GuildCreationPage = preload("res://presentation/book/guild_creation_page.gd")
+const GuildBoundPage = preload("res://presentation/book/guild_bound_page.gd")
+const CommissionBoardPage = preload("res://presentation/book/commission_board_page.gd")
+const FieldReportsPage = preload("res://presentation/book/field_reports_page.gd")
+const MissionDebriefPage = preload("res://presentation/book/mission_debrief_page.gd")
+const RunResultPage = preload("res://presentation/book/run_result_page.gd")
+const DiagnosticBookPage = preload("res://presentation/book/diagnostic_book_page.gd")
+const ReceiptCopy = preload("res://presentation/book/guild_receipt_copy.gd")
+const GuildPetitionViewModel = preload("res://presentation/book/guild_petition_view_model.gd")
 const PracticeEncounter = preload("res://content/practice/practice_encounter.gd")
-const PracticeLesson = preload("res://presentation/practice_lesson.gd")
-const PracticeInstructions = preload("res://presentation/practice_instructions.gd")
+const PracticeLesson = preload("res://presentation/battle/practice_lesson.gd")
+const PracticeInstructions = preload("res://presentation/help/practice_instructions.gd")
 const TERMINAL_REPLAY_STALL_MS := 3200
 
 const PAPER := Color("#f1dfb8")
@@ -514,7 +514,7 @@ func _show_petitions(focus_name := "") -> void:
 				selected_visible = true
 	if not selected_visible:
 		_petition_selected = str(visible_rows[0].id) if not visible_rows.is_empty() else ""
-	var script = load("res://presentation/guild_petitions_page.gd")
+	var script = load("res://presentation/book/guild_petitions_page.gd")
 	if script == null:
 		_show_launch_error("Guild petitions page is missing.")
 		return
@@ -685,7 +685,7 @@ func _show_recruitment(focus_name := "") -> void:
 			if not _loadout_compatible(str(id)):
 				blocked = "Choose a compatible standing order for %s." % _hero_row(str(id)).name
 				break
-	var script = load("res://presentation/guild_recruitment_page.gd")
+	var script = load("res://presentation/book/guild_recruitment_page.gd")
 	if script == null:
 		_show_launch_error("Guild recruitment page is missing.")
 		return
@@ -1281,9 +1281,9 @@ func _show_storybook_battle() -> void:
 	if is_instance_valid(_screen_root):
 		remove_child(_screen_root)
 		_screen_root.queue_free()
-	var page_script = load("res://presentation/storybook_battle_page.gd")
+	var page_script = load("res://presentation/battle/storybook_battle_page.gd")
 	if page_script == null:
-		_show_launch_error("Storybook page is missing. Restore presentation/storybook_battle_page.gd.")
+		_show_launch_error("Storybook page is missing. Restore presentation/battle/storybook_battle_page.gd.")
 		return
 	_storybook_page = page_script.new()
 	_screen_root = _storybook_page

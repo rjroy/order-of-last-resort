@@ -1,6 +1,6 @@
 # Field report sketch map
 
-This is the content and drawing plan for the child scout's field reports in *Barnaby’s Order of Last Resort*. The source is `../../../content/commissions.json`, `mission_reports`. The two variants for a mission share the same image. No image uses a future mission, the other branch, an onward kind, or destination-only copy. The 11 transit reports appear in commission forks; for the nine finales this set covers their authored immediate report records, not a new fork.
+This is the content and drawing plan for the child scout's field reports in *Barnaby’s Order of Last Resort*. The source is `../../../content/expedition/commissions.json`, `mission_reports`. The two variants for a mission share the same image. No image uses a future mission, the other branch, an onward kind, or destination-only copy. The 11 transit reports appear in commission forks; for the nine finales this set covers their authored immediate report records, not a new fork.
 
 The cheap cream school paper is part of each opaque PNG. A child of about six drew a single oversized observation from the encounter in dark, shaky pencil and uneven wax crayon. Shapes overlap and perspective is inconsistent; no polished lighting, caption, labels, numbers, or writing. Leave blank paper on all sides. Use wide crops contained within 510 × 212 at 1280 × 820, preserving the reviewed bridge plate's roughly 3:2 aspect when practical. Keep only features common to the two public variants, backed by the immediate encounter.
 

@@ -1,6 +1,6 @@
 # Guild book reward illustrations: Knight and Healer
 
-The 17 reward definitions below were inventoried from `content/rewards.json` before illustration. These are adventure rewards, not guild perks. Artwork shows the reward's change; the interface supplies the class identity, rule text, rarity, and remaining availability.
+The 17 reward definitions below were inventoried from `content/expedition/rewards.json` before illustration. These are adventure rewards, not guild perks. Artwork shows the reward's change; the interface supplies the class identity, rule text, rarity, and remaining availability.
 
 Visual references: the approved Knight turnaround and guard study (`.lore/work/games/company-of-unlikely-heroes/art/concepts/knight/`), Healer field-medic study (`art/concepts/healer/`), model reference poses under `art/models/`, and the framed Marked-Up Illustration (`art/concepts/storybook-ux/marked-up-illustration-framed.png`). The Knight's shield is tapered oak with a riveted rim and an ochre griffin, held on the left; his tabard is weathered blue. The Healer's tools are a blunt wooden crook and heavy offset satchel; the hands are wrapped. Her model establishes the short, downward Bonk, rather than the concept's broad horizontal stance.
 
@@ -45,4 +45,4 @@ From the repository root, extract the derivative candidates using Python 3 and I
 python games/company-of-unlikely-heroes/assets-source/guild-book/upgrades-knight-healer/crop.py
 ```
 
-Use `--out <directory>` to build elsewhere for a byte comparison without overwriting the packaged files. The script checks the sheet hashes, crop bounds, output sizes and exact ID coverage against `content/rewards.json`. It writes 636 × 308 opaque RGB PNGs in sRGB, using uniform Lanczos resampling with a center trim to match the 318 × 154 art slot at 2× size. The cream is intentional page color, not a substitute for transparency. No lettering, UI furniture or rarity is embedded.
+Use `--out <directory>` to build elsewhere for a byte comparison without overwriting the packaged files. The script checks the sheet hashes, crop bounds, output sizes and exact ID coverage against `content/expedition/rewards.json`. It writes 636 × 308 opaque RGB PNGs in sRGB, using uniform Lanczos resampling with a center trim to match the 318 × 154 art slot at 2× size. The cream is intentional page color, not a substitute for transparency. No lettering, UI furniture or rarity is embedded.

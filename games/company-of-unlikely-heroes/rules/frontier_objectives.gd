@@ -1,6 +1,7 @@
 extends RefCounted
 
 const Board = preload("res://rules/board.gd")
+const Fittings = preload("res://rules/fittings.gd")
 const Movement = preload("res://rules/movement.gd")
 const RitualCapacity = preload("res://rules/ritual_capacity.gd")
 const Statuses = preload("res://rules/statuses.gd")
@@ -306,6 +307,7 @@ static func _collapse_due_spans(state: Dictionary, events: Array) -> void:
 		for occupant in state.units + state.obstacles:
 			if Board.alive(occupant) and occupant.position in span.cells:
 				occupant.hp = 0
+				Fittings.clear(occupant)
 				Board.event(events, "collapse_fall", "%s falls with the bridge at %s." % [
 					Board.display_name(state, occupant), Board.coordinate(occupant.position)],
 					{"unit_id": occupant.id, "position": occupant.position})

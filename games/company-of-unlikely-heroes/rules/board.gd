@@ -121,6 +121,13 @@ static func distance(a: Vector2i, b: Vector2i) -> int:
 	return absi(a.x - b.x) + absi(a.y - b.y)
 
 
+static func dominant_step(from: Vector2i, to: Vector2i) -> Vector2i:
+	var delta := to - from
+	if absi(delta.x) >= absi(delta.y) and delta.x != 0:
+		return Vector2i(signi(delta.x), 0)
+	return Vector2i(0, signi(delta.y))
+
+
 static func in_zone(state: Dictionary, zone_id: String, position: Vector2i) -> bool:
 	var cells: Array = state.catalog.defs.boards[state.board_id].zones[zone_id]
 	for cell in cells:

@@ -50,6 +50,20 @@
       "art_key": "knight",
       "color": "#a7cdcd"
     },
+    "blacksmith": {
+      "team": "heroes",
+      "max_hp": 8,
+      "capabilities": ["blocks_movement", "mobile", "pushable", "pullable", "damageable", "healable", "protectable", "commandable", "recoverable"],
+      "abilities": ["move", "blacksmith_hammer_time", "blacksmith_try_this"],
+      "habits": {
+        "order_try_this": "blacksmith_fit_nearest",
+        "order_pursue": "blacksmith_pursue",
+        "order_hold": "hold"
+      },
+      "default_order": "order_try_this",
+      "art_key": "blacksmith",
+      "color": "#c49b75"
+    },
     "healer": {
       "team": "heroes",
       "max_hp": 7,
@@ -178,6 +192,11 @@
       "guild_portrait": "knight",
       "cast_key": "knight",
       "cast_art_key": "knight"
+    },
+    "blacksmith": {
+      "class": "blacksmith",
+      "label": "Hobby Smith",
+      "description": "Fit a teammate with Try This to change their next eligible ability. Hammer Time lands a close-range hit."
     },
     "healer": {
       "class": "healer",
@@ -408,6 +427,7 @@
       "label": "Push",
       "help": "Push a neighboring unit or obstacle one tile. Collision deals damage.",
       "handler": "push",
+      "fitted_form": "fitted_pull",
       "params": {
         "collision_damage": 2
       },
@@ -424,12 +444,27 @@
       "label": "Reflecting aura",
       "help": "Covers everyone within one tile; reflects to the nearest enemy or obstacle.",
       "handler": "apply_status",
+      "fitted_form": "clear_the_floor",
       "params": {
         "status": "aura"
       },
       "targeting": {
         "kind": "none"
       }
+    },
+    "blacksmith_hammer_time": {
+      "label": "Hammer Time",
+      "help": "Deal 2 damage to an adjacent opponent or damageable obstacle. Does not shove or taunt.",
+      "handler": "attack",
+      "params": {"damage": 2, "source_suffix": "'s Hammer Time"},
+      "targeting": {"kind": "entity", "range": 1, "teams": ["enemies"], "objects": true, "capabilities": ["damageable"]}
+    },
+    "blacksmith_try_this": {
+      "label": "Try This",
+      "help": "Fit another deployed hero anywhere. Their next eligible ability uses its alternate once. A new fitting replaces your old one.",
+      "handler": "fit",
+      "params": {},
+      "targeting": {"kind": "entity"}
     },
     "healer_bonk": {
       "label": "Bonk and taunt",
@@ -550,6 +585,8 @@
     }
   },
   "orders": {
+    "order_try_this": {"label": "Try This"},
+    "order_pursue": {"label": "Pursue"},
     "order_hold": {
       "label": "Hold"
     },
@@ -585,6 +622,14 @@
     }
   },
   "behaviors": {
+    "blacksmith_fit_nearest": {
+      "handler": "fit_nearest",
+      "params": {"ability": "blacksmith_try_this"}
+    },
+    "blacksmith_pursue": {
+      "handler": "pursue",
+      "params": {"ability": "blacksmith_hammer_time", "move_ability": "move", "team": "enemies"}
+    },
     "sing_melody": {
       "handler": "use_ability",
       "params": {"ability": "inspiring_melody"}

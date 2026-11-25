@@ -19,7 +19,9 @@ const ABILITY_TARGETING := {
 	"summon": ["cell", "entity"], "sweep": ["none"], "repel": ["automatic"], "stop_target": ["automatic"],
 	"perform": ["automatic"], "hook": ["entity", "automatic"], "nominate": ["entity"],
 	"healing_potion": ["entity"], "acid": ["entity"], "plain_tonic": ["entity"], "repeat_batch": ["entity"],
+	"fit": ["entity"],
 }
+const FITTED_SOURCE_HANDLERS := {"fitted_pull": "push", "clear_the_floor": "apply_status"}
 const ABILITY_EVENTS := {"swap_furthest": ["swap"], "swap_ally": ["swap"], "misdirect": ["misdirect_mark"],
 	"sweep": ["sweep"], "stop_target": ["stop_target"], "repel": ["repel"],
 	"perform": ["performance_dry"], "hook": ["hook_pull"]}
@@ -510,6 +512,9 @@ class Validator:
 		var kind := ""
 		if _choice(authored_kind, ABILITY_TARGETING[handler], path + ".targeting.kind"):
 			kind = authored_kind
+		if ability.has("fitted_form") and _choice(ability.fitted_form, FITTED_SOURCE_HANDLERS.keys(), path + ".fitted_form"):
+			if FITTED_SOURCE_HANDLERS[ability.fitted_form] != handler:
+				_error(path + ".fitted_form", "does not match the source ability handler")
 		if targeting.has("range"):
 			if handler == "move" or (handler == "summon" and kind == "cell"):
 				if not _is_integer(targeting.range, 1) or int(targeting.range) != 1:
@@ -548,7 +553,10 @@ class Validator:
 			"push":
 				_integer(params.get("collision_damage"), param_path + "collision_damage")
 			"apply_status":
-				_ref(params.get("status"), "statuses", param_path + "status")
+				if _ref(params.get("status"), "statuses", param_path + "status") \
+						and ability.get("fitted_form") == "clear_the_floor" \
+						and _defs.statuses[params.status].get("handler") != "reflect":
+					_error(path + ".fitted_form", "Clear the Floor requires a reflecting status")
 			"misdirect":
 				var status: Variant = params.get("status")
 				if _ref(status, "statuses", param_path + "status") and not is_same(_defs.statuses[status].get("handler"), "misdirect"):
@@ -656,7 +664,7 @@ class Validator:
 		if not _choice(handler, ["use_ability", "pursue", "hold", "rescue", "threat", "escort",
 				"retreat", "greet", "hook_and_seek", "follow_party", "retreat_attack",
 				"finite_healer", "swap_ally", "follow_ally", "most_injured", "nearest_target",
-				"pass_blame", "make_friend"], path + ".handler"):
+				"pass_blame", "make_friend", "fit_nearest"], path + ".handler"):
 			return
 		path += ".params."
 		if handler in ["use_ability", "pursue", "rescue", "threat", "hook_and_seek",
@@ -666,6 +674,8 @@ class Validator:
 			_check_behavior_action(params.get("ability"), "misdirect", "entity", path + "ability")
 		if handler == "make_friend":
 			_check_behavior_action(params.get("ability"), "summon", "cell", path + "ability")
+		if handler == "fit_nearest":
+			_check_behavior_action(params.get("ability"), "fit", "entity", path + "ability")
 		if handler in ["pursue", "threat", "escort", "retreat", "greet", "hook_and_seek",
 				"follow_ally", "follow_party", "retreat_attack", "finite_healer", "swap_ally"]:
 			var move: Variant = params.get("move_ability")

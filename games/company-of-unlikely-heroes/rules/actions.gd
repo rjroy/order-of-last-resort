@@ -4,6 +4,7 @@ const Alchemy = preload("res://rules/alchemy.gd")
 const Board = preload("res://rules/board.gd")
 const Combat = preload("res://rules/combat.gd")
 const EncounterRandom = preload("res://rules/encounter_random.gd")
+const Fittings = preload("res://rules/fittings.gd")
 const Frontier = preload("res://rules/frontier_combat.gd")
 const Movement = preload("res://rules/movement.gd")
 const Performances = preload("res://rules/performances.gd")
@@ -96,6 +97,8 @@ static func _entity_allowed(state: Dictionary, actor: Dictionary, candidate: Dic
 				and Statuses.accepts(state, candidate, ability.params.status, actor)
 		"nominate":
 			return Board.opponents(state, actor, candidate)
+		"fit":
+			return Fittings.eligible(state, actor, candidate) and Fittings.source(candidate).is_empty()
 		"repel":
 			return candidate.has("character_id")
 		"stop_target":
@@ -237,15 +240,66 @@ static func extra_sweep_reaches(state: Dictionary, actor: Dictionary, candidate:
 		and Upgrades.amount(state, Summons.owner(state, actor), "broad_wave") > 0
 
 
+## Resolve the form at the actor's slot, before selecting any manual or standing target.
+static func action_form(state: Dictionary, actor: Dictionary, id: String) -> Dictionary:
+	var base := owned_ability(state, actor, id)
+	var alternate := Fittings.alternate(state, actor, base) if base.has("fitted_form") and can_act(state, actor) else {}
+	return {"base": base, "alternate": alternate, "converted": not alternate.get("choices", []).is_empty()}
+
+
+static func command_ability(state: Dictionary, actor: Dictionary, id: String) -> Dictionary:
+	var form := action_form(state, actor, id)
+	var alternate: Dictionary = form.alternate
+	if form.converted:
+		return alternate.merged({"label": "%s → %s" % [form.base.label, alternate.label]}, true)
+	if not alternate.is_empty():
+		var reason: String = alternate.unavailable_reason
+		var blocked := reason == "shield away"
+		var label := " (shield away; Fitted stays)" if blocked else " (ordinary; Fitted stays)"
+		return form.base.merged({"label": form.base.label + label, "command_blocked": blocked,
+			"help": "%s unavailable: %s. %s" % [alternate.label, reason, form.base.help]}, true)
+	return form.base
+
+
+static func standing_alternate(state: Dictionary, actor: Dictionary, id: String, prefer_opponents := false) -> Dictionary:
+	if Fittings.source(actor).is_empty():
+		return {}
+	var form := action_form(state, actor, id)
+	if not form.converted:
+		return {}
+	var alternate: Dictionary = form.alternate
+	if alternate.targeting.kind == "none":
+		return {"ability_id": id, "target_id": ""}
+	var choices: Array = alternate.choices
+	if prefer_opponents:
+		var opponents := choices.filter(func(choice: Dictionary) -> bool:
+			return Board.opponents(state, actor, Board.entity(state, choice.id)))
+		if not opponents.is_empty():
+			choices = opponents
+	return {"ability_id": id, "target_id": Board.nearest(actor, choices, true).id}
+
+
 static func targets(state: Dictionary, actor: Dictionary, ability_id: String) -> Array:
-	var ability := owned_ability(state, actor, ability_id)
+	var form := action_form(state, actor, ability_id)
+	if form.converted:
+		return form.alternate.choices if form.alternate.targeting.kind in ["cell", "entity"] else []
+	var ability: Dictionary = form.base
 	if ability.is_empty() or ability.targeting.kind not in ["cell", "entity"] or not Shield.available(actor, ability_id):
 		return []
 	return _legal_choices(state, actor, ability, ability_id)
 
 
-static func selection(state: Dictionary, actor: Dictionary, ability: Dictionary, target_id: String,
-		ability_id := "", automatic_target_id := "") -> Dictionary:
+## Check a target against the form the actor will actually use, not against both forms.
+static func selection(state: Dictionary, actor: Dictionary, id: String, target_id: String,
+		automatic_target_id := "", form: Dictionary = {}) -> Dictionary:
+	var resolved := action_form(state, actor, id) if form.is_empty() else form
+	if resolved.converted:
+		return _target_choice(resolved.alternate.choices, target_id)
+	return _base_selection(state, actor, resolved.base, target_id, id, automatic_target_id)
+
+
+static func _base_selection(state: Dictionary, actor: Dictionary, ability: Dictionary, target_id: String,
+		ability_id: String, automatic_target_id := "") -> Dictionary:
 	if ability.is_empty() or not accepts_target_argument(ability, target_id) or not Shield.available(actor, ability_id):
 		return {}
 	var choices := _legal_choices(state, actor, ability, ability_id)
@@ -284,6 +338,10 @@ static func selection(state: Dictionary, actor: Dictionary, ability: Dictionary,
 				return {}
 			nearest["destination"] = destination
 		return nearest
+	return _target_choice(choices, target_id)
+
+
+static func _target_choice(choices: Array, target_id: String) -> Dictionary:
 	for choice in choices:
 		if choice.id == target_id:
 			return choice
@@ -313,14 +371,34 @@ static func _step_away(state: Dictionary, actor: Dictionary, target: Dictionary,
 	return position
 
 
-static func execute(state: Dictionary, actor: Dictionary, action: Dictionary, events: Array) -> bool:
+static func execute(state: Dictionary, actor: Dictionary, action: Dictionary, form: Dictionary, events: Array) -> bool:
 	var id: String = action.ability_id
-	var ability := owned_ability(state, actor, id)
+	var ability: Dictionary = form.base
+	var target_id: String = action.get("target_id", "")
+	if form.converted:
+		var choice := selection(state, actor, id, target_id, "", form)
+		# A stale manual target must not retarget, even if ordinary use on it would work.
+		if choice.is_empty():
+			return false
+		Fittings.perform(state, actor, id, ability, form.alternate, choice, events)
+		return true
+	var performed := _execute_base(state, actor, action, ability, events)
+	if performed and not form.alternate.is_empty():
+		var stays := "" if Fittings.source(actor).is_empty() else " Fitted stays."
+		Board.event(events, "fitted_fallback", "%s uses ordinary %s: %s unavailable (%s).%s" % [
+			Board.display_name(state, actor), ability.label, form.alternate.label, form.alternate.unavailable_reason, stays],
+			{"unit_id": actor.id, "ability_id": id, "status_id": "fitted"})
+	return performed
+
+
+static func _execute_base(state: Dictionary, actor: Dictionary, action: Dictionary,
+		ability: Dictionary, events: Array) -> bool:
+	var id: String = action.ability_id
 	var target_id: String = action.get("target_id", "")
 	if ability.is_empty() or not can_act(state, actor) or not accepts_target_argument(ability, target_id) \
 			or not Shield.available(actor, id):
 		return false
-	var choice := selection(state, actor, ability, target_id, id, action.get("automatic_target_id", ""))
+	var choice := _base_selection(state, actor, ability, target_id, id, action.get("automatic_target_id", ""))
 	var first_event := events.size()
 	if ability.handler == "perform":
 		return _perform(state, actor, ability, id, choice, events)
@@ -367,7 +445,7 @@ static func _perform(state: Dictionary, actor: Dictionary, ability: Dictionary, 
 	var echo := owned_ability(state, actor, prior_id)
 	if echo.get("handler") == "perform":
 		# The live performance may have changed the legal listeners and committed a draw.
-		var listener := selection(state, actor, echo, "", prior_id)
+		var listener := _base_selection(state, actor, echo, "", prior_id)
 		Performances.perform(state, actor, echo, prior_id, listener, events, true)
 	return true
 
@@ -385,6 +463,8 @@ static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictio
 			Summons.summon(state, actor, ability, choice.position, target, events)
 		"nominate":
 			Summons.nominate(state, actor, target, events)
+		"fit":
+			Fittings.fit(state, actor, target, events)
 		"sweep":
 			var event_type := "wave" if action.ability_id == "wave" else "sweep"
 			Board.authored_event(state, events, event_type, "sweep",

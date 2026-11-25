@@ -1,6 +1,7 @@
 extends RefCounted
 
 const Board = preload("res://rules/board.gd")
+const Fittings = preload("res://rules/fittings.gd")
 const Frontier = preload("res://rules/frontier_combat.gd")
 const Movement = preload("res://rules/movement.gd")
 const Shield = preload("res://rules/shield.gd")
@@ -18,10 +19,7 @@ class RetaliationBatch:
 
 
 static func toward(from: Vector2i, to: Vector2i) -> Vector2i:
-	var delta := to - from
-	if absi(delta.x) >= absi(delta.y) and delta.x != 0:
-		return Vector2i(signi(delta.x), 0)
-	return Vector2i(0, signi(delta.y))
+	return Board.dominant_step(from, to)
 
 
 static func attack(state: Dictionary, source: Dictionary, intended: Dictionary, damage: int,
@@ -210,6 +208,7 @@ static func _apply_hit(state: Dictionary, source: Dictionary, target: Dictionary
 			{"actor": Board.display_name(state, source), "target": target_name},
 			{"source_id": source.id, "target_id": target.id, "status_id": status_id})
 	if not Board.alive(target):
+		Fittings.clear(target)
 		Summons.on_fall(state, target, events)
 		if target.has("character_id"):
 			Frontier.announce_ally_death(state, target, events)

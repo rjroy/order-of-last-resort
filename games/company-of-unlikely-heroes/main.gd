@@ -83,6 +83,7 @@ var _state: Dictionary
 var _planned_state: Dictionary
 var _plan: Dictionary
 var _editor_actor: Dictionary
+var _editor_action: Dictionary
 var _editor_can_act := false
 var _editor_knocked_down := false
 var _editor_skip_label := ""
@@ -1450,8 +1451,9 @@ func _storybook_action(ability: String) -> void:
 	if not available:
 		return
 	var context := _editor_context()
-	var kind := _target_kind(ability)
-	if not _rules.can_act(context, _actor_id) \
+	var definition := _action_definition(ability, _actor_id, context)
+	var kind: String = definition.get("targeting", {}).get("kind", "")
+	if not _rules.can_act(context, _actor_id) or definition.get("command_blocked", false) \
 			or (_is_selectable(kind) and _rules.targets(context, _actor_id, ability).is_empty()):
 		return
 	var draft: Dictionary = _planned_state.overrides.get(_actor_id, {})
@@ -1540,9 +1542,9 @@ func _render_storybook() -> void:
 	var context := _editor_context()
 	for choice in _rules.options(_state, _actor_id):
 		if choice.kind == "action" and _practice_allows_action(choice.id):
-			var definition := _action_definition(choice.id)
+			var definition := _action_definition(choice.id, _actor_id, context)
 			var kind: String = definition.get("targeting", {}).get("kind", "")
-			var enabled := _ongoing() and _editor_can_act
+			var enabled: bool = _ongoing() and _editor_can_act and not definition.get("command_blocked", false)
 			var label: String = definition.get("label", choice.label)
 			if enabled and _is_selectable(kind):
 				enabled = not _rules.targets(context, _actor_id, choice.id).is_empty()
@@ -1566,8 +1568,9 @@ func _render_storybook() -> void:
 	var commanded := _commanded_hero()
 	if _ongoing() and not commanded.is_empty():
 		var draft: Dictionary = _planned_state.overrides[commanded]
-		var action := _action_definition(draft.ability_id, commanded)
-		var target := _target_description(commanded, draft.ability_id, draft.target_id)
+		var before := context if commanded == _actor_id else _rules.state_before_action(_planned_state, commanded)
+		var action := _action_definition(draft.ability_id, commanded, before)
+		var target := _target_description(before, commanded, draft.ability_id, draft.target_id, action)
 		var wording := "moves" + target if draft.ability_id == "move" else \
 			"uses %s%s" % [action.get("label", draft.ability_id), target]
 		var order_id: String = _planned_state.orders.get(commanded, "")
@@ -1693,8 +1696,8 @@ func _sync_targets() -> void:
 	_editor_can_act = _rules.can_act(context, _actor_id)
 	_editor_knocked_down = _rules.knocked_down(context, _actor_id)
 	_editor_skip_label = ", ".join(_rules.status_labels(context, _actor_id, "skip_action"))
-	var target_kind := _target_kind()
-	var selectable := _is_selectable(target_kind)
+	_editor_action = _action_definition(_ability_id, _actor_id, context)
+	var selectable := _is_selectable(_target_kind())
 	_targets = _rules.targets(context, _actor_id, _ability_id) if selectable and _editor_can_act else []
 	_storybook_ambiguous = _storybook_ambiguous.filter(func(ambiguous: Dictionary) -> bool:
 		return _targets.any(func(choice: Dictionary) -> bool:
@@ -1732,17 +1735,16 @@ func _ready_to_command() -> bool:
 		and (not _is_selectable(_target_kind()) or not _target_id.is_empty())
 
 
-func _target_kind(ability := "") -> String:
+func _target_kind() -> String:
+	return _editor_action.get("targeting", {}).get("kind", "")
+
+
+func _action_definition(ability: String, actor_id: String, context: Dictionary) -> Dictionary:
 	if ability.is_empty():
-		ability = _ability_id
-	return _action_definition(ability).get("targeting", {}).get("kind", "")
-
-
-func _action_definition(ability: String, actor := "") -> Dictionary:
-	var actor_id := _actor_id if actor.is_empty() else actor
-	var definition: Dictionary = _rules.ability_definition(_state, ability, actor_id)
+		return {}
+	var definition: Dictionary = _rules.command_ability(context, actor_id, ability)
 	if ability == "healer_heal" and definition.get("handler") == "heal" \
-			and Upgrades.amount(_state, _find(actor_id), "me_or_you") > 0:
+			and Upgrades.amount(context, _find(actor_id, context), "me_or_you") > 0:
 		return definition.merged({
 			"label": "Heal self or split among allies",
 			"help": "If hurt, heal self; otherwise split among other living deployed heroes, unused shares lost."
@@ -1751,7 +1753,7 @@ func _action_definition(ability: String, actor := "") -> Dictionary:
 
 
 func _is_summon() -> bool:
-	return _action_definition(_ability_id).get("handler") == "summon"
+	return _editor_action.get("handler") == "summon"
 
 
 func _is_selectable(target_kind: String) -> bool:
@@ -2056,15 +2058,14 @@ func _objective_forecast_text() -> String:
 	return text
 
 
-func _target_description(hero: String, ability: String, target: String) -> String:
-	var definition := _action_definition(ability, hero)
+func _target_description(context: Dictionary, hero: String, ability: String, target: String,
+		definition: Dictionary) -> String:
 	if target.is_empty():
 		if definition.get("handler") == "perform":
 			for event in _plan.events:
 				if event.get("unit_id") == hero and event.get("ability_id") == ability:
 					return " → %s" % event.target_label if event.has("target_label") else " (no eligible listener)"
 		return ""
-	var context := _rules.state_before_action(_planned_state, hero)
 	for choice in _rules.targets(context, hero, ability):
 		if choice.id == target:
 			var location := BridgeArt.coordinate(choice.position)
@@ -2194,10 +2195,10 @@ func _refresh_board() -> void:
 				overlay["targets"] = positions
 		var hits: Array = []
 		var paths: Array = []
-		var hooked: Dictionary = {}
+		var displaced: Dictionary = {}
 		for event in _plan.events:
-			if event.type == "pull" and event.has("from_position"):
-				hooked[event.target_id] = true
+			if event.type in ["pull", "push", "repel"] and event.has("from_position"):
+				displaced[event.target_id] = true
 		for entity in _state.units + _state.obstacles:
 			var predicted := _find(entity.id, _plan.result)
 			if predicted.is_empty():
@@ -2206,9 +2207,9 @@ func _refresh_board() -> void:
 				hits.append(entity.position)
 			var manual_move: bool = entity.id == _commanded_hero() \
 				and _planned_state.overrides[entity.id].ability_id == "move"
-			if predicted.position != entity.position and not hooked.has(entity.id) and not manual_move:
+			if predicted.position != entity.position and not displaced.has(entity.id) and not manual_move:
 				paths.append([entity.position, predicted.position])
-		paths.append_array(_hooked_paths(hooked))
+		paths.append_array(_ordered_displacement_paths(displaced))
 		overlay["impact"] = hits
 		overlay["paths"] = paths
 	overlay.erase("selected")
@@ -2266,8 +2267,8 @@ func _shared_enemy_art() -> Dictionary:
 	return shared
 
 
-func _hooked_paths(hooked: Dictionary) -> Array:
-	# Replay position-bearing events in order, so a move before or after a hook
+func _ordered_displacement_paths(displaced: Dictionary) -> Array:
+	# Replay position-bearing events in order, so a move before or after a displacement
 	# does not become a misleading straight line to the final position.
 	var positions: Dictionary = {}
 	for entity in _state.units + _state.obstacles:
@@ -2276,23 +2277,24 @@ func _hooked_paths(hooked: Dictionary) -> Array:
 	for event in _plan.events:
 		match event.type:
 			"move":
-				_trace_position(positions, paths, hooked, event.unit_id, event.position)
-			"push", "repel":
-				_trace_position(positions, paths, hooked, event.target_id, event.position)
-			"pull":
+				_trace_position(positions, paths, displaced, event.unit_id, event.position)
+			"summon":
+				positions[event.summon_id] = event.position
+			"push", "pull", "repel":
+				# A shift can affect a piece that was not on the opening board.
 				if event.has("from_position"):
 					positions[event.target_id] = event.from_position
-				_trace_position(positions, paths, hooked, event.target_id, event.position)
+				_trace_position(positions, paths, displaced, event.target_id, event.position)
 				if event.has("recoil_position"):
-					_trace_position(positions, paths, hooked, event.unit_id, event.recoil_position)
+					_trace_position(positions, paths, displaced, event.unit_id, event.recoil_position)
 			"swap":
-				_trace_position(positions, paths, hooked, event.unit_id, event.position)
-				_trace_position(positions, paths, hooked, event.target_id, event.target_position)
+				_trace_position(positions, paths, displaced, event.unit_id, event.position)
+				_trace_position(positions, paths, displaced, event.target_id, event.target_position)
 	return paths
 
 
-func _trace_position(positions: Dictionary, paths: Array, hooked: Dictionary, id: String, destination: Vector2i) -> void:
-	if hooked.has(id) and positions.has(id) and positions[id] != destination:
+func _trace_position(positions: Dictionary, paths: Array, displaced: Dictionary, id: String, destination: Vector2i) -> void:
+	if displaced.has(id) and positions.has(id) and positions[id] != destination:
 		paths.append([positions[id], destination])
 	positions[id] = destination
 

@@ -227,6 +227,7 @@ func set_render_state(cells: Dictionary, units: Array, overlay: Dictionary = {})
 
 ## Only committed cues belong here. A state refresh replaces the board, not the timeline.
 func play_committed_actions(cues: Array) -> void:
+	var obstacle_positions := _obstacle_positions()
 	var prepared := []
 	for value in cues:
 		var cue: Variant = value
@@ -257,15 +258,20 @@ func play_committed_actions(cues: Array) -> void:
 	_sync_playback_geometry()
 	_set_processing()
 	_figures.queue_redraw()
+	if obstacle_positions != _obstacle_positions():
+		_queue_tactical_redraw()
 
 
 func clear_action_playback() -> void:
+	var obstacle_positions := _obstacle_positions()
 	_playback.clear()
 	_pull_facing.clear()
 	_pull_recovery_facing.clear()
 	_defeat_facing.clear()
 	_set_processing()
 	_figures.queue_redraw()
+	if obstacle_positions != _obstacle_positions():
+		_queue_tactical_redraw()
 
 
 func _remember_pull_recovery_facing(id: String) -> void:
@@ -328,7 +334,10 @@ func _process(delta: float) -> void:
 	_ready_ms += delta * 1000.0
 	var redraw := _playback.pending()
 	if redraw:
+		var obstacle_positions := _obstacle_positions()
 		var beats: Array = _playback.advance(delta * 1000.0)
+		if obstacle_positions != _obstacle_positions():
+			_queue_tactical_redraw()
 		for beat: Dictionary in beats:
 			sound_beat.emit(beat.kind, beat.unit_id, beat.ability_id, beat.handler, beat.recipe)
 		_sync_playback_geometry()
@@ -346,6 +355,35 @@ func _process(delta: float) -> void:
 				break
 	if redraw:
 		_figures.queue_redraw()
+
+
+## Compare the positions actually drawn, including the last step into a
+## settled position and the return to the refreshed board when playback ends.
+func _obstacle_positions() -> Array:
+	var positions := []
+	for obstacle: Dictionary in _overlay.get("obstacles", []):
+		positions.append(_obstacle_position(obstacle))
+	return positions
+
+
+func _obstacle_position(obstacle: Dictionary) -> Variant:
+	var id := str(obstacle.get("id", ""))
+	var cell: Vector2i = _playback.actor_cell(id, obstacle.position) \
+		if _playback.movement_source(id) is Vector2i or _playback.has_settled_position(id) \
+		else obstacle.position
+	if obstacle.hp <= 0 or not _cells.has(cell):
+		return null
+	var position := _tile_origin(cell)
+	var destination: Variant = _playback.movement_destination(id)
+	if destination is Vector2i:
+		position = position.lerp(_tile_origin(destination), _playback.movement_fraction(id))
+	return position
+
+
+func _queue_tactical_redraw() -> void:
+	if _foreground_above_scenery:
+		_tactical.queue_redraw()
+	else:
 		queue_redraw()
 
 
@@ -486,17 +524,10 @@ func _draw_tactical() -> void:
 		var cell: Vector2i = value
 		_at(_tile_origin(cell))
 		_draw_overlays(cell)
-	for obstacle in _overlay.get("obstacles", []):
-		var id := str(obstacle.get("id", ""))
-		var cell: Vector2i = _playback.actor_cell(id, obstacle.position) \
-			if _playback.movement_source(id) is Vector2i or _playback.has_settled_position(id) \
-			else obstacle.position
-		if obstacle.hp > 0 and _cells.has(cell):
-			var origin := _tile_origin(cell)
-			var destination: Variant = _playback.movement_destination(id)
-			if destination is Vector2i:
-				origin = origin.lerp(_tile_origin(destination), _playback.movement_fraction(id))
-			_at(origin)
+	for obstacle: Dictionary in _overlay.get("obstacles", []):
+		var position: Variant = _obstacle_position(obstacle)
+		if position is Vector2:
+			_at(position)
 			_draw_object(obstacle)
 	if not _cells.is_empty() and _grid_labels_visible:
 		_at(Vector2.ZERO)

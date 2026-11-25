@@ -27,6 +27,8 @@ func _run() -> void:
 	await process_frame
 	await _case("bard", "order_healing_sonnet", "healing_sonnet")
 	await _case("alchemist", "order_throw_samples", "acid")
+	_living_acid_before_hook()
+	await _living_bard_recovery_after_pull()
 	if failures == 0:
 		print("PASS: displaced guild heroes act at their cast cell and fall at their death cell")
 	quit(1 if failures else 0)
@@ -78,7 +80,7 @@ func _case(hero: String, order: String, clip: String) -> void:
 	var action = entries[0]
 	var defeat = entries[1]
 	_advance(board, action.clip.time_at_source_frame(10) + 1.0 - action.elapsed_ms)
-	await _check_figure_locations(board, CAST_CELL, DEATH_CELL, hero + " own gesture")
+	await _check_victim_locations(board, CAST_CELL, DEATH_CELL, hero + " own gesture", true)
 
 	if hero == "alchemist":
 		_advance(board, action.clip.release_ms + 1.0 - action.elapsed_ms)
@@ -86,13 +88,13 @@ func _case(hero: String, order: String, clip: String) -> void:
 			+ action.clip.release_offset * Vector2(action.facing, 1.0) * action.clip.scale
 		_check(action.gift_from is Vector2 and action.gift_from.is_equal_approx(expected),
 			"alchemist: first released Acid starts at the hand on (7,3), not the corpse tile")
-		await _check_figure_locations(board, CAST_CELL, DEATH_CELL, "alchemist Acid release")
+		await _check_victim_locations(board, CAST_CELL, DEATH_CELL, "alchemist Acid release", true)
 
 	_advance(board, 1.0 - defeat.elapsed_ms)
-	await _check_figure_locations(board, DEATH_CELL, CAST_CELL, hero + " defeat entry")
+	await _check_victim_locations(board, DEATH_CELL, CAST_CELL, hero + " defeat entry")
 	_advance(board, board.action_playback_remaining_ms() + 1.0)
 	_check(board.action_playback_snapshot().is_empty(), hero + ": visual timeline finishes")
-	await _check_figure_locations(board, DEATH_CELL, CAST_CELL, hero + " defeat hold")
+	await _check_victim_locations(board, DEATH_CELL, CAST_CELL, hero + " defeat hold")
 
 
 func _advance(board: Control, ms: float) -> void:
@@ -100,14 +102,138 @@ func _advance(board: Control, ms: float) -> void:
 	board.set_process(false)
 
 
-func _check_figure_locations(board: Control, occupied: Vector2i, empty: Vector2i, label: String) -> void:
+func _living_acid_before_hook() -> void:
+	var state: Dictionary = scene.battle_snapshot().duplicate(true)
+	state.width = 12
+	state.height = 12
+	state.default_tile = "stone"
+	state.terrain = []
+	state.obstacles = []
+	state.round = 1
+	state.outcome = "ongoing"
+	state.objective = {"handler": "survive", "turns": 99, "reserves": []}
+	state.units = [_unit("victim", "alchemist", Vector2i(3, 3), 20),
+		_unit("hook", "hookhand", Vector2i(5, 3), 20),
+		_unit("friend", "knight", Vector2i(10, 10), 20)]
+	state.party = ["victim", "friend"]
+	state.orders = {}
+	state.overrides = {}
+	state = rules.set_order(state, "victim", "order_throw_samples")
+	scene.call("_show_battle", state)
+	scene.set("_planned_state", state)
+	scene.call("_refresh")
+	var commit := scene.find_child("Commit", true, false) as BaseButton
+	if not _check(commit != null and not commit.disabled, "Living Acid and Hook round can commit"):
+		return
+	commit.pressed.emit()
+	var board: Control = scene.get("_board")
+	board.set_process(false)
+	var events: Array = scene.get("_last_events")
+	var acid := events.find_custom(func(event): return event.get("resolved_action", {}).get("ability_id") \
+		== "alchemist_acid" and event.get("resolved_action", {}).get("unit_id") == "victim")
+	var hook := events.find_custom(func(event): return event.get("type") == "pull" \
+		and event.get("unit_id") == "hook" and event.get("target_id") == "victim")
+	if not _check(acid >= 0 and hook > acid and scene.battle_snapshot().units[0].hp > 0,
+			"Living Alchemist throws Acid before the Hookhand displaces her"):
+		return
+	var entries: Array = board.get("_playback").get("_entries").filter(
+		func(entry): return entry.cue.unit_id == "victim" and entry.cue.get("clip") == "acid")
+	if not _check(entries.size() == 1 and entries[0].gift != null, "Living Acid has a projectile"):
+		return
+	var action = entries[0]
+	_advance(board, action.clip.release_ms + 1.0 - action.elapsed_ms)
+	var expected: Vector2 = board.call("_unit_foot", Vector2i(3, 3)) \
+		+ action.clip.release_offset * Vector2(action.facing, 1.0) * action.clip.scale
+	_check(action.gift_from is Vector2 and action.gift_from.is_equal_approx(expected),
+		"Living Alchemist's Acid starts at the pre-Hook action-time hand, not the final cell")
+
+
+func _living_bard_recovery_after_pull() -> void:
+	var state: Dictionary = scene.battle_snapshot().duplicate(true)
+	state.width = 12
+	state.height = 12
+	state.default_tile = "stone"
+	state.terrain = []
+	state.obstacles = []
+	state.round = 1
+	state.outcome = "ongoing"
+	state.objective = {"handler": "survive", "turns": 99, "reserves": []}
+	state.units = [_unit("victim", "bard", CAST_CELL, 20),
+		_unit("wizard", "wizard", DEATH_CELL, 20),
+		_unit("foe", "harpooner", Vector2i(10, 9), 20)]
+	state.party = ["victim", "wizard"]
+	state.orders = {}
+	state.overrides = {}
+	state = rules.set_order(state, "victim", "order_healing_sonnet")
+	scene.call("_show_battle", state)
+	scene.set("_planned_state", rules.choose_manual(state, "wizard", "wizard_pull", "victim"))
+	scene.call("_refresh")
+	var commit := scene.find_child("Commit", true, false) as BaseButton
+	if not _check(commit != null and not commit.disabled, "Living Bard and Pull round can commit"):
+		return
+	commit.pressed.emit()
+	var board: Control = scene.get("_board")
+	board.set_process(false)
+	var events: Array = scene.get("_last_events")
+	var sonnet := events.find_custom(func(event): return event.get("resolved_action", {}).get("ability_id") \
+		== "healing_sonnet" and event.get("resolved_action", {}).get("unit_id") == "victim")
+	var pull := events.find_custom(func(event): return event.get("type") == "pull" \
+		and event.get("target_id") == "victim" and event.get("position") == DEATH_CELL)
+	if not _check(sonnet >= 0 and pull > sonnet and scene.battle_snapshot().units[0].hp > 0,
+			"Living Bard sings before the Wizard pulls her to the destination"):
+		return
+	var entries: Array = board.get("_playback").get("_entries")
+	var songs := entries.filter(func(entry): return entry.cue.get("unit_id") == "victim" \
+		and entry.cue.get("clip") == "healing_sonnet")
+	var pulls := entries.filter(func(entry): return entry.cue.get("unit_id") == "wizard" \
+		and entry.cue.get("clip") == "pull")
+	if not _check(songs.size() == 1 and pulls.size() == 1, "Sonnet and Pull both have playback"):
+		return
+	var song = songs[0]
+	var pull_entry = pulls[0]
+	var after_landing: float = pull_entry.impact_ms - pull_entry.elapsed_ms + 250.0
+	if not _check(after_landing + song.elapsed_ms < song.clip.total_ms,
+			"The fixture samples after Pull landing while Sonnet recovery is still playing"):
+		return
+	_advance(board, after_landing)
+	await _check_victim_locations(board, DEATH_CELL, CAST_CELL, "Living Bard after Pull during Sonnet recovery")
+
+
+func _check_victim_locations(board: Control, occupied: Vector2i, empty: Vector2i,
+		label: String, expect_wizard := false) -> void:
 	var figures := board.get("_figures") as CanvasItem
 	var drawn := await _capture()
+	# Remove only the victim and its playback entries for a reference rendering.
+	# Other actors, including the Wizard at the Pull source, remain visible.
+	var units: Array = board.get("_units")
+	var by_id: Dictionary = board.get("_units_by_id")
+	var playback = board.get("_playback")
+	var entries: Array = playback.get("_entries")
+	var without_units := units.duplicate()
+	without_units.assign(units.filter(func(unit): return unit.id != "victim"))
+	var without_by_id := by_id.duplicate()
+	without_by_id.erase("victim")
+	var without_entries := entries.duplicate()
+	without_entries.assign(entries.filter(func(entry): return entry.cue.unit_id != "victim"))
+	board.set("_units", without_units)
+	board.set("_units_by_id", without_by_id)
+	playback.set("_entries", without_entries)
+	figures.queue_redraw()
+	var without_victim := await _capture()
+	board.set("_units", units)
+	board.set("_units_by_id", by_id)
+	playback.set("_entries", entries)
+	figures.queue_redraw()
 	figures.hide()
 	var bare := await _capture()
 	figures.show()
-	_check(_figure_pixels(board, drawn, bare, occupied) > 20, "%s is visible at %s" % [label, occupied])
-	_check(_figure_pixels(board, drawn, bare, empty) == 0, "%s has no second figure at %s" % [label, empty])
+	_check(_figure_pixels(board, drawn, without_victim, occupied) > 20,
+		"%s has victim pixels at %s" % [label, occupied])
+	_check(_figure_pixels(board, drawn, without_victim, empty) == 0,
+		"%s has no duplicate victim at %s" % [label, empty])
+	if expect_wizard:
+		_check(_figure_pixels(board, without_victim, bare, DEATH_CELL) > 20,
+			"%s shows the Wizard at the future Pull destination" % label)
 
 
 func _figure_pixels(board: Control, drawn: Image, bare: Image, cell: Vector2i) -> int:

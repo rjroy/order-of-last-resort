@@ -1,0 +1,20 @@
+{
+  "id": "8cb60a84-c781-4054-9145-64caa643fda6",
+  "filename": "8cb60a84-c781-4054-9145-64caa643fda6.wav",
+  "created_at": "2026-11-25T00:49:34.493Z",
+  "model": "audiocpp-stable-audio-3-sfx",
+  "prompt": "A kindly gravedigger calling someone's attention with a single low conspiratorial nonverbal throat murmur 'hm-mh!' and one small pointing finger tap against the wooden crook of his staff. One short upward inflected gesture, intimate dry foley, no intelligible language.",
+  "negative_prompt": "music, ambient bed, screaming, intelligible speech, English, long reverberation, battle crowd, horror trailer, bell",
+  "lyrics": null,
+  "seed": 8426,
+  "steps": null,
+  "cfg": null,
+  "duration_s": 0.57,
+  "sample_rate": 44100,
+  "channels": 2,
+  "parent_id": null,
+  "source": "mcp",
+  "edit": null,
+  "edit_options": null,
+  "sha256": "5050af9f432d0c73c7a7ecd4318a957057631a5da90ebc840371d6efc5b1e005"
+}

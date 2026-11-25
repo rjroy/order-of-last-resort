@@ -6,6 +6,7 @@ signal cell_hovered(cell: Vector2i)
 signal hover_cleared
 signal grid_labels_visibility_changed
 signal foreground_layer_changed(enabled: bool)
+signal sound_beat(kind: String, unit_id: String, ability_id: String, handler: String, recipe: String)
 
 const CastSprites := preload("res://presentation/cast_sprites.gd")
 const CastPlayback := preload("res://presentation/cast_playback.gd")
@@ -277,6 +278,10 @@ func action_playback_snapshot() -> Array:
 	return _playback.snapshot()
 
 
+func action_playback_pending() -> bool:
+	return _playback.pending()
+
+
 func action_playback_remaining_ms() -> float:
 	return _playback.remaining_ms()
 
@@ -323,7 +328,9 @@ func _process(delta: float) -> void:
 	_ready_ms += delta * 1000.0
 	var redraw := _playback.pending()
 	if redraw:
-		_playback.advance(delta * 1000.0)
+		var beats: Array = _playback.advance(delta * 1000.0)
+		for beat: Dictionary in beats:
+			sound_beat.emit(beat.kind, beat.unit_id, beat.ability_id, beat.handler, beat.recipe)
 		_sync_playback_geometry()
 		for entry in _playback.active():
 			if entry.cue.get("hero_defeat", false) and entry.facing != 0.0 \
@@ -339,6 +346,7 @@ func _process(delta: float) -> void:
 				break
 	if redraw:
 		_figures.queue_redraw()
+		queue_redraw()
 
 
 func _layout() -> void:
@@ -479,8 +487,16 @@ func _draw_tactical() -> void:
 		_at(_tile_origin(cell))
 		_draw_overlays(cell)
 	for obstacle in _overlay.get("obstacles", []):
-		if obstacle.hp > 0 and _cells.has(obstacle.position):
-			_at(_tile_origin(obstacle.position))
+		var id := str(obstacle.get("id", ""))
+		var cell: Vector2i = _playback.actor_cell(id, obstacle.position) \
+			if _playback.movement_source(id) is Vector2i or _playback.has_settled_position(id) \
+			else obstacle.position
+		if obstacle.hp > 0 and _cells.has(cell):
+			var origin := _tile_origin(cell)
+			var destination: Variant = _playback.movement_destination(id)
+			if destination is Vector2i:
+				origin = origin.lerp(_tile_origin(destination), _playback.movement_fraction(id))
+			_at(origin)
 			_draw_object(obstacle)
 	if not _cells.is_empty() and _grid_labels_visible:
 		_at(Vector2.ZERO)
@@ -601,7 +617,8 @@ func _draw_figures() -> void:
 		var ordinary_defeat := _ordinary_defeat_clip(original)
 		var hero_defeat: Dictionary = _playback.pending_hero_defeat(id)
 		var cell: Vector2i = original.cell
-		if key == "ferryman" or original.has("cast_lifecycle"):
+		if key == "ferryman" or original.has("cast_lifecycle") \
+				or _playback.movement_source(id) is Vector2i or _playback.has_settled_position(id):
 			cell = _playback.actor_cell(id, cell)
 		var waiting_cell: Variant = _playback.waiting_swap_cell(id)
 		if waiting_cell is Vector2i:
@@ -633,6 +650,8 @@ func _draw_figures() -> void:
 		occupants.append(occupant)
 	for entry in active:
 		if entry.elapsed_ms >= entry.clip.total_ms:
+			continue
+		if entry.cue.get("silent_action", false):
 			continue
 		var id: String = entry.cue.unit_id
 		var unit: Dictionary = _units_by_id.get(id, {})
@@ -688,7 +707,8 @@ func _draw_figures() -> void:
 	for index in occupants.size():
 		var occupant: Dictionary = occupants[index]
 		var action: CastPlayback.Entry = actions.get(occupant.id)
-		if action != null and _uses_action_cell(occupant, action):
+		if action != null and _uses_action_cell(occupant, action) \
+				and not _playback.has_settled_position(occupant.id):
 			var cast_cell: Variant = action.cue.get("actor_cell", action.cue.get("source_cell"))
 			if cast_cell is Vector2i and cast_cell != occupant.cell:
 				occupant = occupant.duplicate()
@@ -1037,7 +1057,7 @@ func _unit_foot(cell: Vector2i) -> Vector2:
 
 
 func _draw_unit_shadow(unit: Dictionary) -> void:
-	_at(_unit_foot(unit.cell))
+	_at(_visual_foot(unit))
 	_wash(Vector2(-29, -1), Vector2(59, 9), Color("#24312a", 0.27))
 	_wash(Vector2(-22, 0), Vector2(48, 5), Color("#222824", 0.40))
 	if bool(unit.get("guarded", false)):
@@ -1048,7 +1068,7 @@ func _draw_unit(unit: Dictionary, action: CastPlayback.Entry) -> void:
 	var role := str(unit.art_key)
 	var prone: bool = bool(unit.get("prone", false)) or (int(unit.get("hp", 1)) <= 0 \
 		and not unit.get("pre_defeat", false))
-	var foot := _unit_foot(unit.cell)
+	var foot := _visual_foot(unit)
 	var facing := _unit_facing(unit)
 	if _draw_cast(unit, foot, facing, prone, action):
 		return
@@ -1077,6 +1097,16 @@ func _draw_unit(unit: Dictionary, action: CastPlayback.Entry) -> void:
 			_village_troll()
 		_:
 			_enemy(str(unit.get("variant", "")))
+
+
+func _visual_foot(unit: Dictionary) -> Vector2:
+	var foot := _unit_foot(unit.cell)
+	var id := str(unit.get("id", ""))
+	var source: Variant = _playback.movement_source(id)
+	var destination: Variant = _playback.movement_destination(id)
+	if source is Vector2i and destination is Vector2i:
+		foot = _unit_foot(source).lerp(_unit_foot(destination), _playback.movement_fraction(id))
+	return foot
 
 
 func _draw_cast(unit: Dictionary, foot: Vector2, facing: float, prone: bool, action: CastPlayback.Entry) -> bool:
@@ -1270,13 +1300,11 @@ func _sync_playback_geometry() -> void:
 			continue
 		# Keep the launch on the rendered hand, including an earlier gesture
 		# using its action cell rather than the retained hero's death cell.
-		var rendered_cell: Variant = entry.cue.get("actor_cell", source) if _uses_action_cell(unit, entry) \
-				or entry.cue.get("ordinary_presentation", false) \
-			else unit.get("cell", entry.cue.get("actor_cell", source))
-		if not rendered_cell is Vector2i:
-			continue
+		var hand_foot := _unit_foot(source)
+		if _playback.movement_source(entry.cue.unit_id) is Vector2i:
+			hand_foot = _visual_foot({"id": entry.cue.unit_id, "cell": source})
 		var nudge := entry.clip.release_offset * Vector2(entry.facing, 1.0) * entry.clip.scale
-		entry.gift_from = _unit_foot(rendered_cell) + nudge
+		entry.gift_from = hand_foot + nudge
 		var landing: Vector2i = entry.cue.get("shield_drop_cell", target)
 		entry.gift_to = _unit_foot(landing) + Vector2(0, -29)
 		if entry.gift.tip is Vector2:

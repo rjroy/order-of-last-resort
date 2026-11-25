@@ -4,6 +4,9 @@ extends RefCounted
 const CastSprites := preload("res://presentation/cast_sprites.gd")
 const GIFT_FLIGHT_MS := 300.0
 const FEEDBACK_MS := 280.0
+const BEAT_GAP_MS := 120.0
+const SILENT_BEAT_MS := 300.0
+const DISPLACEMENT_MS := 180.0
 const ACTION_BEATS := {
 	"guard": 39, "ally_heal": 17, "self_heal": 17, "bonk": 15,
 	"blast": 17, "pull": 13, "retreat": 13, "swap": 15, "misdirect": 14,
@@ -39,6 +42,7 @@ class Entry:
 	var facing: float
 	var waits_for_throw := false
 	var sample_offset_ms := 0.0
+	var sound_emitted := false
 
 	func progress() -> float:
 		return (elapsed_ms - impact_ms) / FEEDBACK_MS
@@ -51,13 +55,29 @@ class Entry:
 			and not cue.get("ordinary_presentation", false)
 
 var _entries: Array[Entry] = []
+var _motions: Array[Dictionary] = []
+var _settled := {}
 
 
 func enqueue(cues: Array, art: CastSprites) -> void:
 	var tails := {}
 	var added := {}
+	var previous_beat := 0.0
+	var has_beat := false
+	var movement_barrier := 0.0
 	for entry in _entries:
 		tails[entry.cue.unit_id] = entry.duration_ms - entry.elapsed_ms
+		var pending_beat := entry.impact_ms - entry.elapsed_ms
+		if pending_beat > 0.0:
+			previous_beat = maxf(previous_beat, pending_beat)
+			has_beat = true
+	for motion in _motions:
+		var pending_motion: float = motion.duration_ms - motion.elapsed_ms
+		if pending_motion > 0.0:
+			previous_beat = maxf(previous_beat, pending_motion)
+			movement_barrier = maxf(movement_barrier, pending_motion)
+			tails[motion.unit_id] = maxf(float(tails.get(motion.unit_id, 0.0)), pending_motion)
+			has_beat = true
 	for index in cues.size():
 		var value = cues[index]
 		if not value is Dictionary or str(value.get("unit_id", "")).is_empty():
@@ -75,10 +95,16 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 		if ordinary and clip == null and value.get("fallback_clip") is String:
 			key = value.fallback_clip
 			clip = art.clip_for(role, key)
+		var no_art: bool = clip == null and (value.get("silent_action", false) or value.has("audio_ability"))
+		if no_art:
+			clip = CastSprites.Clip.new()
+			clip.total_ms = SILENT_BEAT_MS
 		if clip == null or key == "ready" \
 				or (not ordinary and key in ["gift", "acid_flask", "harpoon_projectile"]):
 			continue
 		var cue: Dictionary = value.duplicate(true)
+		if no_art:
+			cue["silent_action"] = true
 		cue["clip"] = key
 		cue.erase("fallback_clip")
 		cue["target_id"] = str(cue.get("target_id", ""))
@@ -111,10 +137,44 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 		var parent: Variant = added.get(int(cue.get("after_cue", -1)))
 		if parent != null:
 			start = maxf(start, parent.impact_ms - parent.elapsed_ms)
+		var primary: bool = cue.get("action_beat", not cue.has("after_cue"))
+		var counts := {}
+		for motion: Dictionary in cue.get("motions", []):
+			if motion.get("before_impact", false):
+				counts[motion.unit_id] = int(counts.get(motion.unit_id, 0)) + 1
+		if primary:
+			if has_beat:
+				start = maxf(start, previous_beat + BEAT_GAP_MS - entry.impact_ms)
+				for id in counts:
+					var first_landing := maxf(1.0, entry.impact_ms / float(counts[id]))
+					start = maxf(start, previous_beat + BEAT_GAP_MS - first_landing)
+		if not counts.is_empty():
+			# Travel itself is a visible rules event, not merely the action's
+			# later impact. Earlier displacement must land before it begins.
+			start = maxf(start, movement_barrier)
 		var throw_wait := _swap_throw_wait(cue)
 		entry.waits_for_throw = throw_wait > 0.0
 		start = maxf(start, throw_wait)
+		if primary:
+			previous_beat = start + entry.impact_ms
+			has_beat = true
 		entry.elapsed_ms = -start
+		if parent != null and has_beat:
+			previous_beat = maxf(previous_beat, start + entry.impact_ms)
+		var motion_tails := {}
+		for motion: Dictionary in cue.get("motions", []):
+			var before: bool = motion.get("before_impact", false)
+			var motion_start := start if before else start + entry.impact_ms
+			var motion_duration := maxf(1.0, entry.impact_ms / float(counts.get(motion.unit_id, 1))) \
+				if before else DISPLACEMENT_MS
+			motion_start = maxf(motion_start, float(motion_tails.get(motion.unit_id, motion_start)))
+			_motions.append({"unit_id": motion.unit_id, "from": motion.from, "to": motion.to,
+				"elapsed_ms": -motion_start, "duration_ms": motion_duration,
+				"step": before, "ability_id": cue.get("audio_ability", "move")})
+			motion_tails[motion.unit_id] = motion_start + motion_duration
+			movement_barrier = maxf(movement_barrier, motion_start + motion_duration)
+			if has_beat and not before:
+				previous_beat = maxf(previous_beat, motion_start + motion_duration)
 		tails[cue.unit_id] = entry.duration_ms - entry.elapsed_ms
 		_entries.append(entry)
 		added[index] = entry
@@ -137,6 +197,8 @@ func _swap_throw_wait(cue: Dictionary) -> float:
 
 func clear() -> void:
 	_entries.clear()
+	_motions.clear()
+	_settled.clear()
 
 
 func clear_pull_recoil(unit_id: String) -> void:
@@ -172,13 +234,15 @@ func shield_in_transit(cell: Vector2i) -> bool:
 
 
 func pending() -> bool:
-	return not _entries.is_empty()
+	return not _entries.is_empty() or not _motions.is_empty()
 
 
 func remaining_ms() -> float:
 	var remaining := 0.0
 	for entry in _entries:
 		remaining = maxf(remaining, entry.duration_ms - entry.elapsed_ms)
+	for motion in _motions:
+		remaining = maxf(remaining, motion.duration_ms - motion.elapsed_ms)
 	return remaining
 
 
@@ -210,8 +274,11 @@ func hero_pending_pose(unit_id: String) -> String:
 
 
 func actor_cell(unit_id: String, fallback: Vector2i) -> Vector2i:
-	# A waiting move still occupies its source. A playing move lands at its
-	# destination, while actions/damage reactions use their action-time cells.
+	for motion in _motions:
+		if motion.unit_id == unit_id:
+			return motion.from
+	if _settled.has(unit_id):
+		return _settled[unit_id]
 	for entry in _entries:
 		if entry.cue.get("unit_id") != unit_id:
 			continue
@@ -222,6 +289,31 @@ func actor_cell(unit_id: String, fallback: Vector2i) -> Vector2i:
 		if cell is Vector2i:
 			return cell
 	return fallback
+
+
+func movement_fraction(unit_id: String) -> float:
+	for motion in _motions:
+		if motion.unit_id == unit_id:
+			return clampf(motion.elapsed_ms / motion.duration_ms, 0.0, 1.0)
+	return 0.0
+
+
+func movement_destination(unit_id: String) -> Variant:
+	for motion in _motions:
+		if motion.unit_id == unit_id:
+			return motion.to
+	return null
+
+
+func movement_source(unit_id: String) -> Variant:
+	for motion in _motions:
+		if motion.unit_id == unit_id:
+			return motion.from
+	return null
+
+
+func has_settled_position(unit_id: String) -> bool:
+	return _settled.has(unit_id)
 
 
 func has_pending_clip(unit_id: String, key: String) -> bool:
@@ -247,12 +339,49 @@ func has_waiting_upright_hit(unit_id: String) -> bool:
 		and not entry.cue.get("was_prone", false) and entry.elapsed_ms < 0.0)
 
 
-func advance(delta_ms: float) -> void:
+func advance(delta_ms: float) -> Array:
+	var beats := []
+	var remaining_motions: Array[Dictionary] = []
+	for motion in _motions:
+		var previous: float = motion.elapsed_ms
+		motion.elapsed_ms += delta_ms
+		if motion.elapsed_ms >= motion.duration_ms:
+			_settled[motion.unit_id] = motion.to
+			if motion.get("step", false):
+				beats.append({"kind": "step", "unit_id": motion.unit_id,
+					"ability_id": motion.ability_id, "handler": "move", "recipe": "",
+					"offset": maxf(0.0, motion.duration_ms - previous)})
+		else:
+			remaining_motions.append(motion)
+	_motions = remaining_motions
 	for index in range(_entries.size() - 1, -1, -1):
 		var entry := _entries[index]
+		var previous := entry.elapsed_ms
 		entry.elapsed_ms += delta_ms
+		if not entry.sound_emitted and entry.cue.has("audio_ability") \
+				and entry.cue.get("audio_handler") != "move" and entry.elapsed_ms >= entry.impact_ms:
+			entry.sound_emitted = true
+			beats.append({"kind": "impact", "unit_id": entry.cue.unit_id,
+				"ability_id": entry.cue.audio_ability, "handler": _audio_handler(entry.cue),
+				"recipe": entry.cue.get("audio_recipe", ""),
+				"offset": maxf(0.0, entry.impact_ms - previous)})
 		if entry.elapsed_ms >= entry.duration_ms:
 			_entries.remove_at(index)
+	if _entries.is_empty() and _motions.is_empty():
+		_settled.clear()
+	beats.sort_custom(func(a: Dictionary, b: Dictionary): return a.offset < b.offset)
+	return beats
+
+
+func _audio_handler(cue: Dictionary) -> String:
+	var handler: String = cue.get("audio_handler", "")
+	var source: Variant = cue.get("source_cell")
+	var target: Variant = cue.get("target_cell")
+	if handler == "attack" and cue.get("audio_ability") == "enemy_harpoon" \
+			and source is Vector2i and target is Vector2i \
+			and absi(source.x - target.x) + absi(source.y - target.y) <= 1:
+		return "close_thrust"
+	return handler
 
 
 func active() -> Array[Entry]:

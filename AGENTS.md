@@ -8,6 +8,10 @@ Preserve the existing paths: asset recipes and regression tools depend on them.
 - Keep accepted artwork, native models, recipes and their provenance in source
   control. Place generated captures, logs and temporary evidence in ignored
   `.lore/local/`, never as a required runtime input.
+- Commit Godot-generated `.uid` sidecars alongside their source files, including
+  test scripts. Move or rename the sidecar with its source so the resource keeps
+  its ID. After adding scripts or shaders, run a headless editor import and
+  check `git status` for new sidecars. Do not commit the `.godot/` import cache.
 - Verify gameplay changes with reproducible checks and retain relevant tests.
   Automated checks do not establish human enjoyment.
 - Preserve experiment records, claims, approvals and human contributions.

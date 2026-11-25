@@ -2,7 +2,13 @@
 
 **Choose a company, not just a loadout.** Found a guild, take a commission, and lead your recruits to its destination. Your heroes carry wounds, orders, and earned upgrades between missions. This is a playtest build; its artwork and interface are provisional.
 
-From the repository root, with Godot 4.7:
+On first launch, from the repository root with Godot 4.7, import the packaged assets before starting the game:
+
+```sh
+godot --headless --editor --path games/company-of-unlikely-heroes --import
+```
+
+For subsequent launches, the normal command is:
 
 ```sh
 godot --path games/company-of-unlikely-heroes
@@ -190,13 +196,15 @@ The game collects no playtest telemetry. The question to take away: **Did you en
 
 ### Cast sprites in battle
 
-All 20 stock missions use Blender-rendered sprites for the seven heroes, both undead summons, and the entire field cast: 25 non-party characters and the animated Supply Wagon. A flock shares one Sheep model; the three bandit siblings and the three rival heroes each have their own. The [cast inventory](../../.lore/work/games/company-of-unlikely-heroes/art/non-hero-cast.md) links models to missions. The [runtime manifest](assets/cast/manifest.json) maps performances to packaged sprite sheets. Neither historical renders nor an editor import cache are needed to play.
+All 20 stock missions use Blender-rendered sprites for the seven heroes, both undead summons, and the entire field cast: 25 non-party characters and the animated Supply Wagon. A flock shares one Sheep model; the three bandit siblings and the three rival heroes each have their own. The [cast inventory](../../.lore/work/games/company-of-unlikely-heroes/art/non-hero-cast.md) links models to missions. The [runtime manifest](assets/cast/manifest.json) maps performances to packaged sprite sheets; playing them needs neither Blender nor historical renders. The packaged audio assets need the first-launch import described above.
 
 From the repository root, try `godot --path games/company-of-unlikely-heroes -- --mission=hold_the_line` and commit through round four to see the reserve Archer and War Drummer. Other showcases are `mirror_company` for the rival trio, `great_sheep_escape` for the flock and shepherd, and `last_wagon` for the loaded wagon advancing, stalling, and breaking down. For the Ferryman, launch `--mission=company_rescue --party=knight,healer,wizard`.
 
 The [stock scene verification guide](tools/cast/verify_stock_scenes.md) provides one command to reproduce the stock opening and committed-action checks. The seven heroes and both summons retain their prior battle artwork; the original [static summon sources](assets/summons/README.md) are also preserved.
 
-Preview updates the forecast without resolving the round or starting any action clips. Commit resolves the round. Action playback is cosmetic and uses supported actions from the committed round, including standing orders. Not every ability has its own clip. To try the Friendly Crypter, launch `goblin_mob` and follow the opening above.
+Preview updates the forecast without resolving the round or starting action playback. Commit resolves the round, then plays supported actions from that committed round in order of their key moments; recoveries can overlap later actions. Playback is cosmetic, and not every ability has its own clip.
+
+**Options** includes persistent **Master**, **Music**, and **Sound effects** volume controls. In battle, open **Options → Volume**. Master scales both categories; setting any control to zero mutes it without changing the other settings. Music continues playing while muted. Staging an authored move makes a quiet pencil sound; forecasts stay silent. Committed movement and actions play their sounds during playback. To try the Friendly Crypter, launch `goblin_mob` and follow the opening above.
 
 Use **Forfeit** during an ongoing battle to concede without playing the next round. Confirm to end the mission as a defeat, or cancel to keep your plans. In a commission, defeat ends the run without a reward; returning to the guild clears its upgrades. In a standalone mission, use **Restart** to try again.
 

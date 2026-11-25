@@ -1,0 +1,20 @@
+{
+  "id": "3b0882a4-1285-47bf-987c-e8b7d98fdf7f",
+  "filename": "3b0882a4-1285-47bf-987c-e8b7d98fdf7f.wav",
+  "created_at": "2026-11-25T00:47:34.528Z",
+  "model": "audiocpp-stable-audio-3-sfx",
+  "prompt": "One small old bronze handbell tolls once for the dead. A clear hollow minor-colored note with a slightly cracked rim, worn clapper tick and a low woody bronze resonance. Short dry decay like a bell muffled by a sleeve. Close acoustic foley, lonely but not ominous orchestral music.",
+  "negative_prompt": "music, accompaniment, ambient scene, long reverb, screaming, gore sounds, English dialogue, repeated sequence",
+  "lyrics": null,
+  "seed": 8423,
+  "steps": null,
+  "cfg": null,
+  "duration_s": 1.1,
+  "sample_rate": 44100,
+  "channels": 2,
+  "parent_id": null,
+  "source": "mcp",
+  "edit": null,
+  "edit_options": null,
+  "sha256": "2a342a9910752fff9d24e8729ccc699b2da7b756f163f2fdb18f962600cf9a0e"
+}

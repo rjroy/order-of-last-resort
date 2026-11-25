@@ -103,6 +103,7 @@ func _run() -> void:
 	var grid_restored := await _render(CELLS)
 	_check(grid_shown.get_data() == grid_restored.get_data(),
 		"Showing the grid restores the procedural board rendering")
+	await _pushed_obstacle_timing()
 
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("--capture="):
@@ -117,6 +118,83 @@ func _render(cells: Dictionary, overlay: Dictionary = {}) -> Image:
 	await process_frame
 	await RenderingServer.frame_post_draw
 	return viewport.get_texture().get_image()
+
+
+func _pushed_obstacle_timing() -> void:
+	var rules = preload("res://rules.gd").new()
+	var defs: Dictionary = preload("res://tests/fixtures/rules_catalog.gd").add_fixed_escort(
+		preload("res://content/catalog.gd").read_default())
+	var state: Dictionary = rules.new_game(defs, "test_escort")
+	state.width = 4
+	state.height = 2
+	state.default_tile = "stone"
+	state.terrain = []
+	state.units = [{"id": "knight", "character_id": "knight", "position": Vector2i(0, 1),
+		"hp": 10, "max_hp": 10, "statuses": {}}]
+	state.obstacles = [{"id": "crate", "object_id": "crate", "position": CUSTOM_CELL,
+		"hp": 10, "max_hp": 10, "statuses": {}}]
+	state.orders = {}
+	state.overrides = {}
+	var plan: Dictionary = rules.preview(state, "knight", "knight_push", "crate")
+	_check(plan.get("valid", false), "Crate push fixture resolves")
+	if not plan.get("valid", false):
+		return
+	_check(plan.result.obstacles[0].position == CONTROL_CELL, "Crate really moves to the next tile")
+	var cues: Array = preload("res://presentation/cast_cues.gd").build(state, plan.result, plan.events, true)
+	var bare := await _render(CELLS)
+	board.clear_action_playback()
+	board.set_render_state(CELLS, [], {"obstacles": [{"id": "crate", "art_key": "crate",
+		"position": CONTROL_CELL, "hp": 10, "max_hp": 10}]})
+	board.play_committed_actions(cues)
+	board.set_process(false)
+	await process_frame
+	await RenderingServer.frame_post_draw
+	var before := viewport.get_texture().get_image()
+	_check(_changed_fraction(bare, before, CUSTOM_CELL) > 0.04 \
+		and _same_tile(bare, before, CONTROL_CELL),
+		"Pushed crate remains visibly at its source before impact")
+	board._process((board.action_playback_remaining_ms() + 1.0) / 1000.0)
+	board.set_process(false)
+	await process_frame
+	await RenderingServer.frame_post_draw
+	var after := viewport.get_texture().get_image()
+	_check(_same_tile(bare, after, CUSTOM_CELL) and _changed_fraction(bare, after, CONTROL_CELL) > 0.04,
+		"Pushed crate visibly lands at the destination after impact")
+	await _blocked_obstacle_contact(state, rules)
+
+
+func _blocked_obstacle_contact(state: Dictionary, rules) -> void:
+	state.obstacles.append({"id": "wall", "object_id": "crate", "position": CONTROL_CELL,
+		"hp": 10, "max_hp": 10, "statuses": {}})
+	var plan: Dictionary = rules.preview(state, "knight", "knight_push", "crate")
+	_check(plan.get("valid", false), "Blocked crate Push fixture resolves")
+	if not plan.get("valid", false):
+		return
+	_check(plan.result.obstacles[0].position == CUSTOM_CELL and plan.events.any(
+		func(event): return event.get("type") == "damage" and event.get("target_id") == "crate" \
+			and int(event.get("amount", 0)) > 0),
+		"Blocked Push actually damages the unmoved crate")
+	var cues: Array = preload("res://presentation/cast_cues.gd").build(state, plan.result, plan.events, true)
+	var overlay := {"obstacles": [
+		{"id": "crate", "art_key": "crate", "position": CUSTOM_CELL,
+			"hp": plan.result.obstacles[0].hp, "max_hp": 10},
+		{"id": "wall", "art_key": "crate", "position": CONTROL_CELL, "hp": 10, "max_hp": 10}]}
+	board.clear_action_playback()
+	var before := await _render(CELLS, overlay)
+	board.play_committed_actions(cues)
+	board.set_process(false)
+	var entries: Array = board.get("_playback").get("_entries")
+	var actions := entries.filter(func(entry): return entry.cue.get("unit_id") == "knight")
+	if actions.is_empty():
+		_check(false, "Clipless blocked Push still has an impact moment")
+		return
+	board._process((actions[0].impact_ms - actions[0].elapsed_ms + 40.0) / 1000.0)
+	board.set_process(false)
+	await process_frame
+	await RenderingServer.frame_post_draw
+	var impact := viewport.get_texture().get_image()
+	_check(_changed_fraction(before, impact, CUSTOM_CELL) > 0.001,
+		"Clipless blocked Push shows visible contact feedback on the damaged crate")
 
 
 func _tile_region(cell: Vector2i) -> Rect2i:

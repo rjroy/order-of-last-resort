@@ -1,0 +1,20 @@
+{
+  "id": "e85d2092-10e8-42f4-817c-56b158c13043",
+  "filename": "e85d2092-10e8-42f4-817c-56b158c13043.wav",
+  "created_at": "2026-11-25T00:50:43.663Z",
+  "model": "audiocpp-stable-audio-3-sfx",
+  "prompt": "A shambling storybook zombie tries to greet someone with a single comically friendly rising throat groan, 'rrr-uuuh?' Low rounded chest voice with a gravelly finish and no words. Close mouth sound, small scale, not scary or loud.",
+  "negative_prompt": "music, ambient bed, screaming, intelligible speech, English, long reverberation, battle crowd, horror trailer, bell",
+  "lyrics": null,
+  "seed": 8429,
+  "steps": null,
+  "cfg": null,
+  "duration_s": 0.343,
+  "sample_rate": 44100,
+  "channels": 2,
+  "parent_id": null,
+  "source": "mcp",
+  "edit": null,
+  "edit_options": null,
+  "sha256": "2cdfc6ef09cb9c51e96bb983e35176e23e491c0f299e0666606296ef80e4980a"
+}

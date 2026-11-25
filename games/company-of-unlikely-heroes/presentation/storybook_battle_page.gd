@@ -17,11 +17,16 @@ signal hints_visibility_changed(shown: bool)
 signal help_from_popup_requested(source: Control)
 signal help_shortcut_requested
 signal help_from_dialog_requested(dialog: Window, focus: Control)
+signal sound_effects_volume_changed(value: float)
+signal master_volume_changed(value: float)
+signal music_volume_changed(value: float)
 
 enum DisplayOption { GRID, NAMEPLATES, GRID_LABELS, ALWAYS_SHOW_HEALTH_BAR, SHOW_HINTS }
 
 const DisplayPreferences := preload("res://battle_display_preferences.gd")
+const VolumeControls := preload("res://presentation/volume_controls.gd")
 const HELP_MENU_ID := 1000000
+const SOUND_VOLUME_MENU_ID := 1000001
 const Ink := preload("res://presentation/storybook_battle_ink.gd")
 const Surround := preload("res://presentation/storybook_battle_surround.gd")
 const SceneryRegistration := preload("res://presentation/storybook_scenery.gdshader")
@@ -95,6 +100,8 @@ var _title: Label
 var _round: Label
 var _objective: Label
 var _options: MenuButton
+var _sound_volume_dialog: AcceptDialog
+var _volume_controls
 var _help_utility_slot: Control
 var _pending_display_option := -1
 var _restart: Button
@@ -397,6 +404,7 @@ func _build_header() -> void:
 	options_popup.add_check_item("Show Nameplates", DisplayOption.NAMEPLATES)
 	options_popup.add_check_item("Always show health bar", DisplayOption.ALWAYS_SHOW_HEALTH_BAR)
 	options_popup.add_check_item("Show hints", DisplayOption.SHOW_HINTS)
+	options_popup.add_item("Volume…", SOUND_VOLUME_MENU_ID)
 	options_popup.add_separator()
 	options_popup.add_item("Help (F1)", HELP_MENU_ID)
 	_set_help_shortcut(options_popup)
@@ -408,6 +416,7 @@ func _build_header() -> void:
 	options_popup.id_pressed.connect(_queue_display_option)
 	options_popup.window_input.connect(_handle_options_window_input)
 	options_popup.window_input.connect(_popup_help_input.bind(_options, options_popup))
+	_build_sound_volume_dialog()
 	_restart = _button("Restart", "Restart mission")
 	_restart.custom_minimum_size.x = 141.0
 	_header.add_child(_restart)
@@ -612,11 +621,43 @@ func _queue_display_option(option: int) -> void:
 	if option == HELP_MENU_ID:
 		help_from_popup_requested.emit(_options)
 		return
+	if option == SOUND_VOLUME_MENU_ID:
+		_options.get_popup().hide()
+		_open_sound_volume.call_deferred()
+		return
 	# Godot emits id_pressed before window_input. Wait for the originating
 	# event; assistive activation has no window event and uses the deferred call.
 	_apply_display_option()
 	_pending_display_option = option
 	_apply_display_option.call_deferred()
+
+
+func _build_sound_volume_dialog() -> void:
+	_sound_volume_dialog = AcceptDialog.new()
+	_sound_volume_dialog.name = "SoundEffectsDialog"
+	_sound_volume_dialog.title = "Volume"
+	_sound_volume_dialog.min_size = Vector2i(360, 300)
+	add_child(_sound_volume_dialog)
+	_sound_volume_dialog.get_ok_button().text = "Close"
+	_sound_volume_dialog.close_requested.connect(func(): _restore_options_focus.call_deferred())
+	_sound_volume_dialog.confirmed.connect(func(): _restore_options_focus.call_deferred())
+	_volume_controls = VolumeControls.new()
+	_sound_volume_dialog.add_child(_volume_controls)
+	_volume_controls.volume_changed.connect(_volume_changed)
+
+
+func _open_sound_volume() -> void:
+	if not _help_covered and not is_forfeit_confirmation_open():
+		_volume_controls.refresh()
+		_sound_volume_dialog.popup_centered()
+		_volume_controls.focus_master()
+
+
+func _volume_changed(category: String, value: float) -> void:
+	match category:
+		"master": master_volume_changed.emit(value)
+		"music": music_volume_changed.emit(value)
+		"sfx": sound_effects_volume_changed.emit(value)
 
 
 func _handle_options_window_input(event: InputEvent) -> void:

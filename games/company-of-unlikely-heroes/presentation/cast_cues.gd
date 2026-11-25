@@ -141,7 +141,7 @@ static func held_clip_for(state: Dictionary, owner: Dictionary, presentation: Di
 	return ""
 
 
-static func build(before: Dictionary, after: Dictionary, events: Array) -> Array:
+static func build(before: Dictionary, after: Dictionary, events: Array, include_silent := false) -> Array:
 	if events.is_empty():
 		return []
 	var positions := {}
@@ -165,6 +165,15 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 		var action: Dictionary = events[index].get("resolved_action", {})
 		var actor: Dictionary = actors.get(action.get("unit_id", ""), {})
 		var cue := _start_cue(after, actor, action)
+		if cue.is_empty() and not actor.is_empty() and action.has("ability_id") \
+				and (include_silent or action.ability_id == "move"):
+			cue = {"unit_id": actor.id, "cast_key": cast_key_for(after, actor), "clip": "",
+				"source_cell": action.get("source_cell"), "actor_cell": action.get("actor_cell"),
+				"target_id": "", "recipients": [], "silent_action": true}
+			if action.get("ability_id") == "move":
+				cue["ordinary_handler"] = "move"
+		if not cue.is_empty():
+			cue["action_beat"] = true
 		if cue.get("cast_key") == "knight" and cue.get("clip") in ["rescue_line", "bonk"]:
 			cue["shield_away"] = shield_away.get(actor.id, actor.get("shield_position") is Vector2i)
 		elif cue.get("cast_key") == "knight" and cue.get("clip") == "shield_throw":
@@ -173,6 +182,9 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 		if end <= index or end > events.size():
 			push_error("Invalid resolved action span at event %d." % index)
 			return []
+		if include_silent and not cue.is_empty() and not action.is_empty() \
+				and events.slice(index, end).any(func(event): return event.get("type") != "wait"):
+			_audio_action(cue, after, action)
 		var echo_started := false
 		var reactions := []
 		var steps := 0
@@ -200,13 +212,39 @@ static func build(before: Dictionary, after: Dictionary, events: Array) -> Array
 				var echo_action := action.duplicate()
 				echo_action["ability_id"] = event.ability_id
 				cue = _start_cue(after, actor, echo_action)
+				if include_silent and not cue.is_empty():
+					_audio_action(cue, after, echo_action)
 				echo_started = true
 			if not cue.is_empty():
 				_observe(cue, event, positions)
+				if cue.get("silent_action", false):
+					_observe_silent(cue, event, positions)
 			var position_changes := _position_changes(event, positions)
 			moved.merge(position_changes, true)
 			var event_cues := _ordinary_events(after, event, action, actors, positions,
 				health, position_changes, cue)
+			if include_silent and (not action.is_empty() or event.has("objective_movement")):
+				var motion_owner := cue
+				if motion_owner.is_empty() and not event_cues.is_empty():
+					motion_owner = event_cues[0]
+				if motion_owner.is_empty() and not position_changes.is_empty():
+					var owner: String = position_changes.keys()[0]
+					var moved_actor: Dictionary = actors.get(owner, {})
+					if not moved_actor.is_empty():
+						motion_owner = {"unit_id": owner, "cast_key": cast_key_for(after, moved_actor),
+							"clip": "", "silent_action": true, "action_beat": true,
+							"source_cell": positions.get(owner), "actor_cell": position_changes[owner],
+							"target_id": "", "recipients": []}
+						event_cues.append(motion_owner)
+				for moved_id in position_changes:
+					if not motion_owner.is_empty() \
+							and positions.get(moved_id) is Vector2i:
+						if not motion_owner.has("motions"):
+							motion_owner["motions"] = []
+						motion_owner.motions.append({"unit_id": moved_id, "from": positions[moved_id],
+							"to": position_changes[moved_id],
+							"before_impact": event.get("type") == "move" \
+								and (moved_id == action.get("unit_id") or action.is_empty())})
 			if event.get("type") == "retaliate":
 				var retaliator: String = event.unit_id
 				if event_cues.is_empty():
@@ -625,6 +663,38 @@ static func _supports_shape(definitions: Dictionary, ability: Dictionary, clip: 
 			return ability.targeting.kind == "entity" and params.get("character") == "zombie"
 		_:
 			return true
+
+
+static func _observe_silent(cue: Dictionary, event: Dictionary, positions: Dictionary) -> void:
+	var target: String = event.get("target_id", "")
+	var cell: Variant = positions.get(target)
+	match event.get("type", ""):
+		"damage":
+			if int(event.get("amount", 0)) > 0 and event.get("source_id") == cue.unit_id:
+				_recipient(cue, target, cell, "hit")
+		"heal":
+			if int(event.get("amount", 0)) > 0 and event.get("unit_id") == cue.unit_id:
+				_recipient(cue, target, cell, "heal")
+		"push", "pull", "repel", "swap":
+			var destination: Variant = event.get("target_position") if event.type == "swap" \
+				else event.get("position")
+			if event.get("unit_id") == cue.unit_id and destination is Vector2i:
+				_recipient(cue, target, destination, "shift")
+
+
+static func _audio_action(cue: Dictionary, state: Dictionary, action: Dictionary) -> void:
+	var ability: String = action.get("ability_id", "")
+	var definition: Dictionary = state.catalog.defs.abilities.get(ability, {})
+	if definition.is_empty():
+		return
+	cue["audio_ability"] = ability
+	var handler: String = definition.get("handler", "")
+	# A zero-damage gesture is not a physical hit, even when implemented by
+	# the generic attack handler.
+	if handler == "attack" and definition.get("params", {}).get("damage") == 0:
+		handler = "harmless_attack"
+	cue["audio_handler"] = handler
+	cue["audio_recipe"] = action.get("recipe_id", "")
 
 
 static func _observe(cue: Dictionary, event: Dictionary, positions: Dictionary) -> void:

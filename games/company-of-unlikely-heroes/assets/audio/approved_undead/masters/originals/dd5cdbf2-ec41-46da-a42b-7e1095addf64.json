@@ -1,0 +1,20 @@
+{
+  "id": "dd5cdbf2-ec41-46da-a42b-7e1095addf64",
+  "filename": "dd5cdbf2-ec41-46da-a42b-7e1095addf64.wav",
+  "created_at": "2026-11-25T00:47:43.273Z",
+  "model": "audiocpp-stable-audio-3-sfx",
+  "prompt": "A tiny friendly skeleton wakes: a brief hollow windpipe moan followed immediately by three dry wooden-sounding bone joints slotting together. Thin reedy tired groan through an empty rib cage, delicate tooth rattle. One compact close-up foley performance.",
+  "negative_prompt": "music, accompaniment, ambient scene, long reverb, screaming, gore sounds, English dialogue, repeated sequence",
+  "lyrics": null,
+  "seed": 8424,
+  "steps": null,
+  "cfg": null,
+  "duration_s": 0.95,
+  "sample_rate": 44100,
+  "channels": 2,
+  "parent_id": null,
+  "source": "mcp",
+  "edit": null,
+  "edit_options": null,
+  "sha256": "0ade356841c4822b36199faa1a697110049fef8ed23b084e581412ed28830756"
+}

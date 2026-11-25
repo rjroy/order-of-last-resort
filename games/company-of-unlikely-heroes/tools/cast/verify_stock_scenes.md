@@ -2,6 +2,14 @@
 
 From a fresh checkout and the repository root, with a graphical Godot display:
 
+First, import the packaged assets once:
+
+```sh
+godot --headless --editor --path games/company-of-unlikely-heroes --import
+```
+
+Then run the verification:
+
 ```sh
 tool=games/company-of-unlikely-heroes/tools/cast/verify_stock_scenes.py
 python3 "$tool" --dry-run --output "$PWD/.lore/local/stock-scenes-plan"

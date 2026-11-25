@@ -47,6 +47,15 @@ func _wipe(skip: bool) -> void:
 	if scene.current_screen() != "battle":
 		_check(false, "Controlled commission mission opens")
 		return
+	var sound_events: Array = []
+	var sound := scene.find_child("SoundEffects", true, false)
+	if sound == null or not sound.has_signal("sound_requested"):
+		_check(false, "Terminal battle has the shared sound dispatch service")
+		return
+	sound.connect("sound_requested", func(kind: String, unit_id: String, ability_id: String,
+			cue_id: String, gain: float) -> void:
+		sound_events.append({"kind": kind, "unit_id": unit_id, "ability_id": ability_id,
+			"cue_id": cue_id, "gain": gain}))
 	var rules = preload("res://rules.gd").new()
 	var state: Dictionary = scene.battle_snapshot().duplicate(true)
 	state.width = 12
@@ -69,6 +78,7 @@ func _wipe(skip: bool) -> void:
 	scene.call("_refresh")
 	var before_carry: Dictionary = scene.get("_run").carry_by_id.duplicate(true)
 	var plan: Dictionary = scene.get("_plan")
+	_check(sound_events.is_empty(), "Constructing a terminal forecast dispatches no sounds")
 	_check(plan.get("valid", false) and plan.get("result", {}).get("outcome") == "defeat" \
 		and plan.events.any(func(event): return event.get("type") == "damage" \
 			and event.get("target_id") == "knight" and event.get("amount", 0) > 0),
@@ -98,8 +108,18 @@ func _wipe(skip: bool) -> void:
 			scene._input(event)
 			_check(scene.get("_terminal_board") == null and scene.get("_terminal_replay") == null \
 				and scene.current_screen() == "result", "Skipping replay releases its board and keeps results")
+			var count := sound_events.size()
+			await process_frame
+			await process_frame
+			_check(sound_events.size() == count, "Skipping terminal replay cancels pending sound dispatches")
 		else:
 			await _drain_replay(replay, before_carry)
+			_check(sound_events.filter(func(item): return item.kind == "step" and item.unit_id == "knight" \
+				and item.ability_id == "move").size() == 1,
+				"Terminal replay dispatches the committed Knight step once, without replay duplication")
+			_check(sound_events.filter(func(item): return item.kind == "impact" \
+				and item.unit_id == "grunt_1").size() == 1,
+				"Terminal replay dispatches the lethal attack impact once")
 
 
 func _drain_replay(replay: Node, before_carry: Dictionary) -> void:

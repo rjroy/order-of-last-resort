@@ -3,6 +3,7 @@ extends CanvasLayer
 
 const Preferences = preload("res://battle_display_preferences.gd")
 const Prep = preload("res://presentation/guild_prep_widgets.gd")
+const VolumeControls = preload("res://presentation/volume_controls.gd")
 const TOPICS := {
 	"Found a guild": ["Name your guild and choose Create guild. Your guild keeps its points and purchases between commissions.", ""],
 	"Choose a commission": ["Choose a destination and commission length. Choosing a commission starts recruitment; it does not start a battle. The illustrated commission is an example.", "commission-selection"],
@@ -367,6 +368,8 @@ func _open_options() -> void:
 		_begin_overlay()
 	_overlay_kind = "options"
 	_set_panel_compact(true)
+	_panel.offset_top = -245
+	_panel.offset_bottom = 245
 	_add_header("Options")
 	var hints := CheckButton.new()
 	hints.text = "Show hints"
@@ -382,12 +385,32 @@ func _open_options() -> void:
 		Preferences.save_show_hints(enabled)
 		_update_next_step()
 		_refresh_hints())
+	var volume_label := Label.new()
+	volume_label.text = "Volume"
+	volume_label.add_theme_font_override("font", Prep.serif())
+	volume_label.add_theme_font_size_override("font_size", 20)
+	volume_label.add_theme_color_override("font_color", Color("#302419"))
+	_body.add_child(volume_label)
+	var controls := VolumeControls.new()
+	_body.add_child(controls)
+	for label in controls.find_children("*", "Label", true, false):
+		label.add_theme_font_override("font", Prep.serif())
+		label.add_theme_font_size_override("font_size", 20)
+		label.add_theme_color_override("font_color", Color("#302419"))
+	controls.volume_changed.connect(_volume_changed)
 	if get_parent().current_screen() == "battle":
 		_add_display_option("Show Grid", Preferences.load_grid_visible(), "_set_grid_visible")
 		_add_display_option("Show Grid Labels", Preferences.load_grid_labels_visible(), "_set_grid_labels_visible")
 		_add_display_option("Show Nameplates", Preferences.load_nameplates_visible(), "_set_nameplates_visible")
 		_add_display_option("Always show health bar", Preferences.load_always_show_health_bar(), "_set_always_show_health_bar")
 	hints.grab_focus()
+
+
+func _volume_changed(category: String, value: float) -> void:
+	match category:
+		"master": get_parent().call("_set_master_volume", value)
+		"music": get_parent().call("_set_music_volume", value)
+		"sfx": get_parent().call("_set_sound_effects_volume", value)
 
 
 func _set_panel_compact(compact: bool) -> void:

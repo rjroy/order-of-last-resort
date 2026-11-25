@@ -18,6 +18,13 @@ and its production tools do not require a Mind Garage checkout. The original
 directory names are retained because tools, art recipes, and historical
 records refer to them.
 
+## Add a playable class
+
+[Adding a playable class](docs/adding-a-playable-class.md) walks through taking
+a hero from a design to a recruit you can equip and play. It covers guild and
+battle rules, artwork, animation, sound, and how to check what players actually
+see and hear when they commit an action.
+
 ## Verify and produce assets
 
 ```sh

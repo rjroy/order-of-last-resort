@@ -1,0 +1,181 @@
+{
+  "missions": {
+    "last_wagon": {
+      "title": "The Last Wagon",
+      "encounter": "frontier_wagon_road",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "wagon",
+        "subject": "wagon",
+        "destination": "village",
+        "text": "Protect the supply wagon until it reaches the village at G3. It advances one tile each round when no living enemy is adjacent; an adjacent enemy stalls it. Raiders target the wagon. If it is destroyed or the company falls, the mission is lost.",
+        "victory_text": "The wagon and its supplies reach the village.",
+        "defeat_text": "The village's last wagon was lost.",
+        "victory_event": "The supply wagon reaches the village."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ],
+      "tier": 2
+    }
+  },
+  "encounters": {
+    "frontier_wagon_road": {
+      "board": "frontier_wagon_board",
+      "party_slots": [
+        [
+          1,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "wagon",
+          "character": "frontier_wagon",
+          "at": [
+            1,
+            2
+          ]
+        },
+        {
+          "id": "wagon_raider_north",
+          "character": "frontier_wagon_raider",
+          "at": [
+            4,
+            0
+          ]
+        },
+        {
+          "id": "wagon_raider_south",
+          "character": "frontier_wagon_raider",
+          "at": [
+            4,
+            4
+          ]
+        }
+      ]
+    }
+  },
+  "boards": {
+    "frontier_wagon_board": {
+      "width": 7,
+      "height": 5,
+      "default_tile": "stone",
+      "tiles": [],
+      "locations": {
+        "village": [
+          6,
+          2
+        ]
+      }
+    }
+  },
+  "characters": {
+    "frontier_wagon": {
+      "class": "civilian",
+      "label": "Supply Wagon",
+      "art_key": "obstacle",
+      "max_hp": 6,
+      "behavior": "hold",
+      "cast_key": "frontier_wagon",
+      "cast_art_key": "obstacle",
+      "cast_team": "civilian",
+      "cast_variant": "default",
+      "cast_presentation": {
+        "actions": {},
+        "defeat": "destroyed",
+        "events": {
+          "wagon_advance": "advance",
+          "wagon_stall": "stall"
+        },
+        "holds": {
+          "wagon_wreck": "destroyed"
+        }
+      }
+    },
+    "frontier_wagon_raider": {
+      "class": "enemy",
+      "label": "Wagon Raider",
+      "art_key": "enemy",
+      "max_hp": 3,
+      "abilities": [
+        "move",
+        "frontier_wagon_strike"
+      ],
+      "behavior": "frontier_wagon_hunt",
+      "cast_key": "frontier_wagon_raider",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "intercept"
+          },
+          "frontier_wagon_strike": {
+            "handler": "attack",
+            "clip": "wagon_strike",
+            "impact_frame": 16
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat"
+      }
+    }
+  },
+  "abilities": {
+    "frontier_wagon_strike": {
+      "label": "Wagon Strike",
+      "help": "Deals 1 damage to the adjacent supply wagon.",
+      "handler": "attack",
+      "params": {
+        "damage": 1
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 1,
+        "teams": [
+          "civilian"
+        ]
+      }
+    }
+  },
+  "behaviors": {
+    "frontier_wagon_hunt": {
+      "handler": "threat",
+      "params": {
+        "fallback_teams": [
+          "civilian"
+        ],
+        "pursue_range": 7,
+        "taunt_status": "taunt",
+        "move_ability": "move",
+        "ability": "frontier_wagon_strike"
+      }
+    }
+  },
+  "presentation": {
+    "frontier_wagon": {
+      "label": "Supply Wagon"
+    },
+    "frontier_wagon_raider": {
+      "label": "Wagon Raider"
+    }
+  }
+}

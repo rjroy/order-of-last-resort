@@ -1,0 +1,91 @@
+{
+  "missions": {
+    "unfortunate_ritual": {
+      "title": "The Unfortunate Ritual",
+      "encounter": "frontier_ritual",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "ritual",
+        "circles": "circles",
+        "required_turns": 2,
+        "text": "Occupy all three circles at C2, D3, and C4 at the end of two consecutive rounds. Any living character counts, including an enemy or summon. If any circle is empty at a round's end, progress resets.",
+        "victory_text": "The circles hold, and the unfortunate ritual ends.",
+        "defeat_text": "The company could not hold the circles.",
+        "victory_event": "All three circles have remained occupied for two consecutive rounds."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ],
+      "tier": 2
+    }
+  },
+  "encounters": {
+    "frontier_ritual": {
+      "board": "frontier_ritual_board",
+      "party_slots": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "ritual_hookhand",
+          "character": "hookhand",
+          "at": [
+            5,
+            1
+          ]
+        },
+        {
+          "id": "ritual_raider",
+          "character": "goblin",
+          "at": [
+            5,
+            3
+          ]
+        }
+      ]
+    }
+  },
+  "boards": {
+    "frontier_ritual_board": {
+      "width": 7,
+      "height": 5,
+      "default_tile": "stone",
+      "tiles": [],
+      "locations": {},
+      "zones": {
+        "circles": [
+          [
+            2,
+            1
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    }
+  }
+}

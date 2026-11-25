@@ -6,7 +6,7 @@ does not change the sound of the borrowed action. Repeat Batch selects the
 stream of the bottled potion, acid, or paste. Movement and planning retain the
 approved footfall and pencil; forecasts remain silent.
 
-`presentation/sound_recipes.gd` contains the reproducible recipe parameters.
+`presentation/audio/sound_recipes.gd` contains the reproducible recipe parameters.
 Each layer specifies its start, duration, starting and ending frequency,
 amplitude, decay, and noise filter. The synthesizer mixes swept decaying modes
 and low-pass-filtered noise with attack and release ramps into mono 16-bit PCM

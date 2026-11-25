@@ -74,22 +74,22 @@ Native case ID equals the source ability ID. The clip column is the clip actuall
 
 ## Reproduce in the existing checkout
 
-Run from the repository root with Godot 4.7. Play the stock example directly with `godot --path games/company-of-unlikely-heroes -- --mission=hold_the_line --party=blacksmith,knight,healer`. The [battle matrix](../../../../../games/company-of-unlikely-heroes/tests/smith_playback_scene_test.gd) accepts `--list`, `--case=ID`, or no filter for all 32. Headless tests check rules, picker, commit equality, and routing; they do not render the playback or prove audible output. The rules and forecast cross-checks recorded in `.1`, `.3` and `.6` are:
+Run from the repository root with Godot 4.7. Play the stock example directly with `godot --path games/company-of-unlikely-heroes -- --mission=hold_the_line --party=blacksmith,knight,healer`. The [battle matrix](../../../../../games/company-of-unlikely-heroes/tests/presentation/smith_playback_scene_test.gd) accepts `--list`, `--case=ID`, or no filter for all 32. Headless tests check rules, picker, commit equality, and routing; they do not render the playback or prove audible output. The rules and forecast cross-checks recorded in `.1`, `.3` and `.6` are:
 
 | Coverage | Tests under `res://tests/` |
 |---|---|
-| Knight Push, Guard, fit intake and action picker | `smith_knight_rules_test.gd`, `smith_command_picker_scene_test.gd` |
-| Other tactical actions and pre-slot standing/direct resolution | `smith_tactical_conversions_test.gd`, `smith_tactical_orders_test.gd` |
-| Doses, exact reaction and bottle replay | `smith_alchemy_conversions_test.gd`, `smith_converted_forecast_scene_test.gd` |
-| Songs, summons, Inspiration and ordinary echoes | `smith_songs_summons_test.gd`, `smith_inspiration_lifecycle_test.gd`, `smith_undead_lifecycle_test.gd` |
-| All seven purchased, equipped and deployed borrowed kits | `smith_borrowed_guild_conversions_test.gd` |
-| Committed board, routing and choreography | `smith_committed_playback_test.gd`, `smith_committed_board_test.gd`, `smith_fitted_audio_dispatch_test.gd`, `smith_choreography_scene_test.gd` |
+| Knight Push, Guard, fit intake and action picker | `battle/smith_knight_rules_test.gd`, `presentation/smith_command_picker_scene_test.gd` |
+| Other tactical actions and pre-slot standing/direct resolution | `battle/smith_tactical_conversions_test.gd`, `battle/smith_tactical_orders_test.gd` |
+| Doses, exact reaction and bottle replay | `battle/smith_alchemy_conversions_test.gd`, `presentation/smith_converted_forecast_scene_test.gd` |
+| Songs, summons, Inspiration and ordinary echoes | `battle/smith_songs_summons_test.gd`, `battle/smith_inspiration_lifecycle_test.gd`, `battle/smith_undead_lifecycle_test.gd` |
+| All seven purchased, equipped and deployed borrowed kits | `battle/smith_borrowed_guild_conversions_test.gd` |
+| Committed board, routing and choreography | `presentation/smith_committed_playback_test.gd`, `battle/smith_committed_board_test.gd`, `presentation/smith_fitted_audio_dispatch_test.gd`, `presentation/smith_choreography_scene_test.gd` |
 
 For example:
 
 ```bash
 godot --headless --path games/company-of-unlikely-heroes \
-  --script res://tests/smith_playback_scene_test.gd -- --case=borrowed_knight_healer_bonk
+  --script res://tests/presentation/smith_playback_scene_test.gd -- --case=borrowed_knight_healer_bonk
 ```
 
 For graphical reproduction, use a normal visible window in the existing Wayland session, with `WAYLAND_DISPLAY` and `XDG_RUNTIME_DIR` inherited. Do not use `--wid`, a hidden X11 parent, or Dummy audio. The current [sandbox guard](../../../../../games/company-of-unlikely-heroes/tests/support/capture_sandbox.gd) requires a **fresh** real directory beneath this checkout's ignored `.lore/local`, with explicit child paths so isolated music changes cannot touch a player's profile. If a tool-manager shim depends on your usual XDG config, set `GODOT_BIN` to the absolute Godot executable before running this recipe.
@@ -114,18 +114,18 @@ For graphical reproduction, use a normal visible window in the existing Wayland 
 
   new_capture smith-live-visual
   timeout 600s "$godot_bin" --display-driver wayland --audio-driver PulseAudio --path "$game" \
-    --script res://tests/smith_live_visual_verification.gd -- \
+    --script res://tests/presentation/smith_live_visual_verification.gd -- \
     --output-dir="$sandbox/captures" > "$sandbox/run.log" 2>&1
 
   new_capture smith-live-audio
   timeout 600s "$godot_bin" --verbose --display-driver wayland --audio-driver PulseAudio --path "$game" \
-    --script res://tests/smith_live_conversion_capture.gd -- \
+    --script res://tests/presentation/smith_live_conversion_capture.gd -- \
     --all --expected-count=32 > "$sandbox/live.log" 2>&1
 
   new_capture smith-supplementary
   timeout 180s "$godot_bin" --verbose --display-driver wayland --audio-driver PulseAudio --path "$game" \
-    --script res://tests/smith_supplementary_live_capture.gd > "$sandbox/live.log" 2>&1
+    --script res://tests/presentation/smith_supplementary_live_capture.gd > "$sandbox/live.log" 2>&1
 )
 ```
 
-To isolate the two targeted visual variants, add `--case=variant_knight_bonk_shield_away --case=variant_counterbatch_damage` after `--output-dir`; for lifecycle use `-- --lifecycle-only` on the supplementary command. For prone companions, add `new_capture smith-prone` inside the recipe, then run `SMITH_CHOREOGRAPHY_OUTPUT="$sandbox/captures" "$godot_bin" --display-driver wayland --path "$game" --script res://tests/smith_choreography_scene_test.gd -- --case=prone-companions`. Add `--exclude=knight_push --exclude=alchemist_acid` and change `--expected-count` to 30 to repeat the earlier audio selection, not its older cue bindings. Keep captured media, JSON and logs in the throwaway sandboxes, not Git; none is a runtime input.
+To isolate the two targeted visual variants, add `--case=variant_knight_bonk_shield_away --case=variant_counterbatch_damage` after `--output-dir`; for lifecycle use `-- --lifecycle-only` on the supplementary command. For prone companions, add `new_capture smith-prone` inside the recipe, then run `SMITH_CHOREOGRAPHY_OUTPUT="$sandbox/captures" "$godot_bin" --display-driver wayland --path "$game" --script res://tests/presentation/smith_choreography_scene_test.gd -- --case=prone-companions`. Add `--exclude=knight_push --exclude=alchemist_acid` and change `--expected-count` to 30 to repeat the earlier audio selection, not its older cue bindings. Keep captured media, JSON and logs in the throwaway sandboxes, not Git; none is a runtime input.

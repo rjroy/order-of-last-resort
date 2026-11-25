@@ -1,0 +1,80 @@
+{
+  "characters": {
+    "bard": {
+      "class": "wizard",
+      "label": "Bad Bard",
+      "guild_portrait": "bard",
+      "cast_key": "bard",
+      "cast_art_key": "wizard",
+      "description": "Pick the tune, not the audience. A melody makes an opponent laugh away their turn; a sonnet hurts one.",
+      "abilities": [
+        "move",
+        "inspiring_melody",
+        "healing_sonnet"
+      ],
+      "habits": {
+        "order_hold": "hold",
+        "order_inspiring_melody": "sing_melody",
+        "order_healing_sonnet": "sing_sonnet"
+      },
+      "default_order": "order_hold",
+      "color": "#e3b970"
+    }
+  },
+  "abilities": {
+    "inspiring_melody": {
+      "fitted_form": "inspiring_melody_in_tune",
+      "label": "Inspiring Melody",
+      "help": "A random eligible opponent skips its next turn laughing, then is immune to laughter through the following round.",
+      "handler": "perform",
+      "params": {
+        "status": "laughter",
+        "listener_event": "melody_listener"
+      },
+      "targeting": {
+        "kind": "automatic",
+        "teams": [
+          "enemies"
+        ]
+      }
+    },
+    "healing_sonnet": {
+      "fitted_form": "healing_sonnet_in_tune",
+      "label": "Healing Sonnet",
+      "help": "Deals 1 damage to a random living opponent. Despite the name, nobody is healed.",
+      "handler": "perform",
+      "params": {
+        "damage": 1,
+        "listener_event": "sonnet_listener"
+      },
+      "targeting": {
+        "kind": "automatic",
+        "teams": [
+          "enemies"
+        ]
+      }
+    }
+  },
+  "orders": {
+    "order_inspiring_melody": {
+      "label": "Inspiring Melody"
+    },
+    "order_healing_sonnet": {
+      "label": "Healing Sonnet"
+    }
+  },
+  "behaviors": {
+    "sing_melody": {
+      "handler": "use_ability",
+      "params": {
+        "ability": "inspiring_melody"
+      }
+    },
+    "sing_sonnet": {
+      "handler": "use_ability",
+      "params": {
+        "ability": "healing_sonnet"
+      }
+    }
+  }
+}

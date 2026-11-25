@@ -10,7 +10,7 @@ extends "res://tools/capture_guild_book.gd"
 
 const REVIEW_NAME := "The Last Lantern Company"
 const REVIEW_SEED := 677
-const Preferences := preload("res://battle_display_preferences.gd")
+const Preferences := preload("res://presentation/settings/battle_display_preferences.gd")
 const StorybookDriver := preload("res://tests/support/storybook_driver.gd")
 
 var _profile := "user://onboarding_review_guild.json"

@@ -48,7 +48,7 @@ def main():
     parser.add_argument("--out", type=Path, default=GAME / "assets/guild-book/upgrades")
     args = parser.parse_args()
     manifest = json.loads((SOURCE / "crops.json").read_text())
-    definitions = json.loads((GAME / "content/rewards.json").read_text())["upgrades"]
+    definitions = json.loads((GAME / "content/expedition/rewards.json").read_text())["upgrades"]
     expected = {reward for reward in definitions if reward.startswith(FAMILIES)}
     sheets = {}
     for name, sha256 in manifest["sheets"].items():

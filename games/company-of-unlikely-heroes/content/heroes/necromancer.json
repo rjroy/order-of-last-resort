@@ -1,0 +1,54 @@
+{
+  "characters": {
+    "necromancer": {
+      "class": "wizard",
+      "label": "Friendly Crypter",
+      "guild_portrait": "necromancer",
+      "cast_key": "necromancer",
+      "cast_art_key": "wizard",
+      "description": "Raise a defeated opponent as a zombie or call a skeleton onto an open neighboring tile. Both pursue opponents on their own. A skeleton's Wave can also hurt nearby allies.",
+      "abilities": [
+        "move",
+        "raise_dead",
+        "summon_skeleton"
+      ],
+      "habits": {
+        "order_hold": "hold"
+      },
+      "default_order": "order_hold",
+      "color": "#bcabdf"
+    }
+  },
+  "abilities": {
+    "raise_dead": {
+      "fitted_form": "play_dead",
+      "label": "Raise Dead",
+      "help": "Choose an unoccupied enemy corpse. It becomes a zombie with half the enemy's maximum HP, rounded up.",
+      "handler": "summon",
+      "params": {
+        "character": "zombie",
+        "priority": 1
+      },
+      "targeting": {
+        "kind": "entity",
+        "teams": [
+          "enemies"
+        ]
+      }
+    },
+    "summon_skeleton": {
+      "fitted_form": "recall_skeleton",
+      "label": "Summon Skeleton",
+      "help": "Choose an open neighboring tile for a 1 HP skeleton. It first acts next round.",
+      "handler": "summon",
+      "params": {
+        "character": "skeleton",
+        "priority": 0
+      },
+      "targeting": {
+        "kind": "cell",
+        "range": 1
+      }
+    }
+  }
+}

@@ -133,8 +133,8 @@ def draw_guide(bridge, shore_cells):
 
 def read_layout(root):
     content = root / CONTENT
-    common = json.loads((content / "common.json").read_text(encoding="utf-8"))
-    outing = json.loads((content / "first_outing.json").read_text(encoding="utf-8"))
+    common = json.loads((content / "shared/common.json").read_text(encoding="utf-8"))
+    outing = json.loads((content / "missions/company_rescue.json").read_text(encoding="utf-8"))
     encounter = outing["encounters"]["company_crossing"]
     if encounter["board"] != "bridge":
         raise ValueError("company_crossing no longer uses boards.bridge")

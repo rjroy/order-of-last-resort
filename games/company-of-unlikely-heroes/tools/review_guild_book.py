@@ -201,7 +201,7 @@ def main() -> int:
         parser.error("--output is required unless running --self-test")
     try:
         output = checked_output(args.output)
-        items = inventory(GAME / "content", GAME / "presentation/guild_book_art.gd")
+        items = inventory(GAME / "content", GAME / "presentation/book/guild_book_art.gd")
         complete = write_review(output, GAME / "assets/guild-book", items, args.overview)
     except (OSError, ValueError, KeyError, IndexError, subprocess.CalledProcessError) as exc:
         print(f"Review failed: {exc}", file=sys.stderr)

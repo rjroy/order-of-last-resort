@@ -1,0 +1,110 @@
+{
+  "missions": {
+    "wrong_side_of_the_door": {
+      "title": "The Wrong Side of the Door",
+      "encounter": "frontier_gate",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "pressure_gate",
+        "plate": "plate",
+        "gate": "gate",
+        "exit": "exit",
+        "text": "Get any living hero to the exit at F3. The gate at D3 opens only while a living character, friend or foe, occupies the plate at C2. It closes as soon as the plate is empty. A hero can hold the plate while another crosses; a push or swap can put an enemy there instead.",
+        "victory_text": "Someone made it through the door.",
+        "defeat_text": "Nobody made it through the door.",
+        "victory_event": "A hero reaches the far side of the gate."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ],
+      "tier": 2
+    }
+  },
+  "encounters": {
+    "frontier_gate": {
+      "board": "frontier_gate_board",
+      "party_slots": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "gate_guard",
+          "character": "goblin",
+          "at": [
+            4,
+            2
+          ]
+        }
+      ]
+    }
+  },
+  "boards": {
+    "frontier_gate_board": {
+      "width": 7,
+      "height": 5,
+      "default_tile": "stone",
+      "tiles": [
+        {
+          "at": [
+            3,
+            0
+          ],
+          "type": "gap"
+        },
+        {
+          "at": [
+            3,
+            1
+          ],
+          "type": "gap"
+        },
+        {
+          "at": [
+            3,
+            3
+          ],
+          "type": "gap"
+        },
+        {
+          "at": [
+            3,
+            4
+          ],
+          "type": "gap"
+        }
+      ],
+      "locations": {
+        "plate": [
+          2,
+          1
+        ],
+        "gate": [
+          3,
+          2
+        ],
+        "exit": [
+          5,
+          2
+        ]
+      }
+    }
+  }
+}

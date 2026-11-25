@@ -1,0 +1,103 @@
+{
+  "classes": {
+    "alchemist": {
+      "team": "heroes",
+      "max_hp": 7,
+      "capabilities": [
+        "blocks_movement",
+        "mobile",
+        "pushable",
+        "pullable",
+        "damageable",
+        "healable",
+        "protectable",
+        "commandable",
+        "recoverable"
+      ],
+      "abilities": [
+        "move",
+        "alchemist_potion",
+        "alchemist_acid"
+      ],
+      "habits": {
+        "order_follow_ally": "alchemist_follow",
+        "order_make_rounds": "alchemist_make_rounds",
+        "order_throw_samples": "alchemist_throw_samples",
+        "order_hold": "hold"
+      },
+      "default_order": "order_follow_ally",
+      "behavior": "alchemist_follow",
+      "art_key": "healer",
+      "color": "#a5c77c"
+    }
+  },
+  "characters": {
+    "alchemist": {
+      "class": "alchemist",
+      "label": "Mixologist",
+      "guild_portrait": "alchemist",
+      "cast_key": "alchemist",
+      "cast_art_key": "healer",
+      "description": "Follow the nearest ally, choose whom to heal with a potion, or throw Acid at a foe. Read the forecast for the exact reaction before committing."
+    }
+  },
+  "abilities": {
+    "alchemist_potion": {
+      "fitted_form": "bitter_medicine",
+      "label": "Healing Potion",
+      "help": "Heal yourself or a friendly character within reach. The forecast shows the exact reaction (70% beneficial, 20% harmful, 10% cosmetic).",
+      "handler": "healing_potion",
+      "params": {
+        "amount": 1
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 1
+      }
+    },
+    "alchemist_acid": {
+      "fitted_form": "buffer_solution",
+      "label": "Acid",
+      "help": "Damage a hostile character within reach. The forecast shows the exact reaction (70% harmful, 20% beneficial, 10% cosmetic).",
+      "handler": "acid",
+      "params": {
+        "damage": 1
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 3
+      }
+    }
+  },
+  "orders": {
+    "order_follow_ally": {
+      "label": "Follow closest ally"
+    },
+    "order_make_rounds": {
+      "label": "Make Rounds (Healing Potion)"
+    },
+    "order_throw_samples": {
+      "label": "Throw Samples (Acid)"
+    }
+  },
+  "behaviors": {
+    "alchemist_follow": {
+      "handler": "follow_ally",
+      "params": {
+        "move_ability": "move"
+      }
+    },
+    "alchemist_make_rounds": {
+      "handler": "most_injured",
+      "params": {
+        "ability": "alchemist_potion"
+      }
+    },
+    "alchemist_throw_samples": {
+      "handler": "nearest_target",
+      "params": {
+        "ability": "alchemist_acid"
+      }
+    }
+  }
+}

@@ -2,7 +2,7 @@ extends SceneTree
 ## Read-only stock rules route probe. No assets, presentation, or modified catalog.
 ## godot --headless --path games/company-of-unlikely-heroes --script res://tests/support/harpooner_route_probe.gd
 
-const Rules = preload("res://rules.gd")
+const Rules = preload("res://rules/rules.gd")
 const Catalog = preload("res://content/catalog.gd")
 var rules := Rules.new()
 

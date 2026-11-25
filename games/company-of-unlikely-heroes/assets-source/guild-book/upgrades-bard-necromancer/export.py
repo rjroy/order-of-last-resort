@@ -21,7 +21,7 @@ def main():
     parser.add_argument("--contact-sheet", type=Path, help="Optional local review PNG")
     args = parser.parse_args()
     recipe = json.loads((SOURCE / "crops.json").read_text())
-    rewards = json.loads((GAME / "content/rewards.json").read_text())["upgrades"]
+    rewards = json.loads((GAME / "content/expedition/rewards.json").read_text())["upgrades"]
     expected = {key for key in rewards if key.startswith(("bard_", "necromancer_"))}
     reviewed = recipe["crops"]
     if set(reviewed) != expected:

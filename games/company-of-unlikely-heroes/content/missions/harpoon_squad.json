@@ -1,0 +1,81 @@
+{
+  "missions": {
+    "harpoon_squad": {
+      "title": "The Harpoon Squad",
+      "encounter": "village_squad",
+      "default_party": [
+        "healer",
+        "knight",
+        "bard"
+      ],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat the squad. The Hookhand can drag a hero into reach of the slower Bruiser.",
+        "victory_text": "The squad breaks. The village square lies ahead.",
+        "defeat_text": "The company falls to the squad.",
+        "victory_event": "The last member of the squad falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ],
+      "tier": 2
+    }
+  },
+  "encounters": {
+    "village_squad": {
+      "board": "village_lane",
+      "party_slots": [
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "placements": [
+        {
+          "id": "hookhand",
+          "character": "hookhand",
+          "at": [
+            3,
+            2
+          ]
+        },
+        {
+          "id": "harpooner",
+          "character": "harpooner",
+          "at": [
+            4,
+            1
+          ]
+        },
+        {
+          "id": "bruiser",
+          "character": "bruiser",
+          "at": [
+            2,
+            3
+          ]
+        }
+      ]
+    }
+  },
+  "boards": {
+    "village_lane": {
+      "width": 7,
+      "height": 5,
+      "default_tile": "stone",
+      "tiles": [],
+      "locations": {}
+    }
+  }
+}

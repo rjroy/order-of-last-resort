@@ -1,0 +1,63 @@
+{
+  "characters": {
+    "rogue": {
+      "class": "wizard",
+      "label": "Daft Dodger",
+      "guild_portrait": "rogue",
+      "cast_key": "rogue",
+      "cast_art_key": "wizard",
+      "description": "A slippery opportunist who retreats, swaps places, and leaves someone else holding the blame.",
+      "abilities": [
+        "move",
+        "rogue_confusing_dodge",
+        "rogue_wasnt_me"
+      ],
+      "habits": {
+        "order_retreat": "retreat"
+      },
+      "default_order": "order_retreat",
+      "color": "#d6a478"
+    }
+  },
+  "abilities": {
+    "rogue_confusing_dodge": {
+      "fitted_form": "clear_jump",
+      "label": "Confusing Dodge",
+      "help": "Swap with the furthest other living character, friend or foe. Distance ties go to the lowest character ID.",
+      "handler": "swap_furthest",
+      "params": {},
+      "targeting": {
+        "kind": "automatic"
+      }
+    },
+    "rogue_wasnt_me": {
+      "fitted_form": "it_was_me",
+      "label": "Wasn't Me",
+      "help": "Choose an enemy beside another living character. Its next attack redirects to an adjacent character other than its original target, lowest ID first. If none exists, the attack proceeds normally.",
+      "handler": "misdirect",
+      "params": {
+        "status": "misdirected"
+      },
+      "targeting": {
+        "kind": "entity",
+        "teams": [
+          "enemies"
+        ]
+      }
+    }
+  },
+  "orders": {
+    "order_retreat": {
+      "label": "Retreat from nearest enemy"
+    }
+  },
+  "behaviors": {
+    "retreat": {
+      "handler": "retreat",
+      "params": {
+        "move_ability": "move",
+        "team": "enemies"
+      }
+    }
+  }
+}

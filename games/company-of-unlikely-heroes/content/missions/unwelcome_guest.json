@@ -1,0 +1,151 @@
+{
+  "missions": {
+    "unwelcome_guest": {
+      "title": "The Unwelcome Guest",
+      "encounter": "village_guest",
+      "default_party": [
+        "healer",
+        "knight",
+        "bard"
+      ],
+      "objective": {
+        "handler": "leave_zone",
+        "subject": "troll",
+        "zone": "square",
+        "text": "Lead or shove the village troll out of the marked square. It follows the nearest living hero and stops when adjacent. If the troll dies or all heroes are defeated, you lose.",
+        "victory_text": "The village troll leaves the square alive. The villagers can return.",
+        "defeat_text": "The village square was not cleared safely.",
+        "victory_event": "The village troll is safely out of the square at {position}."
+      },
+      "failures": [
+        {
+          "handler": "subject_dead",
+          "event": "The village troll fell. The village asked for a peaceful solution."
+        },
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ],
+      "tier": 2
+    }
+  },
+  "encounters": {
+    "village_guest": {
+      "board": "village_square",
+      "party_slots": [
+        [
+          1,
+          3
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "placements": [
+        {
+          "id": "troll",
+          "character": "village_troll",
+          "at": [
+            2,
+            2
+          ]
+        }
+      ]
+    }
+  },
+  "boards": {
+    "village_square": {
+      "width": 7,
+      "height": 5,
+      "default_tile": "stone",
+      "tiles": [],
+      "locations": {},
+      "zones": {
+        "square": [
+          [
+            2,
+            1
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            3
+          ]
+        ]
+      }
+    }
+  },
+  "characters": {
+    "village_troll": {
+      "class": "civilian",
+      "label": "Village Troll",
+      "team": "enemies",
+      "art_key": "village_troll",
+      "behavior": "village_troll_follow",
+      "cast_key": "village_troll",
+      "cast_art_key": "village_troll",
+      "cast_team": "enemies",
+      "cast_variant": "default",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "curious_follow"
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat",
+        "events": {
+          "displaced": "displaced",
+          "leave_zone": "leaves_square_alive"
+        }
+      }
+    }
+  },
+  "behaviors": {
+    "village_troll_follow": {
+      "handler": "follow_party",
+      "params": {
+        "move_ability": "move"
+      }
+    }
+  },
+  "presentation": {
+    "village_troll": {
+      "label": "Village Troll"
+    }
+  }
+}

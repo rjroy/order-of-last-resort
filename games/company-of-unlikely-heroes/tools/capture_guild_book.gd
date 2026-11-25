@@ -147,7 +147,7 @@ func _run() -> void:
 		_finish_capture(failure)
 		return
 	# Fix the second board so the stock commission and battle driver are repeatable.
-	var store = load("res://guild_profile.gd")
+	var store = load("res://guild/guild_profile.gd")
 	var renewed: Dictionary = store.renew(output.path_join("profile.json"), scene.get("_guild_profile"), BOARD_SEED)
 	if renewed.has("error"):
 		_finish_capture("Could not seed the capture board: " + str(renewed.error))
@@ -226,7 +226,7 @@ func _run() -> void:
 
 func _capture_commission_board() -> String:
 	var profile := output.path_join("profile.json")
-	var store = load("res://guild_profile.gd")
+	var store = load("res://guild/guild_profile.gd")
 	var created: Dictionary = store.create(profile, "The Review Company", BOARD_REVIEW_SEED)
 	if created.has("error"):
 		return "Could not seed the capture board: " + str(created.error)
@@ -246,8 +246,8 @@ func _capture_commission_board() -> String:
 
 
 func _capture_recruitment_states() -> String:
-	var store = load("res://guild_profile.gd")
-	var fixture = load("res://tests/guild_petitions_domain_test.gd").new()
+	var store = load("res://guild/guild_profile.gd")
+	var fixture = load("res://tests/guild/guild_petitions_domain_test.gd").new()
 	var path := output.path_join("profile.json")
 	var profile: Dictionary = store.create(path, "The Review Company", fixture.SEED)
 	if profile.has("error"):
@@ -342,10 +342,10 @@ func _capture_creation_states() -> String:
 
 func _capture_field_reports() -> String:
 	var profile := output.path_join("profile.json")
-	var created: Dictionary = load("res://guild_profile.gd").create(profile, "The Review Company", BOARD_REVIEW_SEED)
+	var created: Dictionary = load("res://guild/guild_profile.gd").create(profile, "The Review Company", BOARD_REVIEW_SEED)
 	if created.has("error"):
 		return str(created.error)
-	var commissions = load("res://commissions.gd")
+	var commissions = load("res://expedition/commissions.gd")
 	for index in 2:
 		if is_instance_valid(scene):
 			scene.queue_free()

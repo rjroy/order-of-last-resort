@@ -14,6 +14,55 @@ For subsequent launches, the normal command is:
 godot --path games/company-of-unlikely-heroes
 ```
 
+### Build the browser playtest
+
+The Web release uses Godot 4.7.2 stable (`ed1daf0bf`) and matching 4.7.2
+stable Web export templates. It uses the GL Compatibility renderer and the
+single-threaded Web template, so the host does not need cross-origin isolation
+headers. It is not a PWA. The HTML, JavaScript, WebAssembly and PCK files must
+be served together over HTTP(S), with `.wasm` served as `application/wasm`.
+Browser saves belong to that browser and origin, not the native save directory.
+
+From the repository root, install the matching templates through Godot, then
+export to a **new, empty** ignored staging directory:
+
+```sh
+bash tools/web/build.sh "$(command -v godot)" "$PWD/.lore/local/pages-build/order-of-last-resort"
+python3 -m http.server 8000 --bind 127.0.0.1 --directory .lore/local/pages-build
+```
+
+Visit `http://127.0.0.1:8000/order-of-last-resort/`. The build script imports a
+fresh project copy and refuses a nonempty output directory, so use another
+empty directory for a subsequent build. The release includes runtime JSON and
+dynamic assets, including music, while excluding tests, tools and source
+masters. Generated staging files are disposable and are not runtime inputs to
+the source project.
+
+For the automated browser smoke, install Node 22 or newer, Chromium and
+Tesseract with English language data. With the server above still running:
+
+```sh
+node tools/web/smoke.mjs http://127.0.0.1:8000/order-of-last-resort/
+```
+
+Set `CHROMIUM` to the browser executable if it is not named `chromium`. The
+smoke uses a fresh browser profile, not the player's existing save. Also play
+through a committed practice move, inspect art and audio after interaction,
+and check persistence after reload in a clean browser; an automated check does
+not establish enjoyment.
+
+The **Web playtest** GitHub Actions workflow verifies official Godot 4.7.2
+editor and template downloads against the SHA-256 digests published in the
+[release](https://github.com/godotengine/godot-builds/releases/tag/4.7.2-stable),
+imports and exports from a clean checkout, and runs the browser smoke against
+the project path. Pull requests only build and check; they cannot deploy.
+After publication is separately authorized, set this repository's Pages
+source to GitHub Actions and manually run the workflow on `master`. Only that
+manual run deploys the artifact that passed its own smoke check to
+`https://rjroy.github.io/order-of-last-resort/`. Confirm the live project path
+and that the account homepage remains unchanged. Merely merging or opening a
+pull request does not publish the game.
+
 ### Play a battle
 
 Take a commission, recruit your party, and choose a route. Every built-in battle opens on the storybook board. No launch flag is needed. To skip directly to a standalone practice mission:

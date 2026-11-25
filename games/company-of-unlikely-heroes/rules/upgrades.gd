@@ -72,6 +72,8 @@ static func ability(state: Dictionary, actor: Dictionary, id: String) -> Diction
 			reach = amount(state, actor, "long_ladle")
 		"alchemist_acid":
 			mods = {"damage": amount(state, actor, "concentrate")}
+		"blacksmith_hammer_time":
+			mods = {"damage": amount(state, actor, "hammer_damage")}
 	for key in mods.keys():
 		if mods[key] == 0 or (not params.has(key) and not (key == "damage" and reference_params.has("damage"))):
 			mods.erase(key)
@@ -92,6 +94,9 @@ static func ability(state: Dictionary, actor: Dictionary, id: String) -> Diction
 	elif id == "alchemist_acid":
 		result.help = "Deal %d damage to a hostile character within %d tiles, then apply the forecast reaction." % [
 			int(result.params.damage), int(result.targeting.range)]
+	elif id == "blacksmith_hammer_time":
+		result.help = "Deal %d damage to an adjacent opponent or damageable obstacle. Does not shove or taunt." % [
+			int(result.params.damage)]
 	return result
 
 

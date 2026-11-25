@@ -19,7 +19,7 @@ const ABILITY_TARGETING := {
 	"summon": ["cell", "entity"], "sweep": ["none"], "repel": ["automatic"], "stop_target": ["automatic"],
 	"perform": ["automatic"], "hook": ["entity", "automatic"], "nominate": ["entity"],
 	"healing_potion": ["entity"], "acid": ["entity"], "plain_tonic": ["entity"], "repeat_batch": ["entity"],
-	"fit": ["entity"],
+	"fit": ["entity"], "quick_release": ["cell"],
 }
 const FITTED_SOURCE_HANDLERS := {"fitted_pull": "push", "clear_the_floor": "apply_status"}
 const ABILITY_EVENTS := {"swap_furthest": ["swap"], "swap_ally": ["swap"], "misdirect": ["misdirect_mark"],
@@ -41,7 +41,8 @@ const REWARD_EFFECTS := ["max_hp", "shield_damage", "dig_in", "shield_throw", "w
 	"sonnet_damage", "buskers_hat", "front_row_seats", "laughing_fit", "heckler", "house_lights",
 	"spare_ribs", "good_soil", "heavy_bouquet", "broad_wave", "long_stemmed", "warm_welcome",
 	"say_hello_to_that_one", "wake_reception", "stronger_dose", "concentrate", "long_ladle",
-	"spare_vial", "brittle_glass", "keep_the_culture"]
+	"spare_vial", "brittle_glass", "keep_the_culture",
+	"hammer_damage", "follow_through", "reinforced_rivets", "fine_adjustment", "quick_release", "double_shift"]
 const REWARD_FIELDS := ["hero_id", "rarity", "cap", "label", "description", "effect", "amount",
 	"ability", "order", "behavior", "requires_abilities", "requires_any_ability"]
 const REWARD_GRANTS := {
@@ -516,7 +517,7 @@ class Validator:
 			if FITTED_SOURCE_HANDLERS[ability.fitted_form] != handler:
 				_error(path + ".fitted_form", "does not match the source ability handler")
 		if targeting.has("range"):
-			if handler == "move" or (handler == "summon" and kind == "cell"):
+			if handler in ["move", "quick_release"] or (handler == "summon" and kind == "cell"):
 				if not _is_integer(targeting.range, 1) or int(targeting.range) != 1:
 					_error(path + ".targeting.range", "supports only an adjacent cell")
 			elif handler == "apply_status":
@@ -550,6 +551,11 @@ class Validator:
 		match handler:
 			"move":
 				pass
+			"quick_release":
+				if not targeting.has("range"):
+					_error(path + ".targeting.range", "Quick Release requires an adjacent cell")
+				if ability.has("fitted_form"):
+					_error(path + ".fitted_form", "Quick Release removes the fitting rather than converting")
 			"push":
 				_integer(params.get("collision_damage"), param_path + "collision_damage")
 			"apply_status":
@@ -667,6 +673,10 @@ class Validator:
 				"pass_blame", "make_friend", "fit_nearest"], path + ".handler"):
 			return
 		path += ".params."
+		if params.has("ability_slot"):
+			if handler != "pursue":
+				_error(path + "ability_slot", "only pursue can use an equipped ability slot")
+			_text(params.ability_slot, path + "ability_slot")
 		if handler in ["use_ability", "pursue", "rescue", "threat", "hook_and_seek",
 				"retreat_attack", "finite_healer", "swap_ally", "nearest_target", "most_injured"]:
 			_check_behavior_ability(handler, params, path + "ability")
@@ -1397,6 +1407,10 @@ class Validator:
 		var effect: Variant = upgrade.get("effect")
 		if _choice(effect, REWARD_EFFECTS, path + ".effect"):
 			_check_reward_grants(upgrade, profile, path, effect)
+			if effect in ["hammer_damage", "follow_through"]:
+				var required: Variant = upgrade.get("requires_abilities")
+				if not required is Array or "blacksmith_hammer_time" not in required:
+					_error(path + ".requires_abilities", "must require blacksmith_hammer_time")
 			if not profile.is_empty():
 				_check_reward_kit(effect, str(id), profile, path + ".effect")
 
@@ -1519,6 +1533,20 @@ class Validator:
 				if effect in ["concentrate", "brittle_glass", "keep_the_culture"]:
 					_require_reward(not _kit_ability(hero, "alchemist_acid", ["acid"]).is_empty(),
 						path, "alchemist_acid in the hero's ability kit")
+			"hammer_damage", "follow_through":
+				var hammer := _kit_ability(hero, "blacksmith_hammer_time", ["attack"])
+				var targeting := _record(hammer, "targeting")
+				_require_reward(is_same(targeting.get("kind"), "entity") \
+					and _is_integer(targeting.get("range"), 1) and int(targeting.range) == 1,
+					path, "blacksmith_hammer_time in the hero's kit as an adjacent attack")
+				if effect == "follow_through":
+					_require_reward(_has_capability(hero, "mobile"), path, "a mobile hero for Follow Through")
+			"reinforced_rivets", "fine_adjustment", "quick_release", "double_shift":
+				_require_reward(_kit_has_handler(hero, "fit"), path, "a fitting ability in the hero's kit")
+				if effect == "quick_release" and _ref("smith_quick_release", "abilities", path):
+					var release: Dictionary = _defs.abilities.smith_quick_release
+					_require_reward(is_same(release.get("handler"), "quick_release"), path,
+						"smith_quick_release with the quick_release handler")
 
 	func _check_summon_reward(effect: String, hero: Dictionary, path: String) -> void:
 		var skeletons := _kit_summons(hero, "cell", "skeleton")

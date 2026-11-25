@@ -1446,11 +1446,11 @@ func _storybook_action(ability: String) -> void:
 	if _forfeit_confirmation_open() or not _ongoing() or _actor_id.is_empty() \
 			or not _practice_allows_action(ability):
 		return
-	var available := _rules.options(_state, _actor_id).any(
+	var context := _editor_context()
+	var available := _rules.options(context, _actor_id).any(
 		func(choice: Dictionary) -> bool: return choice.kind == "action" and choice.id == ability)
 	if not available:
 		return
-	var context := _editor_context()
 	var definition := _action_definition(ability, _actor_id, context)
 	var kind: String = definition.get("targeting", {}).get("kind", "")
 	if not _rules.can_act(context, _actor_id) or definition.get("command_blocked", false) \
@@ -1540,7 +1540,7 @@ func _render_storybook() -> void:
 	var progress: Dictionary = _rules.objective_progress(_state)
 	var actions: Array = []
 	var context := _editor_context()
-	for choice in _rules.options(_state, _actor_id):
+	for choice in _rules.options(context, _actor_id):
 		if choice.kind == "action" and _practice_allows_action(choice.id):
 			var definition := _action_definition(choice.id, _actor_id, context)
 			var kind: String = definition.get("targeting", {}).get("kind", "")

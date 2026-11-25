@@ -22,7 +22,8 @@ func _run() -> void:
 		_cleanup()
 		return
 	var visible_recruits := scene.find_children("Recruit_*", "Button", true, false)
-	_check(visible_recruits.size() == 7, "The fixture shows all seven available recruits")
+	_check(visible_recruits.size() == 7 and _node("Recruit_blacksmith") == null,
+		"The fixture shows its seven purchased or founding heroes, not the unowned Smith")
 	if not _check_focus("knight", "Recruit", "First row on entry"):
 		_cleanup()
 		return

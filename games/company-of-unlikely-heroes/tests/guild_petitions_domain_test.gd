@@ -76,7 +76,7 @@ func _fixture() -> Dictionary:
 			"descriptors": ["test " + id],
 			"destination_descriptors": ["test destination %d" % index]
 		}
-	defs["commission_settings"] = {"recruitment_roster": ["knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard"]}
+	# Keep the stock eligible roster paired with its stock guild progression.
 	return defs
 
 

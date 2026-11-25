@@ -2,17 +2,12 @@ extends RefCounted
 ## A fitting belongs to the wearer, not the Smith's turn or current health.
 
 const Board = preload("res://rules/board.gd")
+const FittingState = preload("res://rules/fitting_state.gd")
 const Movement = preload("res://rules/movement.gd")
 const Shield = preload("res://rules/shield.gd")
 const Statuses = preload("res://rules/statuses.gd")
-
-
-static func source(wearer: Dictionary) -> String:
-	return wearer.get("fitted_by", "") if Board.alive(wearer) else ""
-
-
-static func clear(wearer: Dictionary) -> void:
-	wearer.erase("fitted_by")
+const Upgrades = preload("res://rules/upgrades.gd")
+const QUICK_RELEASE := "smith_quick_release"
 
 
 static func eligible(state: Dictionary, smith: Dictionary, wearer: Dictionary) -> bool:
@@ -22,25 +17,43 @@ static func eligible(state: Dictionary, smith: Dictionary, wearer: Dictionary) -
 
 
 static func fit(state: Dictionary, smith: Dictionary, wearer: Dictionary, events: Array) -> void:
-	var former := ""
-	for hero in state.units:
-		if source(hero) == smith.id:
-			former = hero.id
-			clear(hero)
-			break
-	wearer["fitted_by"] = smith.id
+	var existing: Array = state.units.filter(func(hero: Dictionary) -> bool:
+		return FittingState.source(hero) == smith.id)
+	var capacity := 2 if Upgrades.amount(state, smith, "double_shift") > 0 else 1
+	var rivets := Upgrades.amount(state, smith, "reinforced_rivets")
+	FittingState.apply(wearer, smith.id, rivets)
 	var text := "%s uses Try This to fit %s." % [Board.display_name(state, smith), Board.display_name(state, wearer)]
 	var data := {"unit_id": smith.id, "target_id": wearer.id, "status_id": "fitted"}
-	if not former.is_empty():
-		var old_name := Board.display_name(state, Board.entity(state, former))
-		text += " %s loses the fitting." % old_name
-		data["replaced_target_id"] = former
+	if existing.size() >= capacity:
+		# A custom party can have more candidates than fittings; break ties in deployment order.
+		var former: Dictionary = existing[0]
+		FittingState.clear(former)
+		text += " %s loses the fitting." % Board.display_name(state, former)
+		data["replaced_target_id"] = former.id
+	if rivets > 0:
+		text += " Reinforced Rivets can absorb up to %d damage from their next hit." % rivets
 	Board.event(events, "fit", text, data)
+
+
+static func can_release(state: Dictionary, wearer: Dictionary) -> bool:
+	var smith_id := FittingState.source(wearer)
+	if smith_id.is_empty():
+		return false
+	var smith := Board.entity(state, smith_id)
+	return not smith.is_empty() and eligible(state, smith, wearer) \
+		and Upgrades.amount(state, smith, "quick_release") > 0
+
+
+static func release(state: Dictionary, wearer: Dictionary, events: Array) -> void:
+	var smith_id := FittingState.source(wearer)
+	FittingState.clear(wearer)
+	Board.event(events, "fitted_release", "Quick Release: %s removes their fitting." % Board.display_name(state, wearer),
+		{"unit_id": wearer.id, "source_id": smith_id, "status_id": "fitted", "consumed": true})
 
 
 static func report_pending(state: Dictionary, events: Array) -> void:
 	for hero in state.units:
-		var smith_id := source(hero)
+		var smith_id := FittingState.source(hero)
 		if not smith_id.is_empty():
 			Board.event(events, "fitted_pending", "%s stays Fitted (by %s)." % [
 				Board.display_name(state, hero), Board.display_name(state, Board.entity(state, smith_id))],
@@ -49,12 +62,13 @@ static func report_pending(state: Dictionary, events: Array) -> void:
 
 static func clear_mission(state: Dictionary) -> void:
 	for unit in state.units:
-		clear(unit)
+		FittingState.clear(unit)
+		unit.statuses.erase(Statuses.STEADY_HANDS)
 
 
 ## Return the registered form even when unavailable so callers can explain why the base branch wins.
 static func alternate(state: Dictionary, actor: Dictionary, base: Dictionary) -> Dictionary:
-	if source(actor).is_empty():
+	if FittingState.source(actor).is_empty():
 		return {}
 	match base.get("fitted_form"):
 		"fitted_pull":
@@ -113,12 +127,18 @@ static func _clear_floor_form(state: Dictionary, actor: Dictionary, base: Dictio
 
 static func perform(state: Dictionary, actor: Dictionary, base_id: String, base: Dictionary,
 		form: Dictionary, choice: Dictionary, events: Array) -> void:
-	var smith := source(actor)
-	clear(actor)
+	var smith := FittingState.source(actor)
+	# Select one primary improvement before spending the fitting. Inspiration can
+	# supply the same +1 at this seam, not a second bonus to the converted action.
+	var improved := Upgrades.amount(state, Board.entity(state, smith), "fine_adjustment") > 0
+	FittingState.clear(actor)
 	Board.event(events, "fitted_conversion", "%s: %s → %s (Fitted spent)." % [
 		Board.display_name(state, actor), base.label, form.label],
 		{"unit_id": actor.id, "source_id": smith, "status_id": "fitted",
 			"source_ability_id": base_id, "ability_id": form.id, "consumed": true})
+	# Pull and Clear the Floor have no primary amount to improve.
+	if improved:
+		Statuses.grant_steady_hands(state, actor, "Fine Adjustment", events)
 	match form.id:
 		"fitted_pull":
 			_displace(state, actor, choice, form.label, "pull", events)

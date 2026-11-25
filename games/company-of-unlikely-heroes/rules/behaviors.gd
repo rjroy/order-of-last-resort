@@ -3,6 +3,7 @@ extends RefCounted
 const Actions = preload("res://rules/actions.gd")
 const Board = preload("res://rules/board.gd")
 const EncounterRandom = preload("res://rules/encounter_random.gd")
+const FittingState = preload("res://rules/fitting_state.gd")
 const Fittings = preload("res://rules/fittings.gd")
 const Frontier = preload("res://rules/frontier_combat.gd")
 const Shield = preload("res://rules/shield.gd")
@@ -28,24 +29,26 @@ static func decide(state: Dictionary, actor: Dictionary, behavior_id: String) ->
 			var nearest := Board.nearest(actor, heroes)
 			if not nearest.is_empty() and _legal_target(state, actor, params.ability, nearest.id):
 				return _action(params.ability, nearest.id)
-			if not nearest.is_empty() and not Fittings.source(nearest).is_empty():
+			if not nearest.is_empty() and not FittingState.source(nearest).is_empty():
 				return {"wait": "already_fitted", "target_id": nearest.id}
 		"pursue":
+			var ability_id: String = Board.profile(state, actor).get("equipped_slots", {}).get(
+				params.get("ability_slot", ""), params.ability)
 			if behavior_id == "advance" and actor.has("shield_position"):
 				if Shield.can_retrieve(actor):
 					return {"ability_id": params.move_ability, "retrieve_shield": true}
 				return _move(state, actor, params.move_ability, actor.shield_position, 1)
-			var alternate := Actions.standing_alternate(state, actor, params.ability, true)
+			var alternate := Actions.standing_alternate(state, actor, ability_id, true)
 			if not alternate.is_empty():
 				return alternate
-			var heckler := Actions.heckler_target(state, actor, Actions.owned_ability(state, actor, params.ability))
+			var heckler := Actions.heckler_target(state, actor, Actions.owned_ability(state, actor, ability_id))
 			if not heckler.is_empty():
-				return _action(params.ability, heckler.id)
+				return _action(ability_id, heckler.id)
 			var enemy := Board.nearest(actor, Board.occupants(state, {"teams": [params.team]}))
 			if not enemy.is_empty():
-				if _legal_target(state, actor, params.ability, enemy.id):
-					return _action(params.ability, enemy.id)
-				var ability := Actions.owned_ability(state, actor, params.ability)
+				if _legal_target(state, actor, ability_id, enemy.id):
+					return _action(ability_id, enemy.id)
+				var ability := Actions.owned_ability(state, actor, ability_id)
 				var reach := int(ability.get("targeting", {}).get("range", 1))
 				return _move(state, actor, params.move_ability, enemy.position, reach)
 		"greet":

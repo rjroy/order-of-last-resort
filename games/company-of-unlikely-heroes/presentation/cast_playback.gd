@@ -61,7 +61,7 @@ var _settled := {}
 
 func enqueue(cues: Array, art: CastSprites) -> void:
 	var tails := {}
-	var added := {}
+	var impacts := {}
 	var previous_beat := 0.0
 	var has_beat := false
 	var movement_barrier := 0.0
@@ -85,6 +85,19 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 		if value.get("control") == "clear_pull_recoil":
 			clear_pull_recoil(value.unit_id)
 			continue
+		if value.has("after_impacts"):
+			# A motion-only continuation is scheduled after all of its causes
+			# have been placed, without waiting for their recovery clips.
+			var motion_start := 0.0
+			for dependency in value.after_impacts:
+				motion_start = maxf(motion_start, float(impacts.get(dependency, 0.0)))
+			var landing := _enqueue_motion(value.motion, motion_start, DISPLACEMENT_MS, value)
+			movement_barrier = maxf(movement_barrier, landing)
+			previous_beat = maxf(previous_beat, landing)
+			tails[value.unit_id] = maxf(float(tails.get(value.unit_id, 0.0)), landing)
+			impacts[index] = landing
+			has_beat = true
+			continue
 		var role := str(value.get("cast_key", ""))
 		var key := str(value.get("clip", ""))
 		var rendered_key := key
@@ -99,8 +112,12 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 		if no_art:
 			clip = CastSprites.Clip.new()
 			clip.total_ms = SILENT_BEAT_MS
+		var parent_index := int(value.get("after_cue", -1))
+		var parent: Variant = impacts.get(parent_index)
 		if clip == null or key == "ready" \
 				or (not ordinary and key in ["gift", "acid_flask", "harpoon_projectile"]):
+			if parent != null:
+				impacts[index] = parent # Missing art adds no time but still passes on its cause.
 			continue
 		var cue: Dictionary = value.duplicate(true)
 		if no_art:
@@ -134,9 +151,8 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 				entry.impact_ms = clip.release_ms + GIFT_FLIGHT_MS
 		entry.duration_ms = maxf(clip.total_ms - entry.sample_offset_ms, entry.impact_ms + FEEDBACK_MS)
 		var start := float(tails.get(cue.unit_id, 0.0))
-		var parent: Variant = added.get(int(cue.get("after_cue", -1)))
 		if parent != null:
-			start = maxf(start, parent.impact_ms - parent.elapsed_ms)
+			start = maxf(start, float(parent))
 		var primary: bool = cue.get("action_beat", not cue.has("after_cue"))
 		var counts := {}
 		for motion: Dictionary in cue.get("motions", []):
@@ -168,16 +184,21 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 			var motion_duration := maxf(1.0, entry.impact_ms / float(counts.get(motion.unit_id, 1))) \
 				if before else DISPLACEMENT_MS
 			motion_start = maxf(motion_start, float(motion_tails.get(motion.unit_id, motion_start)))
-			_motions.append({"unit_id": motion.unit_id, "from": motion.from, "to": motion.to,
-				"elapsed_ms": -motion_start, "duration_ms": motion_duration,
-				"step": before, "ability_id": cue.get("audio_ability", "move")})
-			motion_tails[motion.unit_id] = motion_start + motion_duration
-			movement_barrier = maxf(movement_barrier, motion_start + motion_duration)
+			var landing := _enqueue_motion(motion, motion_start, motion_duration, cue)
+			motion_tails[motion.unit_id] = landing
+			movement_barrier = maxf(movement_barrier, landing)
 			if has_beat and not before:
-				previous_beat = maxf(previous_beat, motion_start + motion_duration)
+				previous_beat = maxf(previous_beat, landing)
 		tails[cue.unit_id] = entry.duration_ms - entry.elapsed_ms
 		_entries.append(entry)
-		added[index] = entry
+		impacts[index] = start + entry.impact_ms
+
+
+func _enqueue_motion(motion: Dictionary, start: float, duration: float, cue: Dictionary) -> float:
+	_motions.append({"unit_id": motion.unit_id, "from": motion.from, "to": motion.to,
+		"elapsed_ms": -start, "duration_ms": duration, "step": motion.get("before_impact", false),
+		"ability_id": cue.get("audio_ability", "move")})
+	return start + duration
 
 
 func _swap_throw_wait(cue: Dictionary) -> float:

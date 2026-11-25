@@ -4,6 +4,7 @@ const Alchemy = preload("res://rules/alchemy.gd")
 const Board = preload("res://rules/board.gd")
 const Combat = preload("res://rules/combat.gd")
 const EncounterRandom = preload("res://rules/encounter_random.gd")
+const FittingState = preload("res://rules/fitting_state.gd")
 const Fittings = preload("res://rules/fittings.gd")
 const Frontier = preload("res://rules/frontier_combat.gd")
 const Movement = preload("res://rules/movement.gd")
@@ -17,7 +18,10 @@ const BASE_SONGS := ["inspiring_melody", "healing_sonnet"]
 
 
 static func owned_ability(state: Dictionary, actor: Dictionary, id: String) -> Dictionary:
-	if id not in Board.profile(state, actor).get("abilities", []):
+	var abilities: Array = Board.profile(state, actor).get("abilities", [])
+	if id == Fittings.QUICK_RELEASE:
+		return Upgrades.ability(state, actor, id) if "move" in abilities and Fittings.can_release(state, actor) else {}
+	if id not in abilities:
 		return {}
 	return Upgrades.ability(state, actor, id)
 
@@ -98,7 +102,7 @@ static func _entity_allowed(state: Dictionary, actor: Dictionary, candidate: Dic
 		"nominate":
 			return Board.opponents(state, actor, candidate)
 		"fit":
-			return Fittings.eligible(state, actor, candidate) and Fittings.source(candidate).is_empty()
+			return Fittings.eligible(state, actor, candidate) and FittingState.source(candidate).is_empty()
 		"repel":
 			return candidate.has("character_id")
 		"stop_target":
@@ -177,6 +181,9 @@ static func _legal_choices(state: Dictionary, actor: Dictionary, ability: Dictio
 	match targeting.kind:
 		"cell":
 			if not can_move(state, actor):
+				return result
+			if ability.handler == "quick_release" and (ability_id != Fittings.QUICK_RELEASE \
+					or Movement.voluntary_blocked(state, actor)):
 				return result
 			if ability.handler == "move" and int(targeting.get("range", 1)) > 0:
 				var extra := Frontier.ally_death_bonus(state, actor, "movement")
@@ -262,7 +269,7 @@ static func command_ability(state: Dictionary, actor: Dictionary, id: String) ->
 
 
 static func standing_alternate(state: Dictionary, actor: Dictionary, id: String, prefer_opponents := false) -> Dictionary:
-	if Fittings.source(actor).is_empty():
+	if FittingState.source(actor).is_empty():
 		return {}
 	var form := action_form(state, actor, id)
 	if not form.converted:
@@ -384,7 +391,7 @@ static func execute(state: Dictionary, actor: Dictionary, action: Dictionary, fo
 		return true
 	var performed := _execute_base(state, actor, action, ability, events)
 	if performed and not form.alternate.is_empty():
-		var stays := "" if Fittings.source(actor).is_empty() else " Fitted stays."
+		var stays := "" if FittingState.source(actor).is_empty() else " Fitted stays."
 		Board.event(events, "fitted_fallback", "%s uses ordinary %s: %s unavailable (%s).%s" % [
 			Board.display_name(state, actor), ability.label, form.alternate.label, form.alternate.unavailable_reason, stays],
 			{"unit_id": actor.id, "ability_id": id, "status_id": "fitted"})
@@ -459,6 +466,9 @@ static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictio
 	match ability.handler:
 		"move":
 			_move(state, actor, action, choice.get("route", [choice.position]), events)
+		"quick_release":
+			Fittings.release(state, actor, events)
+			_move_step(state, actor, {}, choice.position, events)
 		"summon":
 			Summons.summon(state, actor, ability, choice.position, target, events)
 		"nominate":
@@ -566,7 +576,9 @@ static func _move(state: Dictionary, actor: Dictionary, action: Dictionary, rout
 				Board.display_name(state, actor), Board.coordinate(second)], {"unit_id": actor.id, "position": second})
 
 
-static func _move_step(state: Dictionary, actor: Dictionary, action: Dictionary, position: Vector2i, events: Array) -> void:
+static func _move_step(state: Dictionary, actor: Dictionary, action: Dictionary, position: Vector2i, events: Array,
+		follow_through := false) -> void:
+	var origin: Vector2i = actor.position
 	actor.position = position
 	var copy := {"actor": Board.display_name(state, actor), "position": position}
 	var data := {"unit_id": actor.id, "position": position}
@@ -576,7 +588,11 @@ static func _move_step(state: Dictionary, actor: Dictionary, action: Dictionary,
 		copy["target"] = Board.display_name(state, followed)
 		data["target_id"] = followed.id
 		template = action.get("follow_event", "follow_party")
-	if action.get("tactical_retreat", false):
+	if follow_through:
+		data.merge({"from_position": origin, "follow_through": true})
+		Board.event(events, "move", "Follow Through: %s steps onto %s." % [
+			copy.actor, Board.coordinate(position)], data)
+	elif action.get("tactical_retreat", false):
 		actor["last_retreat_round"] = state.round
 		data["tactical_retreat"] = true
 		Board.event(events, "move", "%s retreats to %s and cannot retreat next round." % [
@@ -610,10 +626,19 @@ static func _attack(state: Dictionary, actor: Dictionary, target: Dictionary, id
 	if params.has("surround_bonus"):
 		strike["surround_bonus"] = params.surround_bonus
 	var retaliation := Combat.RetaliationBatch.new() if recipients.size() > 1 else null
+	var defeated_target := false
 	for recipient in recipients:
 		if Board.alive(recipient):
-			Combat.attack(state, actor, recipient, int(params.damage), strike, events, retaliation)
+			var defeated := Combat.attack(state, actor, recipient, int(params.damage), strike, events, retaliation)
+			if recipient.id == target.id:
+				defeated_target = defeated
 	Combat.flush_retaliation(state, actor, events, retaliation)
+	if defeated_target and id == "blacksmith_hammer_time" and Upgrades.amount(state, actor, "follow_through") > 0:
+		# The hit and its defeat effects can kill the Smith or change the landing.
+		var landing: Vector2i = target.position
+		if can_act(state, actor) and can_move(state, actor) and Board.distance(actor.position, landing) == 1 \
+				and Board.can_enter(state, landing) and not Movement.blocks_voluntary(state, actor, events):
+			_move_step(state, actor, {}, landing, events, true)
 
 
 static func heckler_target(state: Dictionary, actor: Dictionary, ability: Dictionary) -> Dictionary:

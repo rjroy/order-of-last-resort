@@ -461,7 +461,7 @@
     },
     "blacksmith_try_this": {
       "label": "Try This",
-      "help": "Fit another deployed hero anywhere. Their next eligible ability uses its alternate once. A new fitting replaces your old one.",
+      "help": "Fit another deployed hero anywhere. Their next eligible ability uses its alternate once. Without Double Shift, a new fitting replaces your old one.",
       "handler": "fit",
       "params": {},
       "targeting": {"kind": "entity"}
@@ -628,7 +628,7 @@
     },
     "blacksmith_pursue": {
       "handler": "pursue",
-      "params": {"ability": "blacksmith_hammer_time", "move_ability": "move", "team": "enemies"}
+      "params": {"ability": "blacksmith_hammer_time", "ability_slot": "offense", "move_ability": "move", "team": "enemies"}
     },
     "sing_melody": {
       "handler": "use_ability",

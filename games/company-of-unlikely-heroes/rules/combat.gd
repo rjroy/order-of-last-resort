@@ -1,7 +1,7 @@
 extends RefCounted
 
 const Board = preload("res://rules/board.gd")
-const Fittings = preload("res://rules/fittings.gd")
+const FittingState = preload("res://rules/fitting_state.gd")
 const Frontier = preload("res://rules/frontier_combat.gd")
 const Movement = preload("res://rules/movement.gd")
 const Shield = preload("res://rules/shield.gd")
@@ -22,8 +22,9 @@ static func toward(from: Vector2i, to: Vector2i) -> Vector2i:
 	return Board.dominant_step(from, to)
 
 
+## Returns whether the primary hit defeated its intended target, not a redirected victim.
 static func attack(state: Dictionary, source: Dictionary, intended: Dictionary, damage: int,
-		strike: Dictionary, events: Array, retaliation: RetaliationBatch = null) -> void:
+		strike: Dictionary, events: Array, retaliation: RetaliationBatch = null) -> bool:
 	var target := intended
 	var id: String = strike.get("ability_id", "")
 	if id == "knight_shield_throw":
@@ -51,11 +52,13 @@ static func attack(state: Dictionary, source: Dictionary, intended: Dictionary, 
 				and Upgrades.amount(state, source, "duck") > 0 and Statuses.is_knockdown(state, status_id):
 			status_id = ""
 	var amount := _hurt_and_chain(state, source, target, damage, strike.source_name, status_id, events, {})
+	var defeated_intended: bool = amount > 0 and target.id == intended.id and not Board.alive(target)
 	if id == "knight_shield_throw":
 		Shield.dropped(state, source, impact, events)
 	elif id == "wizard_blast" and amount >= 0:
 		_blast_aftereffects(state, source, target, impact, amount, events)
 	_after_damage(state, source, target, amount, events, retaliation)
+	return defeated_intended
 
 
 static func _surround_bonus(state: Dictionary, actor: Dictionary, target: Dictionary,
@@ -208,7 +211,7 @@ static func _apply_hit(state: Dictionary, source: Dictionary, target: Dictionary
 			{"actor": Board.display_name(state, source), "target": target_name},
 			{"source_id": source.id, "target_id": target.id, "status_id": status_id})
 	if not Board.alive(target):
-		Fittings.clear(target)
+		FittingState.clear(target)
 		Summons.on_fall(state, target, events)
 		if target.has("character_id"):
 			Frontier.announce_ally_death(state, target, events)

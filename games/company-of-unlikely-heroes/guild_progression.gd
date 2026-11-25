@@ -188,6 +188,7 @@ static func effective_kit(defs: Dictionary, profile: Dictionary, hero_id: String
 		if grant.kind == "effect" and grant.effect_id not in techniques:
 			techniques.append(grant.effect_id)
 	return {"abilities": abilities, "habits": habits, "default_order": loadout.order_id,
+		"equipped_slots": loadout.slots.duplicate(),
 		"guild_techniques": techniques}
 
 
@@ -233,7 +234,20 @@ static func _order_rows(defs: Dictionary, profile: Dictionary, hero_id: String,
 	var starting_compatible := false
 	for id in habits:
 		var behavior_id: String = habits[id]
-		var missing := Catalog.behavior_ability_ids(defs.behaviors[behavior_id])
+		var behavior: Dictionary = defs.behaviors[behavior_id]
+		var missing := Catalog.behavior_ability_ids(behavior)
+		var params: Dictionary = behavior.get("params", {})
+		var slot: String = params.get("ability_slot", "")
+		if not slot.is_empty():
+			var base: String = _kits(defs).get(hero_id, {}).get(slot, "")
+			if base == params.get("ability", ""):
+				var index: int = Catalog.profile(defs, hero_id).abilities.find(base)
+				if index >= 0 and index < abilities.size():
+					var equipped: String = abilities[index]
+					var targeting: Dictionary = defs.abilities[equipped].get("targeting", {})
+					var teams: Array = targeting.get("teams", [])
+					if targeting.get("kind") == "entity" and (teams.is_empty() or params.get("team") in teams):
+						missing.erase(base)
 		for ability in abilities:
 			missing.erase(ability)
 		var compatible := missing.is_empty()

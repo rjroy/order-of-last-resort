@@ -167,8 +167,8 @@ func _test_authored_deadline() -> void:
 func _test_commission_content() -> void:
 	var definitions: Dictionary = catalog.read_default()
 	var settings: Dictionary = definitions.get("commission_settings", {})
-	_check(settings.get("recruitment_roster", []) == ["knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard"],
-		"Commission recruitment offers the seven named heroes")
+	_check(settings.get("recruitment_roster", []) == ["knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard", "blacksmith"],
+		"Commission eligibility includes all eight named heroes")
 	var missions: Dictionary = definitions.get("missions", {})
 	var patrol: Dictionary = missions.get("bridge_patrol", {})
 	var rescue: Dictionary = missions.get("company_rescue", {})

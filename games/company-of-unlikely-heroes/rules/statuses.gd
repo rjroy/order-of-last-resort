@@ -1,16 +1,20 @@
 extends RefCounted
 
 const Board = preload("res://rules/board.gd")
+const FittingState = preload("res://rules/fitting_state.gd")
 const Reactions = preload("res://rules/alchemy_reactions.gd")
 const Upgrades = preload("res://rules/upgrades.gd")
 const RECOVER_EVENT := "recover"
 const JELLY_KNEES := "jelly_knees"
+const STEADY_HANDS := "steady_hands"
 enum Application { REJECTED, APPLIED, RESISTED }
 const REWARD_STATUSES := {
 	"borrowed_courage": {"label": "Borrowed Courage", "handler": "reduce_next_hit", "expiry": "source_turn_start"},
 	"body_double": {"label": "Body Double", "handler": "body_double", "expiry": "actor_turn_start"},
 	"laughing_fit": {"label": "Dropped guard", "handler": "increase_next_hit", "expiry": "actor_turn_start"},
 	"heckler": {"label": "Heckling the Bard", "handler": "heckler", "expiry": "consume_attack"},
+	FittingState.RIVETS: {"label": "Reinforced Rivets", "handler": "reduce_next_hit", "expiry": "fitting_end"},
+	STEADY_HANDS: {"label": "Steady Hands", "handler": "reduce_next_hit", "expiry": "actor_turn_start"},
 }
 
 
@@ -341,21 +345,30 @@ static func double_recipient(state: Dictionary, target: Dictionary, events: Arra
 	return partner
 
 
+static func grant_steady_hands(state: Dictionary, actor: Dictionary, reason: String, events: Array) -> void:
+	actor.statuses[STEADY_HANDS] = {"source_id": actor.id, "amount": 1}
+	Board.event(events, "status", "%s: %s gains Steady Hands (1 less damage on the next hit before their next turn)." % [
+		reason, Board.display_name(state, actor)],
+		{"unit_id": actor.id, "status_id": STEADY_HANDS, "amount": 1})
+
+
 static func hit_amount(state: Dictionary, target: Dictionary, damage: int, events: Array) -> int:
 	if damage <= 0:
 		return damage
 	var amount := damage
-	for id in ["laughing_fit", "borrowed_courage"]:
+	for id in ["laughing_fit", "borrowed_courage", FittingState.RIVETS, STEADY_HANDS]:
 		if not target.get("statuses", {}).has(id):
 			continue
+		var increases: bool = id == "laughing_fit"
 		var bonus: int = target.statuses[id].amount
-		var label := "Laughing Fit" if id == "laughing_fit" else "Borrowed Courage"
-		amount += bonus if id == "laughing_fit" else -bonus
+		var applied := bonus if increases else mini(bonus, amount)
+		var label: String = "Laughing Fit" if increases else definition(state, id).label
+		amount += applied if increases else -applied
 		target.statuses.erase(id)
 		Board.event(events, "status", "%s %s the hit on %s by %d." % [
-			label, "increases" if id == "laughing_fit" else "reduces", Board.display_name(state, target), bonus],
-			{"unit_id": target.id, "status_id": id, "amount": bonus})
-	return maxi(0, amount)
+			label, "increases" if increases else "reduces", Board.display_name(state, target), applied],
+			{"unit_id": target.id, "status_id": id, "amount": applied, "consumed": true})
+	return amount
 
 
 static func alchemy_hit_amount(state: Dictionary, source: Dictionary, target: Dictionary,

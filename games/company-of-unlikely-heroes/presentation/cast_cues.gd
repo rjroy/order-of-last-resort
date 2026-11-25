@@ -191,9 +191,15 @@ static func build(before: Dictionary, after: Dictionary, events: Array, include_
 		var moved := {}
 		var retaliations := {}
 		var detonations := {}
+		var detonation_impacts: Array[int] = []
+		var follow_through_motion := {}
 		var pull_recoil_pending := false
 		while index < end:
 			var event: Dictionary = events[index]
+			if event.get("type") == "death_blast":
+				var detonation := int(detonations.get(event.get("unit_id", ""), -1))
+				if detonation >= 0:
+					detonation_impacts.append(detonation)
 			if event.get("type") == "pull" and event.get("unit_id") == action.get("unit_id") \
 					and event.get("recoil_position") is Vector2i and action.get("ability_id") == "wizard_pull":
 				pull_recoil_pending = true
@@ -239,12 +245,17 @@ static func build(before: Dictionary, after: Dictionary, events: Array, include_
 				for moved_id in position_changes:
 					if not motion_owner.is_empty() \
 							and positions.get(moved_id) is Vector2i:
-						if not motion_owner.has("motions"):
-							motion_owner["motions"] = []
-						motion_owner.motions.append({"unit_id": moved_id, "from": positions[moved_id],
+						var follows := bool(event.get("follow_through", false))
+						var motion := {"unit_id": moved_id, "from": positions[moved_id],
 							"to": position_changes[moved_id],
-							"before_impact": event.get("type") == "move" \
-								and (moved_id == action.get("unit_id") or action.is_empty())})
+							"before_impact": event.get("type") == "move" and not follows \
+								and (moved_id == action.get("unit_id") or action.is_empty())}
+						if follows and not detonation_impacts.is_empty():
+							follow_through_motion = motion
+						else:
+							if not motion_owner.has("motions"):
+								motion_owner["motions"] = []
+							motion_owner.motions.append(motion)
 			if event.get("type") == "retaliate":
 				var retaliator: String = event.unit_id
 				if event_cues.is_empty():
@@ -458,7 +469,20 @@ static func build(before: Dictionary, after: Dictionary, events: Array, include_
 					or reaction.get("ordinary_role") == "reserve_arrival":
 				last_shift[reaction.unit_id] = cues.size()
 			cues.append(reaction)
+		if not follow_through_motion.is_empty():
+			# A detonation is an impact on its owner's defeat cue. Join all
+			# detonations in this action, not later actions or cosmetic falls.
+			var after_impacts: Array[int] = []
+			if parent_index >= 0:
+				after_impacts.append(parent_index)
+			for dependency in detonation_impacts:
+				after_impacts.append(first_reaction + dependency)
+			last_shift[follow_through_motion.unit_id] = cues.size()
+			cues.append({"unit_id": follow_through_motion.unit_id, "motion": follow_through_motion,
+				"after_impacts": after_impacts, "audio_ability": cue.get("audio_ability", "move")})
 		for id in moved:
+			if id == follow_through_motion.get("unit_id"):
+				continue
 			if not reactions.any(func(reaction): return reaction.get("unit_id") == id \
 					and reaction.get("actor_cell") == moved[id] \
 					and reaction.get("actor_cell") != reaction.get("source_cell")):

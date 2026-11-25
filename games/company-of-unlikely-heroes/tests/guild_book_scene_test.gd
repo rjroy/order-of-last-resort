@@ -29,10 +29,11 @@ func _run() -> void:
 	await _press("Commission_0")
 	var defs: Dictionary = scene.get("_definitions")
 	var roster: Array = defs.commission_settings.recruitment_roster
-	_check(roster.size() == 7 and "blacksmith" not in roster,
-		"Artwork does not add Hobby Smith to the seven-person roster")
+	var legacy_roster := ["knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard"]
+	_check(roster == legacy_roster + ["blacksmith"],
+		"Stock charter eligibility includes the seven legacy heroes and Hobby Smith")
 	_check(_node("Recruit_blacksmith") == null, "Hobby Smith is absent from the legacy recruit controls")
-	for id in roster:
+	for id in legacy_roster:
 		var button := _node("Recruit_" + str(id)) as Control
 		_check(button != null and button.is_visible_in_tree(),
 			"Legacy recruit %s has a visible control" % id)

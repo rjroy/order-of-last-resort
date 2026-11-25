@@ -270,9 +270,47 @@
       "requires_any_ability": ["alchemist_potion", "alchemist_acid", "alchemist_etching_paste"],
       "label": "Keep the Culture", "description": "Save the recipe and reaction from your last Healing Potion, Acid, or Etching Paste. Repeat Batch uses both on another legal recipient, then empties the bottle. Bottles do not carry between missions.",
       "ability": "alchemist_repeat_batch"
+    },
+    "smith_leather_apron": {
+      "hero_id": "blacksmith", "rarity": "common", "cap": 3, "effect": "max_hp", "amount": 1,
+      "label": "Leather Apron", "description": "Gain 1 maximum HP without changing how much HP is missing."
+    },
+    "smith_heavier_hammer": {
+      "hero_id": "blacksmith", "rarity": "common", "cap": 2, "effect": "hammer_damage", "amount": 1,
+      "requires_abilities": ["blacksmith_hammer_time"],
+      "label": "Heavier Hammer", "description": "Hammer Time deals 1 more damage. Other offenses are unchanged."
+    },
+    "smith_follow_through": {
+      "hero_id": "blacksmith", "rarity": "uncommon", "cap": 1, "effect": "follow_through", "amount": 1,
+      "requires_abilities": ["blacksmith_hammer_time"],
+      "label": "Follow Through", "description": "When Hammer Time defeats its target, step onto its tile if you survive the defeat effects and can still enter it."
+    },
+    "smith_reinforced_rivets": {
+      "hero_id": "blacksmith", "rarity": "uncommon", "cap": 2, "effect": "reinforced_rivets", "amount": 1,
+      "requires_abilities": ["blacksmith_try_this"],
+      "label": "Reinforced Rivets", "description": "Each new fitting reduces the wearer's next hit by 1 per copy. Unused protection expires with the fitting."
+    },
+    "smith_fine_adjustment": {
+      "hero_id": "blacksmith", "rarity": "rare", "cap": 1, "effect": "fine_adjustment", "amount": 1,
+      "requires_abilities": ["blacksmith_try_this"],
+      "label": "Fine Adjustment", "description": "Improve the performed alternate: add 1 to its primary amount, or grant Steady Hands to reduce the wearer's next hit by 1 before their next turn. Does not boost ordinary fallback or stack with Inspiration."
+    },
+    "smith_quick_release": {
+      "hero_id": "blacksmith", "rarity": "rare", "cap": 1, "effect": "quick_release", "amount": 1,
+      "requires_abilities": ["blacksmith_try_this"],
+      "label": "Quick Release", "description": "Give the fitted wearer a direct command to remove their fitting and then step one tile. Ordinary Move keeps the fitting."
+    },
+    "smith_double_shift": {
+      "hero_id": "blacksmith", "rarity": "legendary", "cap": 1, "effect": "double_shift", "amount": 1,
+      "requires_abilities": ["blacksmith_try_this"],
+      "label": "Double Shift", "description": "Keep fittings on two different teammates at once. Each spends its own fitting; standing Try This still considers only the nearest teammate."
     }
   },
   "abilities": {
+    "smith_quick_release": {
+      "label": "Quick Release", "help": "Remove your fitting, then step to an open neighboring tile. Ordinary Move keeps the fitting.",
+      "handler": "quick_release", "params": {}, "targeting": {"kind": "cell", "range": 1}
+    },
     "alchemist_plain_tonic": {
       "label": "Plain Tonic", "help": "Heal yourself or a friendly character within one tile for 1 HP, without a reaction.",
       "handler": "plain_tonic", "params": {"amount": 1}, "targeting": {"kind": "entity", "range": 1}

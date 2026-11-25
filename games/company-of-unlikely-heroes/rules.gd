@@ -5,6 +5,7 @@ const Catalog = preload("res://content/catalog.gd")
 const Actions = preload("res://rules/actions.gd")
 const Behaviors = preload("res://rules/behaviors.gd")
 const Board = preload("res://rules/board.gd")
+const FittingState = preload("res://rules/fitting_state.gd")
 const Fittings = preload("res://rules/fittings.gd")
 const FrontierCombat = preload("res://rules/frontier_combat.gd")
 const FrontierObjectives = preload("res://rules/frontier_objectives.gd")
@@ -60,7 +61,7 @@ func command_ability(state: Dictionary, unit_id: String, id: String) -> Dictiona
 
 
 func fitting_source(state: Dictionary, unit_id: String) -> String:
-	return Fittings.source(Board.entity(state, unit_id))
+	return FittingState.source(Board.entity(state, unit_id))
 
 
 func shield_position(state: Dictionary, unit_id: String) -> Variant:
@@ -171,12 +172,17 @@ func corpse_markers(state: Dictionary) -> Dictionary:
 	return corpses
 
 
+## Pass the pre-activation board to include temporary command options such as Quick Release.
 func options(state: Dictionary, unit_id: String) -> Array:
 	var result: Array = []
 	var profile := entity_profile(state, unit_id)
 	if "commandable" not in profile.get("capabilities", []):
 		return result
-	for id in profile.abilities:
+	var abilities: Array = profile.abilities
+	if state.outcome == "ongoing" and Fittings.QUICK_RELEASE not in abilities \
+			and not Actions.owned_ability(state, Board.entity(state, unit_id), Fittings.QUICK_RELEASE).is_empty():
+		abilities = abilities + [Fittings.QUICK_RELEASE]
+	for id in abilities:
 		var ability := ability_definition(state, id, unit_id)
 		result.append({"id": id, "label": ability.label, "kind": "action", "help": ability.help,
 			"target_kind": ability.targeting.kind})
@@ -228,12 +234,20 @@ func apply_plan(state: Dictionary, plan: Dictionary) -> Dictionary:
 func choose_manual(state: Dictionary, unit_id: String, ability_id: String, target_id := "") -> Dictionary:
 	var result := state.duplicate(true)
 	var actor := Board.entity(state, unit_id)
-	var ability := Actions.owned_ability(state, actor, ability_id)
-	if state.outcome != "ongoing" or not Board.alive(actor) or not Board.capable(state, actor, "commandable") \
-			or ability.is_empty() or (ability.handler == "perform" and not Actions.accepts_target_argument(ability, target_id)):
+	if state.outcome != "ongoing" or not Board.alive(actor) or not Board.capable(state, actor, "commandable"):
 		return result
 	if not result.overrides.is_empty() and not result.overrides.has(unit_id):
 		return result
+	if ability_id == Fittings.QUICK_RELEASE:
+		# Another hero's command cannot supply the fitting, but an earlier
+		# standing Try This can. The same turn board drives the picker.
+		var before := state_before_action(state, unit_id)
+		if Actions.selection(before, Board.entity(before, unit_id), ability_id, target_id).is_empty():
+			return result
+	else:
+		var ability := Actions.owned_ability(state, actor, ability_id)
+		if ability.is_empty() or (ability.handler == "perform" and not Actions.accepts_target_argument(ability, target_id)):
+			return result
 	# Stored intent is checked on the board as this actor gets their turn.
 	result.overrides[unit_id] = {"ability_id": ability_id, "target_id": target_id}
 	return result
@@ -349,7 +363,7 @@ func _resolve_turn(state: Dictionary, actor: Dictionary, events: Array) -> void:
 	var name := Board.display_name(state, actor)
 	var action := _intent(state, actor)
 	if action.get("wait") == "shield_away":
-		var fitting_note := "" if Fittings.source(actor).is_empty() else " Fitted stays."
+		var fitting_note := "" if FittingState.source(actor).is_empty() else " Fitted stays."
 		Board.event(events, "wait", "%s cannot guard until their shield is retrieved.%s" % [name, fitting_note],
 			{"unit_id": actor.id})
 	elif action.get("wait") == "already_fitted":

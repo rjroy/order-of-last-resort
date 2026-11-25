@@ -222,9 +222,10 @@ func _check_full_petition_board(board_size: Vector2i) -> void:
 	var cards: Array[BaseButton] = []
 	for node in scroll.find_children("Petition_*", "BaseButton", true, false):
 		cards.append(node as BaseButton)
-	_check(cards.size() == 26, context + ": all 26 catalog petitions are present")
+	_check(cards.size() == 29, context + ": all 29 catalog petitions are present")
 	for id in ["recruit_bard", "recruit_rogue", "recruit_necromancer",
-			"recruit_alchemist", "teach_healer_blast", "song_weaving"]:
+			"recruit_alchemist", "teach_healer_blast", "song_weaving",
+			"recruit_blacksmith", "blacksmith_learn_bonk", "blacksmith_learn_acid"]:
 		_check(_node("Petition_" + id) is BaseButton, context + ": card exists for " + id)
 	if cards.is_empty():
 		return
@@ -301,15 +302,17 @@ func _check_class_filter(context: String) -> void:
 	var heroes := {}
 	for index in filter.item_count:
 		var label := filter.get_item_text(index).to_lower()
-		var hero := str(filter.get_item_metadata(index))
+		var metadata: Variant = filter.get_item_metadata(index)
+		var hero := "" if metadata == null else str(metadata)
 		if not hero.is_empty():
 			heroes[hero] = true
 		if "bard" in label:
 			bard_index = index
 		if "all" in label:
 			all_index = index
-	_check(heroes.size() == 7 and heroes.has("knight") and heroes.has("bard") and heroes.has("rogue"),
-		context + ": filter offers all seven guild heroes")
+	_check(heroes.size() == 8 and heroes.has("knight") and heroes.has("bard") \
+		and heroes.has("rogue") and heroes.has("blacksmith"),
+		context + ": filter offers all eight eligible guild heroes: " + str(heroes))
 	_check(bard_index >= 0 and all_index >= 0, context + ": class filter offers Bard and All")
 	if bard_index < 0 or all_index < 0:
 		return
@@ -384,7 +387,7 @@ func _check_purchased_song(store: Variant) -> void:
 	_check(song != null and song.disabled, "Purchased Song Weaving remains a selectable owned card after reload")
 	var scroll := _node("PetitionScroll") as ScrollContainer
 	if scroll != null:
-		_check(scroll.find_children("Petition_*", "BaseButton", true, false).size() == 26,
+		_check(scroll.find_children("Petition_*", "BaseButton", true, false).size() == 29,
 			"Owned Song Weaving remains in the complete register")
 
 

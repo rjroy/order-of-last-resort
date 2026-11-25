@@ -1,0 +1,90 @@
+name: Web playtest
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    container: mcr.microsoft.com/playwright:v1.55.0-noble
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install browser and OCR
+        run: |
+          apt-get update
+          apt-get install -y tesseract-ocr tesseract-ocr-eng unzip
+      - name: Download and verify Godot 4.7.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          base=https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable
+          editor=Godot_v4.7.2-stable_linux.x86_64.zip
+          templates=Godot_v4.7.2-stable_export_templates.tpz
+          curl --fail --location --retry 3 --output "$editor" "$base/$editor"
+          curl --fail --location --retry 3 --output "$templates" "$base/$templates"
+          echo "cadd3204e728a35d3f13adb7fd0d7902636b79f6b95c40c265eb73b6c35329e4  $editor" | sha256sum --check
+          echo "f298490b8d44d934be425a5a65a51bf15f422428b229a06a6e11d9ffea248011  $templates" | sha256sum --check
+          unzip -q "$editor" -d godot-editor
+          mkdir -p godot-data/godot/export_templates/4.7.2.stable
+          unzip -p "$templates" templates/web_nothreads_release.zip > godot-data/godot/export_templates/4.7.2.stable/web_nothreads_release.zip
+      - name: Import and export
+        run: |
+          export XDG_DATA_HOME="$RUNNER_TEMP/godot-data"
+          bash tools/web/build.sh "$RUNNER_TEMP/godot-editor/Godot_v4.7.2-stable_linux.x86_64" "$RUNNER_TEMP/site/order-of-last-resort"
+      - name: Smoke test staged project site
+        shell: bash
+        run: |
+          export CHROMIUM="$(find /ms-playwright -path '*/chrome-linux*/chrome' -type f -print -quit)"
+          test -x "$CHROMIUM"
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory "$RUNNER_TEMP/site" &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true; wait "$server" 2>/dev/null || true' EXIT
+          ready=false
+          for attempt in {1..50}; do
+            if ! kill -0 "$server" 2>/dev/null; then
+              echo "HTTP server exited before becoming ready" >&2
+              exit 1
+            fi
+            if curl --fail --silent --max-time 1 --output /dev/null http://127.0.0.1:8765/order-of-last-resort/; then
+              ready=true
+              break
+            fi
+            sleep 0.2
+          done
+          if [ "$ready" != true ] || ! kill -0 "$server" 2>/dev/null; then
+            echo "HTTP server did not become ready" >&2
+            exit 1
+          fi
+          node tools/web/smoke.mjs http://127.0.0.1:8765/order-of-last-resort/
+          if ! kill -0 "$server" 2>/dev/null; then
+            echo "HTTP server exited during the smoke test" >&2
+            exit 1
+          fi
+      - name: Upload verified Pages artifact
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ runner.temp }}/site/order-of-last-resort
+
+  deploy:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy verified artifact
+        id: deployment
+        uses: actions/deploy-pages@v4

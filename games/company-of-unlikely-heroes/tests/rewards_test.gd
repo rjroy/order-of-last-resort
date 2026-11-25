@@ -17,6 +17,7 @@ const POOLS := {
 	"bard": [["Road Legs", "common", 2], ["Sharper Notes", "common", 2], ["Busker's Hat", "uncommon", 2], ["Front Row Seats", "uncommon", 1], ["Laughing Fit", "rare", 1], ["Heckler", "rare", 1], ["House Lights", "legendary", 1]],
 	"necromancer": [["Spare Ribs", "common", 3], ["Good Soil", "common", 2], ["Heavy Bouquet", "uncommon", 2], ["Broad Wave", "uncommon", 1], ["Long-Stemmed", "rare", 1], ["Warm Welcome", "rare", 1], ["Say Hello to That One", "rare", 1], ["Wake Reception", "legendary", 1]],
 	"alchemist": [["Padded Apron", "common", 2], ["Stronger Dose", "common", 2], ["Concentrate", "uncommon", 2], ["Long Ladle", "uncommon", 1], ["Spare Vial", "rare", 1], ["Brittle Glass", "rare", 1], ["Keep the Culture", "legendary", 1]],
+	"blacksmith": [["Leather Apron", "common", 3], ["Heavier Hammer", "common", 2], ["Follow Through", "uncommon", 1], ["Reinforced Rivets", "uncommon", 2], ["Fine Adjustment", "rare", 1], ["Quick Release", "rare", 1], ["Double Shift", "legendary", 1]],
 }
 
 
@@ -27,6 +28,9 @@ func _initialize() -> void:
 	_test_caps_and_rarities()
 	_test_terminal_boundaries()
 	_test_alchemist_acquisition()
+	_test_smith_scoped_fixture()
+	_test_smith_claim_reset()
+	_test_smith_scoped_gates()
 	if failures.is_empty():
 		print("PASS: reward content and outing")
 	else:
@@ -54,7 +58,7 @@ func _route(run: Dictionary) -> Dictionary:
 
 func _test_content() -> void:
 	var upgrades: Dictionary = defs.get("upgrades", {})
-	_check(upgrades.size() == 55, "Seven shipped hero pools contain exactly 55 entries")
+	_check(upgrades.size() == 62, "Eight shipped hero pools contain exactly 62 entries")
 	for hero in POOLS:
 		var remaining: Array = POOLS[hero].duplicate(true)
 		for id in upgrades:
@@ -67,7 +71,7 @@ func _test_content() -> void:
 			_check(not str(entry.get("description", "")).strip_edges().is_empty(), str(id) + " describes its effect")
 		_check(remaining.is_empty(), "%s missing entries: %s" % [hero, remaining])
 	for entry in upgrades.values():
-		_check(entry.get("hero_id") in POOLS, "Only the seven shipped heroes have rewards")
+		_check(entry.get("hero_id") in POOLS, "Only the eight shipped heroes have rewards")
 
 
 func _victory(run: Dictionary) -> Dictionary:
@@ -313,6 +317,153 @@ func _test_alchemist_acquisition() -> void:
 		if finished.get("phase") == "ready":
 			finished = _victory(finished)
 		_check_reset(finished, party, "Alchemist reward " + outcome)
+
+
+func _test_smith_claim_reset() -> void:
+	var id := "smith_leather_apron"
+	if not defs.get("upgrades", {}).has(id):
+		_check(false, "Smith Leather Apron exists for a real scoped claim")
+		return
+	var source := _smith_guild_fixture()
+	# A single remaining Smith entry guarantees the offer without bypassing the
+	# victory, offer, or claim APIs.
+	for other in source.upgrades.keys():
+		if source.upgrades[other].hero_id == "blacksmith" and other != id:
+			source.upgrades.erase(other)
+	var run := _start_smith_guild(source, "blacksmith_hammer_time")
+	if run.is_empty():
+		_check(false, "Smith scoped reward outing starts")
+		return
+	var first: Dictionary = adventure.call("begin_mission", _route(run))
+	var board: Dictionary = first.get("mission", {}).duplicate(true)
+	if board.is_empty():
+		_check(false, "Scoped Smith reward fixture deploys")
+		return
+	var smith_before := {}
+	for unit in board.units:
+		if unit.id == "blacksmith":
+			smith_before = unit
+	if smith_before.is_empty():
+		_check(false, "Scoped Smith is deployed before claiming")
+		return
+	smith_before.hp -= 2
+	for unit in board.units:
+		if unit.id == "healer":
+			# Support heals the wounded Healer first, not the Smith under test.
+			unit.hp -= 1
+	var prior_hp: int = smith_before.hp
+	var prior_max: int = smith_before.max_hp
+	var fit: Dictionary = rules.preview(board, "blacksmith", "blacksmith_try_this", "knight")
+	_check(fit.get("valid", false), "First mission can fit the Knight")
+	if fit.get("valid", false):
+		board = rules.apply_plan(board, fit)
+		for unit in board.units:
+			if unit.id == "knight":
+				_check(unit.get("fitted_by") == "blacksmith", "Knight wears fitting before mission end")
+	board.orders.blacksmith = "order_hold"
+	board.orders.knight = "order_hold"
+	for unit in board.units:
+		if rules.entity_profile(board, unit.id).get("team") == "enemies":
+			unit.hp = 0
+	var terminal: Dictionary = rules.commit_round(board, rules.preview_round(board))
+	_check(terminal.get("outcome") == "victory", "Scoped Smith outing commits road victory")
+	var settled: Dictionary = adventure.call("settle_mission", first, terminal)
+	var offer := {"hero_id": "blacksmith", "upgrade_id": id}
+	_check(offer in settled.get("reward_offers", []), "Road victory actually offers Leather Apron")
+	if offer not in settled.get("reward_offers", []):
+		return
+	var chosen: Dictionary = adventure.call("choose_reward", settled, "blacksmith", id)
+	_check(chosen.get("upgrades_by_id", {}).get("blacksmith", {}).get(id) == 1,
+		"Scoped Smith claim records the reward")
+	var deployed: Dictionary = adventure.call("begin_mission", _route(chosen))
+	var smith := {}
+	for unit in deployed.get("mission", {}).get("units", []):
+		if unit.id == "blacksmith":
+			smith = unit
+	_check(smith.get("upgrades", {}).get(id) == 1,
+		"Claimed Leather Apron activates in the next mission")
+	_check(smith.get("hp") == prior_hp + 1 and smith.get("max_hp") == prior_max + 1,
+		"Leather Apron adds current and maximum HP without erasing carried wounds")
+	for unit in deployed.get("mission", {}).get("units", []):
+		if unit.id == "knight":
+			_check(not unit.has("fitted_by"), "Fitting does not carry into the next mission")
+	var finished: Dictionary = adventure.call("settle_mission", deployed, rules.forfeit(deployed.mission))
+	_check(finished.get("phase") == "finished", "Claimed Smith outing actually ends")
+	var fresh := _start_smith_guild(source, "blacksmith_hammer_time")
+	var fresh_deployed: Dictionary = adventure.call("begin_mission", _route(fresh))
+	var fresh_smith := {}
+	for unit in fresh_deployed.get("mission", {}).get("units", []):
+		if unit.id == "blacksmith":
+			fresh_smith = unit
+	_check(fresh.get("upgrades_by_id", {}).is_empty()
+		and fresh_smith.get("upgrades", {}).is_empty(),
+		"A new scoped outing deploys Smith without the claimed reward")
+
+
+func _smith_guild_fixture() -> Dictionary:
+	var source: Dictionary = preload("res://tests/fixtures/controlled_commission.gd").build(defs)
+	var roster: Array = source.commission_settings.recruitment_roster
+	if "blacksmith" not in roster:
+		roster.append("blacksmith")
+	source.guild_progression.kits.blacksmith = {
+		"offense": "blacksmith_hammer_time", "utility": "blacksmith_try_this"}
+	# Test-owned progression makes this reward test independent of the shop row.
+	for id in source.guild_progression.petitions.keys():
+		if source.guild_progression.petitions[id].get("grant", {}).get("hero_id") == "blacksmith":
+			source.guild_progression.petitions.erase(id)
+	source.guild_progression.petitions.fixture_smith_bonk = {
+		"label": "Fixture Bonk", "description": "Test alternative offense.", "cost": 1,
+		"grant": {"kind": "ability", "hero_id": "blacksmith", "slot_id": "offense",
+			"ability_id": "healer_bonk"}}
+	return source
+
+
+func _start_smith_guild(source: Dictionary, offense: String) -> Dictionary:
+	var profile := {"guild_id": "smith-reward-fixture", "board_seed": 12345, "board_generation": 0,
+		"recruited_ids": ["blacksmith", "knight", "healer"],
+		"purchased_ids": ["fixture_smith_bonk"], "preferred_loadouts": {}}
+	var board: Array = preload("res://commissions.gd").board(source, 12345)
+	var loadout := {"slots": {"offense": offense, "utility": "blacksmith_try_this"},
+		"order_id": "order_try_this"}
+	var errors: PackedStringArray = Catalog.validate(source)
+	_check(errors.is_empty(), "Scoped Smith reward fixture validates: " + str(errors))
+	if board.is_empty() or not errors.is_empty():
+		return {}
+	return adventure.call("start_guild_commission", source, board[0],
+		["blacksmith", "knight", "healer"], profile, {"blacksmith": loadout}, 42)
+
+
+func _test_smith_scoped_fixture() -> void:
+	for offense in ["blacksmith_hammer_time", "healer_bonk"]:
+		var run := _start_smith_guild(_smith_guild_fixture(), offense)
+		_check(run.get("phase") == "route", "Scoped Smith fixture opens with " + offense)
+		if run.get("phase") == "route":
+			var deployed: Dictionary = adventure.call("begin_mission", _route(run))
+			_check(deployed.get("phase") == "mission", "Scoped fixture deploys with " + offense)
+
+
+func _test_smith_scoped_gates() -> void:
+	for id in ["smith_heavier_hammer", "smith_follow_through"]:
+		if not defs.get("upgrades", {}).has(id):
+			_check(false, id + ": authored Hammer-only reward exists")
+			continue
+		for offense in ["blacksmith_hammer_time", "healer_bonk"]:
+			var source := _smith_guild_fixture()
+			for other in source.upgrades.keys():
+				if source.upgrades[other].hero_id == "blacksmith" and other != id:
+					source.upgrades.erase(other)
+			var run := _start_smith_guild(source, offense)
+			if run.is_empty():
+				_check(false, id + ": scoped outing starts with " + offense)
+				continue
+			var settled := _victory(_route(run))
+			var offer := {"hero_id": "blacksmith", "upgrade_id": id}
+			var eligible: bool = offense == "blacksmith_hammer_time"
+			_check((offer in settled.get("reward_offers", [])) == eligible,
+				id + ": actual offer is gated by equipped Hammer, not merely ownership")
+			var chosen: Dictionary = adventure.call("choose_reward", settled, "blacksmith", id)
+			_check((chosen.get("upgrades_by_id", {}).get("blacksmith", {}).get(id, 0) == 1) == eligible,
+				id + ": actual scoped claim enforces the equipped-offense gate")
 
 
 func _check_reset(finished: Dictionary, party: Array, label: String) -> void:

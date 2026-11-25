@@ -1,0 +1,9 @@
+{
+  "kind": "scene",
+  "source": "models/crypter-try-this/skeleton-try-this.blend",
+  "sha256": "6c180aa4b087d12a0655e54e4d47d4ccb71375f1bfa26f52ab5970dadea24cfd",
+  "action_prefix": "",
+  "takes": {
+    "recall_tuck": ["Try This | recall_tuck", [1, 3, 5, 7, 9, 11, 13, 15, 17], 18, false]
+  }
+}

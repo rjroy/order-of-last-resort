@@ -4,6 +4,12 @@ extends RefCounted
 
 const RATE := 22050
 const RECIPES := {
+	# Two small contacts seat a fitting; a short metallic tail joins them.
+	"smith_fit": [["noise", 0.0, 0.034, 0, 0, 0.15, 65, 0.7], ["mode", 0.0, 0.09, 1350, 1300, 0.10, 34, 0], ["noise", 0.052, 0.045, 0, 0, 0.18, 56, 0.65], ["mode", 0.052, 0.16, 1890, 1820, 0.09, 26, 0]],
+	# A single close strike: hard contact, body, and a restrained metal ring.
+	"smith_hammer": [["noise", 0.0, 0.065, 0, 0, 0.22, 42, 0.48], ["mode", 0.0, 0.12, 250, 190, 0.19, 29, 0], ["mode", 0.002, 0.15, 830, 790, 0.10, 25, 0], ["mode", 0.004, 0.12, 1730, 1650, 0.065, 34, 0]],
+	# A latch pops, then a short sliding rattle falls away, rather than a step.
+	"smith_release": [["noise", 0.0, 0.035, 0, 0, 0.16, 65, 0.75], ["mode", 0.0, 0.08, 1500, 1250, 0.10, 42, 0], ["noise", 0.035, 0.13, 0, 0, 0.12, 19, 0.38], ["mode", 0.05, 0.11, 1050, 650, 0.065, 23, 0]],
 	"shield_throw": [["noise", 0.0, 0.08, 0, 0, 0.12, 22, 0.30], ["mode", 0.01, 0.23, 390, 300, 0.13, 16, 0], ["mode", 0.02, 0.20, 810, 790, 0.07, 20, 0]],
 	"shunt": [["noise", 0.0, 0.15, 0, 0, 0.15, 15, 0.12], ["mode", 0.01, 0.14, 145, 100, 0.12, 21, 0]],
 	"aura": [["mode", 0.0, 0.36, 960, 1320, 0.09, 8, 0], ["mode", 0.04, 0.30, 1510, 1950, 0.06, 10, 0], ["noise", 0.0, 0.20, 0, 0, 0.025, 12, 0.7]],

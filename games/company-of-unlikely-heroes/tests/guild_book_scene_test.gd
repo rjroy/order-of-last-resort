@@ -29,10 +29,11 @@ func _run() -> void:
 	await _press("Commission_0")
 	var defs: Dictionary = scene.get("_definitions")
 	var roster: Array = defs.commission_settings.recruitment_roster
-	_check(roster.size() == 7 and "blacksmith" not in roster,
-		"Artwork does not add Hobby Smith to the seven-person roster")
+	var legacy_roster := ["knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard"]
+	_check(roster == legacy_roster + ["blacksmith"],
+		"Stock charter eligibility includes the seven legacy heroes and Hobby Smith")
 	_check(_node("Recruit_blacksmith") == null, "Hobby Smith is absent from the legacy recruit controls")
-	for id in roster:
+	for id in legacy_roster:
 		var button := _node("Recruit_" + str(id)) as Control
 		_check(button != null and button.is_visible_in_tree(),
 			"Legacy recruit %s has a visible control" % id)
@@ -114,6 +115,32 @@ func _run() -> void:
 					and str(run.reports[i].hint_text) in public_copy[i],
 					"Report %d print is unchanged when the hidden continuation changes" % i)
 	_check(not defs.is_empty(), "Stock catalog remains available")
+	# Add the Smith to this disposable migrated profile, then exercise the actual
+	# recruitment and loadout pages rather than only the artwork resolver.
+	var store = load("res://guild_profile.gd")
+	var profile: Dictionary = store.load_profile(profile_path)
+	profile.recruited_ids.append("blacksmith")
+	profile.version = store.FORMAT_VERSION
+	for field in ["board_seed", "board_generation", "points"]:
+		profile[field] = str(profile[field])
+	var smith_file := FileAccess.open(profile_path, FileAccess.WRITE)
+	if smith_file == null:
+		_check(false, "Write disposable Smith profile")
+	else:
+		smith_file.store_string(JSON.stringify(profile))
+		smith_file.close()
+		await _launch_normal()
+		_check(scene.current_screen() == "commissions", "Smith fixture opens the commission board")
+		await _press("Commission_0")
+		var smith_card := _item_card(_node("Recruit_blacksmith") as Control, "RecruitCard_blacksmith")
+		var smith_portrait: Texture2D = load("res://presentation/guild_book_art.gd").class_portrait("blacksmith")
+		_check(smith_card != null and smith_portrait != null and smith_portrait in _textures_in(smith_card),
+			"Recruited Hobby Smith shows the accepted portrait on the recruitment page")
+		await _press("Recruit_blacksmith")
+		await _press("EditHero_blacksmith")
+		var loadout := _node("LoadoutHero")
+		_check(loadout != null and smith_portrait in _textures_in(scene),
+			"Hobby Smith loadout page shows the accepted portrait")
 	_cleanup()
 
 

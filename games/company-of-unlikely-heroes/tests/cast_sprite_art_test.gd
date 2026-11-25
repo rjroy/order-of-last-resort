@@ -7,12 +7,14 @@ const Board = preload("res://bridge_art.gd")
 const MANIFEST := "res://assets/cast/manifest.json"
 const CELL := Vector2i.ZERO
 const CELLS := {CELL: "bridge"}
-const ROLES := ["knight", "healer", "wizard", "rogue", "necromancer", "bard", "skeleton", "zombie", "alchemist", "harpooner"]
+const ROLES := ["knight", "healer", "wizard", "rogue", "necromancer", "bard", "skeleton", "zombie",
+	"alchemist", "harpooner", "blacksmith"]
 const ART_KEYS := {
 	"knight": "knight", "healer": "healer", "wizard": "wizard",
 	"rogue": "wizard", "necromancer": "wizard", "bard": "wizard",
 	# Stock Mixologist keeps the legacy art key; cast_key selects her own sprite.
 	"skeleton": "skeleton", "zombie": "zombie", "alchemist": "healer", "harpooner": "enemy",
+	"blacksmith": "blacksmith",
 }
 const EXTRA_CLIPS := {
 	"knight": ["guard", "shield_away"],
@@ -25,6 +27,7 @@ const EXTRA_CLIPS := {
 	"zombie": ["say_hello", "offer_flower", "gift"],
 	"alchemist": ["potion", "acid", "acid_flask"],
 	"harpooner": ["pursue", "close_thrust", "ranged_cast", "hit", "defeat", "harpoon_projectile"],
+	"blacksmith": ["pursue", "try_this", "hammer_time", "hit", "down", "recover", "defeat"],
 }
 const READY_ACTIONS := {
 	"knight": "guard", "healer": "bonk", "wizard": "blast",
@@ -32,6 +35,7 @@ const READY_ACTIONS := {
 	"zombie": "offer_flower",
 	# Existing animated guild members and an opponent are controls.
 	"bard": "inspiring_melody", "necromancer": "summon_skeleton", "harpooner": "close_thrust",
+	"blacksmith": "hammer_time",
 }
 
 var board := Board.new()
@@ -98,6 +102,7 @@ func _run() -> void:
 		"Knight must show when the shield is away")
 	for role in READY_ACTIONS:
 		await _check_live_ready(role, READY_ACTIONS[role])
+	await _check_smith_lifecycle()
 	if failures == 0:
 		print("Cast sprite art test passed: distinct figures and tactical state remain visible.")
 	quit(1 if failures else 0)
@@ -115,6 +120,66 @@ func _render(role: String, state: Dictionary = {}, overlay: Dictionary = {}) -> 
 	await process_frame
 	await RenderingServer.frame_post_draw
 	return viewport.get_texture().get_image()
+
+
+func _check_smith_lifecycle() -> void:
+	var cast = board.get("_cast")
+	var clips: Dictionary = cast.get("_actors").get("blacksmith", {})
+	if not clips.has("defeat") or not clips.has("ready"):
+		_check(false, "Stock Smith's ready and defeat clips are required")
+		return
+	board.set_actual_draw_capture_enabled(true)
+	for action: Array in [["hit", 5], ["down", 16], ["recover", 22]]:
+		await _check_smith_reaction(action[0], action[1])
+	board.clear_action_playback()
+	var body := {"hp": 0, "max_hp": 0, "prone": true, "visual_defeat": true, "guild_knockdown_art": true}
+	var authored := await _render("blacksmith", body)
+	var authored_row: Dictionary = board.actual_draw_snapshot().get("actors", {}).get("unit", {})
+	_check(authored_row.get("clip") == "defeat" \
+		and authored_row.get("source_frame") == clips.defeat.source_frames.back(),
+		"The Smith's actual fallen pixels use the retained terminal defeat drawing")
+	var defeat = clips.defeat
+	clips.erase("defeat")
+	var missing_take := await _render("blacksmith", body)
+	var fallback_row: Dictionary = board.actual_draw_snapshot().get("actors", {}).get("unit", {})
+	_check(fallback_row.get("clip") == "ready" and fallback_row.get("atlas") == clips.ready.path \
+		and fallback_row.get("turned_down", false), "Missing authored defeat uses the Smith's drawn prone Ready")
+	var rotated_ready := await _render("blacksmith", body.merged({"visual_defeat": false}, true))
+	var token := await _render("", body.merged({"art_key": "blacksmith"}, true))
+	clips["defeat"] = defeat
+	# Figure/corpse captions differ with the lifecycle flag. Compare the lower
+	# part where both poses are drawn, excluding the top status caption.
+	var crop := Rect2i(0, int(Board.GUTTER.y + 24), authored.get_width(), int(Board.TILE.y - 12))
+	_check(_difference(missing_take.get_region(crop), rotated_ready.get_region(crop)) == 0,
+		"Missing Smith defeat draws the same stock prone ready silhouette")
+	_check(_difference(missing_take.get_region(crop), token.get_region(crop)) > 100,
+		"Missing Smith defeat draws the ready sprite, not a generic token")
+	_check(_difference(authored.get_region(crop), missing_take.get_region(crop)) > 100,
+		"Authored defeat actually draws a different terminal pose")
+	board.set_actual_draw_capture_enabled(false)
+
+
+func _check_smith_reaction(key: String, source_frame: int) -> void:
+	var clip = board.get("_cast").clip_for("blacksmith", key)
+	if clip == null:
+		return # Missing packaged art is reported by the inventory check.
+	board.clear_action_playback()
+	var state := {"hp": 1, "max_hp": 0, "guild_knockdown_art": true, "prone": key == "down"}
+	var idle := await _render("blacksmith", state)
+	var cue := {"unit_id": "unit", "cast_key": "blacksmith", "clip": key, "source_cell": CELL}
+	if key in ["down", "recover"]:
+		cue["hero_knockdown"] = key
+	board.play_committed_actions([cue])
+	board.set_process(false)
+	board._process((clip.time_at_source_frame(source_frame) + 1.0) / 1000.0)
+	board.set_process(false)
+	await process_frame
+	await RenderingServer.frame_post_draw
+	var drawn: Dictionary = board.actual_draw_snapshot().get("actors", {}).get("unit", {})
+	var actual := viewport.get_texture().get_image()
+	_check(drawn.get("clip") == key and drawn.get("atlas") == clip.path and drawn.get("source_frame") == source_frame,
+		"Smith actually paints %s F%d, not merely a readable atlas" % [key, source_frame])
+	_check(_difference(idle, actual) > 20, "%s is visible as a different Smith pose" % key)
 
 
 func _check_live_ready(role: String, action: String) -> void:

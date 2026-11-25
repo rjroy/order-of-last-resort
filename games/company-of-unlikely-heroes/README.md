@@ -43,12 +43,14 @@ At each fork, choose between two field reports using **Take Route A** or **Take 
 
 **Guild pay:** Each road victory earns 1 point; winning the destination earns 5 instead. Collect the total on returning to the guild. A defeat or forfeit earns nothing for that mission but keeps earlier wins. Four roads followed by a lost destination pay 4; the same commission completed pays 9. Standalone missions do not pay guild points.
 
-**Guild unlocks:** A new guild starts with the Knight, Healer and Caster. Open **Guild petitions** on the commission board to browse or filter the [26-petition register](../../.lore/work/games/company-of-unlikely-heroes/notes/guild-perk-catalog.md). Selecting a petition previews it; only the purchase button spends points. Recruit the Bad Bard or Daft Dodger for 4 points apiece, the Mixologist for 5, or the Friendly Crypter for 6. The party still has three places. For example:
+**Guild unlocks:** A new guild starts with the Knight, Healer and Caster. Open **Guild petitions** on the commission board to browse or filter the 29 stock petitions. Selecting a petition previews it; only the purchase button spends points. Recruit the Bad Bard or Daft Dodger for 4 points apiece, the Mixologist or Hobby Smith for 5 apiece, or the Friendly Crypter for 6. The party still has three places. The [original petition register](../../.lore/work/games/company-of-unlikely-heroes/notes/guild-perk-catalog.md) records the earlier set. For example:
 
 - The **Bad Bard** starts with both songs as standing orders. His separate **Song Weaving** petition costs 5 points. Play Melody, then Sonnet on the next round: Sonnet plays first and Melody echoes. Repeat Sonnet and no echo plays. A skipped performance breaks the chain, echoes never start another echo, and laughter immunity still applies.
 - **Teach the Healer: Blast** adds an offense option. It does not replace Bonk until you equip Blast during recruitment. Heal and Support remain available. Pursue and Bonk requires Bonk, and Blast can hit an ally or an obstacle. The Caster keeps his spell.
 
 Use **Edit loadout** during recruitment to choose an offense, utility and compatible starting order. Buying an ability never silently equips it or teaches the donor's standing orders. For example, a Knight equipped with **Rescue Line** can pull an ally toward him instead of guarding. A new Mixologist can throw Acid directly from her first mission; **Throw Samples** teaches her to do it while you command someone else.
+
+**Bring the Hobby Smith:** Buy **Recruit the Hobby Smith** in **Guild petitions**, then choose a commission and recruit the Smith with two other heroes. Use **Earlier** to put the Smith first and leave his starting order on **Try This** to give a later hero a chance to use the fitting in the same round. The Smith starts with **Hammer Time**, **Try This**, and the standing orders **Try This**, **Pursue**, and **Hold**. **Learn Bonk and Taunt** costs 4 points; **Learn Acid** costs 5 and also requires the Mixologist to be recruited. Equip either in **Edit loadout** to replace Hammer Time without losing Try This. **Pursue** uses the equipped offense against the nearest opponent if it can; otherwise the Smith takes one step toward attack range or holds.
 
 Returning clears outing upgrades and refreshes the commission board. Guild points, permanent purchases and preferred loadouts survive. Existing guild profiles retain access to their previous recruits. There is no mid-run save.
 
@@ -177,6 +179,7 @@ After a victory with another mission ahead, inspect the debrief before continuin
 | Daft Dodger | Wasn't Me marks an enemy beside another living character; its next attack is redirected to an adjacent character, including an ally. | Retreat steps away from the nearest enemy. Confusing Dodge swaps with the furthest other living character, friend or foe. |
 | Friendly Crypter | Summon Skeleton puts a 1 HP skeleton on an open neighboring tile. | Raise Dead consumes an unoccupied enemy corpse and puts a zombie there with half the enemy's maximum HP, rounded up. The Friendly Crypter holds unless directly commanded. |
 | Bad Bard | Healing Sonnet makes a random living opponent scream for 1 damage. It does not heal. | Inspiring Melody makes a random eligible opponent laugh away their next turn. The Bad Bard starts on Hold and can take either song as a standing order. |
+| Hobby Smith | **Hammer Time** deals 2 damage to an adjacent opponent or damageable obstacle without shoving or taunting. | **Try This** fits another hero so they can use an alternate form of an ability once. |
 
 Daft Dodger distance ties and redirect victim ties use the lowest character instance ID. When the marked enemy attacks, Wasn't Me looks for an adjacent living character other than the attacker and its original target. If nobody else is there, the original target takes the attack. Either way, the mark is spent. Movement before the attack can change who takes the blame, and a reflecting aura can still redirect the resulting attack.
 
@@ -192,19 +195,33 @@ The Bad Bard can Move or perform either song as a direct command. It interrupts 
 
 To try it in the standalone patrol, launch `godot --path games/company-of-unlikely-heroes -- --mission=bridge_patrol --party=bard,healer,knight`. Set the Bad Bard's standing order to **Inspiring Melody**, leave the other two on their default orders, and commit three rounds, comparing the listeners. Switch to **Healing Sonnet** for round four to see damage against the raider who just laughed. Before committing, preview a Move for another hero to leave the song in place, then replace the command with a Bad Bard Move to see the song drop out of the forecast.
 
+#### Try the Hobby Smith
+
+The standing order **Try This** fits the nearest other living deployed hero, with ties going to the earlier hero in deployment order. If that hero is already **Fitted**, the Smith waits instead of choosing someone else. A direct **Try This** lets you choose another living deployed hero anywhere on the board. It uses your one command for the round; the wearer still follows their standing order. Normally the Smith can keep only one teammate fitted, so fitting a different hero replaces the old fitting.
+
+On the wearer's turn, the fitting changes the next eligible ability they actually use, whether it comes from a direct command or a standing order. The alternate replaces the ordinary action; it is not a second action. If the alternate has no legal use but the ordinary ability can still run, the **Forecast** shows the ordinary action and the fitting stays. For example, with no wounded hero for **Mending Blast** to heal, the Caster can still use ordinary **Blast**, which can hit an ally or obstacle. Check the forecast for the actual target. If neither form is legal, the hero can wait or move as their order allows. Move, Hold and skipped turns also keep the fitting; the wearer falling or the mission ending clears it.
+
+From the repository root, try this stock opening without a guild purchase:
+
+```sh
+godot --path games/company-of-unlikely-heroes -- --mission=hold_the_line --party=blacksmith,knight,healer
+```
+
+Leave the default orders alone. Select the Anxious Knight, open **Actions**, choose **Push → Pull**, and target the Bruiser at **G3**. The forecast shows the Smith fitting the Knight first, then the Knight pulling the Bruiser one tile closer to **F3**. Before committing, clear the command and compare: the Knight's standing **Guard** now becomes **Clear the Floor**, which shoves nearby allies as well as enemies instead of shielding them.
+
 The game collects no playtest telemetry. The question to take away: **Did you enjoy trusting two of these people while you took charge of the third?**
 
 ### Cast sprites in battle
 
-All 20 stock missions use Blender-rendered sprites for the seven heroes, both undead summons, and the entire field cast: 25 non-party characters and the animated Supply Wagon. A flock shares one Sheep model; the three bandit siblings and the three rival heroes each have their own. The [cast inventory](../../.lore/work/games/company-of-unlikely-heroes/art/non-hero-cast.md) links models to missions. The [runtime manifest](assets/cast/manifest.json) maps performances to packaged sprite sheets; playing them needs neither Blender nor historical renders. The packaged audio assets need the first-launch import described above.
+Stock battles use Blender-rendered sprites for the heroes, the undead summons, and the field cast. The Hobby Smith and the Supply Wagon have their own sprite sheets. A flock shares one Sheep model; the three bandit siblings and the three rival heroes each have their own. The [cast inventory](../../.lore/work/games/company-of-unlikely-heroes/art/non-hero-cast.md) links models to missions. The [runtime manifest](assets/cast/manifest.json) maps performances to packaged sprite sheets; playing them needs neither Blender nor historical renders. The packaged audio assets need the first-launch import described above.
 
 From the repository root, try `godot --path games/company-of-unlikely-heroes -- --mission=hold_the_line` and commit through round four to see the reserve Archer and War Drummer. Other showcases are `mirror_company` for the rival trio, `great_sheep_escape` for the flock and shepherd, and `last_wagon` for the loaded wagon advancing, stalling, and breaking down. For the Ferryman, launch `--mission=company_rescue --party=knight,healer,wizard`.
 
-The [stock scene verification guide](tools/cast/verify_stock_scenes.md) provides one command to reproduce the stock opening and committed-action checks. The seven heroes and both summons retain their prior battle artwork; the original [static summon sources](assets/summons/README.md) are also preserved.
+The [stock scene verification guide](tools/cast/verify_stock_scenes.md) describes how to run checks for stock openings and supported committed-action cases. The earlier heroes and summons retain their prior battle artwork; the original [static summon sources](assets/summons/README.md) are also preserved.
 
 Preview updates the forecast without resolving the round or starting action playback. Commit resolves the round, then plays supported actions from that committed round in order of their key moments; recoveries can overlap later actions. Playback is cosmetic, and not every ability has its own clip.
 
-**Options** includes persistent **Master**, **Music**, and **Sound effects** volume controls. In battle, open **Options → Volume**. Master scales both categories; setting any control to zero mutes it without changing the other settings. Music continues playing while muted. Staging an authored move makes a quiet pencil sound; forecasts stay silent. Committed movement and actions play their sounds during playback. To try the Friendly Crypter, launch `goblin_mob` and follow the opening above.
+**Options** includes persistent **Master**, **Music**, and **Sound effects** volume controls. In battle, open **Options → Volume**. Master scales both categories; setting any control to zero mutes it without changing the other settings. Music continues playing while muted. Staging an authored move makes a quiet pencil sound; forecasts stay silent. Supported moves and actions play their sounds during committed playback. To try the Friendly Crypter, launch `goblin_mob` and follow the opening above.
 
 Use **Forfeit** during an ongoing battle to concede without playing the next round. Confirm to end the mission as a defeat, or cancel to keep your plans. In a commission, defeat ends the run without a reward; returning to the guild clears its upgrades. In a standalone mission, use **Restart** to try again.
 
@@ -215,6 +232,8 @@ After a victory with another mission ahead, the debrief shows **one offer per el
 Rewards start in the next mission. Extra maximum HP comes with the same amount of current HP, but does not erase existing wounds. In combat, open **Outing upgrades** above the round controls to review what each hero gained. New actions and orders appear in the same pickers as the base kit. For example, **Shield Throw** shows an outlined shield where it will land in the forecast, then a filled marker while it is on the board. Point at the tile to inspect it; **Advance** heads toward it so the Anxious Knight can recover it. **Say Hello to That One** names the summons' directed target in the forecast and on tile inspection.
 
 The Mixologist’s seven rewards include **Plain Tonic**, a heal without a random reaction, and **Keep the Culture**, which lets you repeat the last recipe and its exact reaction on a different recipient. The bottle is spent on use and is empty at the start of a new mission.
+
+The Hobby Smith's **Leather Apron** adds maximum HP. **Heavier Hammer** adds Hammer Time damage, and **Follow Through** lets the Smith step onto a defeated target's tile if the Smith survives the defeat effects and can still enter it. Both hammer rewards require Hammer Time to be equipped. **Reinforced Rivets** reduce the wearer's next hit by 1 per copy while fitted. **Fine Adjustment** adds 1 to the alternate's main damage, healing or protection, or grants **Steady Hands** to reduce the wearer's next hit by 1 before their next turn. It does not boost an ordinary fallback or stack with Inspiration. **Quick Release** lets the wearer spend their direct command to remove the fitting and step one tile; ordinary Move keeps it. **Double Shift** lets two teammates hold fittings at once, but standing Try This still checks only the nearest.
 
 There is no **hero upgrade offer** after a final victory or defeat, or in standalone missions. Returning to the guild clears all outing upgrades. Commission pay and permanent guild petitions are separate from these temporary rewards.
 

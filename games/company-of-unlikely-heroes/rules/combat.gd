@@ -1,6 +1,7 @@
 extends RefCounted
 
 const Board = preload("res://rules/board.gd")
+const FittingState = preload("res://rules/fitting_state.gd")
 const Frontier = preload("res://rules/frontier_combat.gd")
 const Movement = preload("res://rules/movement.gd")
 const Shield = preload("res://rules/shield.gd")
@@ -18,14 +19,12 @@ class RetaliationBatch:
 
 
 static func toward(from: Vector2i, to: Vector2i) -> Vector2i:
-	var delta := to - from
-	if absi(delta.x) >= absi(delta.y) and delta.x != 0:
-		return Vector2i(signi(delta.x), 0)
-	return Vector2i(0, signi(delta.y))
+	return Board.dominant_step(from, to)
 
 
+## Returns whether the primary hit defeated its intended target, not a redirected victim.
 static func attack(state: Dictionary, source: Dictionary, intended: Dictionary, damage: int,
-		strike: Dictionary, events: Array, retaliation: RetaliationBatch = null) -> void:
+		strike: Dictionary, events: Array, retaliation: RetaliationBatch = null) -> bool:
 	var target := intended
 	var id: String = strike.get("ability_id", "")
 	if id == "knight_shield_throw":
@@ -43,6 +42,7 @@ static func attack(state: Dictionary, source: Dictionary, intended: Dictionary, 
 	damage = Frontier.attack_damage(state, source, damage, events)
 	var reflection := Statuses.reflect_attack(state, target, events)
 	damage += int(reflection.bonus)
+	var primary_bonus := int(strike.get("primary_bonus", 0)) if target == reflection.target else 0
 	target = reflection.target
 	var impact: Vector2i = intended.position if target.is_empty() else target.position
 	var status_id: String = strike.get("status", "")
@@ -52,12 +52,19 @@ static func attack(state: Dictionary, source: Dictionary, intended: Dictionary, 
 		if not target.is_empty() and Board.team(state, target) == Board.team(state, source) \
 				and Upgrades.amount(state, source, "duck") > 0 and Statuses.is_knockdown(state, status_id):
 			status_id = ""
-	var amount := _hurt_and_chain(state, source, target, damage, strike.source_name, status_id, events, {})
+	# The bolt uses the damage this hit would have dealt without its primary-only
+	# improvement. Track both through the same defenses, consuming them only once.
+	var unimproved := {"amount": damage} if id == "wizard_blast" and primary_bonus > 0 \
+		and Upgrades.amount(state, source, "conductive_personality") > 0 else {}
+	var amount := _hurt_and_chain(state, source, target, damage + primary_bonus, strike.source_name,
+		status_id, events, {}, unimproved)
+	var defeated_intended: bool = amount > 0 and target.id == intended.id and not Board.alive(target)
 	if id == "knight_shield_throw":
 		Shield.dropped(state, source, impact, events)
 	elif id == "wizard_blast" and amount >= 0:
-		_blast_aftereffects(state, source, target, impact, amount, events)
+		_blast_aftereffects(state, source, target, impact, unimproved.get("amount", amount), events)
 	_after_damage(state, source, target, amount, events, retaliation)
+	return defeated_intended
 
 
 static func _surround_bonus(state: Dictionary, actor: Dictionary, target: Dictionary,
@@ -154,9 +161,11 @@ static func _retaliate(state: Dictionary, attacker: Dictionary, defender: Dictio
 
 
 static func _hurt_and_chain(state: Dictionary, source: Dictionary, target: Dictionary, damage: int,
-		source_name: String, status_id: String, events: Array, presentation: Dictionary) -> int:
+		source_name: String, status_id: String, events: Array, presentation: Dictionary,
+		unimproved: Dictionary = {}) -> int:
 	var blasts: Array[Dictionary] = []
-	var amount := _apply_hit(state, source, target, damage, source_name, status_id, events, presentation, blasts)
+	var amount := _apply_hit(state, source, target, damage, source_name, status_id, events,
+		presentation, blasts, unimproved)
 	# Finish one blast before processing the next. Only a living-to-fallen
 	# transition queues a blast, so the chain can't detonate a body twice.
 	var index := 0
@@ -179,7 +188,8 @@ static func _hurt_and_chain(state: Dictionary, source: Dictionary, target: Dicti
 
 
 static func _apply_hit(state: Dictionary, source: Dictionary, target: Dictionary, damage: int,
-		source_name: String, status_id: String, events: Array, presentation: Dictionary, blasts: Array[Dictionary]) -> int:
+		source_name: String, status_id: String, events: Array, presentation: Dictionary,
+		blasts: Array[Dictionary], unimproved: Dictionary = {}) -> int:
 	var hp_loss: bool = presentation.get("hp_loss", false)
 	if not Board.alive(target) or (not hp_loss and not Board.capable(state, target, "damageable")):
 		return -1
@@ -187,8 +197,9 @@ static func _apply_hit(state: Dictionary, source: Dictionary, target: Dictionary
 	# before the Alchemist's consumables, including last-chance survival.
 	var amount := damage
 	if not hp_loss:
-		amount = Frontier.reduce_damage(state, target, Statuses.hit_amount(state, target, amount, events), events)
-		amount = Statuses.alchemy_hit_amount(state, source, target, amount, events)
+		amount = Statuses.hit_amount(state, target, amount, events, unimproved)
+		amount = Frontier.reduce_damage(state, target, amount, events, unimproved)
+		amount = Statuses.alchemy_hit_amount(state, source, target, amount, events, unimproved)
 	target.hp = maxi(0, target.hp - amount)
 	var applied := not status_id.is_empty() and Statuses.apply(state, target, status_id, source, events)
 	var handler = Statuses.definition(state, status_id).get("handler", "") if applied else ""
@@ -210,6 +221,8 @@ static func _apply_hit(state: Dictionary, source: Dictionary, target: Dictionary
 			{"actor": Board.display_name(state, source), "target": target_name},
 			{"source_id": source.id, "target_id": target.id, "status_id": status_id})
 	if not Board.alive(target):
+		FittingState.clear(target)
+		Statuses.clear_fitting_effects(target)
 		Summons.on_fall(state, target, events)
 		if target.has("character_id"):
 			Frontier.announce_ally_death(state, target, events)

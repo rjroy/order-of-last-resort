@@ -1,16 +1,26 @@
 extends RefCounted
 
 const Board = preload("res://rules/board.gd")
+const FittingState = preload("res://rules/fitting_state.gd")
 const Reactions = preload("res://rules/alchemy_reactions.gd")
 const Upgrades = preload("res://rules/upgrades.gd")
 const RECOVER_EVENT := "recover"
 const JELLY_KNEES := "jelly_knees"
+const INSPIRED := "inspired"
+const STEADY_HANDS := "steady_hands"
+const NEXT_HIT := ["laughing_fit", "borrowed_courage", FittingState.RIVETS,
+	"keep_your_head_down", "lend_a_shield", STEADY_HANDS]
 enum Application { REJECTED, APPLIED, RESISTED }
 const REWARD_STATUSES := {
 	"borrowed_courage": {"label": "Borrowed Courage", "handler": "reduce_next_hit", "expiry": "source_turn_start"},
 	"body_double": {"label": "Body Double", "handler": "body_double", "expiry": "actor_turn_start"},
 	"laughing_fit": {"label": "Dropped guard", "handler": "increase_next_hit", "expiry": "actor_turn_start"},
 	"heckler": {"label": "Heckling the Bard", "handler": "heckler", "expiry": "consume_attack"},
+	FittingState.RIVETS: {"label": "Reinforced Rivets", "handler": "reduce_next_hit", "expiry": "fitting_end"},
+	INSPIRED: {"label": "Inspired", "handler": "improve_next_ability"},
+	"keep_your_head_down": {"label": "Keep Your Head Down", "handler": "reduce_next_hit", "expiry": "actor_turn_end"},
+	"lend_a_shield": {"label": "Lend a Shield", "handler": "reduce_next_hit", "expiry": "actor_turn_end"},
+	STEADY_HANDS: {"label": "Steady Hands", "handler": "reduce_next_hit", "expiry": "actor_turn_start"},
 }
 
 
@@ -72,14 +82,19 @@ static func labels(state: Dictionary, unit: Dictionary, active_handler := "") ->
 	return result
 
 
-static func expire(state: Dictionary, unit: Dictionary, timing: String) -> void:
+static func expire(state: Dictionary, unit: Dictionary, timing: String, events: Variant = null) -> void:
 	for id in unit.statuses.keys():
 		if definition(state, id).get("expiry", "") == timing:
 			unit.statuses.erase(id)
+			if events != null and id in ["keep_your_head_down", "lend_a_shield", STEADY_HANDS]:
+				Board.event(events, "status_expired", "%s: %s expires." % [
+					Board.display_name(state, unit), definition(state, id).label],
+					{"unit_id": unit.id, "target_id": unit.id, "status_id": id,
+						"timing": timing, "removed": true})
 
 
-static func begin_turn(state: Dictionary, actor: Dictionary) -> void:
-	expire(state, actor, "actor_turn_start")
+static func begin_turn(state: Dictionary, actor: Dictionary, events: Array) -> void:
+	expire(state, actor, "actor_turn_start", events)
 	if Upgrades.amount(state, actor, "borrowed_courage") == 0:
 		return
 	for unit in state.units:
@@ -341,39 +356,87 @@ static func double_recipient(state: Dictionary, target: Dictionary, events: Arra
 	return partner
 
 
-static func hit_amount(state: Dictionary, target: Dictionary, damage: int, events: Array) -> int:
+static func inspired(actor: Dictionary) -> bool:
+	return actor.get("statuses", {}).has(INSPIRED)
+
+
+static func grant_inspiration(state: Dictionary, source: Dictionary, target: Dictionary, events: Array) -> void:
+	if inspired(target) or not Board.alive(target):
+		return
+	target.statuses[INSPIRED] = {"source_id": source.id}
+	Board.event(events, "status", "%s inspires %s (improves their next performed ability)." % [
+		Board.display_name(state, source), Board.display_name(state, target)],
+		{"unit_id": source.id, "target_id": target.id, "status_id": INSPIRED})
+
+
+static func grant_cover(state: Dictionary, source: Dictionary, target: Dictionary, status_id: String,
+		amount: int, events: Array) -> void:
+	target.statuses[status_id] = {"source_id": source.id, "amount": amount}
+	var label: String = definition(state, status_id).label
+	Board.event(events, "status", "%s: %s can absorb %d damage on their next hit through their next turn." % [
+		label, Board.display_name(state, target), amount],
+		{"unit_id": source.id, "target_id": target.id, "status_id": status_id, "amount": amount})
+
+
+static func clear_fitting_effects(unit: Dictionary) -> void:
+	for id in [INSPIRED, "keep_your_head_down", "lend_a_shield", STEADY_HANDS]:
+		unit.statuses.erase(id)
+
+
+static func grant_steady_hands(state: Dictionary, actor: Dictionary, reason: String, events: Array) -> void:
+	actor.statuses[STEADY_HANDS] = {"source_id": actor.id, "amount": 1}
+	Board.event(events, "status", "%s: %s gains Steady Hands (1 less damage on the next hit before their next turn)." % [
+		reason, Board.display_name(state, actor)],
+		{"unit_id": actor.id, "status_id": STEADY_HANDS, "amount": 1})
+
+
+static func hit_amount(state: Dictionary, target: Dictionary, damage: int, events: Array,
+		unimproved: Dictionary = {}) -> int:
 	if damage <= 0:
 		return damage
 	var amount := damage
-	for id in ["laughing_fit", "borrowed_courage"]:
+	for id in NEXT_HIT:
 		if not target.get("statuses", {}).has(id):
 			continue
+		var increases: bool = id == "laughing_fit"
 		var bonus: int = target.statuses[id].amount
-		var label := "Laughing Fit" if id == "laughing_fit" else "Borrowed Courage"
-		amount += bonus if id == "laughing_fit" else -bonus
+		var applied := bonus if increases else mini(bonus, amount)
+		var label: String = "Laughing Fit" if increases else definition(state, id).label
+		amount += applied if increases else -applied
+		if not unimproved.is_empty() and unimproved.amount > 0:
+			unimproved.amount = maxi(0, int(unimproved.amount) + (bonus if increases else -bonus))
 		target.statuses.erase(id)
 		Board.event(events, "status", "%s %s the hit on %s by %d." % [
-			label, "increases" if id == "laughing_fit" else "reduces", Board.display_name(state, target), bonus],
-			{"unit_id": target.id, "status_id": id, "amount": bonus})
-	return maxi(0, amount)
+			label, "increases" if increases else "reduces", Board.display_name(state, target), applied],
+			{"unit_id": target.id, "status_id": id, "amount": applied, "consumed": true})
+	return amount
 
 
 static func alchemy_hit_amount(state: Dictionary, source: Dictionary, target: Dictionary,
-		damage: int, events: Array) -> int:
+		damage: int, events: Array, unimproved: Dictionary = {}) -> int:
 	if damage <= 0:
 		return damage
 	var range_to_source := Board.distance(source.position, target.position)
 	var amount := damage
+	var baseline: int = unimproved.get("amount", 0)
+	var compare := baseline > 0
 	if consume_alchemy(state, target, "thin_skinned", "takes 1 extra damage", events):
 		amount += 1
+		baseline += 1
 	if range_to_source == 1 and consume_alchemy(state, target, "handle_with_care", "takes 1 extra damage", events):
 		amount += 1
+		baseline += 1
 	if consume_alchemy(state, target, "emergency_crust", "absorbs 1 damage", events):
 		amount -= 1
+		baseline -= 1
 	if amount > 0 and range_to_source > 1 and consume_alchemy(state, target, "duck", "avoids 1 damage", events):
 		amount -= 1
+		baseline -= 1
 	if amount >= target.hp and consume_alchemy(state, target, "pocket_paramedic", "survives at 1 HP", events):
 		amount = target.hp - 1
+		baseline = mini(baseline, amount)
+	if compare:
+		unimproved.amount = maxi(0, baseline)
 	return amount
 
 

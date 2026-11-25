@@ -7,15 +7,21 @@ signal hover_cleared
 signal grid_labels_visibility_changed
 signal foreground_layer_changed(enabled: bool)
 signal sound_beat(kind: String, unit_id: String, ability_id: String, handler: String, recipe: String)
+signal committed_reactions_changed
 
 const CastSprites := preload("res://presentation/cast_sprites.gd")
 const CastPlayback := preload("res://presentation/cast_playback.gd")
+const FittedCastBindings := preload("res://presentation/fitted_cast_bindings.gd")
 const BoardPainting := preload("res://presentation/board_painting.gd")
 
 const TILE := Vector2(96, 80)
 const GUTTER := Vector2(31, 34)
 const FOOT := Vector2(49, 62)
+const SHIELD_MARK_CENTER := Vector2(17, 27)
 const FOREGROUND_Z_INDEX := 2
+const REACTION_MS := 1450.0
+const COVER_STATUSES := ["keep_your_head_down", "lend_a_shield"]
+const TACTICAL_STATUSES := ["keep_your_head_down", "lend_a_shield", "inspired"]
 const INK := Color("#282725")
 const PARCHMENT := Color("#f5e5bd")
 const RIVER := Color("#28474b")
@@ -79,6 +85,54 @@ var _pull_facing: Dictionary[String, float] = {}
 var _pull_recovery_facing: Dictionary[String, float] = {}
 var _defeat_facing: Dictionary[String, float] = {}
 var _pressure_gate_prop_installed := false
+var _performance_sound: Callable
+var _presentation_ms := 0.0
+var _reaction_marks: Array[Dictionary] = []
+var _recipient_marks: Array[Dictionary] = []
+var _show_reaction_marks := true
+# Enrollment spans queued actions; the current HP and retained row do not
+# survive the retirement of an instance, even if the next Raise reuses its ID.
+var _hp_tracking: Dictionary = {}
+var _committed_hp: Dictionary = {}
+var _committed_statuses: Dictionary = {}
+var _tracked_opening_rows: Dictionary = {}
+var _undead_transitions: Array[Dictionary] = []
+var _play_dead_corpses: Dictionary = {}
+var _prone_recalls: Dictionary = {}
+var _next_prone_recall := 0
+var _committed_shields: Dictionary = {}
+var _capture_actual_draw := false
+var _draw_frame_serial := 0
+var _actual_draw: Dictionary = {}
+var _actual_reactions: Array[Dictionary] = []
+
+
+func set_performance_sound(dispatch: Callable) -> void:
+	_performance_sound = dispatch
+
+
+func set_actual_draw_capture_enabled(enabled: bool) -> void:
+	_capture_actual_draw = enabled
+	if not enabled:
+		_actual_draw.clear()
+		_actual_reactions.clear()
+	_figures.queue_redraw()
+	committed_reactions_changed.emit()
+
+
+## Opt-in evidence from successful paint calls, not queued animation metadata.
+## Read after frame_post_draw and pair it with the visible viewport image.
+func actual_draw_snapshot() -> Dictionary:
+	if _actual_draw.is_empty():
+		return {}
+	var snapshot := _actual_draw.duplicate(true)
+	snapshot["reactions"] = _actual_reactions.duplicate(true)
+	return snapshot
+
+
+func record_actual_draw_reactions(reactions: Array[Dictionary]) -> void:
+	if _capture_actual_draw:
+		_actual_reactions = reactions
 
 
 func _ready() -> void:
@@ -158,7 +212,7 @@ func set_pressure_gate_prop_installed(installed: bool) -> void:
 ## cells: Vector2i -> "stone", "bridge", "broken", "safe", "exit", "obstacle", or "water".
 ## An absent cell is scenery only. The canvas emits input for supplied cells; it never authorizes moves.
 ## units: {id, art_key, cell, hp, max_hp, prone}; optional facing (-1 left, 1 right),
-## cast_key, guarded, shield_away, objective, variant, label and color.
+## cast_key, guarded, shield_away, shield_cell, tactical_statuses, objective, variant, label and color.
 ## overlay: selected/chosen_target/commanded (Vector2i), targets/impact/threat (arrays of Vector2i),
 ## paths (each an array of Vector2i), exit (Vector2i), safe (a set of Vector2i),
 ## objective_zone (array of [x, y] pairs or Vector2i), obstacles (id, art_key, position, hp, max_hp),
@@ -225,9 +279,53 @@ func set_render_state(cells: Dictionary, units: Array, overlay: Dictionary = {})
 	_layout()
 
 
+## Capture just the rows whose committed effects need to outlive the old snapshot.
+## Call on the opening board, before installing the already resolved board.
+func prepare_committed_presentation(cues: Array, corpses: Dictionary = {}) -> void:
+	for cue: Dictionary in cues:
+		var use: Dictionary = cue.get("performance", {})
+		for effect: Dictionary in use.get("effects", []):
+			var id: String = effect.target_id
+			var unit: Dictionary = _units_by_id.get(id, {})
+			match effect.kind:
+				"damage", "heal":
+					if (use.branch in ["converted", "boundary", "reaction"] or use.has("dose")) \
+							and not _hp_tracking.has(id):
+						_hp_tracking[id] = true
+						var opening: Dictionary = unit if not unit.is_empty() else _obstacle_row(id)
+						if not opening.is_empty():
+							_committed_hp[id] = opening.hp
+							_tracked_opening_rows[id] = opening
+				"status", "primary_improvement", "status_expired":
+					if effect.get("status_id") in TACTICAL_STATUSES and not _committed_statuses.has(id):
+						_committed_statuses[id] = unit.get("tactical_statuses", {}).duplicate()
+				"play_dead":
+					var zombie: Dictionary = _units_by_id.get(effect.retired_id, {})
+					if not zombie.is_empty():
+						_undead_transitions.append({"kind": effect.kind, "zombie_id": effect.retired_id,
+							"zombie": zombie.merged({"cell": effect.cell}, true),
+								"corpse_id": id, "prior_corpse": unit,
+								"corpse": corpses.get(id, {})})
+				"recall":
+					if unit.get("prone", false):
+						var token := _next_prone_recall
+						_next_prone_recall += 1
+						effect["board_prone_recall"] = token
+						_prone_recalls[token] = {"id": id, "companion": null}
+				"summon":
+					var corpse_id: String = effect.get("corpse_id", "")
+					var corpse := _before_corpse_raise(corpse_id)
+					if not corpse.is_empty():
+						_undead_transitions.append({"kind": effect.kind, "zombie_id": id,
+							"corpse_id": corpse_id, "corpse": corpse})
+				"shield_drop":
+					if use.form_id == "lend_a_shield" and not _committed_shields.has(use.actor_id):
+						_committed_shields[use.actor_id] = _units_by_id.get(use.actor_id, {}).get("shield_cell")
+
+
 ## Only committed cues belong here. A state refresh replaces the board, not the timeline.
 func play_committed_actions(cues: Array) -> void:
-	var obstacle_positions := _obstacle_positions()
+	var obstacle_visuals := _obstacle_visuals()
 	var prepared := []
 	for value in cues:
 		var cue: Variant = value
@@ -258,19 +356,30 @@ func play_committed_actions(cues: Array) -> void:
 	_sync_playback_geometry()
 	_set_processing()
 	_figures.queue_redraw()
-	if obstacle_positions != _obstacle_positions():
+	if obstacle_visuals != _obstacle_visuals():
 		_queue_tactical_redraw()
 
 
 func clear_action_playback() -> void:
-	var obstacle_positions := _obstacle_positions()
+	var obstacle_visuals := _obstacle_visuals()
 	_playback.clear()
+	_hp_tracking.clear()
+	_committed_hp.clear()
+	_committed_statuses.clear()
+	_tracked_opening_rows.clear()
+	_undead_transitions.clear()
+	_play_dead_corpses.clear()
+	_prone_recalls.clear()
+	_committed_shields.clear()
+	_recipient_marks.clear()
+	_reaction_marks.clear()
+	committed_reactions_changed.emit()
 	_pull_facing.clear()
 	_pull_recovery_facing.clear()
 	_defeat_facing.clear()
 	_set_processing()
 	_figures.queue_redraw()
-	if obstacle_positions != _obstacle_positions():
+	if obstacle_visuals != _obstacle_visuals():
 		_queue_tactical_redraw()
 
 
@@ -288,8 +397,38 @@ func action_playback_pending() -> bool:
 	return _playback.pending()
 
 
+func committed_visuals_pending() -> bool:
+	return _playback.pending() or not _recipient_marks.is_empty() \
+		or (_show_reaction_marks and not _reaction_marks.is_empty())
+
+
 func action_playback_remaining_ms() -> float:
 	return _playback.remaining_ms()
+
+
+func committed_visuals_remaining_ms() -> float:
+	var remaining := _playback.remaining_ms()
+	for mark in _recipient_marks:
+		remaining = maxf(remaining, float(mark.at) + CastPlayback.FEEDBACK_MS - _presentation_ms)
+	if _show_reaction_marks:
+		for mark in _reaction_marks:
+			remaining = maxf(remaining, float(mark.at) + REACTION_MS - _presentation_ms)
+	return remaining
+
+
+func hide_committed_reactions() -> void:
+	_show_reaction_marks = false
+	_reaction_marks.clear()
+	committed_reactions_changed.emit()
+	_set_processing()
+
+
+## Same aged marks used by the ink painter; cells are sampled at dose delivery.
+func committed_reaction_marks() -> Array[Dictionary]:
+	var marks: Array[Dictionary] = []
+	for mark in _reaction_marks:
+		marks.append(mark.merged({"age_ms": _presentation_ms - float(mark.at)}, true))
+	return marks
 
 
 func _set_ready_clips() -> void:
@@ -324,46 +463,224 @@ func _ready_rate(id: String) -> float:
 
 
 func _set_processing() -> void:
-	set_process(_playback.pending() or not _ready_clips.is_empty())
+	set_process(committed_visuals_pending() or not _ready_clips.is_empty())
 
 
 func _process(delta: float) -> void:
 	if not is_visible_in_tree():
 		return
 	var previous_ms := _ready_ms
-	_ready_ms += delta * 1000.0
-	var redraw := _playback.pending()
-	if redraw:
-		var obstacle_positions := _obstacle_positions()
-		var beats: Array = _playback.advance(delta * 1000.0)
-		if obstacle_positions != _obstacle_positions():
+	var delta_ms := delta * 1000.0
+	_ready_ms += delta_ms
+	var opening_ms := _presentation_ms
+	_presentation_ms += delta_ms
+	var reaction_redraw := not _reaction_marks.is_empty()
+	var redraw := _playback.pending() or not _recipient_marks.is_empty()
+	if _playback.pending():
+		var obstacle_visuals := _obstacle_visuals()
+		var beats: Array = _playback.advance(delta_ms)
+		var presentation := _playback.presentation_beats()
+		for beat: Dictionary in presentation:
+			reaction_redraw = _apply_presentation_beat(beat, opening_ms + float(beat.offset)) or reaction_redraw
+		if not _prone_recalls.is_empty():
+			for token in _prone_recalls.keys():
+				var child: CastPlayback.Entry = _prone_recalls[token].companion
+				if child != null and child.elapsed_ms >= child.duration_ms:
+					_prone_recalls.erase(token)
+		_dispatch_playback_sound(beats, presentation)
+		if not _playback.pending():
+			_hp_tracking.clear()
+			_committed_hp.clear()
+			_committed_statuses.clear()
+			_tracked_opening_rows.clear()
+			_committed_shields.clear()
+			_prone_recalls.clear()
+			for id in _play_dead_corpses.keys():
+				if _units_by_id.get(id, {}).get("label") != "Corpse":
+					_play_dead_corpses.erase(id)
+		if obstacle_visuals != _obstacle_visuals():
 			_queue_tactical_redraw()
-		for beat: Dictionary in beats:
-			sound_beat.emit(beat.kind, beat.unit_id, beat.ability_id, beat.handler, beat.recipe)
 		_sync_playback_geometry()
 		for entry in _playback.active():
 			if entry.cue.get("hero_defeat", false) and entry.facing != 0.0 \
 					and _units_by_id.get(entry.cue.unit_id, {}).get("visual_defeat", false):
 				_defeat_facing[entry.cue.unit_id] = entry.facing
-		_set_processing()
-	else:
+	elif not redraw:
 		for sample in _ready_samples:
 			var clip: CastSprites.Clip = sample.clip
 			var rate: float = sample.rate
 			if clip.frame_index(previous_ms * rate) != clip.frame_index(_ready_ms * rate):
 				redraw = true
 				break
+	_recipient_marks = _recipient_marks.filter(func(mark): return _presentation_ms - mark.at < CastPlayback.FEEDBACK_MS)
+	_reaction_marks = _reaction_marks.filter(func(mark): return _presentation_ms - mark.at < REACTION_MS)
+	if reaction_redraw:
+		committed_reactions_changed.emit()
+	_set_processing()
 	if redraw:
 		_figures.queue_redraw()
 
 
-## Compare the positions actually drawn, including the last step into a
-## settled position and the return to the refreshed board when playback ends.
-func _obstacle_positions() -> Array:
-	var positions := []
-	for obstacle: Dictionary in _overlay.get("obstacles", []):
-		positions.append(_obstacle_position(obstacle))
-	return positions
+func _dispatch_playback_sound(legacy: Array, normalized: Array) -> void:
+	var i := 0
+	var j := 0
+	while i < legacy.size() or j < normalized.size():
+		var old: Dictionary = legacy[i] if i < legacy.size() else {}
+		var beat: Dictionary = normalized[j] if j < normalized.size() else {}
+		var matching: bool = (old.get("kind") == "impact" and beat.get("kind") == "impact" \
+			and beat.has("cue_order") and beat.cue_order == old.get("cue_order")) \
+			or (old.get("kind") == "step" and beat.get("kind") == "motion_land" \
+			and beat.has("motion_order") and beat.motion_order == old.get("motion_order"))
+		if not beat.is_empty() and (matching or old.is_empty() \
+				or beat.offset < old.offset or (beat.offset == old.offset \
+				and _sound_order(beat) <= _sound_order(old))):
+			var handled := _performance_sound.is_valid() and bool(_performance_sound.call(beat))
+			j += 1
+			if not matching:
+				continue
+			if handled:
+				i += 1
+				continue
+		sound_beat.emit(old.kind, old.unit_id, old.ability_id, old.handler, old.recipe)
+		i += 1
+
+
+static func _sound_order(beat: Dictionary) -> int:
+	return int(beat.get("motion_order", beat.get("cue_order", -1)))
+
+
+func _apply_presentation_beat(beat: Dictionary, at: float) -> bool:
+	var reaction_redraw := false
+	var use_normalized_ink := _uses_normalized_recipient_ink(beat)
+	for effect: Dictionary in beat.effects:
+		var id: String = effect.target_id
+		var cell: Variant = effect.get("cell")
+		var ink := ""
+		match effect.kind:
+			"damage", "heal":
+				if _hp_tracking.has(id):
+					var delta: int = int(effect.get("amount", 0)) * (-1 if effect.kind == "damage" else 1)
+					var hp: int = _committed_hp.get(id, 0)
+					_committed_hp[id] = int(effect.get("hp_after", maxi(0, hp + delta)))
+				if int(effect.get("amount", 0)) > 0:
+					ink = "hit" if effect.kind == "damage" else "heal"
+			"status", "primary_improvement", "status_expired":
+				var status: String = effect.get("status_id", "")
+				if status in TACTICAL_STATUSES and _committed_statuses.has(id):
+					if effect.get("consumed", false) or effect.kind == "status_expired":
+						_committed_statuses[id].erase(status)
+					else:
+						_committed_statuses[id][status] = true
+						ink = "guard" if status in COVER_STATUSES else "status"
+				elif effect.get("removed", false):
+					ink = "status"
+			"alchemy_reaction":
+				if _show_reaction_marks and cell is Vector2i:
+					_reaction_marks.append({"at": at, "position": cell, "target_id": id,
+						"reaction_id": effect.reaction_id, "category": effect.category})
+					reaction_redraw = true
+			"push", "pull", "repel", "move", "recall", "swap":
+				if beat.kind == "motion_land":
+					cell = effect.get("to", cell)
+					ink = "shift"
+					if effect.kind == "recall" and effect.has("board_prone_recall"):
+						_land_prone_recall(effect.board_prone_recall, int(beat.cue_order))
+			"shield_drop":
+				if _committed_shields.has(effect.source_id):
+					_committed_shields[effect.source_id] = cell
+			"shield_retrieve":
+				if _committed_shields.has(effect.target_id):
+					_committed_shields[effect.target_id] = null
+			"play_dead":
+				if beat.kind == "handoff":
+					_cross_undead_transition(effect.kind, effect.retired_id, id)
+					# Raise may reuse this ID, but must not inherit the prior life's HP
+					# or its retained living row during the intervening corpse state.
+					_committed_hp.erase(effect.retired_id)
+					_tracked_opening_rows.erase(effect.retired_id)
+			"summon":
+				_cross_undead_transition(effect.kind, id, effect.get("corpse_id", ""))
+				if _hp_tracking.has(id) and effect.has("hp_after"):
+					_committed_hp[id] = effect.hp_after
+			"fit", "rally", "taunt", "nominate":
+				ink = "status"
+		if use_normalized_ink and not ink.is_empty() and cell is Vector2i and _cells.has(cell):
+			_recipient_marks.append({"at": at, "cell": cell, "target_id": id, "kind": ink})
+	if beat.kind == "impact" and use_normalized_ink and beat.has("dose") \
+			and not beat.effects.any(func(effect): return effect.target_id == beat.dose.recipient_id \
+				and effect.kind in ["damage", "heal"]):
+		# A capped heal or absorbed dose still arrived, but this is not an HP spark.
+		_recipient_marks.append({"at": at, "cell": beat.dose.cell,
+			"target_id": beat.dose.recipient_id, "kind": "status"})
+	return reaction_redraw
+
+
+static func _uses_normalized_recipient_ink(performance: Dictionary) -> bool:
+	# Repeat can replay a fitted dose without itself being a conversion. The
+	# ordinary source clip's usual contact ink doesn't describe this delivery.
+	return performance.get("branch") == "converted" or FittedCastBindings.replays_fitted_dose(performance)
+
+
+func _land_prone_recall(token: int, cue_order: int) -> void:
+	if not _prone_recalls.has(token):
+		return
+	var companion := _playback.companion_for(cue_order)
+	if companion == null:
+		_prone_recalls.erase(token)
+	else:
+		_prone_recalls[token].companion = companion
+
+
+func _before_corpse_raise(id: String) -> Dictionary:
+	if id.is_empty():
+		return {}
+	for index in range(_undead_transitions.size() - 1, -1, -1):
+		var transition := _undead_transitions[index]
+		if transition.corpse_id == id:
+			return transition.corpse if transition.kind == "play_dead" else {}
+	var corpse: Dictionary = _play_dead_corpses.get(id, _units_by_id.get(id, {}))
+	return corpse if corpse.get("label") == "Corpse" else {}
+
+
+func _cross_undead_transition(kind: String, zombie_id: String, corpse_id: String) -> void:
+	for index in _undead_transitions.size():
+		var transition := _undead_transitions[index]
+		if transition.kind != kind or transition.zombie_id != zombie_id or transition.corpse_id != corpse_id:
+			continue
+		if kind == "play_dead" and not transition.corpse.is_empty():
+			_play_dead_corpses[corpse_id] = transition.corpse
+		else:
+			_play_dead_corpses.erase(corpse_id)
+		_undead_transitions.remove_at(index)
+		return
+
+
+## Invalidate tactical ink only when a visible obstacle moves or changes HP.
+func _obstacle_visuals() -> Array:
+	var visuals := []
+	for obstacle: Dictionary in _presentation_obstacles():
+		var position: Variant = _obstacle_position(obstacle)
+		if position != null:
+			visuals.append([position, obstacle.hp])
+	return visuals
+
+
+func _obstacle_row(id: String) -> Dictionary:
+	for row: Dictionary in _overlay.get("obstacles", []):
+		if row.id == id:
+			return row
+	return {}
+
+
+func _presentation_obstacles() -> Array:
+	if _committed_hp.is_empty():
+		return _overlay.get("obstacles", [])
+	var obstacles: Array = _overlay.get("obstacles", []).duplicate()
+	for id in _tracked_opening_rows:
+		var opening: Dictionary = _tracked_opening_rows[id]
+		if opening.has("position") and not obstacles.any(func(row): return row.id == id):
+			obstacles.append(opening)
+	return obstacles.map(_project_committed_row)
 
 
 func _obstacle_position(obstacle: Dictionary) -> Variant:
@@ -524,7 +841,7 @@ func _draw_tactical() -> void:
 		var cell: Vector2i = value
 		_at(_tile_origin(cell))
 		_draw_overlays(cell)
-	for obstacle: Dictionary in _overlay.get("obstacles", []):
+	for obstacle: Dictionary in _presentation_obstacles():
 		var position: Variant = _obstacle_position(obstacle)
 		if position is Vector2:
 			_at(position)
@@ -634,14 +951,76 @@ func _draw_pressure_gate(open: bool) -> void:
 		_ink_canvas.draw_circle(Vector2(47, y - 1), 2.5, Color("#b69667"), true, -1.0, true)
 
 
-func _draw_figures() -> void:
-	if _map_scale <= 0.0:
-		return
-	_ink_canvas = _figures
-	var active := _playback.active()
+func _presentation_units() -> Array:
+	if _committed_hp.is_empty() and _committed_statuses.is_empty() and _undead_transitions.is_empty() \
+			and _play_dead_corpses.is_empty() \
+			and _prone_recalls.is_empty() and _committed_shields.is_empty():
+		return _units
+	var by_id := _units_by_id.duplicate()
+	for id in _play_dead_corpses:
+		var corpse: Dictionary = _play_dead_corpses[id]
+		var current: Dictionary = by_id.get(id, {})
+		if current.get("label") == "Corpse" and current.get("cell") == corpse.cell:
+			by_id[id] = corpse
+		elif _playback.pending() and current.is_empty() \
+				and not by_id.values().any(func(row): return row.hp > 0 and row.cell == corpse.cell):
+			by_id[id] = corpse
+	# Undo outstanding exchanges newest first. A Raise can reuse the retired
+	# zombie's ID; a set of hidden IDs cannot represent several such exchanges.
+	for index in range(_undead_transitions.size() - 1, -1, -1):
+		var transition := _undead_transitions[index]
+		if transition.kind == "summon":
+			by_id.erase(transition.zombie_id)
+			by_id[transition.corpse_id] = transition.corpse
+		else:
+			by_id[transition.zombie_id] = transition.zombie
+			by_id.erase(transition.corpse_id)
+			if not transition.prior_corpse.is_empty():
+				by_id[transition.corpse_id] = transition.prior_corpse
+	for id in _tracked_opening_rows:
+		var old: Dictionary = _tracked_opening_rows[id]
+		var current: Dictionary = by_id.get(id, {})
+		if old.has("cell") and int(_committed_hp.get(id, 0)) > 0 \
+				and int(current.get("hp", 0)) <= 0:
+			by_id[id] = old
+	return by_id.values().map(_project_committed_row)
+
+
+func _project_committed_row(original: Dictionary) -> Dictionary:
+	var id: String = original.id
+	var row := original
+	if _committed_hp.has(id):
+		row = row.merged({"hp": _committed_hp[id]}, true)
+	if _committed_statuses.has(id):
+		row = row.merged({"tactical_statuses": _committed_statuses[id]}, true)
+	if _committed_shields.has(id):
+		row = row.merged({"shield_away": _committed_shields[id] is Vector2i,
+			"shield_cell": _committed_shields[id]}, true)
+	# Recall itself does not recover the skeleton. Its authored tuck needs
+	# a standing minion. Carry the prior prone pose across the paired cue,
+	# then settle to the ordinary recovery (if any) without playing a stand.
+	if not _prone_recalls.is_empty() and _prone_recalls.values().any(func(hold): return hold.id == id):
+		row = row.merged({"prone": true}, true)
+	return row
+
+
+func _presentation_cell(unit: Dictionary) -> Vector2i:
+	var id: String = unit.id
+	var waiting: Variant = _playback.waiting_swap_cell(id)
+	if waiting is Vector2i:
+		return waiting
+	if unit.get("cast_key") == "ferryman" or unit.has("cast_lifecycle") \
+			or _playback.movement_source(id) is Vector2i or _playback.has_settled_position(id):
+		return _playback.actor_cell(id, unit.cell)
+	return unit.cell
+
+
+func _figure_frame(active: Array[CastPlayback.Entry]) -> Dictionary:
 	var actions := {}
 	var occupants: Array = []
-	for original: Dictionary in _units:
+	var visual_units := {}
+	for original: Dictionary in _presentation_units():
+		visual_units[original.id] = original
 		if original.get("playback_only", false) \
 				and not _playback.has_pending_ordinary_role(str(original.id), "defeat") \
 				and not _playback.has_pending_clip(str(original.id), "defeat"):
@@ -651,13 +1030,7 @@ func _draw_figures() -> void:
 		var id := str(original.get("id", ""))
 		var ordinary_defeat := _ordinary_defeat_clip(original)
 		var hero_defeat: Dictionary = _playback.pending_hero_defeat(id)
-		var cell: Vector2i = original.cell
-		if key == "ferryman" or original.has("cast_lifecycle") \
-				or _playback.movement_source(id) is Vector2i or _playback.has_settled_position(id):
-			cell = _playback.actor_cell(id, cell)
-		var waiting_cell: Variant = _playback.waiting_swap_cell(id)
-		if waiting_cell is Vector2i:
-			cell = waiting_cell
+		var cell := _presentation_cell(original)
 		if cell != original.cell:
 			occupant = original.duplicate()
 			occupant["cell"] = cell
@@ -689,7 +1062,12 @@ func _draw_figures() -> void:
 		if entry.cue.get("silent_action", false):
 			continue
 		var id: String = entry.cue.unit_id
-		var unit: Dictionary = _units_by_id.get(id, {})
+		var unit: Dictionary = visual_units.get(id, {})
+		if entry.cue.get("requires_existing_figure", false) \
+				and (unit.is_empty() or int(unit.get("hp", 0)) <= 0):
+			# A companion pose belongs to the actual living minion. In particular
+			# a Play Dead tail must not recreate the zombie after its handoff.
+			continue
 		if not unit.is_empty():
 			if str(unit.get("cast_key", "")) != entry.cue.cast_key:
 				continue
@@ -753,6 +1131,21 @@ func _draw_figures() -> void:
 		if bool(a.get("visual_defeat", false)) != bool(b.get("visual_defeat", false)):
 			return bool(a.get("visual_defeat", false))
 		return _reading_order(a.cell, b.cell))
+	return {"occupants": occupants, "actions": actions}
+
+
+func _draw_figures() -> void:
+	if _map_scale <= 0.0:
+		return
+	if _capture_actual_draw:
+		_draw_frame_serial += 1
+		_actual_draw = {"frame_serial": _draw_frame_serial, "presentation_ms": _presentation_ms,
+			"actors": {}, "props": [], "marks": [], "recipients": [], "shields": []}
+	_ink_canvas = _figures
+	var active := _playback.active()
+	var frame := _figure_frame(active)
+	var occupants: Array = frame.occupants
+	var actions: Dictionary = frame.actions
 	var marked_units := occupants.filter(func(unit: Dictionary) -> bool:
 		return _cells.has(unit.cell) and not unit.get("transient", false) and not unit.get("visual_defeat", false))
 	for unit in occupants:
@@ -766,6 +1159,11 @@ func _draw_figures() -> void:
 			_draw_unit(unit, actions.get(unit.id))
 	for entry in active:
 		_draw_committed_feedback(entry)
+	for mark in _recipient_marks:
+		_at(_unit_foot(mark.cell))
+		_draw_recipient_ink(mark.kind, (_presentation_ms - float(mark.at)) / CastPlayback.FEEDBACK_MS)
+		if _capture_actual_draw:
+			_actual_draw.recipients.append(mark)
 	for unit in marked_units:
 		_at(_tile_origin(unit.cell))
 		var action: CastPlayback.Entry = actions.get(unit.id)
@@ -779,11 +1177,25 @@ func _draw_figures() -> void:
 		if _cells.has(cell):
 			_at(_tile_origin(cell))
 			_draw_shield_marker(true)
-	for cell in _overlay.get("shields", []):
+	for cell in _presentation_shields():
 		if _cells.has(cell) and not _playback.shield_in_transit(cell):
 			_at(_tile_origin(cell))
 			_draw_shield_marker(false)
+			if _capture_actual_draw:
+				_actual_draw.shields.append(cell)
 	_ink_canvas = self
+
+
+func _presentation_shields() -> Array:
+	var cells: Array = _overlay.get("shields", [])
+	if _committed_shields.is_empty():
+		return cells
+	cells = cells.duplicate()
+	for id in _committed_shields:
+		cells.erase(_units_by_id.get(id, {}).get("shield_cell"))
+		if _committed_shields[id] is Vector2i:
+			cells.append(_committed_shields[id])
+	return cells
 
 
 static func _reading_order(a: Vector2i, b: Vector2i) -> bool:
@@ -1046,7 +1458,7 @@ func _brackets(color: Color, pad: float, weight: float) -> void:
 
 
 func _draw_shield_marker(forecast: bool) -> void:
-	var center := Vector2(17, 27)
+	var center := SHIELD_MARK_CENTER
 	var shape := [center + Vector2(-8, -8), center + Vector2(8, -8),
 		center + Vector2(7, 1), center + Vector2(4, 6), center + Vector2(0, 9),
 		center + Vector2(-4, 6), center + Vector2(-7, 1)]
@@ -1101,8 +1513,7 @@ func _draw_unit_shadow(unit: Dictionary) -> void:
 
 func _draw_unit(unit: Dictionary, action: CastPlayback.Entry) -> void:
 	var role := str(unit.art_key)
-	var prone: bool = bool(unit.get("prone", false)) or (int(unit.get("hp", 1)) <= 0 \
-		and not unit.get("pre_defeat", false))
+	var prone := _figure_prone(unit)
 	var foot := _visual_foot(unit)
 	var facing := _unit_facing(unit)
 	if _draw_cast(unit, foot, facing, prone, action):
@@ -1132,6 +1543,8 @@ func _draw_unit(unit: Dictionary, action: CastPlayback.Entry) -> void:
 			_village_troll()
 		_:
 			_enemy(str(unit.get("variant", "")))
+	if _capture_actual_draw:
+		_record_drawn_actor(unit, foot, facing, prone, "", null, -1)
 
 
 func _visual_foot(unit: Dictionary) -> Vector2:
@@ -1142,6 +1555,11 @@ func _visual_foot(unit: Dictionary) -> Vector2:
 	if source is Vector2i and destination is Vector2i:
 		foot = _unit_foot(source).lerp(_unit_foot(destination), _playback.movement_fraction(id))
 	return foot
+
+
+static func _figure_prone(unit: Dictionary) -> bool:
+	return bool(unit.get("prone", false)) or (int(unit.get("hp", 1)) <= 0 \
+		and not unit.get("pre_defeat", false))
 
 
 func _draw_cast(unit: Dictionary, foot: Vector2, facing: float, prone: bool, action: CastPlayback.Entry) -> bool:
@@ -1166,7 +1584,9 @@ func _draw_cast(unit: Dictionary, foot: Vector2, facing: float, prone: bool, act
 		and (int(unit.get("hp", 1)) > 0 or bool(unit.get("pre_defeat", false))) \
 		and action == null and not hero_hold.is_empty() \
 		and (hero_hold == "ready" or _cast.clip_for(cast_key, hold_key) != null)
-	if action != null and (_is_guild_reaction(action) or action.cue.get("hero_defeat", false)):
+	if unit.get("inert_corpse", false):
+		time_ms = 0.0 # A Bomber's defeat is an explosion, never a corpse pose.
+	elif action != null and (_is_guild_reaction(action) or action.cue.get("hero_defeat", false)):
 		key = action.cue.clip
 		if cast_key == "knight" and bool(action.cue.get("shield_away", false)):
 			key += "_unshielded"
@@ -1190,19 +1610,12 @@ func _draw_cast(unit: Dictionary, foot: Vector2, facing: float, prone: bool, act
 	elif not unit.has("cast_lifecycle") and cast_key == "knight" and bool(unit.get("shield_away", false)):
 		# Equipment is authoritative. Never show a second shield on the unit.
 		key = "shield_away"
-		if action != null and action.cue.clip == "shield_throw" and action.elapsed_ms < action.clip.total_ms:
-			key = "shield_throw"
+		var unshielded := _knight_action_while_shield_away(action)
+		if not unshielded.is_empty():
+			key = unshielded
 			time_ms = action.elapsed_ms
 			turned_down = false
 			facing = action.facing if action.facing != 0.0 else facing
-		elif action != null and action.cue.clip in ["rescue_line", "bonk"] \
-				and action.elapsed_ms < action.clip.total_ms:
-			var unshielded: String = action.cue.clip + "_unshielded"
-			if _cast.clip_for(cast_key, unshielded) != null:
-				key = unshielded
-				time_ms = action.elapsed_ms
-				turned_down = false
-				facing = action.facing if action.facing != 0.0 else facing
 	elif action != null and action.elapsed_ms < action.clip.total_ms:
 		key = action.cue.clip
 		time_ms = action.elapsed_ms
@@ -1246,13 +1659,46 @@ func _draw_cast(unit: Dictionary, foot: Vector2, facing: float, prone: bool, act
 	if key == "ready" and time_ms == _ready_ms:
 		time_ms *= _ready_rates.get(str(unit.get("id", "")), 1.0)
 	var clip := _cast.clip_for(cast_key, key)
+	if clip == null and cast_key == "blacksmith" and unit.get("guild_knockdown_art", false):
+		# Retain the stock hero's silhouette if a lifecycle take is missing.
+		# The prone convention is only a fallback, never the authored defeat.
+		key = "ready"
+		clip = _cast.clip_for(cast_key, key)
+		turned_down = prone and not unit.get("pre_defeat", false)
+		time_ms = 0.0 if turned_down else _ready_ms * _ready_rates.get(unit.id, 1.0)
 	if clip == null:
 		return false
 	if turned_down:
 		_at(foot + Vector2(-28 * facing, -13), 1.43 * facing, Vector2(facing * 0.80, 0.80))
 	else:
 		_at(foot, 0.0, Vector2(facing, 1.0))
-	return _cast.paint(_ink_canvas, clip, clip.frame_index(time_ms))
+	var index := clip.frame_index(time_ms)
+	var painted := _cast.paint(_ink_canvas, clip, index)
+	if painted and _capture_actual_draw:
+		_record_drawn_actor(unit, foot, facing, turned_down, key, clip, index)
+	return painted
+
+
+func _knight_action_while_shield_away(action: CastPlayback.Entry) -> String:
+	if action == null or action.elapsed_ms >= action.clip.total_ms:
+		return ""
+	if action.is_shield_throw():
+		return action.cue.clip # Keep the actual release take through recovery.
+	var key: String = action.cue.clip
+	if key in ["rescue_line", "bonk"]:
+		key += "_unshielded"
+	var compatible := key in ["rescue_line_unshielded", "bonk_unshielded",
+		"keep_your_head_down_unshielded", "fitted_pull_unshielded", "safety_distance_unshielded"]
+	return key if compatible and _cast.clip_for("knight", key) != null else ""
+
+
+func _record_drawn_actor(unit: Dictionary, foot: Vector2, facing: float, turned_down: bool,
+		key: String, clip: CastSprites.Clip, index: int) -> void:
+	_actual_draw.actors[unit.id] = {"actor_id": unit.id, "cast_key": unit.get("cast_key", ""),
+		"clip": key, "atlas": clip.path if clip != null else "", "frame_index": index,
+		"source_frame": clip.source_frames[index] if clip != null else -1,
+		"rect": clip.frames[index] if clip != null else Rect2(), "cell": unit.cell, "foot": foot,
+		"facing": facing, "turned_down": turned_down, "shield_away": unit.get("shield_away", false)}
 
 
 func _target_cell(id: String, at: Variant) -> Variant:
@@ -1308,7 +1754,7 @@ func _is_dose_gesture(entry: CastPlayback.Entry) -> bool:
 func _uses_action_cell(unit: Dictionary, entry: CastPlayback.Entry) -> bool:
 	# The retained hero row is already at the death cell. Move only its
 	# earlier gesture, not the defeat or the held pose that follows it.
-	return entry.is_shield_throw() \
+	return entry.is_shield_throw() or entry.cue.get("requires_existing_figure", false) \
 		or (unit.get("visual_defeat", false) and unit.get("cast_key") == entry.cue.cast_key \
 			and not entry.cue.get("hero_defeat", false) \
 			and not _playback.pending_hero_defeat(entry.cue.unit_id).is_empty())
@@ -1317,6 +1763,11 @@ func _uses_action_cell(unit: Dictionary, entry: CastPlayback.Entry) -> bool:
 func _sync_playback_geometry() -> void:
 	for entry in _playback.active():
 		var unit: Dictionary = _units_by_id.get(entry.cue.unit_id, {})
+		if entry.cue.get("requires_existing_figure", false):
+			for visible: Dictionary in _presentation_units():
+				if visible.id == entry.cue.unit_id:
+					unit = visible
+					break
 		var source: Variant = entry.cue.get("source_cell", entry.cue.get("actor_cell"))
 		if not source is Vector2i:
 			source = unit.get("cell")
@@ -1341,7 +1792,8 @@ func _sync_playback_geometry() -> void:
 		var nudge := entry.clip.release_offset * Vector2(entry.facing, 1.0) * entry.clip.scale
 		entry.gift_from = hand_foot + nudge
 		var landing: Vector2i = entry.cue.get("shield_drop_cell", target)
-		entry.gift_to = _unit_foot(landing) + Vector2(0, -29)
+		entry.gift_to = _tile_origin(landing) + SHIELD_MARK_CENTER if _is_lent_shield(entry) \
+			else _unit_foot(landing) + Vector2(0, -29)
 		if entry.gift.tip is Vector2:
 			var tip_offset: Vector2 = (entry.gift.tip - entry.gift.anchor) * entry.gift.scale \
 				* Vector2(entry.facing, 1.0)
@@ -1352,18 +1804,47 @@ func _sync_playback_geometry() -> void:
 				entry.gift_to -= tip_offset.rotated(entry.gift_angle)
 
 
+static func _is_lent_shield(entry: CastPlayback.Entry) -> bool:
+	return entry.is_shield_throw() and entry.cue.get("performance", {}).get("form_id") == "lend_a_shield"
+
+
+func _gift_position(entry: CastPlayback.Entry, flight: float) -> Vector2:
+	var start: Vector2 = entry.gift_from
+	var landing: Vector2 = entry.gift_to
+	var height := 8.0 if _is_lent_shield(entry) else 24.0
+	return start.lerp(landing, flight) - Vector2(0, sin(PI * flight) * height)
+
+
+func _gift_rotation(entry: CastPlayback.Entry, flight: float) -> float:
+	# An authored tip steers the detached artwork. The lent shield tips
+	# forward on a low path rather than tumbling like the hostile throw.
+	var turn := PI / 3.0 if _is_lent_shield(entry) else TAU
+	return entry.gift_angle if entry.gift_point_first else entry.facing * flight * turn
+
+
+func _gift_pose(entry: CastPlayback.Entry) -> Dictionary:
+	var flight := entry.flight_progress()
+	if entry.gift_from == null or flight < 0.0 or flight >= 1.0:
+		return {}
+	return {"position": _gift_position(entry, flight), "rotation": _gift_rotation(entry, flight),
+		"frame": entry.gift.frame_index(entry.elapsed_ms - entry.clip.release_ms)}
+
+
 func _draw_committed_feedback(entry: CastPlayback.Entry) -> void:
 	var flight := entry.flight_progress()
 	if entry.gift_from != null and flight >= 0.0 and flight < 1.0:
-		var start: Vector2 = entry.gift_from
-		var landing: Vector2 = entry.gift_to
-		var midair := start.lerp(landing, flight) - Vector2(0, sin(PI * flight) * 24.0)
-		# An authored tip steers the detached artwork; untipped props tumble.
-		var rotation: float = entry.gift_angle if entry.gift_point_first else entry.facing * flight * TAU
-		_at(midair, rotation, Vector2(entry.facing, 1.0))
-		_cast.paint(_ink_canvas, entry.gift, entry.gift.frame_index(entry.elapsed_ms - entry.clip.release_ms))
+		var position := _gift_position(entry, flight)
+		var rotation := _gift_rotation(entry, flight)
+		var index := entry.gift.frame_index(entry.elapsed_ms - entry.clip.release_ms)
+		_at(position, rotation, Vector2(entry.facing, 1.0))
+		if _cast.paint(_ink_canvas, entry.gift, index) and _capture_actual_draw:
+			_actual_draw.props.append({"actor_id": entry.cue.unit_id, "cast_key": entry.cue.cast_key,
+				"clip": entry.clip.release_clip, "atlas": entry.gift.path, "frame_index": index,
+				"source_frame": entry.gift.source_frames[index], "rect": entry.gift.frames[index],
+				"position": position, "rotation": rotation, "target_cell": entry.cue.get("shield_drop_cell",
+					entry.cue.get("target_cell"))})
 	var progress := entry.progress()
-	if progress < 0.0 or progress >= 1.0:
+	if progress < 0.0 or progress >= 1.0 or _uses_normalized_recipient_ink(entry.cue.get("performance", {})):
 		return
 	var recipients: Array = entry.cue.get("recipients", [{"id": entry.cue.target_id,
 		"cell": entry.cue.get("target_cell"), "kind": entry.cue.get("kind", "")}])
@@ -1374,6 +1855,9 @@ func _draw_committed_feedback(entry: CastPlayback.Entry) -> void:
 			marked[cell] = true
 			_at(_tile_origin(cell) + FOOT)
 			_draw_recipient_ink(str(recipient.get("kind", "")), progress)
+			if _capture_actual_draw:
+				_actual_draw.recipients.append({"cell": cell, "kind": recipient.get("kind", ""),
+					"target_id": recipient.get("id", ""), "source_id": entry.cue.unit_id})
 
 
 func _draw_recipient_ink(kind: String, progress: float) -> void:
@@ -1430,6 +1914,16 @@ func _draw_unit_nameplate(unit: Dictionary) -> void:
 
 func _draw_unit_marker(unit: Dictionary) -> void:
 	_at(_tile_origin(unit.cell))
+	if int(unit.get("hp", 0)) > 0:
+		var statuses: Dictionary = unit.get("tactical_statuses", {})
+		if COVER_STATUSES.any(func(id): return statuses.has(id)):
+			_caption("COVER", Vector2(42, 12), AMBER, 10)
+			if _capture_actual_draw:
+				_actual_draw.marks.append({"kind": "cover", "target_id": unit.id, "cell": unit.cell})
+		if statuses.has("inspired"):
+			_caption("INSPIRED", Vector2(57, 23), MINT, 10)
+			if _capture_actual_draw:
+				_actual_draw.marks.append({"kind": "inspired", "target_id": unit.id, "cell": unit.cell})
 	if _overlay.get("commanded") == unit.cell:
 		if _overlay.get("quiet_manual_move", false):
 			_ink_canvas.draw_circle(Vector2(85, 13), 3.0, AMBER, true, -1.0, true)
@@ -1464,8 +1958,18 @@ func _draw_health(unit: Dictionary, prone: bool, character := true) -> void:
 			for index in range(1, maximum):
 				var x := top.x + width * float(index) / maximum
 				_ink_canvas.draw_line(Vector2(x, top.y), Vector2(x, top.y + 3), INK, 1.0)
-	if prone:
-		_caption("FALLEN" if hp == 0 else "DOWN", Vector2(85, 19), CORAL, 11)
+	var condition := _condition_caption(unit, prone)
+	if not condition.is_empty():
+		_caption(condition, Vector2(85, 19), CORAL, 11)
+		if _capture_actual_draw and character:
+			_actual_draw.marks.append({"kind": condition.to_lower(),
+				"target_id": unit.id, "cell": unit.cell})
+
+
+static func _condition_caption(unit: Dictionary, prone: bool) -> String:
+	if not prone or unit.get("play_dead_corpse", false):
+		return ""
+	return "FALLEN" if int(unit.get("hp", unit.get("max_hp", 0))) <= 0 else "DOWN"
 
 
 func _knight(with_shield: bool) -> void:

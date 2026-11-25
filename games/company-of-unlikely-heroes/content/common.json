@@ -50,6 +50,20 @@
       "art_key": "knight",
       "color": "#a7cdcd"
     },
+    "blacksmith": {
+      "team": "heroes",
+      "max_hp": 8,
+      "capabilities": ["blocks_movement", "mobile", "pushable", "pullable", "damageable", "healable", "protectable", "commandable", "recoverable"],
+      "abilities": ["move", "blacksmith_hammer_time", "blacksmith_try_this"],
+      "habits": {
+        "order_try_this": "blacksmith_fit_nearest",
+        "order_pursue": "blacksmith_pursue",
+        "order_hold": "hold"
+      },
+      "default_order": "order_try_this",
+      "art_key": "blacksmith",
+      "color": "#c49b75"
+    },
     "healer": {
       "team": "heroes",
       "max_hp": 7,
@@ -178,6 +192,14 @@
       "guild_portrait": "knight",
       "cast_key": "knight",
       "cast_art_key": "knight"
+    },
+    "blacksmith": {
+      "class": "blacksmith",
+      "label": "Hobby Smith",
+      "guild_portrait": "blacksmith",
+      "cast_key": "blacksmith",
+      "cast_art_key": "blacksmith",
+      "description": "Fit a teammate with Try This to change their next eligible ability. Hammer Time lands a close-range hit."
     },
     "healer": {
       "class": "healer",
@@ -325,6 +347,7 @@
   },
   "abilities": {
     "inspiring_melody": {
+      "fitted_form": "inspiring_melody_in_tune",
       "label": "Inspiring Melody",
       "help": "A random eligible opponent skips its next turn laughing, then is immune to laughter through the following round.",
       "handler": "perform",
@@ -332,6 +355,7 @@
       "targeting": {"kind": "automatic", "teams": ["enemies"]}
     },
     "healing_sonnet": {
+      "fitted_form": "healing_sonnet_in_tune",
       "label": "Healing Sonnet",
       "help": "Deals 1 damage to a random living opponent. Despite the name, nobody is healed.",
       "handler": "perform",
@@ -339,6 +363,7 @@
       "targeting": {"kind": "automatic", "teams": ["enemies"]}
     },
     "raise_dead": {
+      "fitted_form": "play_dead",
       "label": "Raise Dead",
       "help": "Choose an unoccupied enemy corpse. It becomes a zombie with half the enemy's maximum HP, rounded up.",
       "handler": "summon",
@@ -346,6 +371,7 @@
       "targeting": {"kind": "entity", "teams": ["enemies"]}
     },
     "summon_skeleton": {
+      "fitted_form": "recall_skeleton",
       "label": "Summon Skeleton",
       "help": "Choose an open neighboring tile for a 1 HP skeleton. It first acts next round.",
       "handler": "summon",
@@ -381,6 +407,7 @@
       "targeting": {"kind": "entity", "range": 2, "teams": ["enemies"]}
     },
     "rogue_confusing_dodge": {
+      "fitted_form": "clear_jump",
       "label": "Confusing Dodge",
       "help": "Swap with the furthest other living character, friend or foe. Distance ties go to the lowest character ID.",
       "handler": "swap_furthest",
@@ -388,6 +415,7 @@
       "targeting": {"kind": "automatic"}
     },
     "rogue_wasnt_me": {
+      "fitted_form": "it_was_me",
       "label": "Wasn't Me",
       "help": "Choose an enemy beside another living character. Its next attack redirects to an adjacent character other than its original target, lowest ID first. If none exists, the attack proceeds normally.",
       "handler": "misdirect",
@@ -408,6 +436,7 @@
       "label": "Push",
       "help": "Push a neighboring unit or obstacle one tile. Collision deals damage.",
       "handler": "push",
+      "fitted_form": "fitted_pull",
       "params": {
         "collision_damage": 2
       },
@@ -424,6 +453,7 @@
       "label": "Reflecting aura",
       "help": "Covers everyone within one tile; reflects to the nearest enemy or obstacle.",
       "handler": "apply_status",
+      "fitted_form": "clear_the_floor",
       "params": {
         "status": "aura"
       },
@@ -431,7 +461,22 @@
         "kind": "none"
       }
     },
+    "blacksmith_hammer_time": {
+      "label": "Hammer Time",
+      "help": "Deal 2 damage to an adjacent opponent or damageable obstacle. Does not shove or taunt.",
+      "handler": "attack",
+      "params": {"damage": 2, "source_suffix": "'s Hammer Time"},
+      "targeting": {"kind": "entity", "range": 1, "teams": ["enemies"], "objects": true, "capabilities": ["damageable"]}
+    },
+    "blacksmith_try_this": {
+      "label": "Try This",
+      "help": "Fit another deployed hero anywhere. Their next eligible ability uses its alternate once. Without Double Shift, a new fitting replaces your old one.",
+      "handler": "fit",
+      "params": {},
+      "targeting": {"kind": "entity"}
+    },
     "healer_bonk": {
+      "fitted_form": "keep_your_head_down",
       "label": "Bonk and taunt",
       "help": "Bonk an adjacent enemy or obstacle. Taunts enemies into targeting the user.",
       "handler": "bonk",
@@ -452,6 +497,7 @@
       }
     },
     "healer_heal": {
+      "fitted_form": "doctors_orders",
       "label": "Heal self or nearest ally",
       "help": "Heals self when wounded; otherwise heals the nearest other hero, even at full health.",
       "handler": "heal",
@@ -470,6 +516,7 @@
       }
     },
     "wizard_blast": {
+      "fitted_form": "mending_blast",
       "label": "Blast nearest",
       "help": "Hits and knocks down the nearest unit, friend or foe. Obstacles can take the hit.",
       "handler": "blast",
@@ -486,6 +533,7 @@
       }
     },
     "alchemist_potion": {
+      "fitted_form": "bitter_medicine",
       "label": "Healing Potion",
       "help": "Heal yourself or a friendly character within reach. The forecast shows the exact reaction (70% beneficial, 20% harmful, 10% cosmetic).",
       "handler": "healing_potion",
@@ -493,6 +541,7 @@
       "targeting": {"kind": "entity", "range": 1}
     },
     "alchemist_acid": {
+      "fitted_form": "buffer_solution",
       "label": "Acid",
       "help": "Damage a hostile character within reach. The forecast shows the exact reaction (70% harmful, 20% beneficial, 10% cosmetic).",
       "handler": "acid",
@@ -500,6 +549,7 @@
       "targeting": {"kind": "entity", "range": 3}
     },
     "wizard_pull": {
+      "fitted_form": "send_off",
       "label": "Pull and recoil",
       "help": "Pull a target onto your tile. Recoil hurts and knocks you down.",
       "handler": "pull",
@@ -550,6 +600,8 @@
     }
   },
   "orders": {
+    "order_try_this": {"label": "Try This"},
+    "order_pursue": {"label": "Pursue"},
     "order_hold": {
       "label": "Hold"
     },
@@ -585,6 +637,14 @@
     }
   },
   "behaviors": {
+    "blacksmith_fit_nearest": {
+      "handler": "fit_nearest",
+      "params": {"ability": "blacksmith_try_this"}
+    },
+    "blacksmith_pursue": {
+      "handler": "pursue",
+      "params": {"ability": "blacksmith_hammer_time", "ability_slot": "offense", "move_ability": "move", "team": "enemies"}
+    },
     "sing_melody": {
       "handler": "use_ability",
       "params": {"ability": "inspiring_melody"}

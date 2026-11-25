@@ -1,0 +1,12 @@
+{
+  "source": "models/remaining-fitted/remaining-fitted-actions.blend",
+  "sha256": "024912f109deb844faad9a13a267abc80ea79a0b1fe92dc5330a24595d3d3fb9",
+  "kind": "actions",
+  "action_prefix": "Mixologist | Fitted",
+  "capture_size": 352,
+  "capture_anchor": [176, 272],
+  "takes": {
+    "send_off": ["Send-Off", [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 28], 29, false],
+    "hostile_dose": ["Hostile Dose", [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 28], 29, false]
+  }
+}

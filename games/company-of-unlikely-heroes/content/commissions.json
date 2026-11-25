@@ -1,6 +1,6 @@
 {
   "commission_settings": {
-    "recruitment_roster": ["knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard"]
+    "recruitment_roster": ["knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard", "blacksmith"]
   },
   "mission_kinds": {
     "skirmish": {

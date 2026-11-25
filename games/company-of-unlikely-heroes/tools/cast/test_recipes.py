@@ -3,7 +3,10 @@ import json
 import tempfile
 from pathlib import Path
 
-from recipe import action_name, capture_config, load_fragment, load_registered, merge_fragment, release_prop_hidden, rig_name
+from recipe import (
+    action_name, capture_config, load_fragment, load_registered, load_supplement, merge_fragment,
+    prop_hidden_clips, read_fragment, release_prop_hidden, rig_name,
+)
 
 
 class NativeNames(unittest.TestCase):
@@ -65,6 +68,24 @@ class Fragment(unittest.TestCase):
             self.assertEqual(masters2, masters)
             self.assertEqual(takes2, takes)
 
+    def test_extra_takes_extend_without_replacing_primary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            art = Path(tmp)
+            extra = art / "supplement" / "takes.json"
+            extra.parent.mkdir()
+            recipe = art / "recipe.json"
+            ready = ["Ready", [1], 2, True]
+            attack = ["Attack", [1, 6], 9, False]
+            recipe.write_text(json.dumps({
+                "role": "new", "master": {}, "extra_takes": "supplement/takes.json",
+                "takes": {"ready": ready},
+            }))
+            extra.write_text(json.dumps({"attack": attack}))
+            self.assertEqual(read_fragment(recipe, art)["takes"], {"ready": ready, "attack": attack})
+            extra.write_text(json.dumps({"ready": attack}))
+            with self.assertRaisesRegex(ValueError, "would replace"):
+                read_fragment(recipe, art)
+
 
 class CaptureAndRelease(unittest.TestCase):
     def test_legacy_defaults_and_horizontal_override(self):
@@ -86,6 +107,38 @@ class CaptureAndRelease(unittest.TestCase):
         self.assertFalse(release_prop_hidden(spec, "draw_and_release", 16))
         self.assertTrue(release_prop_hidden(spec, "draw_and_release", 17))
         self.assertTrue(release_prop_hidden(spec, "defeat", 12))
+
+    def test_prop_clip_masks_leave_unlisted_clips_according_to_policy(self):
+        clips = {"ready", "toss", "throwable", "heal"}
+        self.assertEqual(prop_hidden_clips({"only": ["heal"]}, clips), clips - {"heal"})
+        self.assertEqual(prop_hidden_clips({"except": ["toss", "throwable"]}, clips),
+                         {"toss", "throwable"})
+        with self.assertRaisesRegex(ValueError, "unknown takes"):
+            prop_hidden_clips({"only": ["missing"]}, clips)
+
+
+class SupplementalTakes(unittest.TestCase):
+    def test_actions_keep_the_pinned_base_but_scene_uses_its_own_file(self):
+        master = {"source": "original.blend", "sha256": "original", "rig_name": "Pinned"}
+        takes = {"new": ["Extra Action", [1, 2], 3, False]}
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            path = directory / "actor.json"
+            for kind, expected, libraries in (
+                ("actions", "original.blend", [{"source": "extra.blend", "sha256": "extra"}]),
+                ("scene", "extra.blend", []),
+            ):
+                path.write_text(json.dumps({
+                    "source": "extra.blend", "sha256": "extra", "kind": kind,
+                    "action_prefix": "", "takes": takes,
+                }))
+                capture, actual, release, sources = load_supplement("actor", master, {}, directory)
+                self.assertEqual(capture["source"], expected)
+                self.assertEqual(capture["rig_name"], "Pinned")
+                self.assertEqual(action_name("actor", capture, "Extra Action"), "Extra Action")
+                self.assertEqual((actual, release, sources), (takes, None, libraries))
+                with self.assertRaisesRegex(ValueError, "distinct clip names"):
+                    load_supplement("actor", master, takes, directory)
 
 
 if __name__ == "__main__":

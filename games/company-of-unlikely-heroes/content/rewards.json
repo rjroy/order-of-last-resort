@@ -262,26 +262,67 @@
     },
     "alchemist_brittle_glass": {
       "hero_id": "alchemist", "rarity": "rare", "cap": 1, "effect": "brittle_glass", "amount": 1,
-      "requires_abilities": ["alchemist_acid"],
-      "label": "Brittle Glass", "description": "Acid splashes 1 damage onto adjacent characters, friends included. Only its chosen target gets a reaction."
+      "requires_any_ability": ["alchemist_acid", "alchemist_etching_paste"],
+      "label": "Brittle Glass", "description": "Acid and Etching Paste splash for 1 damage around the recipient, friends included. Their fitted forms instead heal adjacent friends for 1. Only the chosen recipient gets a reaction."
     },
     "alchemist_keep_the_culture": {
       "hero_id": "alchemist", "rarity": "legendary", "cap": 1, "effect": "keep_the_culture", "amount": 1,
       "requires_any_ability": ["alchemist_potion", "alchemist_acid", "alchemist_etching_paste"],
       "label": "Keep the Culture", "description": "Save the recipe and reaction from your last Healing Potion, Acid, or Etching Paste. Repeat Batch uses both on another legal recipient, then empties the bottle. Bottles do not carry between missions.",
       "ability": "alchemist_repeat_batch"
+    },
+    "smith_leather_apron": {
+      "hero_id": "blacksmith", "rarity": "common", "cap": 3, "effect": "max_hp", "amount": 1,
+      "label": "Leather Apron", "description": "Gain 1 maximum HP without changing how much HP is missing."
+    },
+    "smith_heavier_hammer": {
+      "hero_id": "blacksmith", "rarity": "common", "cap": 2, "effect": "hammer_damage", "amount": 1,
+      "requires_abilities": ["blacksmith_hammer_time"],
+      "label": "Heavier Hammer", "description": "Hammer Time deals 1 more damage. Other offenses are unchanged."
+    },
+    "smith_follow_through": {
+      "hero_id": "blacksmith", "rarity": "uncommon", "cap": 1, "effect": "follow_through", "amount": 1,
+      "requires_abilities": ["blacksmith_hammer_time"],
+      "label": "Follow Through", "description": "When Hammer Time defeats its target, step onto its tile if you survive the defeat effects and can still enter it."
+    },
+    "smith_reinforced_rivets": {
+      "hero_id": "blacksmith", "rarity": "uncommon", "cap": 2, "effect": "reinforced_rivets", "amount": 1,
+      "requires_abilities": ["blacksmith_try_this"],
+      "label": "Reinforced Rivets", "description": "Each new fitting reduces the wearer's next hit by 1 per copy. Unused protection expires with the fitting."
+    },
+    "smith_fine_adjustment": {
+      "hero_id": "blacksmith", "rarity": "rare", "cap": 1, "effect": "fine_adjustment", "amount": 1,
+      "requires_abilities": ["blacksmith_try_this"],
+      "label": "Fine Adjustment", "description": "Improve the performed alternate: add 1 to its primary amount, or grant Steady Hands to reduce the wearer's next hit by 1 before their next turn. Does not boost ordinary fallback or stack with Inspiration."
+    },
+    "smith_quick_release": {
+      "hero_id": "blacksmith", "rarity": "rare", "cap": 1, "effect": "quick_release", "amount": 1,
+      "requires_abilities": ["blacksmith_try_this"],
+      "label": "Quick Release", "description": "Give the fitted wearer a direct command to remove their fitting and then step one tile. Ordinary Move keeps the fitting."
+    },
+    "smith_double_shift": {
+      "hero_id": "blacksmith", "rarity": "legendary", "cap": 1, "effect": "double_shift", "amount": 1,
+      "requires_abilities": ["blacksmith_try_this"],
+      "label": "Double Shift", "description": "Keep fittings on two different teammates at once. Each spends its own fitting; standing Try This still considers only the nearest teammate."
     }
   },
   "abilities": {
+    "smith_quick_release": {
+      "label": "Quick Release", "help": "Remove your fitting, then step to an open neighboring tile. Ordinary Move keeps the fitting.",
+      "handler": "quick_release", "params": {}, "targeting": {"kind": "cell", "range": 1}
+    },
     "alchemist_plain_tonic": {
+      "fitted_form": "plain_solvent",
       "label": "Plain Tonic", "help": "Heal yourself or a friendly character within one tile for 1 HP, without a reaction.",
       "handler": "plain_tonic", "params": {"amount": 1}, "targeting": {"kind": "entity", "range": 1}
     },
     "alchemist_repeat_batch": {
+      "fitted_form": "counterbatch",
       "label": "Repeat Batch", "help": "Repeat the bottled recipe and exact reaction on another legal recipient; empties the bottle.",
       "handler": "repeat_batch", "params": {}, "targeting": {"kind": "entity"}
     },
     "knight_shield_throw": {
+      "fitted_form": "lend_a_shield",
       "label": "Shield Throw",
       "help": "Deal 3 damage to an enemy or obstacle up to three tiles away. Advance heads toward the thrown shield; retrieve it to guard or throw again.",
       "handler": "attack",
@@ -289,6 +330,7 @@
       "targeting": {"kind": "entity", "range": 3, "teams": ["enemies"], "objects": true, "capabilities": ["damageable"]}
     },
     "bard_take_the_stage": {
+      "fitted_form": "company_chorus",
       "label": "Take the Stage",
       "help": "Sing Healing Sonnet to one random eligible opponent and every opponent next to them.",
       "handler": "perform",
@@ -296,6 +338,7 @@
       "targeting": {"kind": "automatic", "teams": ["enemies"]}
     },
     "necromancer_say_hello_to_that_one": {
+      "fitted_form": "stay_close_to_that_one",
       "label": "Say Hello to That One",
       "help": "Nominate a living opponent for your undead to pursue. They still choose their own greetings.",
       "handler": "nominate",

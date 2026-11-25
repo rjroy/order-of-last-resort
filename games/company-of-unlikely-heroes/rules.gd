@@ -5,6 +5,8 @@ const Catalog = preload("res://content/catalog.gd")
 const Actions = preload("res://rules/actions.gd")
 const Behaviors = preload("res://rules/behaviors.gd")
 const Board = preload("res://rules/board.gd")
+const FittingState = preload("res://rules/fitting_state.gd")
+const Fittings = preload("res://rules/fittings.gd")
 const FrontierCombat = preload("res://rules/frontier_combat.gd")
 const FrontierObjectives = preload("res://rules/frontier_objectives.gd")
 const Shield = preload("res://rules/shield.gd")
@@ -51,6 +53,15 @@ static func coordinate(position: Vector2i) -> String:
 
 func ability_definition(state: Dictionary, id: String, unit_id := "") -> Dictionary:
 	return Upgrades.ability(state, Board.entity(state, unit_id) if not unit_id.is_empty() else {}, id)
+
+
+## `state` is the board immediately before the selected hero acts.
+func command_ability(state: Dictionary, unit_id: String, id: String) -> Dictionary:
+	return Actions.command_ability(state, Board.entity(state, unit_id), id)
+
+
+func fitting_source(state: Dictionary, unit_id: String) -> String:
+	return FittingState.source(Board.entity(state, unit_id))
 
 
 func shield_position(state: Dictionary, unit_id: String) -> Variant:
@@ -120,7 +131,12 @@ func has_status_handler(state: Dictionary, unit_id: String, handler: String) -> 
 
 
 func status_labels(state: Dictionary, unit_id: String, active_handler := "") -> PackedStringArray:
-	return Statuses.labels(state, Board.entity(state, unit_id), active_handler)
+	var labels := Statuses.labels(state, Board.entity(state, unit_id), active_handler)
+	if active_handler.is_empty():
+		var smith := fitting_source(state, unit_id)
+		if not smith.is_empty():
+			labels.append("Fitted (by %s)" % display_name(state, smith))
+	return labels
 
 
 func knocked_down(state: Dictionary, unit_id: String) -> bool:
@@ -156,12 +172,17 @@ func corpse_markers(state: Dictionary) -> Dictionary:
 	return corpses
 
 
+## Pass the pre-activation board to include temporary command options such as Quick Release.
 func options(state: Dictionary, unit_id: String) -> Array:
 	var result: Array = []
 	var profile := entity_profile(state, unit_id)
 	if "commandable" not in profile.get("capabilities", []):
 		return result
-	for id in profile.abilities:
+	var abilities: Array = profile.abilities
+	if state.outcome == "ongoing" and Fittings.QUICK_RELEASE not in abilities \
+			and not Actions.owned_ability(state, Board.entity(state, unit_id), Fittings.QUICK_RELEASE).is_empty():
+		abilities = abilities + [Fittings.QUICK_RELEASE]
+	for id in abilities:
 		var ability := ability_definition(state, id, unit_id)
 		result.append({"id": id, "label": ability.label, "kind": "action", "help": ability.help,
 			"target_kind": ability.targeting.kind})
@@ -187,7 +208,10 @@ func dose_forecast(state: Dictionary, unit_id: String, ability_id: String) -> Di
 	var actor := Board.entity(state, unit_id)
 	if state.outcome != "ongoing" or not Actions.can_act(state, actor):
 		return {}
-	return Alchemy.reaction_forecast(state, actor, Actions.owned_ability(state, actor, ability_id).get("handler", ""))
+	var form := Actions.action_form(state, actor, ability_id)
+	if form.converted:
+		return form.alternate.get("reaction_forecast", {})
+	return Alchemy.reaction_forecast(state, actor, form.base.get("handler", ""))
 
 
 func preview(state: Dictionary, unit_id: String, ability_id: String, target_id := "") -> Dictionary:
@@ -213,12 +237,20 @@ func apply_plan(state: Dictionary, plan: Dictionary) -> Dictionary:
 func choose_manual(state: Dictionary, unit_id: String, ability_id: String, target_id := "") -> Dictionary:
 	var result := state.duplicate(true)
 	var actor := Board.entity(state, unit_id)
-	var ability := Actions.owned_ability(state, actor, ability_id)
-	if state.outcome != "ongoing" or not Board.alive(actor) or not Board.capable(state, actor, "commandable") \
-			or ability.is_empty() or (ability.handler == "perform" and not Actions.accepts_target_argument(ability, target_id)):
+	if state.outcome != "ongoing" or not Board.alive(actor) or not Board.capable(state, actor, "commandable"):
 		return result
 	if not result.overrides.is_empty() and not result.overrides.has(unit_id):
 		return result
+	if ability_id == Fittings.QUICK_RELEASE:
+		# Another hero's command cannot supply the fitting, but an earlier
+		# standing Try This can. The same turn board drives the picker.
+		var before := state_before_action(state, unit_id)
+		if Actions.selection(before, Board.entity(before, unit_id), ability_id, target_id).is_empty():
+			return result
+	else:
+		var ability := Actions.owned_ability(state, actor, ability_id)
+		if ability.is_empty() or (ability.handler == "perform" and not Actions.accepts_target_argument(ability, target_id)):
+			return result
 	# Stored intent is checked on the board as this actor gets their turn.
 	result.overrides[unit_id] = {"ability_id": ability_id, "target_id": target_id}
 	return result
@@ -255,6 +287,7 @@ func preview_round(state: Dictionary) -> Dictionary:
 	FrontierObjectives.finish_round(result, events)
 	var ending := _end_condition(result)
 	if ending.is_empty():
+		Fittings.report_pending(result, events)
 		result.round += 1
 		Statuses.expire_rounds(result)
 		_reset_override(result)
@@ -263,6 +296,7 @@ func preview_round(state: Dictionary) -> Dictionary:
 		if ending.get("collapse", false):
 			_collapse(result)
 		result.outcome = ending.outcome
+		Fittings.clear_mission(result)
 		events.append(_mission_end_event(result, ending))
 	return _plan("round", state, result, events, true)
 
@@ -283,6 +317,7 @@ func forfeit(state: Dictionary) -> Dictionary:
 	if state.get("outcome") != "ongoing":
 		return state.duplicate(true)
 	var result := clear_manual(state)
+	Fittings.clear_mission(result)
 	result.outcome = "defeat"
 	result["_terminal_commit"] = true
 	result["_voluntary_defeat"] = true
@@ -314,12 +349,12 @@ func _matches_board_outcome(state: Dictionary) -> bool:
 
 func _resolve_turns(state: Dictionary, events: Array, stop_before := "") -> void:
 	for actor in Board.turn_order(state):
-		Statuses.begin_turn(state, actor)
+		Statuses.begin_turn(state, actor, events)
 		if actor.id == stop_before:
 			return
 		if Board.alive(actor):
 			_resolve_turn(state, actor, events)
-			Statuses.expire(state, actor, "actor_turn_end")
+			Statuses.expire(state, actor, "actor_turn_end", events)
 
 
 func _resolve_turn(state: Dictionary, actor: Dictionary, events: Array) -> void:
@@ -331,7 +366,12 @@ func _resolve_turn(state: Dictionary, actor: Dictionary, events: Array) -> void:
 	var name := Board.display_name(state, actor)
 	var action := _intent(state, actor)
 	if action.get("wait") == "shield_away":
-		Board.event(events, "wait", "%s cannot guard until their shield is retrieved." % name, {"unit_id": actor.id})
+		var fitting_note := "" if FittingState.source(actor).is_empty() else " Fitted stays."
+		Board.event(events, "wait", "%s cannot guard until their shield is retrieved.%s" % [name, fitting_note],
+			{"unit_id": actor.id})
+	elif action.get("wait") == "already_fitted":
+		Board.event(events, "wait", "%s holds: %s is already Fitted." % [name, display_name(state, action.target_id)],
+			{"unit_id": actor.id, "target_id": action.target_id})
 	elif not action.has("ability_id"):
 		Board.authored_event(state, events, "wait", action.get("wait", "hold"), {"actor": name}, {"unit_id": actor.id})
 	elif not _execute_action(state, actor, action, events):
@@ -358,7 +398,8 @@ func _execute_action(state: Dictionary, actor: Dictionary, action: Dictionary, e
 	var gate_was_open := Board.pressure_gate_open(state)
 	var first := events.size()
 	var origin: Variant = actor.get("position")
-	var ability := Actions.owned_ability(state, actor, action.ability_id)
+	var form: Dictionary = action["form"] if action.has("form") else Actions.action_form(state, actor, action.ability_id)
+	var ability: Dictionary = form.alternate if form.converted else form.base
 	var bonus_stat := ""
 	match ability.get("handler"):
 		"move":
@@ -367,14 +408,17 @@ func _execute_action(state: Dictionary, actor: Dictionary, action: Dictionary, e
 			bonus_stat = "damage"
 	var fallen_bonus := FrontierCombat.ally_death_bonus(state, actor, bonus_stat) if not bonus_stat.is_empty() else 0
 	var recipe: String = actor.get("bottled_reaction", {}).get("recipe", "") \
-		if ability.get("handler") == "repeat_batch" else ""
-	if not Actions.execute(state, actor, action, events):
+		if form.base.get("handler") == "repeat_batch" else ""
+	if not Actions.execute(state, actor, action, form, events):
 		return false
 	if first < events.size():
 		# Effects name their own sources (e.g. a protector who absorbs the hit).
 		# Preserve the actual actor and effect scope without adding a log event.
 		events[first]["resolved_action"] = {"unit_id": actor.id, "ability_id": action.ability_id,
 			"source_cell": origin, "actor_cell": actor.position, "event_count": events.size() - first}
+		if form.converted:
+			events[first].resolved_action["ability_id"] = ability.id
+			events[first].resolved_action["source_ability_id"] = action.ability_id
 		if not recipe.is_empty():
 			events[first].resolved_action["recipe_id"] = recipe
 		if fallen_bonus > 0:
@@ -384,8 +428,7 @@ func _execute_action(state: Dictionary, actor: Dictionary, action: Dictionary, e
 			FrontierObjectives.report_gate_change(state, actor, gate_was_open, events)
 		"treasure_noise":
 			if Board.deployed_hero(state, actor):
-				var noise_ability := Actions.owned_ability(state, actor, action.ability_id)
-				FrontierObjectives.add_noise(state, actor, noise_ability.handler, events)
+				FrontierObjectives.add_noise(state, actor, form.base.handler, events)
 	return true
 
 

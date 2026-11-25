@@ -51,6 +51,21 @@ func _run() -> void:
 	var art = load("res://presentation/guild_book_art.gd") if ResourceLoader.exists("res://presentation/guild_book_art.gd") else null
 	var offers: Array = run.reward_offers.duplicate(true)
 	_check(run.phase == "reward" and not offers.is_empty(), "Victory offers rewards")
+	# Reuse the real debrief with controlled stock offers to exercise all seven
+	# illustrations without depending on a particular random reward draw.
+	var smith_ids := ["smith_leather_apron", "smith_heavier_hammer", "smith_follow_through",
+		"smith_reinforced_rivets", "smith_fine_adjustment", "smith_quick_release", "smith_double_shift"]
+	for id in smith_ids:
+		run.reward_offers = [{"hero_id": "blacksmith", "upgrade_id": id}]
+		scene.call("_show_debrief")
+		await process_frame
+		var smith_card := _item_card(_node("Reward_blacksmith") as Control, "RewardCard_blacksmith")
+		var expected: Texture2D = art.upgrade(id)
+		_check(smith_card != null and expected != null and expected in _textures_in(smith_card),
+			"Stock debrief displays the correct Hobby Smith illustration for " + id)
+	run.reward_offers = offers.duplicate(true)
+	scene.call("_show_debrief")
+	await process_frame
 	var reward_scroll := _node("RewardScroll") as ScrollContainer
 	var caps := {}
 	var upgrade_textures := {}

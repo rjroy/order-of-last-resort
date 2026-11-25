@@ -1,0 +1,9 @@
+{
+  "bonk": ["Crook Bonk", [1, 5, 9, 12, 15, 18, 22, 28], 30, false],
+  "acid": ["Acid Toss", [1, 5, 10, 14, 16, 18, 21, 25, 32], 35, false],
+  "acid_flask": ["Acid Toss", [18], 19, false],
+  "hit": ["Hit", [1, 3, 5, 8, 12, 17], 19, false],
+  "down": ["Down", [1, 4, 8, 12, 16, 20, 24], 28, false],
+  "recover": ["Recover", [1, 5, 9, 14, 18, 22, 26], 29, false],
+  "defeat": ["Defeat", [1, 4, 8, 12, 16, 20, 24], 28, false]
+}

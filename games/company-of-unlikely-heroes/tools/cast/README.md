@@ -159,3 +159,23 @@ In the original Godot 4.7.2 art-only board preview, the PNG and imported texture
 The registered `harpooner` uses the [exact accepted rig](../../../../.lore/work/games/company-of-unlikely-heroes/art/models/harpooner/README.md). Ready carries the diagonal harpoon. Pursue registers the in-place step at the cell anchor. Close Thrust keeps the weapon in hand and hits on F8 (292 ms). Ranged Cast keeps the weapon in hand through F10, then detaches `harpoon_projectile` on F11 (417 ms). The actor remains empty-handed until switching back to Ready; only the release drawing of the shaft is baked, not the model's preview flight. `hit` is a quick flinch; `defeat` holds the final crouched drawing with the shaft on the ground. The capture is biased toward the attack to fit the long shaft without scaling the actor.
 
 Each take uses one fixed crop over all poses. `verify_cast.py` checks the delivered PNG alpha, padding, frame bounds, identities and timing. The proof sheet samples every take, including the paired actor and prop drawings at release.
+
+## Supplemental wearer performances
+
+The per-role recipes in `tools/cast/supplements/` add clips without replacing the stock entries. Each recipe pins `source` (relative to the art directory) and `sha256`. `kind: "scene"` opens the exact approved native scene only for the extra takes. `kind: "actions"` appends matching Actions from the pinned library onto the accepted stock rig. A library may serve several roles; only the current role's requested Actions are appended. Optional `additional_actions` lists separate `{source, sha256}` libraries without modifying the approved primary library or master.
+
+`takes` uses `[action suffix, sample frames, exclusive stop, loop]` and the stock 24 fps timing. Optional `action_prefix` changes native Action name lookup; `""` uses full names. `capture_size` and `capture_anchor` can enlarge the renderer's transparent canvas without changing pixels per metre or the board footprint. `release` and `release_visible_frames` use the normal detached-prop contract on the supplemental shelf; the actor's stock releases remain intact. A root's `prop_visibility` can use either `{"only": [clip, ...]}` or `{"except": [clip, ...]}`. The mask is combined with the release visibility.
+
+The full build and `bake_subset.py` both build the stock sheet and the supplemental shelf. The shelf is placed below the stock sheet without moving or changing any stock RGBA pixels. Before publication, verify the staged PNG and entries against an unchanged stock checkout:
+
+```sh
+tools=games/company-of-unlikely-heroes/tools/cast
+stage="$(mktemp -d "$PWD/.lore/local/cast-bake/knight.XXXXXXXX")"
+python3 "$tools/bake_subset.py" "$stage" knight --threads 4
+python3 "$tools/verify_cast.py" --assets "$stage" \
+  --stock games/company-of-unlikely-heroes/assets/cast knight
+```
+
+Publish one actor's PNG and the matching `.actors` entry together, with no capture or game process using the old pair. Continue using the existing `.png.import` path, then run the headless import. The stock comparison checks exact decoded RGBA over the full original top-left sheet and exact stock clip dictionaries, including timing, anchors and release data.
+
+The actor manifest keeps the primary model's `source` and `sha256`. Its optional `supplements` list records every additional approved source, including an action library appended directly by `master.motion_library` or a separate supplemental shelf. The verifier checks those entries against their recipe and the source files.

@@ -19,6 +19,35 @@ const ABILITY_TARGETING := {
 	"summon": ["cell", "entity"], "sweep": ["none"], "repel": ["automatic"], "stop_target": ["automatic"],
 	"perform": ["automatic"], "hook": ["entity", "automatic"], "nominate": ["entity"],
 	"healing_potion": ["entity"], "acid": ["entity"], "plain_tonic": ["entity"], "repeat_batch": ["entity"],
+	"fit": ["entity"], "quick_release": ["cell"],
+}
+# Source handler and effect family. Rules attach the runtime adapter to each family.
+const FITTED_FORMS := {
+	"fitted_pull": ["push", "knight"],
+	"clear_the_floor": ["apply_status", "knight"],
+	"keep_your_head_down": ["bonk", "tactical"],
+	"doctors_orders": ["heal", "tactical"],
+	"mending_blast": ["blast", "tactical"],
+	"send_off": ["pull", "tactical"],
+	"it_was_me": ["misdirect", "tactical"],
+	"clear_jump": ["swap_furthest", "tactical"],
+	"safety_distance": ["hook", "tactical"],
+	"unpick_the_stitch": ["heal", "tactical"],
+	"ring_of_salve": ["sweep", "tactical"],
+	"cut_the_wire": ["stop_target", "tactical"],
+	"lend_a_shield": ["attack", "tactical"],
+	"buffer_solution": ["acid", "alchemy"],
+	"bitter_medicine": ["healing_potion", "alchemy"],
+	"sealing_paste": ["acid", "alchemy"],
+	"plain_solvent": ["plain_tonic", "alchemy"],
+	"counterbatch": ["repeat_batch", "alchemy"],
+	"healing_sonnet_in_tune": ["perform", "performances"],
+	"inspiring_melody_in_tune": ["perform", "performances"],
+	"company_chorus": ["perform", "performances"],
+	"recall_skeleton": ["summon", "summons"],
+	"play_dead": ["summon", "summons"],
+	"dinner_bell": ["repel", "summons"],
+	"stay_close_to_that_one": ["nominate", "summons"],
 }
 const ABILITY_EVENTS := {"swap_furthest": ["swap"], "swap_ally": ["swap"], "misdirect": ["misdirect_mark"],
 	"sweep": ["sweep"], "stop_target": ["stop_target"], "repel": ["repel"],
@@ -39,7 +68,8 @@ const REWARD_EFFECTS := ["max_hp", "shield_damage", "dig_in", "shield_throw", "w
 	"sonnet_damage", "buskers_hat", "front_row_seats", "laughing_fit", "heckler", "house_lights",
 	"spare_ribs", "good_soil", "heavy_bouquet", "broad_wave", "long_stemmed", "warm_welcome",
 	"say_hello_to_that_one", "wake_reception", "stronger_dose", "concentrate", "long_ladle",
-	"spare_vial", "brittle_glass", "keep_the_culture"]
+	"spare_vial", "brittle_glass", "keep_the_culture",
+	"hammer_damage", "follow_through", "reinforced_rivets", "fine_adjustment", "quick_release", "double_shift"]
 const REWARD_FIELDS := ["hero_id", "rarity", "cap", "label", "description", "effect", "amount",
 	"ability", "order", "behavior", "requires_abilities", "requires_any_ability"]
 const REWARD_GRANTS := {
@@ -510,8 +540,12 @@ class Validator:
 		var kind := ""
 		if _choice(authored_kind, ABILITY_TARGETING[handler], path + ".targeting.kind"):
 			kind = authored_kind
+		if ability.has("fitted_form") and _choice(ability.fitted_form, FITTED_FORMS.keys(), path + ".fitted_form"):
+			var registration: Array = FITTED_FORMS[ability.fitted_form]
+			if registration[0] != handler:
+				_error(path + ".fitted_form", "does not match the source ability handler")
 		if targeting.has("range"):
-			if handler == "move" or (handler == "summon" and kind == "cell"):
+			if handler in ["move", "quick_release"] or (handler == "summon" and kind == "cell"):
 				if not _is_integer(targeting.range, 1) or int(targeting.range) != 1:
 					_error(path + ".targeting.range", "supports only an adjacent cell")
 			elif handler == "apply_status":
@@ -545,10 +579,18 @@ class Validator:
 		match handler:
 			"move":
 				pass
+			"quick_release":
+				if not targeting.has("range"):
+					_error(path + ".targeting.range", "Quick Release requires an adjacent cell")
+				if ability.has("fitted_form"):
+					_error(path + ".fitted_form", "Quick Release removes the fitting rather than converting")
 			"push":
 				_integer(params.get("collision_damage"), param_path + "collision_damage")
 			"apply_status":
-				_ref(params.get("status"), "statuses", param_path + "status")
+				if _ref(params.get("status"), "statuses", param_path + "status") \
+						and ability.get("fitted_form") == "clear_the_floor" \
+						and _defs.statuses[params.status].get("handler") != "reflect":
+					_error(path + ".fitted_form", "Clear the Floor requires a reflecting status")
 			"misdirect":
 				var status: Variant = params.get("status")
 				if _ref(status, "statuses", param_path + "status") and not is_same(_defs.statuses[status].get("handler"), "misdirect"):
@@ -593,6 +635,13 @@ class Validator:
 				_integer(params.get("range"), param_path + "range", 1)
 			"summon":
 				var id: Variant = params.get("character")
+				match ability.get("fitted_form"):
+					"recall_skeleton":
+						if id != "skeleton" or kind != "cell":
+							_error(path + ".fitted_form", "Recall Skeleton requires a skeleton summoned onto a cell")
+					"play_dead":
+						if id != "zombie" or kind != "entity":
+							_error(path + ".fitted_form", "Play Dead requires a zombie raised from a corpse")
 				if _ref(id, "characters", param_path + "character"):
 					var spec := _effective_profile(_defs.characters[id])
 					var capabilities: Variant = spec.get("capabilities")
@@ -611,6 +660,10 @@ class Validator:
 						and _defs.statuses[status].get("handler") not in ["stop_move", "block_voluntary_move"]:
 					_error(param_path + "status", "status must use a movement-blocking handler")
 			"perform":
+				match ability.get("fitted_form"):
+					"healing_sonnet_in_tune", "company_chorus":
+						if params.has("status"):
+							_error(path + ".fitted_form", "the fitted heal requires a damage performance")
 				_check_performance(params, targeting, path)
 			"nominate":
 				if is_same(targeting.get("objects"), true):
@@ -656,9 +709,13 @@ class Validator:
 		if not _choice(handler, ["use_ability", "pursue", "hold", "rescue", "threat", "escort",
 				"retreat", "greet", "hook_and_seek", "follow_party", "retreat_attack",
 				"finite_healer", "swap_ally", "follow_ally", "most_injured", "nearest_target",
-				"pass_blame", "make_friend"], path + ".handler"):
+				"pass_blame", "make_friend", "fit_nearest"], path + ".handler"):
 			return
 		path += ".params."
+		if params.has("ability_slot"):
+			if handler != "pursue":
+				_error(path + "ability_slot", "only pursue can use an equipped ability slot")
+			_text(params.ability_slot, path + "ability_slot")
 		if handler in ["use_ability", "pursue", "rescue", "threat", "hook_and_seek",
 				"retreat_attack", "finite_healer", "swap_ally", "nearest_target", "most_injured"]:
 			_check_behavior_ability(handler, params, path + "ability")
@@ -666,6 +723,8 @@ class Validator:
 			_check_behavior_action(params.get("ability"), "misdirect", "entity", path + "ability")
 		if handler == "make_friend":
 			_check_behavior_action(params.get("ability"), "summon", "cell", path + "ability")
+		if handler == "fit_nearest":
+			_check_behavior_action(params.get("ability"), "fit", "entity", path + "ability")
 		if handler in ["pursue", "threat", "escort", "retreat", "greet", "hook_and_seek",
 				"follow_ally", "follow_party", "retreat_attack", "finite_healer", "swap_ally"]:
 			var move: Variant = params.get("move_ability")
@@ -1387,6 +1446,10 @@ class Validator:
 		var effect: Variant = upgrade.get("effect")
 		if _choice(effect, REWARD_EFFECTS, path + ".effect"):
 			_check_reward_grants(upgrade, profile, path, effect)
+			if effect in ["hammer_damage", "follow_through"]:
+				var required: Variant = upgrade.get("requires_abilities")
+				if not required is Array or "blacksmith_hammer_time" not in required:
+					_error(path + ".requires_abilities", "must require blacksmith_hammer_time")
 			if not profile.is_empty():
 				_check_reward_kit(effect, str(id), profile, path + ".effect")
 
@@ -1502,13 +1565,31 @@ class Validator:
 			"spare_ribs", "good_soil", "broad_wave", "heavy_bouquet", "long_stemmed", "warm_welcome", \
 			"say_hello_to_that_one", "wake_reception":
 				_check_summon_reward(effect, hero, path)
-			"stronger_dose", "long_ladle", "spare_vial", "keep_the_culture", "concentrate", "brittle_glass":
-				if effect not in ["concentrate", "brittle_glass"]:
+			"stronger_dose", "long_ladle", "spare_vial", "keep_the_culture", "concentrate":
+				if effect != "concentrate":
 					_require_reward(not _kit_ability(hero, "alchemist_potion", ["healing_potion"]).is_empty(),
 						path, "alchemist_potion in the hero's ability kit")
-				if effect in ["concentrate", "brittle_glass", "keep_the_culture"]:
+				if effect in ["concentrate", "keep_the_culture"]:
 					_require_reward(not _kit_ability(hero, "alchemist_acid", ["acid"]).is_empty(),
 						path, "alchemist_acid in the hero's ability kit")
+			"brittle_glass":
+				_require_reward(not _kit_ability(hero, "alchemist_acid", ["acid"]).is_empty() \
+					or not _kit_ability(hero, "alchemist_etching_paste", ["acid"]).is_empty(),
+					path, "alchemist_acid or alchemist_etching_paste in the hero's ability kit")
+			"hammer_damage", "follow_through":
+				var hammer := _kit_ability(hero, "blacksmith_hammer_time", ["attack"])
+				var targeting := _record(hammer, "targeting")
+				_require_reward(is_same(targeting.get("kind"), "entity") \
+					and _is_integer(targeting.get("range"), 1) and int(targeting.range) == 1,
+					path, "blacksmith_hammer_time in the hero's kit as an adjacent attack")
+				if effect == "follow_through":
+					_require_reward(_has_capability(hero, "mobile"), path, "a mobile hero for Follow Through")
+			"reinforced_rivets", "fine_adjustment", "quick_release", "double_shift":
+				_require_reward(_kit_has_handler(hero, "fit"), path, "a fitting ability in the hero's kit")
+				if effect == "quick_release" and _ref("smith_quick_release", "abilities", path):
+					var release: Dictionary = _defs.abilities.smith_quick_release
+					_require_reward(is_same(release.get("handler"), "quick_release"), path,
+						"smith_quick_release with the quick_release handler")
 
 	func _check_summon_reward(effect: String, hero: Dictionary, path: String) -> void:
 		var skeletons := _kit_summons(hero, "cell", "skeleton")

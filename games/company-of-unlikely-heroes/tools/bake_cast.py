@@ -5,6 +5,7 @@ import hashlib
 import json
 import math
 import os
+import struct
 import subprocess
 import sys
 import tempfile
@@ -15,7 +16,7 @@ HERE = Path(__file__).resolve().parent
 RECIPE = HERE / "cast"
 GAME = HERE.parent
 sys.path.insert(0, str(RECIPE))
-from recipe import capture_config, load_registered
+from recipe import SUPPLEMENTS, capture_config, load_registered, load_supplement, manifest_supplements
 from takes import RELEASES, TAKES
 SIZE = 320
 PADDING = 3
@@ -110,6 +111,18 @@ def pack(role, work, dest, master):
     for frame, key in to_place:
         frame["rect"] = positions[key]
     path = dest / f"{role}.png"
+    encode_atlas(path, width, height, atlas)
+    actor = {
+        "source": "art/" + master["source"],
+        "sha256": master["sha256"],
+        "clips": clips,
+    }
+    if sources := manifest_supplements(master):
+        actor["supplements"] = sources
+    return actor
+
+
+def encode_atlas(path, width, height, atlas):
     subprocess.run(
         [
             "magick",
@@ -126,12 +139,60 @@ def pack(role, work, dest, master):
     )
     # Verify the delivered PNG, not only the pre-encoding buffer.
     if subprocess.check_output(["magick", str(path), "-depth", "8", "rgba:-"]) != atlas:
-        raise ValueError(f"{role}: PNG round trip changed pixels")
-    return {
-        "source": "art/" + master["source"],
-        "sha256": master["sha256"],
-        "clips": clips,
-    }
+        raise ValueError(f"{path}: PNG round trip changed pixels")
+
+
+def append_shelves(destination, stock, supplemental):
+    """Extend below the existing image without changing any stock crop or origin."""
+    a, b = (struct.unpack(">II", path.read_bytes()[16:24]) for path in (stock, supplemental))
+    width = max(a[0], b[0])
+    height = a[1] + b[1]
+    rgba = bytearray(width * height * 4)
+    for path, (w, h), offset_y in ((stock, a, 0), (supplemental, b, a[1])):
+        pixels = subprocess.check_output(["magick", str(path), "-depth", "8", "rgba:-"])
+        assert len(pixels) == w * h * 4
+        for y in range(h):
+            start = ((offset_y + y) * width) * 4
+            rgba[start:start + w * 4] = pixels[y * w * 4:(y + 1) * w * 4]
+    encode_atlas(destination, width, height, rgba)
+    return a[1]
+
+
+def render_role(role, work, threads, fragment=None):
+    command = [
+        "blender", "-b", "-t", str(threads), "--python-exit-code", "1",
+        "-P", str(RECIPE / "bake_actor.py"), "--", role,
+    ]
+    recipe_args = ["--recipe", str(fragment.resolve())] if fragment else []
+    env = {**os.environ, "MAGICK_THREAD_LIMIT": "1"}
+    subprocess.run([*command, str(work), *recipe_args], check=True, env=env)
+    if (SUPPLEMENTS / f"{role}.json").is_file():
+        shelf = work / "supplement"
+        shelf.mkdir(exist_ok=True)
+        subprocess.run([*command, str(shelf), *recipe_args, "--supplement"], check=True, env=env)
+
+
+def pack_role(role, work, dest, master, stock_takes):
+    recipe = load_supplement(role, master, stock_takes)
+    if recipe is None:
+        return pack(role, work, dest, master)
+    overlay, _, _, libraries = recipe
+    stock_dir = work / "packed-stock"
+    stock_dir.mkdir(exist_ok=True)
+    overlay_dir = work / "supplement"
+    stock = pack(role, work, stock_dir, master)
+    extra = pack(role, overlay_dir, overlay_dir, overlay)
+    name = f"{role}.png"
+    height = append_shelves(dest / name, stock_dir / name, overlay_dir / name)
+    for clip in extra["clips"].values():
+        # Packer shares rect arrays among duplicate samples. Replace rather than
+        # mutate a shared array while offsetting the supplementary shelf.
+        for frame in clip["frames"]:
+            x, y, w, h = frame["rect"]
+            frame["rect"] = [x, height + y, w, h]
+    stock["clips"].update(extra["clips"])
+    stock["supplements"] = manifest_supplements(master, libraries or [overlay])
+    return stock
 
 
 def main():
@@ -140,7 +201,7 @@ def main():
     parser.add_argument("--threads", type=int, default=6)
     parser.add_argument("--output", type=Path, default=GAME / "assets/cast")
     args = parser.parse_args()
-    masters, _, _ = load_registered(
+    masters, takes, _ = load_registered(
         RECIPE / "actors", json.loads((RECIPE / "masters.json").read_text()), TAKES, RELEASES
     )
     args.output.mkdir(parents=True, exist_ok=True)
@@ -148,37 +209,21 @@ def main():
         work = Path(tmp)
 
         def render(role):
-            subprocess.run(
-                [
-                    "blender",
-                    "-b",
-                    "-t",
-                    str(args.threads),
-                    "--python-exit-code",
-                    "1",
-                    "-P",
-                    str(RECIPE / "bake_actor.py"),
-                    "--",
-                    role,
-                    str(work),
-                ],
-                check=True,
-                env={**os.environ, "MAGICK_THREAD_LIMIT": "1"},
-            )
+            render_role(role, work, args.threads)
 
         with ThreadPoolExecutor(max_workers=args.jobs) as pool:
             list(pool.map(render, masters))
-        publish(work, args.output, masters)
+        publish(work, args.output, masters, takes)
 
 
-def publish(work, dest, masters):
+def publish(work, dest, masters, takes):
     meta = {
         "version": 1,
         "display_scale": 0.375,
         "source_root": ".lore/work/games/company-of-unlikely-heroes",
         "pixels_per_metre": 256 / 2.44,
         "camera_euler_xyz": [1.150829196, 0, -0.435386419],
-        "actors": {r: pack(r, work, dest, m) for r, m in masters.items()},
+        "actors": {r: pack_role(r, work, dest, m, takes[r]) for r, m in masters.items()},
     }
     (dest / "manifest.json").write_text(json.dumps(meta, indent=2) + "\n")
 

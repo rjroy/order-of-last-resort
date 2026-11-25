@@ -10,7 +10,8 @@ const Rules = preload("res://rules.gd")
 const Rewards = preload("res://rewards.gd")
 const FOUNDERS := ["knight", "healer", "wizard"]
 const RECRUITS := {"recruit_bard": "bard", "recruit_rogue": "rogue",
-	"recruit_necromancer": "necromancer", "recruit_alchemist": "alchemist"}
+	"recruit_necromancer": "necromancer", "recruit_alchemist": "alchemist",
+	"recruit_blacksmith": "blacksmith"}
 # recipient and explicit cumulative prerequisites; recruitment of the recipient
 # is checked independently even for entries with no explicit prerequisite.
 const TRAINING := {
@@ -36,6 +37,8 @@ const TRAINING := {
 	"alchemist_throw_samples": ["alchemist", []],
 	"alchemist_etching_paste": ["alchemist", []],
 	"alchemist_learn_pull": ["alchemist", []],
+	"blacksmith_learn_bonk": ["blacksmith", ["recruit_blacksmith"]],
+	"blacksmith_learn_acid": ["blacksmith", ["recruit_blacksmith", "recruit_alchemist"]],
 }
 
 var failures: Array[String] = []
@@ -135,7 +138,16 @@ func _test_fallback_hold_preference() -> void:
 func _test_register() -> void:
 	var table: Dictionary = defs.get("guild_progression", {}).get("petitions", {})
 	var expected := RECRUITS.keys() + TRAINING.keys()
-	_check(table.size() == 26, "Register contains exactly 26 executable entries")
+	_check(table.size() == 29, "Register contains exactly 29 executable entries")
+	for example in [["recruit_blacksmith", 5, "recruit", ""],
+			["blacksmith_learn_bonk", 4, "ability", "healer_bonk"],
+			["blacksmith_learn_acid", 5, "ability", "alchemist_acid"]]:
+		var spec: Dictionary = table.get(example[0], {})
+		var grant: Dictionary = spec.get("grant", {})
+		_check(spec.get("cost") == example[1] and grant.get("kind") == example[2] \
+			and grant.get("hero_id") == "blacksmith" \
+			and (example[3] == "" or (grant.get("slot_id") == "offense" and grant.get("ability_id") == example[3])),
+			example[0] + " has the expected Smith grant and cost")
 	for id in expected:
 		_check(table.has(id), "Register contains " + id)
 		if not table.has(id):
@@ -199,10 +211,10 @@ func _test_register() -> void:
 			advanced = true
 		if not advanced:
 			break
-	_check(remaining.is_empty(), "All 26 purchases have a reachable plan; blocked: " + str(remaining))
+	_check(remaining.is_empty(), "All 29 purchases have a reachable plan; blocked: " + str(remaining))
 	if not remaining.is_empty():
 		return
-	_check(Progression.roster(defs, profile).size() == 7, "Completed register has seven recruits")
+	_check(Progression.roster(defs, profile).size() == 8, "Completed register owns all eight eligible heroes")
 	for hero in FOUNDERS + RECRUITS.values():
 		var loadout := Progression.default_loadout(defs, profile, hero)
 		_check(not loadout.is_empty() and not Progression.effective_kit(defs, profile, hero, loadout).is_empty(),

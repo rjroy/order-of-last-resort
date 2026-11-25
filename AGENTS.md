@@ -16,8 +16,11 @@ Preserve the existing paths: asset recipes and regression tools depend on them.
   Automated checks do not establish human enjoyment.
 - Preserve experiment records, claims, approvals and human contributions.
   Player feedback is evidence from Ronald, not a representative sample.
-- Model a character using `.agents/skills/model-a-class/SKILL.md`. Concept,
-  model and runtime integration approvals are separate.
+- To add a recruitable hero, start with [Adding a playable class](docs/adding-a-playable-class.md).
+  Follow it from class design through recruitment, combat, art, sound and
+  verification in the running game. The [model-a-class skill](.agents/skills/model-a-class/SKILL.md)
+  covers the model phase only; concept, model and runtime integration approvals
+  are separate.
 - Use the retained discovery and mechanic skills for new mechanics. Shared
   research under `.lore/work/shared/` is context, not authorization to build.
 - Do not overwrite accepted originals or treat disposable captures as source.

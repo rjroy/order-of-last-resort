@@ -294,11 +294,6 @@ func render_ink(cues: Dictionary) -> void:
 		_ink.render(cues)
 
 
-func play_committed_reactions(reactions: Array) -> void:
-	if is_instance_valid(_ink):
-		_ink.play_committed_reactions(reactions)
-
-
 func _render_locked_dose(text: String) -> void:
 	var show_note := not text.is_empty()
 	if _locked_dose.visible and not show_note and _locked_dose.has_focus() and not _actions.disabled:

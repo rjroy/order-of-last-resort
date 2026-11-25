@@ -28,9 +28,33 @@
       "bard": {
         "offense": "healing_sonnet",
         "utility": "inspiring_melody"
+      },
+      "blacksmith": {
+        "offense": "blacksmith_hammer_time",
+        "utility": "blacksmith_try_this"
       }
     },
     "petitions": {
+      "recruit_blacksmith": {
+        "label": "Recruit the Hobby Smith",
+        "description": "Recruit with Hammer Time, Try This, Pursue and Hold.",
+        "cost": 5,
+        "grant": {"kind": "recruit", "hero_id": "blacksmith"}
+      },
+      "blacksmith_learn_bonk": {
+        "label": "Learn Bonk and Taunt",
+        "description": "Equip Bonk and taunt instead of Hammer Time.",
+        "cost": 4,
+        "grant": {"kind": "ability", "hero_id": "blacksmith", "slot_id": "offense", "ability_id": "healer_bonk"},
+        "prerequisites": ["recruit_blacksmith"]
+      },
+      "blacksmith_learn_acid": {
+        "label": "Learn Acid",
+        "description": "Equip Acid instead of Hammer Time. The Mixologist's orders are not included.",
+        "cost": 5,
+        "grant": {"kind": "ability", "hero_id": "blacksmith", "slot_id": "offense", "ability_id": "alchemist_acid"},
+        "prerequisites": ["recruit_blacksmith", "recruit_alchemist"]
+      },
       "recruit_bard": {
         "label": "Recruit the Bad Bard",
         "description": "Recruit with Hold and both musical orders.",

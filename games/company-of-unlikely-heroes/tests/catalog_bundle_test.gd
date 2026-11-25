@@ -13,8 +13,8 @@ func _initialize() -> void:
 		_check(defs.missions.bridge_patrol.encounter == "road_patrol", "mission references assembled encounter")
 		_check(defs.encounters.company_crossing.board == "bridge", "encounter references shared board")
 		_check(defs.commission_settings.recruitment_roster == [
-			"knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard"],
-			"assembled commission roster retains all recruits in order")
+			"knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard", "blacksmith"],
+			"assembled commission eligibility retains all eight heroes in order")
 		_check(not defs.has("adventures"), "built-in catalog has no fixed routes")
 		var deployed := Catalog.build(defs, "bridge_patrol", ["knight", "healer", "alchemist"])
 		_check(deployed.units.size() == 5, "assembled party and enemies deploy")

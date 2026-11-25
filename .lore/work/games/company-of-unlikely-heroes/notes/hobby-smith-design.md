@@ -128,6 +128,8 @@ For Guard, place the Knight C3 on a ritual circle with a friend B3 holding a sec
 
 ## Coverage audit and decision gate
 
+For evidence from the implemented game, see the [Hobby Smith verification record](hobby-smith-verification.md). The inventory and gate below preserve the original design proposal.
+
 Current inventory, relative to `games/company-of-unlikely-heroes/`:
 
 - `content/common.json` supplies 14 unique starting actions across the seven kits named in `content/guild_progression.json`. Common `move` is explicitly exempt, as are `wave`, `dont_go`, `say_hello`, `offer_flower` (summons) and `enemy_attack`, `enemy_harpoon` (opponents). Encounter-only enemy actions, rival copies, objective events, passive techniques and shield pickup are not commandable hero abilities.

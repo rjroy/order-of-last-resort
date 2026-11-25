@@ -4,6 +4,7 @@ extends Node
 signal sound_requested(kind: String, unit_id: String, ability_id: String, cue_id: String, gain: float)
 
 const Preferences = preload("res://battle_display_preferences.gd")
+const Recipes = preload("res://presentation/sound_recipes.gd")
 const WAVS := {
 	"pencil": preload("res://assets/audio/pencil_flick.wav"),
 	"step": preload("res://assets/audio/light_footfall.wav"),
@@ -18,20 +19,12 @@ const WAVS := {
 
 var volume := 0.8
 var master_volume := 1.0
-var _tones := {}
+static var _tones := {}
 
 
 func _ready() -> void:
 	volume = Preferences.load_sound_effects_volume()
 	master_volume = Preferences.load_master_volume()
-	_tones = {
-		"heal": _tone([660.0, 990.0], 0.26),
-		"melody": _tone([523.25, 659.25, 783.99], 0.39),
-		"sonnet": _tone([440.0, 523.25, 622.25], 0.39),
-		"gesture": _tone([392.0, 493.88], 0.19),
-		"paste": _tone([294.0, 349.23], 0.15),
-		"bell": _bell(),
-	}
 
 
 func set_volume(value: float) -> void:
@@ -74,46 +67,96 @@ func _family(ability: String, handler: String, recipe: String) -> String:
 	if handler == "repeat_batch":
 		match recipe:
 			"alchemist_potion":
-				return "heal"
+				return "dose"
 			"alchemist_acid":
 				return "potion"
 			"alchemist_etching_paste":
 				return "paste"
 		return "gesture"
+	# IDs may be redefined by custom catalogs. Specialize only inside the
+	# resolved handler; playback derives close_thrust and harmless_attack from
+	# the actual action and its action-time context.
 	match handler:
+		"close_thrust":
+			return "shaft"
+		"harmless_attack":
+			return "shepherd" if ability == "frontier_shepherd_wave" else "gesture"
 		"attack":
-			if ability in ["enemy_harpoon", "archer_shot"]:
-				return "bow"
-			if ability == "offer_flower":
-				return "gesture"
+			match ability:
+				"knight_shield_throw": return "shield_throw"
+				"offer_flower": return "flower"
+				"goblin_jab", "trickster_strike": return "point"
+				"duelist_strike": return "foil"
+				"captain_strike", "grunt_strike", "bandit_strike": return "leather_iron"
+				"bruiser_strike", "ogre_strike": return "maul"
+				"frontier_wagon_strike": return "wagon"
+				"bomber_strike": return "bomber"
+				"rival_bonk": return "bonk"
+				"enemy_harpoon", "archer_shot": return "bow"
 			return "shield"
-		"bonk", "push", "apply_status", "close_thrust":
-			return "shield"
-		"blast", "sweep":
+		"bonk":
+			return "bonk" if ability == "healer_bonk" else "shield"
+		"push":
+			return "shunt" if ability == "knight_push" else "shield"
+		"apply_status":
+			return "aura" if ability == "knight_aura" else "shield"
+		"blast":
+			return "blast"
+		"sweep":
+			match ability:
+				"wizard_ring_sparks": return "sparks"
+				"wave": return "bone_wave"
 			return "blast"
 		"acid":
 			return "paste" if ability == "alchemist_etching_paste" else "potion"
-		"heal", "enemy_heal", "healing_potion", "plain_tonic":
-			return "heal"
-		"hook", "pull":
+		"heal":
+			return "dressing" if ability == "healer_field_dressing" else "heal"
+		"enemy_heal":
+			return "enemy_heal" if ability == "frontier_heal" else "heal"
+		"healing_potion":
+			return "dose" if ability == "alchemist_potion" else "heal"
+		"plain_tonic":
+			return "dose" if ability == "alchemist_plain_tonic" else "heal"
+		"hook":
 			return "rope"
+		"pull":
+			return "magic_pull"
 		"repel":
-			return "bell" if ability == "necro_grave_bell" else "gesture"
-		"summon":
-			return "bones"
-		"perform":
-			if ability == "frontier_war_drum":
-				return "drum"
-			return "melody" if ability == "inspiring_melody" else "sonnet"
-		"misdirect", "nominate", "stop_target", "swap_ally", "swap_furthest", "harmless_attack":
+			match ability:
+				"necro_grave_bell": return "bell"
+				"say_hello": return "zombie_hello"
 			return "gesture"
+		"summon":
+			return "raise" if ability == "raise_dead" else "bones"
+		"perform":
+			match ability:
+				"frontier_war_drum": return "drum"
+				"bard_take_the_stage": return "stage"
+			return "melody" if ability == "inspiring_melody" else "sonnet"
+		"misdirect":
+			return "misdirect" if ability == "rogue_wasnt_me" else "gesture"
+		"nominate":
+			return "nominate" if ability == "necromancer_say_hello_to_that_one" else "gesture"
+		"stop_target":
+			match ability:
+				"rogue_tripwire": return "tripwire"
+				"dont_go": return "bone_hold"
+			return "gesture"
+		"swap_ally":
+			return "ogre_swap" if ability == "ogre_swap" else "gesture"
+		"swap_furthest":
+			return "dodge" if ability == "rogue_confusing_dodge" else "gesture"
 	return ""
 
 
 func _play(kind: String, unit_id: String, ability_id: String, cue_id: String, base_gain: float) -> void:
 	if volume <= 0.0 or master_volume <= 0.0:
 		return
-	var stream: AudioStream = WAVS.get(cue_id, _tones.get(cue_id))
+	var stream: AudioStream = WAVS.get(cue_id)
+	if stream == null:
+		stream = Recipes.get_stream(cue_id)
+	if stream == null:
+		stream = _legacy_tone(cue_id)
 	if stream == null:
 		push_warning("Missing sound effect %s for %s." % [cue_id, ability_id])
 		return
@@ -127,6 +170,22 @@ func _play(kind: String, unit_id: String, ability_id: String, cue_id: String, ba
 	print_verbose("Playing %s sound %s for %s (%s)." % [kind, cue_id, unit_id, ability_id])
 	player.play()
 	sound_requested.emit(kind, unit_id, ability_id, cue_id, gain)
+
+
+static func _legacy_tone(key: String) -> AudioStreamWAV:
+	if _tones.has(key):
+		return _tones[key]
+	var stream: AudioStreamWAV
+	match key:
+		"heal": stream = _tone([660.0, 990.0], 0.26)
+		"melody": stream = _tone([523.25, 659.25, 783.99], 0.39)
+		"sonnet": stream = _tone([440.0, 523.25, 622.25], 0.39)
+		"stage": stream = _tone([440.0, 523.25, 622.25, 880.0], 0.52)
+		"gesture": stream = _tone([392.0, 493.88], 0.19)
+		"bell": stream = _bell()
+	if stream != null:
+		_tones[key] = stream
+	return stream
 
 
 static func _tone(notes: Array, duration: float) -> AudioStreamWAV:

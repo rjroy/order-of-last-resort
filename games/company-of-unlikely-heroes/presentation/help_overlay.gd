@@ -18,7 +18,7 @@ const TOPICS := {
 	"Mission objective": ["The current battle objective appears here.", ""],
 	"Debrief and rewards": ["After a road victory, review the party and choose one offered reward before continuing. Survivors carry wounds and standing orders; fallen heroes return at 1 HP. Rewards last only for the outing.", ""],
 	"Practice lesson": ["Replay the practice lesson from the commission board. Practice has no payout or lasting wounds and does not replace a live commission.", ""],
-	"Credits": ["Made with Godot Engine\n\nThank you to the Godot contributors.\nhttps://godotengine.org/license/", ""],
+	"Credits": ["Game designer", ""],
 }
 const CAPTIONS := {
 	"commission-selection": "Example: choose a destination from the commission board.",
@@ -341,11 +341,32 @@ func _show_topic(topic: String) -> void:
 				scroll.resized.connect(fit)
 				fit.call_deferred()
 	if topic == "Credits":
-		var link := LinkButton.new()
-		link.text = "https://godotengine.org/license/"
-		link.uri = "https://godotengine.org/license/"
-		content.add_child(link)
+		_add_credit_link(content, "Ronald Roy", "https://rjroy.github.io/")
+		var tools := copy.duplicate() as Label
+		tools.text = "\nMade with Godot Engine\nThank you to the Godot contributors."
+		content.add_child(tools)
+		_add_credit_link(content, "Godot Engine license", "https://godotengine.org/license/")
+		var acknowledgments := copy.duplicate() as Label
+		acknowledgments.text = "\nDevelopment tools"
+		content.add_child(acknowledgments)
+		_add_credit_link(content, "OpenCode", "https://opencode.ai/")
+		_add_credit_link(content, "OpenAI", "https://openai.com/")
+		_add_credit_link(content, "Mirli", "https://mirli.app/")
 	selected_entry.grab_focus()
+
+
+func _add_credit_link(content: VBoxContainer, title: String, uri: String) -> void:
+	var link := LinkButton.new()
+	link.text = title
+	link.uri = uri
+	link.tooltip_text = uri
+	link.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	link.add_theme_font_override("font", Prep.serif())
+	link.add_theme_font_size_override("font_size", 18)
+	link.add_theme_color_override("font_color", Color("#254c65"))
+	for state in ["font_hover_color", "font_focus_color", "font_pressed_color", "font_hover_pressed_color"]:
+		link.add_theme_color_override(state, Color("#623512"))
+	content.add_child(link)
 
 
 func _add_header(title: String) -> void:

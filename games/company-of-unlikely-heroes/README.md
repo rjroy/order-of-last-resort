@@ -56,12 +56,11 @@ editor and template downloads against the SHA-256 digests published in the
 [release](https://github.com/godotengine/godot-builds/releases/tag/4.7.2-stable),
 imports and exports from a clean checkout, and runs the browser smoke against
 the project path. Pull requests only build and check; they cannot deploy.
-After publication is separately authorized, set this repository's Pages
-source to GitHub Actions and manually run the workflow on `master`. Only that
-manual run deploys the artifact that passed its own smoke check to
-`https://rjroy.github.io/order-of-last-resort/`. Confirm the live project path
-and that the account homepage remains unchanged. Merely merging or opening a
-pull request does not publish the game.
+The repository's Pages source is GitHub Actions, and every completed merge to
+`master` builds, verifies and deploys the artifact that passed its own smoke
+check to `https://rjroy.github.io/order-of-last-resort/`. The same happens for
+a manual run on `master`. Confirm the live project path and that the account
+homepage remains unchanged.
 
 ### Play a battle
 

@@ -504,7 +504,7 @@ func _test_modal_accessibility_activation() -> void:
 
 func _check_index() -> void:
 	for topic in ["found", "commission", "deploy", "report", "combat", "standing",
-			"command", "forecast", "objective", "debrief", "reward"]:
+			"command", "forecast", "objective", "debrief", "reward", "statuses", "symbols"]:
 		_check(topic in _visible_text().to_lower(), "Help index includes " + topic)
 	var illustrated := _button_containing("commission")
 	if await _activate(illustrated, "Commission index entry"):
@@ -551,6 +551,35 @@ func _check_index() -> void:
 				var page := paper.bg_color.srgb_to_linear().get_luminance()
 				_check((page + 0.05) / (ink + 0.05) >= 4.5, "Readable credit link: " + state)
 		_check(expected.is_empty(), "Missing credit links: " + str(expected.keys()))
+	await _check_symbol_topic()
+
+
+func _check_symbol_topic() -> void:
+	var entry := _button_containing("statuses and symbols")
+	if await _activate(entry, "Statuses and symbols index entry"):
+		var text := _visible_text().to_lower()
+		for name in ["emergency crust", "second helping", "cork soles", "stiff upper lip", "pocket paramedic",
+				"good company", "duck!", "medicinal aftertaste", "thin-skinned", "repeating lunch",
+				"ball bearings", "jelly knees", "no refills", "stage fright", "handle with care",
+				"boot toffee", "upward rain", "cork moon", "fine bubbles", "spectral napkin",
+				"borrowed courage", "body double", "dropped guard", "heckling the bard", "reinforced rivets",
+				"inspired", "keep your head down", "lend a shield", "steady hands", "laughing", "held in place",
+				"misled", "reflecting aura", "down", "taunted", "caught by tripwire"]:
+			_check(name in text, "Statuses page includes " + name)
+		_check("green" in text and "red" in text and "purple" in text,
+			"Statuses page distinguishes green, red and purple marks")
+		_check("forecast" in text and "expire" in text,
+			"Statuses page mentions forecast and expiry")
+		_check("forecast and expiry" in text, "Statuses page has the Forecast and expiry section")
+		var heading: Label = null
+		for node in scene.find_children("*", "Label", true, false):
+			if node.is_visible_in_tree() and node.text == "Reaction marks":
+				heading = node
+				break
+		_check(heading != null and heading.size.x > 0.0 and heading.size.y > 0.0,
+			"Statuses page lays out its section heading")
+		var index := _button_containing("index")
+		await _activate(index, "Return to help index")
 
 
 func _open_help() -> bool:

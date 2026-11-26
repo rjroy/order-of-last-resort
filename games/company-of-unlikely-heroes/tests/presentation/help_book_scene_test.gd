@@ -187,6 +187,24 @@ func _test_petition_filter() -> void:
 	_check(filter != null and filter.is_visible_in_tree(), "Petitions exposes the hero filter")
 	if filter == null or not filter.is_visible_in_tree():
 		return
+	# The register leads with the recruited founders, then the locked heroes,
+	# alphabetical by visible name within each tier; the sections follow suit.
+	_check(filter.item_count > 0 and filter.get_item_text(0) == "All heroes"
+		and str(filter.get_item_metadata(0)).is_empty(), "Filter keeps a fixed All heroes entry first")
+	var filter_ids := PackedStringArray()
+	for i in range(1, filter.item_count):
+		var hero: Variant = filter.get_item_metadata(i)
+		# The help overlay appends a separator and its F1 entry; the heroes end there.
+		if hero == null or str(hero).is_empty():
+			break
+		filter_ids.append(str(hero))
+	_check(filter_ids == PackedStringArray(["knight", "wizard", "healer", "bard",
+			"rogue", "necromancer", "blacksmith", "alchemist"]),
+		"Filter lists recruited heroes first, then locked heroes alphabetically: " + str(filter_ids))
+	var group_ids := PackedStringArray()
+	for section in scene.find_children("PetitionGroup_*", "", true, false):
+		group_ids.append(str(section.name).trim_prefix("PetitionGroup_"))
+	_check(group_ids == filter_ids, "Register sections keep the filter's order: " + str(group_ids))
 	var bard := -1
 	for i in filter.item_count:
 		if "bard" in filter.get_item_text(i).to_lower():

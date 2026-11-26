@@ -491,6 +491,7 @@ func _show_petitions(focus_name := "") -> void:
 	var petitions := GuildProfile.petitions(_definitions, _guild_profile)
 	var rows := GuildPetitionViewModel.rows(_definitions, petitions)
 	var filter_options: Array = [{"id": "", "label": "All"}]
+	var hero_options: Array = []
 	var seen_heroes: Array = []
 	var specs: Dictionary = _definitions.get("guild_progression", {}).get("petitions", {})
 	var visible_rows: Array = []
@@ -507,11 +508,15 @@ func _show_petitions(focus_name := "") -> void:
 		row["purchased"] = str(row.id) in _guild_profile.get("purchased_ids", [])
 		if not hero_id.is_empty() and hero_id not in seen_heroes:
 			seen_heroes.append(hero_id)
-			filter_options.append({"id": hero_id, "label": str(petition.get("recipient_label", hero_id))})
+			hero_options.append({"id": hero_id, "label": str(petition.get("recipient_label", hero_id))})
 		if _petition_hero_filter.is_empty() or hero_id == _petition_hero_filter:
 			visible_rows.append(row)
 			if str(row.id) == _petition_selected:
 				selected_visible = true
+	var ordered_options := GuildPetitionViewModel.ordered_hero_options(hero_options,
+		_guild_profile.get("recruited_ids", []))
+	filter_options.append_array(ordered_options)
+	visible_rows = GuildPetitionViewModel.ordered_rows(visible_rows, ordered_options)
 	if not selected_visible:
 		_petition_selected = str(visible_rows[0].id) if not visible_rows.is_empty() else ""
 	var script = load("res://presentation/book/guild_petitions_page.gd")

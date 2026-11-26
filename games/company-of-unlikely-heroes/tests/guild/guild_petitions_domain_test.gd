@@ -5,6 +5,7 @@ extends SceneTree
 # never by editing profile data. All files belong exclusively to this test.
 const Catalog = preload("res://content/catalog.gd")
 const Rules = preload("res://rules/rules.gd")
+const PetitionOrder = preload("res://presentation/book/guild_petition_view_model.gd")
 const PARTY := ["knight", "healer", "wizard"]
 const SEED := 147258
 
@@ -30,6 +31,7 @@ func _initialize() -> void:
 	else:
 		var defs := _fixture()
 		_test_fresh(defs)
+		_test_register_order(defs)
 		_test_receipts(defs)
 		_test_same_board_stale_return(defs)
 		_test_purchase_path(defs, "recruit_bard")
@@ -109,6 +111,54 @@ func _test_fresh(defs: Dictionary) -> void:
 	_check(loadout.get("slots", {}).get("offense") == "healer_bonk"
 		and loadout.get("slots", {}).get("utility") == "healer_heal",
 		"Fresh Healer starts with Bonk and Heal")
+
+
+func _test_register_order(defs: Dictionary) -> void:
+	# Controlled fixture: recruited heroes lead the register, then each tier
+	# reads alphabetically by the player-visible name, case-insensitively.
+	var options := [
+		{"id": "gamma", "label": "Zebra"},
+		{"id": "beta", "label": "Cherry"},
+		{"id": "alpha", "label": "apple"},
+		{"id": "delta", "label": "banana split"},
+	]
+	var ordered: Array = PetitionOrder.ordered_hero_options(options, ["beta"])
+	_check(_option_ids(ordered) == PackedStringArray(["beta", "alpha", "delta", "gamma"]),
+		"Recruited heroes lead the register, alphabetical within each tier")
+	# A fresh stock guild lists its founders first, then the locked recruits.
+	var pair := _new_profile()
+	var profile: Dictionary = pair[1]
+	var heroes: Array = []
+	for petition in profile_store.call("petitions", defs, profile):
+		var hero_id := str(petition.get("hero_id", ""))
+		if not hero_id.is_empty() and _option_ids(heroes).find(hero_id) < 0:
+			heroes.append({"id": hero_id, "label": str(petition.get("recipient_label", hero_id))})
+	ordered = PetitionOrder.ordered_hero_options(heroes, profile.get("recruited_ids", []))
+	_check(_option_ids(ordered) == PackedStringArray(["knight", "wizard", "healer",
+			"bard", "rogue", "necromancer", "blacksmith", "alchemist"]),
+		"Fresh register lists the founders first, then locked heroes alphabetically")
+	# The rows follow the same section order, keeping authored order within a hero.
+	var register_rows: Array = PetitionOrder.rows(defs, profile_store.call("petitions", defs, profile))
+	ordered = PetitionOrder.ordered_rows(register_rows, ordered)
+	var hero_sequence: Array = []
+	var previous_hero := ""
+	for row in ordered:
+		var hero := str(row.get("hero_id", ""))
+		if hero != previous_hero:
+			hero_sequence.append(hero)
+			previous_hero = hero
+	_check(PackedStringArray(hero_sequence) == PackedStringArray(["knight", "wizard",
+			"healer", "bard", "rogue", "necromancer", "blacksmith", "alchemist"]),
+		"Register rows follow the hero section order")
+	_check(str(ordered[0].id) == "knight_rescue_line",
+		"The first register row is the fresh guild's default selection")
+
+
+func _option_ids(options: Array) -> PackedStringArray:
+	var ids := PackedStringArray()
+	for option in options:
+		ids.append(str(option.id))
+	return ids
 
 
 func _run_commission(defs: Dictionary, profile: Dictionary, wins: int, length_index: int,

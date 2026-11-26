@@ -398,6 +398,12 @@ func _click_petition(id: String) -> void:
 		_check(false, id + ": petition card is actionable")
 		return
 	scroll.ensure_control_visible(card)
+	# The register settles its own deferred scroll restoration after a rebuild
+	# (a purchase can move a hero section between tiers); re-read the card's
+	# settled position before clicking, as a player would.
+	for tick in 3:
+		await process_frame
+	scroll.ensure_control_visible(card)
 	await process_frame
 	_check(scroll.get_global_rect().has_point(card.get_global_rect().get_center()),
 		id + ": click point is inside the register clip after scrolling")

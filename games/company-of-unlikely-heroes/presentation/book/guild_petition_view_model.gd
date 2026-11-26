@@ -69,6 +69,36 @@ static func rows(definitions: Dictionary, petitions: Array) -> Array:
 	return result
 
 
+## The register leads with heroes the guild has already recruited, then reads
+## each tier alphabetically by the player-visible name.
+static func ordered_hero_options(options: Array, recruited_ids: Array) -> Array:
+	var ordered := options.duplicate()
+	ordered.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var a_recruited := str(a.get("id", "")) in recruited_ids
+		var b_recruited := str(b.get("id", "")) in recruited_ids
+		if a_recruited != b_recruited:
+			return a_recruited
+		return str(a.get("label", "")).to_lower() < str(b.get("label", "")).to_lower())
+	return ordered
+
+
+## Rows in register order: hero sections follow `options`, each hero keeps its
+## authored row order, and rows for heroes missing from `options` go last.
+static func ordered_rows(rows: Array, options: Array) -> Array:
+	var hero_ids: Array[String] = []
+	for option: Dictionary in options:
+		hero_ids.append(str(option.id))
+	var ordered: Array = []
+	for hero_id in hero_ids:
+		for row: Dictionary in rows:
+			if str(row.get("hero_id", "")) == hero_id:
+				ordered.append(row)
+	for row: Dictionary in rows:
+		if str(row.get("hero_id", "")) not in hero_ids:
+			ordered.append(row)
+	return ordered
+
+
 static func action_plate(id: String) -> Texture2D:
 	# Most plates use the petition ID; the two original crops predate that convention.
 	var display: Dictionary = PRESENTATION.get(id, {})

@@ -10,7 +10,7 @@ const TOPICS := {
 	"Choose a commission": ["Choose a destination and commission length. Choosing a commission starts recruitment; it does not start a battle. The illustrated commission is an example.", "commission-selection"],
 	"Recruit and deploy": ["Recruit three different heroes. Earlier and Later change their deployment and action order. Edit loadout changes their equipped abilities and starting order.", "recruitment"],
 	"Field reports": ["Read both reports and choose a route. Each report describes the next mission and only hints at what follows. The reports shown are examples.", "field-reports"],
-	"Combat controls": ["Select a hero and a destination to plan a move, or choose Actions and a target. The command is only a preview until you commit.", "battle-controls"],
+	"Combat controls": ["Select a hero, then click a legal target to plan a move or action. A unique action stages immediately; a cell with several legal actions shows target-adjacent choices. Automatic abilities are footer buttons. Marked cells show legal targets. Escape clears choice and selection while retaining a staged preview; Clear command discards; Commit resolves.", "battle-controls"],
 	"Battle board": ["Select a hero or a target on the board. The highlighted cells show the current choices.", "battle-board"],
 	"Statuses and symbols": ["Reaction marks are coloured seals on the board; character statuses appear as words when you select a unit.", ""],
 	"Commit a round": ["Commit plays the forecasted round. Until then you can change or clear your command.", "battle-commit"],

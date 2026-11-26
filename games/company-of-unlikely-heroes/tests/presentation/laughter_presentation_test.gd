@@ -78,18 +78,21 @@ func _show_editor(state: Dictionary) -> void:
 
 
 func _actions_unavailable() -> bool:
-	var menu := _node("Actions") as MenuButton
-	if menu == null or not menu.is_visible_in_tree():
-		return false
-	if menu.disabled:
-		return true
-	var popup := menu.get_popup()
-	if popup.item_count == 0:
-		return false
-	for index in popup.item_count:
-		if not popup.is_item_disabled(index):
+	if not rules.can_act(scene.get("_planned_state"), "healer"):
+		var found_automatic := false
+		var any_enabled := false
+		for button in scene.find_children("*", "Button", true, false):
+			if button is Button and button.is_visible_in_tree() and ("Heal" in str(button.text) or "Sonnet" in str(button.text)):
+				found_automatic = true
+				if not (button as Button).disabled:
+					any_enabled = true
+		if found_automatic and any_enabled:
 			return false
-	return true
+		var marks: Array = scene.call("_board_targets")
+		if not marks.is_empty():
+			return false
+		return true
+	return false
 
 
 func _visible_text() -> String:

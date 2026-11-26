@@ -7,7 +7,7 @@ These PNGs are unretouched crops of the live game. The source is a 1280 × 820 G
 | [commission-selection.png](commission-selection.png) | 408 × 608 | Choose a commission by its destination and length. The mission count includes the finale. |
 | [recruitment.png](recruitment.png) | 530 × 581 | Recruit three heroes. Use Earlier and Later to set where they start and who acts first. |
 | [field-reports.png](field-reports.png) | 592 × 657 | Compare the immediate missions on Routes A and B. Farther ahead hints at a later mission type, not the exact encounter. |
-| [battle-controls.png](battle-controls.png) | 616 × 96 | Use a hero’s Actions or click a legal destination to replace one standing order for the round. Open Forecast before you decide. |
+| [battle-controls.png](battle-controls.png) | 616 × 96 | Select a hero, then click a legal target or choose an automatic footer ability to replace one standing order for the round. Open Forecast before you decide. |
 | [battle-commit.png](battle-commit.png) | 382 × 60 | Clear command to restore the standing order for this round. Commit when you’re ready to play out the forecast. |
 | [battle-board.png](battle-board.png) | 522 × 345 | The solid Knight is still at B2. The ghost at C2 shows the planned move to the pressure plate. |
 | [battle-forecast.png](battle-forecast.png) | 438 × 320 | Read the forecast in order: the Knight moves onto the plate, then the gate opens. The live gate stays shut until the round is committed. |

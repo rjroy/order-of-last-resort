@@ -104,40 +104,33 @@ func _move_into_vacated_cell() -> void:
 	var wizard_cell: Vector2i = _unit(before, "wizard").position
 	await _cell(wizard_cell)
 	await _explicit_move_into_vacated_cell(before, vacated)
-	await _key(KEY_ESCAPE)
+	# Discard the preview through the explicit control, keeping the Wizard
+	# selected so the second flow starts from the same selection.
+	if not await _button("ClearCommand"):
+		return
 	await _implicit_move_into_vacated_cell(before, wizard_cell, vacated)
 
 
 func _explicit_move_into_vacated_cell(before: Dictionary, vacated: Vector2i) -> void:
-	var menu := scene.find_child("Actions", true, false) as MenuButton
-	var move_label: String = rules.ability_definition(before, "move", "wizard").get("label", "")
-	var move_index := -1
-	if menu != null and menu.is_visible_in_tree():
-		var popup := menu.get_popup()
-		for i in popup.item_count:
-			if popup.get_item_text(i).begins_with(move_label) and not popup.is_item_disabled(i):
-				move_index = i
-				break
-		if move_index >= 0:
-			popup.id_pressed.emit(popup.get_item_id(move_index))
-			await process_frame
-	if move_index < 0:
-		_check(false, "Wizard can explicitly select Move")
-		return
-	_check(vacated in _highlighted_cells(), "Explicit Wizard Move highlights legal A3")
+	# Target-first: the selected Wizard already marks every legal destination,
+	# so clicking the forecast-vacated A3 stages the Move directly.
+	_check(vacated in _highlighted_cells(), "Wizard selection marks the forecast-vacated A3 Move")
 	await _cell(vacated)
 	_check(_wizard_move_is("0,2"),
-		"Clicking the highlighted vacated A3 stages Wizard Move rather than selecting Healer")
+		"Clicking the marked vacated A3 stages Wizard Move rather than selecting Healer")
 	_check(scene.battle_snapshot() == before, "Explicit Wizard Move remains an uncommitted forecast")
 
 
 func _implicit_move_into_vacated_cell(before: Dictionary, wizard_cell: Vector2i, vacated: Vector2i) -> void:
 	var step := Vector2i(1, 3) # B4
 	await _cell(step)
-	_check(_wizard_move_is("1,3"), "Clicking B4 without opening Actions queues an implicit Wizard Move")
-	_check(vacated in _highlighted_cells(), "Implicit Wizard Move highlights forecast-vacated A3")
+	_check(_wizard_move_is("1,3"), "Clicking the marked B4 queues the Wizard Move directly")
+	_check(vacated in _highlighted_cells(), "Selection keeps the forecast-vacated A3 Move marked")
 
 	var knight_cell: Vector2i = _unit(before, "knight").position
+	# The Knight at C2 is no legal target of any of the Wizard's targeted
+	# actions here (the Pull's recoil step leaves the board), so the union
+	# marks leave the Knight unmarked and the click selects him.
 	_check(knight_cell not in _highlighted_cells(), "Knight is not highlighted for implicit Wizard Move")
 	await _cell(knight_cell)
 	_check(scene.get("_actor_id") == "knight", "Clicking unhighlighted Knight still selects Knight")
@@ -181,7 +174,16 @@ func _round(step: Array, inspect_opening_knight := false) -> bool:
 		if unit.is_empty():
 			_check(false, "Route actor is present: " + actor)
 			return false
-		await _cell(unit.position)
+		# Target-first selection: never click the selected hero's own cell,
+		# and clear any other selection first so friendly-target priority
+		# cannot capture the click.
+		if str(scene.get("_actor_id")) != actor:
+			if not str(scene.get("_actor_id")).is_empty():
+				await _key(KEY_ESCAPE)
+			await _cell(unit.position)
+			if str(scene.get("_actor_id")) != actor:
+				_check(false, "Route selects " + actor)
+				return false
 		await _cell(destination)
 		var planned: Dictionary = scene.get("_planned_state")
 		var command: Dictionary = planned.get("overrides", {}).get(actor, {})

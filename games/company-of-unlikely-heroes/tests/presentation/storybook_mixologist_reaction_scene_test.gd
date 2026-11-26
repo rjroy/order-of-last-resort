@@ -168,12 +168,13 @@ func _isolate_reaction_ink() -> void:
 func _aim(opening: Dictionary) -> bool:
 	if not await driver.select_actor(ACTOR) or not await driver.action(POTION):
 		return _check(false, driver.error)
-	var ids: Array = (scene.get("_targets") as Array).map(func(choice: Dictionary) -> String:
-		return choice.id)
-	return _check(RECIPIENT in ids and OTHER in ids
+	# Target-first: selecting the Mixologist marks every legal potion
+	# recipient; nothing is staged until a recipient cell is clicked.
+	var marks: Array = (board.get("_overlay") as Dictionary).get("targets", [])
+	return _check(_unit(opening, RECIPIENT).position in marks and _unit(opening, OTHER).position in marks
 		and (scene.get("_planned_state") as Dictionary).get("overrides", {}).is_empty()
 		and scene.battle_snapshot() == opening,
-		"Aimed potion offers at least two recipients while no command is staged")
+		"Selected potion marks at least two recipients while no command is staged")
 
 
 func _stage_cosmetic(opening: Dictionary) -> bool:
@@ -181,10 +182,10 @@ func _stage_cosmetic(opening: Dictionary) -> bool:
 		return false
 	if not await driver.target(RECIPIENT):
 		return _check(false, driver.error)
-	# Close targeting mode without clearing the stage, so the rings for legal
-	# targets cannot masquerade as a difference between forecast and actual.
-	if not await driver.action(POTION):
-		return _check(false, driver.error)
+	# Clear the selection without discarding the stage, so the rings for
+	# legal targets cannot masquerade as a difference between forecast and
+	# actual. Escape retains the staged command.
+	await driver._press_escape()
 	var planned: Dictionary = scene.get("_planned_state")
 	var plan: Dictionary = scene.get("_plan")
 	var target_cell: Vector2i = _unit(opening, RECIPIENT).position
@@ -200,7 +201,7 @@ func _stage_cosmetic(opening: Dictionary) -> bool:
 		and reactions.size() == 1 and reactions[0].get("reaction_id") == COSMETIC
 		and reactions[0].get("category") == "cosmetic" and reactions[0].get("target_id") == RECIPIENT
 		and reactions[0].get("position") == target_cell,
-		"Potion forecasts one cosmetic on the intended unmoved recipient, without aiming rings")
+		"Potion forecasts one cosmetic on the intended unmoved recipient, without selection rings")
 
 
 func _commit_cosmetic() -> bool:

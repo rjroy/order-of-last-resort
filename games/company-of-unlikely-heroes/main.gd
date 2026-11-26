@@ -74,7 +74,6 @@ var _always_show_health_bar := false
 var _storybook_inspection := ""
 var _storybook_inspected_cell: Variant = null
 var _storybook_focus_cell: Variant = null
-var _storybook_aiming := false
 var _opening_state: Dictionary
 var _state: Dictionary
 # The editor only becomes a command after the rules reserve it for the preview.
@@ -1447,6 +1446,9 @@ func _storybook_board_input(event: InputEvent) -> void:
 
 
 func _storybook_action(ability: String) -> void:
+	# The footer buttons are the sole `action_selected` origin and carry only
+	# automatic or non-targeted abilities; targeted actions and Move stage
+	# target-first from the board. See the page's `_refresh_action_buttons`.
 	if _forfeit_confirmation_open() or not _ongoing() or _actor_id.is_empty() \
 			or not _practice_allows_action(ability):
 		return
@@ -1456,36 +1458,42 @@ func _storybook_action(ability: String) -> void:
 	if not available:
 		return
 	var definition := _action_definition(ability, _actor_id, context)
-	var kind: String = definition.get("targeting", {}).get("kind", "")
-	if not _rules.can_act(context, _actor_id) or definition.get("command_blocked", false) \
-			or (_is_selectable(kind) and _rules.targets(context, _actor_id, ability).is_empty()):
-		return
-	var draft: Dictionary = _planned_state.overrides.get(_actor_id, {})
-	if _is_selectable(kind) and draft.get("ability_id") == ability:
-		_storybook_aiming = not _storybook_aiming
-		_unpreviewed_edit = false
-		_storybook_ambiguous.clear()
-		_sync_command()
-		_refresh()
+	if not _rules.can_act(context, _actor_id) or definition.get("command_blocked", false):
 		return
 	_storybook_ambiguous.clear()
 	_ability_id = ability
 	_target_id = ""
 	_unpreviewed_edit = true
-	_storybook_aiming = _is_selectable(kind)
 	_sync_targets()
-	if not _is_selectable(_target_kind()) and _editor_can_act:
+	if _editor_can_act:
 		_stage_command()
 	else:
 		_refresh()
 
 
 func _storybook_target(target: String) -> void:
-	if _forfeit_confirmation_open() or not _practice_allows_action(_ability_id) \
-			or not _targets.any(func(choice: Dictionary) -> bool: return choice.id == target):
+	# Only the floating contextual choices reach here, and they always name
+	# both the action and its target as a composite "action::target" id. See
+	# the page's `_emit_target_choice`, the sole `target_selected` origin.
+	if _forfeit_confirmation_open() or not target.contains("::"):
+		return
+	var parts := target.split("::", true, 1)
+	var ability: String = parts[0]
+	var actual_target: String = parts[1] if parts.size() > 1 else ""
+	var context := _editor_context()
+	var definition := _action_definition(ability, _actor_id, context)
+	var kind: String = definition.get("targeting", {}).get("kind", "")
+	# Automatic abilities pick their own target when the round resolves and
+	# reject a stored one, so only selectable kinds may carry a target here.
+	if not _ongoing() or _actor_id.is_empty() or not _is_selectable(kind) \
+			or not _practice_allows_action(ability) \
+			or not _rules.targets(context, _actor_id, ability).any(
+				func(choice: Dictionary) -> bool: return choice.id == actual_target):
 		return
 	_storybook_ambiguous.clear()
-	_target_id = target
+	_ability_id = ability
+	_target_id = actual_target
+	_sync_targets()
 	_stage_command()
 
 
@@ -1504,35 +1512,44 @@ func _storybook_order(hero: String, order: String) -> void:
 
 
 func _storybook_select_board(cell: Vector2i) -> void:
-	# A marked cell activates its offered target before actual occupants are considered.
-	var offered := _board_targets_at(cell)
-	if offered.size() == 1:
-		_storybook_target(offered[0].id)
+	# Clicking the currently selected hero clears the selection only when no
+	# legal self-target pair exists on that cell; a legal self potion, for
+	# example, follows normal unique/ambiguous targeted-action staging.
+	# Escape always clears the selection.
+	var own_cell := false
+	for unit in _roster():
+		if unit.position == cell and unit.hp > 0 and unit.id == _actor_id:
+			own_cell = true
+			break
+	if own_cell and _targeted_actions_at(cell).is_empty():
+		_actor_id = ""
+		_cancel_transient_edit()
 		return
-	if offered.size() > 1:
-		_storybook_ambiguous = offered
-		_render_storybook()
-		return
-	if _storybook_aiming:
-		return
+	# Other targeted actions for the selected hero take priority over ordinary
+	# hero switching and implicit movement.
+	if not _actor_id.is_empty() and _ongoing() and _editor_can_act:
+		var offered := _targeted_actions_at(cell)
+		if offered.size() == 1:
+			_storybook_target(offered[0].id)
+			return
+		if offered.size() > 1:
+			_storybook_ambiguous = offered
+			_render_storybook()
+			return
 	for unit in _roster():
 		if unit.position == cell and unit.hp > 0:
-			if _actor_id != unit.id:
-				_actor_id = unit.id
-				_unpreviewed_edit = false
-				_storybook_ambiguous.clear()
-				_sync_command()
-				_refresh()
+			_actor_id = unit.id
+			_unpreviewed_edit = false
+			_storybook_ambiguous.clear()
+			_sync_command()
+			_refresh()
 			return
-	# With no Move marks already offered, an empty destination can start a Move.
-	if _ability_id == "move" or _unpreviewed_edit or not _editor_can_act or not _practice_allows_action("move"):
-		return
-	for choice in _rules.targets(_editor_context(), _actor_id, "move"):
-		if choice.position == cell:
-			_ability_id = "move"
-			_target_id = choice.id
-			_stage_command()
-			return
+	# The click has staged, offered a choice, kept an aim or switched by now.
+	# An unrelated cell dismisses an open contextual choice; dismissal never
+	# discards an already staged command.
+	if not _storybook_ambiguous.is_empty():
+		_storybook_ambiguous.clear()
+		_render_storybook()
 
 
 var _storybook_ambiguous: Array = []
@@ -1590,7 +1607,13 @@ func _render_storybook() -> void:
 		events.append(str(event.text))
 	var target_choices: Array = []
 	for target in _storybook_ambiguous:
-		target_choices.append({"id": target.id, "label": target.label})
+		target_choices.append({"id": target.id, "label": target.label, "position": target.position})
+	# The floating choice control anchors beside the clicked cell and must
+	# also avoid covering the selected hero.
+	var selected_cell: Variant = null
+	var selected_unit := _find(_actor_id)
+	if not selected_unit.is_empty():
+		selected_cell = selected_unit.position
 	var text_key: String = "text" if _ongoing() else _state.outcome + "_text"
 	if not _ongoing():
 		summary = "Victory" if _state.outcome == "victory" else "Defeat"
@@ -1611,15 +1634,24 @@ func _render_storybook() -> void:
 	if _ongoing() and not _editor_can_act and not _actor_id.is_empty():
 		var reason := _unavailable_hero_reason()
 		inspection = reason if inspection.is_empty() else reason + " · " + inspection
+	# The locked dose follows the selection, never an aim: the current
+	# rules-provided forecast for each of the selected hero's dose abilities,
+	# shown before any target is chosen. Once the hero has a staged command,
+	# the note yields to the normal command summary, which names the staged
+	# action and target. Forecasting draws without consuming the hero's dose
+	# stream, so nothing rerolls.
 	var locked_dose := ""
-	if _storybook_aiming:
-		var hint := "Aim: choose target; reselect action to stop."
-		var dose := _rules.dose_forecast(context, _actor_id, _ability_id)
-		if not dose.is_empty():
-			if _target_id.is_empty():
-				locked_dose = "Locked dose · %s · %s" % [dose.category.capitalize(), dose.description]
-		else:
-			inspection = hint if inspection.is_empty() else hint + " · " + inspection
+	if _ongoing() and not _actor_id.is_empty() and _editor_can_act \
+			and not _planned_state.overrides.has(_actor_id):
+		var doses: PackedStringArray = []
+		for choice in _rules.options(context, _actor_id):
+			if choice.kind != "action" or not _practice_allows_action(choice.id):
+				continue
+			var dose := _rules.dose_forecast(context, _actor_id, choice.id)
+			if not dose.is_empty():
+				doses.append("Locked dose · %s · %s" % [dose.category.capitalize(), dose.description])
+		if not doses.is_empty():
+			locked_dose = "  ·  ".join(doses)
 	var upgrades: PackedStringArray = []
 	for unit in _roster():
 		var owned: Dictionary = _run.get("upgrades_by_id", {}).get(unit.id, {})
@@ -1640,7 +1672,8 @@ func _render_storybook() -> void:
 		"objective_status": status,
 		"selected_hero": _name_for(_actor_id) if not _actor_id.is_empty() else "",
 		"selected_action_id": _ability_id, "actions": actions, "orders": orders,
-		"targets": target_choices, "command_summary": summary, "inspection": inspection,
+		"targets": target_choices, "selected_cell": selected_cell,
+		"command_summary": summary, "inspection": inspection,
 		"locked_dose": locked_dose,
 		"forecast": "\n".join(events), "can_clear": _ongoing() and (not commanded.is_empty() or _unpreviewed_edit),
 		"clear_label": "Clear command", "can_commit": _can_commit(), "outcome": _state.outcome,
@@ -1664,7 +1697,6 @@ func _begin_attempt() -> void:
 	_unpreviewed_edit = false
 	_actor_id = ""
 	_storybook_ambiguous.clear()
-	_storybook_aiming = false
 	_storybook_inspected_cell = null
 	_sync_actors()
 	_sync_command()
@@ -1702,9 +1734,15 @@ func _sync_targets() -> void:
 	_editor_action = _action_definition(_ability_id, _actor_id, context)
 	var selectable := _is_selectable(_target_kind())
 	_targets = _rules.targets(context, _actor_id, _ability_id) if selectable and _editor_can_act else []
+	# Contextual choices carry composite "action::target" ids, which never
+	# appear in the aimed ability's target list. Revalidate them against the
+	# same model that produced them so a choice survives unrelated refreshes
+	# and closes only when it is no longer offered.
 	_storybook_ambiguous = _storybook_ambiguous.filter(func(ambiguous: Dictionary) -> bool:
-		return _targets.any(func(choice: Dictionary) -> bool:
-			return choice.id == ambiguous.id and choice.position == ambiguous.position))
+		if not ambiguous.has("position"):
+			return false
+		return _targeted_actions_at(ambiguous.position).any(
+			func(choice: Dictionary) -> bool: return choice.id == ambiguous.id))
 	if not _targets.any(func(choice: Dictionary) -> bool: return choice.id == _target_id):
 		_target_id = ""
 
@@ -1726,9 +1764,15 @@ func _clear_command() -> void:
 	if _forfeit_confirmation_open():
 		return
 	_planned_state = _rules.clear_manual(_planned_state)
-	_unpreviewed_edit = false
+	_cancel_transient_edit()
+
+
+## Dismiss the transient target-first editing state — the open contextual
+## choice, any unpreviewed edit and any aim — without discarding a staged
+## command or mutating the committed board.
+func _cancel_transient_edit() -> void:
 	_storybook_ambiguous.clear()
-	_storybook_aiming = false
+	_unpreviewed_edit = false
 	_sync_command()
 	_refresh()
 
@@ -1746,10 +1790,6 @@ func _action_definition(ability: String, actor_id: String, context: Dictionary) 
 	if ability.is_empty():
 		return {}
 	return _rules.command_ability(context, actor_id, ability)
-
-
-func _is_summon() -> bool:
-	return _editor_action.get("handler") == "summon"
 
 
 func _is_selectable(target_kind: String) -> bool:
@@ -1781,7 +1821,6 @@ func _commit() -> void:
 	_state = committed
 	_planned_state = _state
 	_unpreviewed_edit = false
-	_storybook_aiming = false
 	_storybook_ambiguous.clear()
 	_storybook_inspected_cell = null
 	_set_inspection("")
@@ -1817,7 +1856,6 @@ func _forfeit() -> void:
 	_planned_state = _state
 	_last_events.clear()
 	_unpreviewed_edit = false
-	_storybook_aiming = false
 	_storybook_ambiguous.clear()
 	_storybook_inspected_cell = null
 	_board.clear_action_playback()
@@ -1932,16 +1970,28 @@ func _input(event: InputEvent) -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	if _screen != "battle" or _forfeit_confirmation_open() or not event.is_pressed() or event.is_echo():
 		return
-	if event.keycode == KEY_ESCAPE:
-		if _unpreviewed_edit or not _storybook_ambiguous.is_empty():
-			_unpreviewed_edit = false
-			_storybook_ambiguous.clear()
-			_storybook_aiming = false
-			_sync_command()
-			_refresh()
-		else:
-			_clear_command()
+	if event.keycode != KEY_ESCAPE:
+		# Other unhandled keys stay available to every further consumer.
+		return
+	if not _storybook_ambiguous.is_empty():
+		# Dismissing the contextual choice cancels the pending edit and any
+		# aim that opened it, without discarding a staged command.
+		_cancel_transient_edit()
 		get_viewport().set_input_as_handled()
+		return
+	if not _actor_id.is_empty():
+		_actor_id = ""
+		_cancel_transient_edit()
+		get_viewport().set_input_as_handled()
+		return
+	if _unpreviewed_edit:
+		_cancel_transient_edit()
+		get_viewport().set_input_as_handled()
+		return
+	# Once selection is already cleared, Escape must not silently discard an
+	# already staged command; Clear command remains the explicit discard
+	# action. The Escape key itself is still consumed.
+	get_viewport().set_input_as_handled()
 
 
 func _clear_terminal_replay() -> void:
@@ -2174,16 +2224,18 @@ func _refresh_board() -> void:
 			var selected := _find(_actor_id)
 			overlay["selected"] = selected.position
 			var offered := _board_targets()
-			if offered.is_empty() and _practice != null and _ability_id.is_empty() \
-					and _editor_can_act and _practice_allows_action("move"):
-				offered = _rules.targets(_editor_context(), _actor_id, "move")
 			if not offered.is_empty():
 				var positions: Array = []
 				for target in offered:
 					positions.append(target.position)
-					if _target_id == target.id:
-						overlay["chosen_target"] = target.position
 				overlay["targets"] = positions
+			# The chosen-target ring must survive the position dedup: the
+			# staged target may be any of the action-target pairs sharing its
+			# cell, not only the pair retained for the marks.
+			for pair: Dictionary in _selected_action_pairs():
+				if _target_id == pair.target_id:
+					overlay["chosen_target"] = pair.position
+					break
 		var hits: Array = []
 		var paths: Array = []
 		var displaced: Dictionary = {}
@@ -2354,12 +2406,20 @@ func _sync_inspection() -> void:
 		"%s  ·  %s" % [BridgeArt.coordinate(cell), marker.label]
 	var shield_note := _shield_tile_note(cell)
 	var target_note := ""
-	var matching := _board_targets_at(cell)
+	# The legality note comes from the selected hero's own action-target pairs
+	# at this cell, not from a selected or aimed ability.
+	var matching := _selected_action_pairs().filter(
+		func(pair: Dictionary) -> bool: return pair.position == cell)
 	if not matching.is_empty():
-		if _target_kind() == "cell":
-			target_note = "Summon destination" if _is_summon() else "Move destination"
+		if matching.size() == 1:
+			var pair: Dictionary = matching[0]
+			if str(pair.get("action_kind", "")) == "cell":
+				target_note = "Summon destination" if str(pair.get("handler", "")) == "summon" \
+					else "Move destination"
+			else:
+				target_note = "Legal target"
 		else:
-			target_note = "Legal target" if matching.size() == 1 else "%d targets; choose in Target" % matching.size()
+			target_note = "Legal target"
 		target_note = "  ·  %s when %s acts" % [target_note, _name_for(_actor_id)]
 	for unit in _state.units:
 		if unit.position == cell and unit.hp > 0:
@@ -2422,12 +2482,59 @@ func _shield_tile_note(cell: Vector2i) -> String:
 	return "" if notes.is_empty() else "  ·  " + "  ·  ".join(notes)
 
 
+## Every legal (action, target) pair for the selected hero across all its
+## available targeted actions, including Move. Board marks, inspection and
+## the contextual choices all derive from this one model, so they follow the
+## selection rather than the aimed ability.
+func _selected_action_pairs() -> Array:
+	var result: Array = []
+	if _actor_id.is_empty() or not _ongoing() or not _editor_can_act:
+		return result
+	var context := _editor_context()
+	for choice: Dictionary in _rules.options(context, _actor_id):
+		if choice.kind != "action" or not _practice_allows_action(choice.id):
+			continue
+		var definition := _action_definition(choice.id, _actor_id, context)
+		var kind: String = definition.get("targeting", {}).get("kind", "")
+		# Automatic abilities resolve their own target at execution and reject a
+		# stored one, so only selectable targeted actions are offered on the board.
+		if not _is_selectable(kind) or definition.get("command_blocked", false):
+			continue
+		var action_label: String = definition.get("label", choice.label)
+		for target: Dictionary in _rules.targets(context, _actor_id, choice.id):
+			result.append({"id": "%s::%s" % [choice.id, target.id],
+				"action": choice.id, "target_id": target.id,
+				"label": action_label, "target_label": str(target.get("label", target.id)),
+				"action_kind": kind, "handler": definition.get("handler", ""),
+				"position": target.position})
+	return result
+
+
 func _board_targets() -> Array:
-	return _targets if _ongoing() and (_storybook_aiming or _ability_id == "move") else []
+	# Marks follow the selection, never the aimed ability: one entry per cell
+	# that any available targeted action can use, without duplicate positions.
+	var cells := {}
+	for pair: Dictionary in _selected_action_pairs():
+		if not cells.has(pair.position):
+			cells[pair.position] = pair
+	return cells.values()
 
 
-func _board_targets_at(cell: Vector2i) -> Array:
-	return _board_targets().filter(func(target: Dictionary) -> bool: return target.position == cell)
+func _targeted_actions_at(cell: Vector2i) -> Array:
+	var matched: Array = _selected_action_pairs().filter(
+		func(pair: Dictionary) -> bool: return pair.position == cell)
+	# When one action has several targets on the clicked cell, name each
+	# target so the contextual choice stays distinguishable.
+	var counts := {}
+	for pair: Dictionary in matched:
+		counts[pair.action] = int(counts.get(pair.action, 0)) + 1
+	var result: Array = []
+	for pair: Dictionary in matched:
+		var label: String = pair.label
+		if int(counts[pair.action]) > 1:
+			label = "%s · %s" % [pair.label, pair.target_label]
+		result.append({"id": pair.id, "label": label, "position": cell})
+	return result
 
 
 func _clear_inspection() -> void:

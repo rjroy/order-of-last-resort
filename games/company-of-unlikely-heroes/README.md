@@ -214,7 +214,7 @@ These examples use the standalone missions' authored parties and fresh opening p
 
 Your deployment order stays fixed for the commission. In Trouble on the Road, the patrol has no round limit. In The Last Ferryman, get the ferryman to the marked landing before the bridge fails. Clearing the bridge of enemies does not by itself win the rescue.
 
-Give each hero a standing order. Each round you may replace **one** hero's order. Click the hero and a legal destination to preview a move, or open their **Actions** and choose an ability. Pick a target only if that ability asks for one. Open **Forecast** to see everyone's actions in order. Nothing moves until you commit; you can revise or clear the command first. Everyone else keeps their standing order.
+Give each hero a standing order. Each round you may replace **one** hero's order. Click the hero, then click a legal target to preview a move or targeted action; a unique action stages immediately. A cell with several legal actions shows target-adjacent choices. Automatic abilities are visible footer buttons. Marked cells show legal targets. Open **Forecast** to see everyone's actions in order. Nothing moves until you commit; use **Clear command** to discard or **Escape** to clear choice and selection while retaining a staged preview. Everyone else keeps their standing order.
 
 After a victory with another mission ahead, inspect the debrief before continuing. Survivors carry their current HP and standing orders forward. Fallen heroes rejoin at **1 HP**; mission statuses clear. A defeat or final victory ends the run.
 

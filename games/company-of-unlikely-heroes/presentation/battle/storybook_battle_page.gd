@@ -117,8 +117,6 @@ var _upgrade_text: Label
 var _summary: Label
 var _inspection: Label
 var _locked_dose: Label
-var _actions: MenuButton
-var _targets: MenuButton
 var _orders: Button
 var _forecast: Button
 var _clear: Button
@@ -141,8 +139,13 @@ var _footer: VBoxContainer
 var _rail_controls: HBoxContainer
 var _book: Control
 var _rail_top := 0.0
-var _action_rows: Array = []
+var _automatic_action_rows: Array = []
+var _automatic_action_buttons: Array = []
+var _automatic_action_box: HBoxContainer
 var _target_rows: Array = []
+var _target_choice_buttons: Array = []
+var _target_choice_box: HBoxContainer
+var _choice_selected_cell: Variant = null
 var _order_rows: Array = []
 var _order_widgets: Dictionary = {}
 var _expanded := ""
@@ -229,7 +232,6 @@ func render(view: Dictionary) -> void:
 	if not status.is_empty():
 		_objective.text += ("   ·   " if not objective.is_empty() else "") + status
 	_objective.tooltip_text = view.get("objective_details", _objective.text) if active else _objective.text
-	var selected_hero: String = view.get("selected_hero", "")
 	var command: String = view.get("command_summary", "")
 	_summary.size_flags_stretch_ratio = 0.75 if command == "Standing orders only" else 1.45
 	_summary.text = command if not command.is_empty() else (
@@ -260,15 +262,14 @@ func render(view: Dictionary) -> void:
 		objective_details = objective_details.trim_prefix(objective).strip_edges()
 	_field_notes.visible = active and not objective_details.is_empty() and objective_details != objective
 	_field_notes.text = "Mission notes: " + objective_details if _field_notes.visible else ""
-	_refresh_actions(view.get("actions", []), selected_hero, view.get("selected_action_id", ""), active)
-	_refresh_targets(view.get("targets", []), active)
+	_refresh_action_buttons(view.get("actions", []), active)
+	_refresh_targets(view.get("targets", []), active, view.get("selected_cell", null))
 	_refresh_orders(rows)
 	_clear.disabled = not active or not view.get("can_clear", false)
 	_clear.text = view.get("clear_label", "Clear command")
 	_commit.disabled = not active or not view.get("can_commit", false)
 	_commit.text = "Commit round %d" % int(view.get("round", 1)) if active else (
 		"Mission complete" if outcome == "victory" else "Mission failed")
-	_fit_actions_caption(size.x - CONTENT_MARGIN * 2.0)
 
 
 func _victory_summary() -> String:
@@ -296,11 +297,8 @@ func render_ink(cues: Dictionary) -> void:
 
 func _render_locked_dose(text: String) -> void:
 	var show_note := not text.is_empty()
-	if _locked_dose.visible and not show_note and _locked_dose.has_focus() and not _actions.disabled:
-		_actions.grab_focus()
 	_locked_dose.text = text
 	_locked_dose.accessibility_name = text
-	_actions.accessibility_description = text
 	_locked_dose.visible = show_note
 	_summary.visible = not show_note
 	_inspection.visible = not show_note
@@ -368,6 +366,7 @@ func _build() -> void:
 	_book.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_build_header()
 	_build_footer()
+	_build_target_choices()
 	_build_leaf()
 	_build_forfeit_confirmation()
 
@@ -700,8 +699,6 @@ func _restore_options_focus() -> void:
 func _dismiss_battle_popups() -> void:
 	_upgrade_dialog.hide()
 	_options.get_popup().hide()
-	_actions.get_popup().hide()
-	_targets.get_popup().hide()
 	for widgets: Dictionary in _order_widgets.values():
 		var picker: OptionButton = widgets.picker
 		var popup := picker.get_popup()
@@ -729,15 +726,10 @@ func _battle_popup_visibility_changed(popup: PopupMenu) -> void:
 	if popup == _options.get_popup():
 		popup.position.x = maxi(0, int(get_viewport_rect().size.x) - popup.size.x - 12)
 	var source: Control
-	if popup == _actions.get_popup():
-		source = _actions
-	elif popup == _targets.get_popup():
-		source = _targets
-	else:
-		for widgets: Dictionary in _order_widgets.values():
-			if widgets.picker.get_popup() == popup:
-				source = widgets.picker
-				break
+	for widgets: Dictionary in _order_widgets.values():
+		if widgets.picker.get_popup() == popup:
+			source = widgets.picker
+			break
 	if is_instance_valid(source):
 		var launcher := source.get_global_rect()
 		var popup_rect := Rect2(Vector2(popup.position), Vector2(popup.size))
@@ -802,34 +794,12 @@ func _build_footer() -> void:
 	controls.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	controls.add_theme_constant_override("separation", 8)
 	_footer.add_child(controls)
-	_actions = _menu("Actions", "Actions")
-	_actions.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_style_rail_button(_actions)
-	controls.add_child(_actions)
-	var actions_popup := _actions.get_popup()
-	actions_popup.visibility_changed.connect(_battle_popup_visibility_changed.bind(actions_popup))
-	actions_popup.window_input.connect(_popup_help_input.bind(_actions, actions_popup))
-	actions_popup.id_pressed.connect(func(index: int) -> void:
-		if _help_covered:
-			return
-		if index == HELP_MENU_ID:
-			help_from_popup_requested.emit(_actions)
-		elif _battle_popup_accepts_selection(actions_popup) and index >= 0 and index < _action_rows.size():
-			action_selected.emit(str(_action_rows[index].id)))
-	_targets = _menu("Targets", "Choose target")
-	_style_rail_button(_targets)
-	_targets.hide()
-	controls.add_child(_targets)
-	var targets_popup := _targets.get_popup()
-	targets_popup.visibility_changed.connect(_battle_popup_visibility_changed.bind(targets_popup))
-	targets_popup.window_input.connect(_popup_help_input.bind(_targets, targets_popup))
-	targets_popup.id_pressed.connect(func(index: int) -> void:
-		if _help_covered:
-			return
-		if index == HELP_MENU_ID:
-			help_from_popup_requested.emit(_targets)
-		elif _battle_popup_accepts_selection(targets_popup) and index >= 0 and index < _target_rows.size():
-			target_selected.emit(str(_target_rows[index].id)))
+	# The Direct Order footer carries every automatic ability as its own
+	# named button; targeted abilities and Move stay on the board.
+	_automatic_action_box = HBoxContainer.new()
+	_automatic_action_box.add_theme_constant_override("separation", 6)
+	_automatic_action_box.visible = false
+	controls.add_child(_automatic_action_box)
 	_orders = _button("StandingOrders", "Standing orders")
 	_orders.toggle_mode = true
 	_style_rail_button(_orders, true)
@@ -937,6 +907,7 @@ func _toggle_leaf(section: String) -> void:
 	_orders_scroll.visible = _expanded == "orders"
 	_forecast_scroll.visible = _expanded == "forecast"
 	_leaf.visible = not _expanded.is_empty()
+	_update_target_choice_visibility()
 	_layout_page()
 	if was_forecast != (_expanded == "forecast"):
 		forecast_visibility_changed.emit(_expanded == "forecast")
@@ -1009,54 +980,197 @@ func _forfeit_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
-func _refresh_actions(rows: Array, hero: String, chosen: String, active: bool) -> void:
-	_actions.disabled = not active or rows.is_empty()
-	_actions.text = "Actions" if hero.is_empty() else "%s’s actions" % hero
-	_actions.tooltip_text = _actions.text
-	_actions.accessibility_name = _actions.text
-	var current := -1
-	for index in rows.size():
-		if rows[index].id == chosen:
-			current = index
-	if rows != _action_rows:
-		_action_rows = rows.duplicate(true)
-		var popup := _actions.get_popup()
-		popup.clear()
-		for index in rows.size():
-			var row: Dictionary = rows[index]
-			var label: String = row.label
-			if row.get("kind") == "automatic":
-				label += " (automatic)"
-			popup.add_radio_check_item(label, index)
-			popup.set_item_disabled(index, not row.get("enabled", true))
-			popup.set_item_tooltip(index, row.get("help", "") if _show_hints or not row.get("enabled", true) else "")
-		popup.add_separator()
-		popup.add_item("Help (F1)", HELP_MENU_ID)
-		_set_help_shortcut(popup)
-	var popup := _actions.get_popup()
-	for index in popup.item_count:
-		popup.set_item_checked(index, index == current)
+func _refresh_action_buttons(rows: Array, active: bool) -> void:
+	# Every automatic or non-targeted action becomes its own visible footer
+	# button; targeted abilities and Move stay on the board instead. This
+	# filter is the sole origin of `action_selected`, so the signal carries
+	# only automatic/none abilities by contract.
+	var automatic: Array = []
+	for row: Dictionary in rows:
+		if str(row.get("kind", "")) in ["automatic", "none"]:
+			automatic.append(row)
+	if is_instance_valid(_automatic_action_box):
+		_automatic_action_box.visible = active and not automatic.is_empty()
+	if automatic == _automatic_action_rows and _automatic_action_buttons.size() == automatic.size():
+		return
+	_automatic_action_rows = automatic.duplicate(true)
+	for button in _automatic_action_buttons:
+		if is_instance_valid(button):
+			button.queue_free()
+	_automatic_action_buttons.clear()
+	if is_instance_valid(_automatic_action_box):
+		for index in _automatic_action_rows.size():
+			var row: Dictionary = _automatic_action_rows[index]
+			var button := Button.new()
+			button.text = str(row.get("label", ""))
+			button.accessibility_name = str(row.get("label", ""))
+			button.tooltip_text = _action_button_tooltip(row)
+			button.disabled = not row.get("enabled", true)
+			_style_rail_button(button)
+			button.pressed.connect(action_selected.emit.bind(str(row.get("id", ""))))
+			_automatic_action_box.add_child(button)
+			_automatic_action_buttons.append(button)
+
+
+func _action_button_tooltip(row: Dictionary) -> String:
+	# Disabled buttons always explain themselves; otherwise follow the hint
+	# preference, as the former menu tooltips did.
+	if _show_hints or not row.get("enabled", true):
+		return str(row.get("help", ""))
+	return ""
 
 
 func _update_action_tooltips() -> void:
-	var popup := _actions.get_popup()
-	for index in _action_rows.size():
-		var row: Dictionary = _action_rows[index]
-		popup.set_item_tooltip(index, row.get("help", "") if _show_hints or not row.get("enabled", true) else "")
+	for index in _automatic_action_buttons.size():
+		if is_instance_valid(_automatic_action_buttons[index]) and index < _automatic_action_rows.size():
+			(_automatic_action_buttons[index] as Button).tooltip_text = \
+				_action_button_tooltip(_automatic_action_rows[index])
 
 
-func _refresh_targets(rows: Array, active: bool) -> void:
-	_targets.visible = active and not rows.is_empty()
-	if rows == _target_rows:
+func _refresh_targets(rows: Array, active: bool, selected_cell: Variant = null) -> void:
+	_choice_selected_cell = selected_cell
+	# A choice that transitions from closed to open takes keyboard focus so
+	# Enter can stage it directly; re-renders of an open choice do not yank
+	# focus away from whatever the user is doing.
+	var newly_opened: bool = not rows.is_empty() and _target_choice_buttons.is_empty()
+	_update_target_choice_visibility()
+	# Rebuild the floating choice buttons only when the rows actually change.
+	if rows == _target_rows and _target_choice_buttons.size() == rows.size():
+		_place_target_choices()
 		return
+	# A focused choice being consumed or closed hands focus back to the
+	# board so keyboard play continues; unrelated focus is never stolen.
+	var focus_was_choice := false
+	if is_instance_valid(get_viewport()):
+		var focus_owner := get_viewport().gui_get_focus_owner()
+		focus_was_choice = focus_owner != null and _target_choice_buttons.has(focus_owner)
 	_target_rows = rows.duplicate(true)
-	var popup := _targets.get_popup()
-	popup.clear()
-	for index in rows.size():
-		popup.add_item(rows[index].label, index)
-	popup.add_separator()
-	popup.add_item("Help (F1)", HELP_MENU_ID)
-	_set_help_shortcut(popup)
+	for button in _target_choice_buttons:
+		if is_instance_valid(button):
+			button.queue_free()
+	_target_choice_buttons.clear()
+	if is_instance_valid(_target_choice_box):
+		for index in rows.size():
+			var button := Button.new()
+			button.text = str(rows[index].label)
+			button.accessibility_name = str(rows[index].label)
+			_style_rail_button(button)
+			button.pressed.connect(_emit_target_choice.bind(index))
+			_target_choice_box.add_child(button)
+			_target_choice_buttons.append(button)
+	_update_target_choice_visibility()
+	_place_target_choices()
+	if focus_was_choice and is_instance_valid(_board):
+		# The board's focus handler restarts the cursor on the selected hero.
+		_board.grab_focus()
+	if newly_opened and not _target_choice_buttons.is_empty() \
+			and is_instance_valid(_target_choice_box) and _target_choice_box.visible:
+		(_target_choice_buttons[0] as Button).grab_focus()
+
+
+func _choice_panel_open() -> bool:
+	return not _target_rows.is_empty() and _target_choice_buttons.size() == _target_rows.size()
+
+
+func _update_target_choice_visibility() -> void:
+	if not is_instance_valid(_target_choice_box):
+		return
+	# An open Forecast or Standing orders leaf must not be covered or
+	# intercepted by the floating choice. The choice itself stays valid and
+	# returns when the leaf closes.
+	_target_choice_box.visible = _expanded.is_empty() and _choice_panel_open()
+
+
+func _emit_target_choice(index: int) -> void:
+	# The sole origin of `target_selected`: contextual choices always carry
+	# composite "action::target" ids built by main's target-first model.
+	if index < 0 or index >= _target_rows.size():
+		return
+	target_selected.emit(str(_target_rows[index].id))
+
+
+## The contextual choice floats above the board, anchored beside the clicked
+## target cell. Deterministic candidate order with edge flipping keeps the
+## panel inside the viewport and the footer band, near the target, and never
+## over the target cell or the selected hero.
+const CHOICE_GAP := 8.0
+
+
+func _build_target_choices() -> void:
+	# Added after the footer so the panel draws above the board and rail, and
+	# before the leaf and forfeit overlays so those stay on top when opened.
+	# The z layer matches the interactive chrome: above the book and footer
+	# frames on surround boards, below the forfeit confirmation modal.
+	_target_choice_box = HBoxContainer.new()
+	_target_choice_box.add_theme_constant_override("separation", 6)
+	_target_choice_box.z_index = 6
+	_target_choice_box.visible = false
+	_surface_root.add_child(_target_choice_box)
+
+
+func _place_target_choices() -> void:
+	if not is_instance_valid(_target_choice_box) or _target_choice_buttons.is_empty():
+		return
+	if not is_instance_valid(_board) or _target_rows.is_empty() or not _target_rows[0].has("position"):
+		return
+	var box := _target_choice_box
+	box.size = box.get_combined_minimum_size()
+	# Board geometry and the covered-hero rect are identical for every
+	# candidate, so compute them once and share the results.
+	var transform := _board.get_global_transform_with_canvas()
+	var cell_size := _cell_size_global()
+	var center: Vector2 = transform * _board.cell_center(_target_rows[0].position)
+	var cell_rect := Rect2(center - cell_size * 0.5, cell_size)
+	var selected_rect: Variant = null
+	if _choice_selected_cell is Vector2i:
+		var selected_center: Vector2 = transform * _board.cell_center(_choice_selected_cell)
+		selected_rect = Rect2(selected_center - cell_size * 0.5, cell_size)
+	var available := _choice_available_rect()
+	var box_size := box.size
+	var candidates := [
+		Vector2(center.x - box_size.x * 0.5, cell_rect.end.y + CHOICE_GAP),
+		Vector2(center.x - box_size.x * 0.5, cell_rect.position.y - CHOICE_GAP - box_size.y),
+		Vector2(cell_rect.end.x + CHOICE_GAP, center.y - box_size.y * 0.5),
+		Vector2(cell_rect.position.x - CHOICE_GAP - box_size.x, center.y - box_size.y * 0.5),
+	]
+	var chosen: Variant = null
+	for candidate in candidates:
+		if _choice_placement_ok(Rect2(candidate, box_size), cell_rect, selected_rect, available):
+			chosen = candidate
+			break
+	if chosen == null:
+		# Degenerate layout: keep the first candidate inside the available area.
+		chosen = _clamp_into_area(candidates[0], box_size, available)
+	box.global_position = chosen
+
+
+func _choice_placement_ok(rect: Rect2, cell_rect: Rect2, selected_rect: Variant, available: Rect2) -> bool:
+	if not available.encloses(rect) or rect.intersects(cell_rect):
+		return false
+	# A null selected rect means no selected hero to keep clear.
+	if selected_rect != null and rect.intersects(selected_rect):
+		return false
+	return true
+
+
+func _choice_available_rect() -> Rect2:
+	var area := Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size)
+	if is_instance_valid(_footer):
+		var top: float = _footer.get_global_rect().position.y
+		if top > area.position.y:
+			area.size.y = minf(area.size.y, top)
+	return area
+
+
+func _clamp_into_area(point: Vector2, box_size: Vector2, area: Rect2) -> Vector2:
+	return Vector2(
+		clampf(point.x, area.position.x, maxf(area.position.x, area.end.x - box_size.x)),
+		clampf(point.y, area.position.y, maxf(area.position.y, area.end.y - box_size.y)))
+
+
+func _cell_size_global() -> Vector2:
+	var diagonal: Vector2 = _board.cell_center(Vector2i(1, 1)) - _board.cell_center(Vector2i(0, 0))
+	return Vector2(absf(diagonal.x), absf(diagonal.y))
 
 
 func _refresh_orders(rows: Array) -> void:
@@ -1150,22 +1264,6 @@ func _add_order(hero: String, label: String) -> void:
 			order_selected.emit(hero, str(items[index].id)))
 
 
-func _fit_actions_caption(content_width: float) -> void:
-	# Reserve the real minimums of the visible rail controls, including Targets
-	# when offered. The authored caption may use what's left, not widen the rail.
-	var available := content_width
-	var gap := _rail_controls.get_theme_constant("separation")
-	for child: Control in _rail_controls.get_children():
-		if child != _actions and child.visible:
-			available -= child.get_combined_minimum_size().x + gap
-	var caption_width := _actions.get_theme_font("font").get_string_size(_actions.text, HORIZONTAL_ALIGNMENT_LEFT,
-		-1, _actions.get_theme_font_size("font_size")).x
-	# With overrun trimming enabled, the button's native minimum contains its
-	# frame and arrow, but no width from the text itself.
-	var base_width := _actions.get_minimum_size().x
-	_actions.custom_minimum_size.x = minf(maxf(available, base_width), ceilf(base_width + caption_width))
-
-
 func _layout_page() -> void:
 	if not _built or not is_instance_valid(_forfeit_panel):
 		return
@@ -1174,7 +1272,6 @@ func _layout_page() -> void:
 		return
 	var margin := CONTENT_MARGIN
 	var content_width := maxf(0.0, size.x - margin * 2.0)
-	_fit_actions_caption(content_width)
 	var footer_height := maxf(72.0, _footer.get_combined_minimum_size().y)
 	var footer_top := size.y - EDGE - 11.0 - footer_height
 	_rail_top = footer_top - 9.0
@@ -1220,6 +1317,7 @@ func _layout_page() -> void:
 	_footer.position = Vector2(margin, footer_top)
 	_footer.size = Vector2(content_width, footer_height)
 	_forfeit_panel.custom_minimum_size.x = minf(FORFEIT_LEAF_WIDTH, content_width)
+	_place_target_choices()
 	_book.queue_redraw()
 
 

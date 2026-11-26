@@ -6,6 +6,7 @@ const Rules = preload("res://rules/rules.gd")
 const SMITH := "blacksmith"
 const KNIGHT := "knight"
 const TARGET := "practice_raider"
+const TARGET_CELL := Vector2i(3, 1)
 
 
 func _run() -> void:
@@ -61,17 +62,14 @@ func _earlier_smith(defs: Dictionary) -> void:
 	if not await driver.select_actor(KNIGHT):
 		_check(false, "Select Knight after earlier Smith: " + driver.error)
 		return
-	var earlier_label := _push_picker_label()
+	var earlier_label := _push_label(opening)
 	_check(earlier_label.contains("Push → Pull"),
-		"Earlier Smith's actual Actions entry names the Push → Pull conversion: " + earlier_label)
-	if not await _choose_push_or_pull():
-		_check(false, "Earlier standing Smith enables Knight's aimed Push/Pull in the actual Actions picker: " + driver.error)
-		return
-	var target_ids: Array = (scene.get("_targets") as Array).map(func(choice: Dictionary): return choice.id)
-	_check(TARGET in target_ids, "Knight's picker offers the distance-two Pull target before Push would reach")
-	_check(scene.battle_snapshot() == opening, "Opening the picker does not apply the fitting or mutate battle state")
+		"Earlier Smith's actual command label names the Push → Pull conversion: " + earlier_label)
+	_check(TARGET_CELL in _marked_cells(),
+		"Knight's selection marks the distance-two Pull target before Push would reach")
+	_check(scene.battle_snapshot() == opening, "Selecting and marking do not apply the fitting or mutate battle state")
 	if not await driver.target(TARGET):
-		_check(false, "Knight can select the ranged Pull target: " + driver.error)
+		_check(false, "Knight can stage the ranged Pull target: " + driver.error)
 		return
 	var planned: Dictionary = scene.get("_planned_state")
 	var overrides: Dictionary = planned.get("overrides", {})
@@ -86,8 +84,8 @@ func _earlier_smith(defs: Dictionary) -> void:
 		return
 	_check(scene.battle_snapshot() == opening and (scene.get("_planned_state") as Dictionary).get("overrides", {}).is_empty(),
 		"Clearing the command restores the same unmodified opening")
-	if not await driver.select_actor(KNIGHT) or not await _choose_push_or_pull() or not await driver.target(TARGET):
-		_check(false, "Pull can be selected again after clearing: " + driver.error)
+	if not await driver.select_actor(KNIGHT) or not await driver.target(TARGET):
+		_check(false, "Pull can be staged again after clearing: " + driver.error)
 		return
 	_check(scene.get("_plan") == forecast, "Restaging forecasts the same round without preview mutation")
 	await _press("Commit")
@@ -101,56 +99,39 @@ func _later_smith(defs: Dictionary) -> void:
 	if not await driver.select_actor(KNIGHT):
 		_check(false, "Select earlier Knight: " + driver.error)
 		return
-	var later_label := _push_picker_label()
+	var later_label := _push_label(opening)
 	_check(later_label.begins_with("Push") and not later_label.contains("Pull")
 		and not later_label.contains("→"),
-		"Later Smith leaves the current Actions entry labeled ordinary Push: " + later_label)
-	# The source action may be disabled when its ordinary Push has no target.
-	if await _choose_push_or_pull():
-		var ids: Array = (scene.get("_targets") as Array).map(func(choice: Dictionary): return choice.id)
-		_check(TARGET not in ids, "A later Smith cannot offer ranged Pull at Knight's already-passed slot")
-		if not await driver.clear():
-			_check(false, "Cancel unpreviewed Push aiming before committing standing orders: " + driver.error)
-			return
-		_check(not scene.get("_unpreviewed_edit")
-			and (scene.get("_planned_state") as Dictionary).get("overrides", {}).is_empty(),
-			"Cancel leaves no unfinished aim or direct command")
+		"Later Smith leaves the current command labeled ordinary Push: " + later_label)
+	_check(TARGET_CELL not in _marked_cells(),
+		"A later Smith cannot offer ranged Pull at Knight's already-passed slot")
+	_check((scene.get("_planned_state") as Dictionary).get("overrides", {}).is_empty(),
+		"An out-of-reach Pull leaves no direct command staged")
 	var forecast: Dictionary = (scene.get("_plan") as Dictionary).duplicate(true)
 	_check(_unit(forecast.get("result", {}), TARGET).get("position") == Vector2i(3, 1),
 		"Later standing Try This does not retroactively pull during Knight's turn")
 	_check(scene.battle_snapshot() == opening, "Later-Smith forecast does not mutate the opening")
 	await _press("Commit")
 	_check(scene.battle_snapshot() == forecast.get("result"), "Later-Smith commit matches its forecast")
-	if not await driver.select_actor(KNIGHT) or not await _choose_push_or_pull():
+	if not await driver.select_actor(KNIGHT):
 		_check(false, "Later fitting makes Pull available on Knight's next activation: " + driver.error)
 		return
-	var next_ids: Array = (scene.get("_targets") as Array).map(func(choice: Dictionary): return choice.id)
-	_check(TARGET in next_ids, "Fitting delivered after Knight's turn remains for next round's ranged Pull")
+	_check(TARGET_CELL in _marked_cells(),
+		"Fitting delivered after Knight's turn remains for next round's ranged Pull")
 
 
-func _push_picker_label() -> String:
-	var menu := scene.find_child("Actions", true, false) as MenuButton
-	if menu != null and menu.is_visible_in_tree():
-		var popup := menu.get_popup()
-		for index in popup.item_count:
-			var text := popup.get_item_text(index)
-			if text.begins_with("Push") or text.begins_with("Pull"):
-				return text
-	return ""
+## The label the controls derive their text from: the fitted or ordinary form
+## of the Knight's Push (`knight_push`) as the Knight's own turn starts.
+func _push_label(state: Dictionary) -> String:
+	var context: Dictionary = driver.rules.state_before_action(state, KNIGHT)
+	return str(driver.rules.command_ability(context, KNIGHT, "knight_push").get("label", ""))
 
 
-func _choose_push_or_pull() -> bool:
-	var menu := scene.find_child("Actions", true, false) as MenuButton
-	if menu == null or not menu.is_visible_in_tree() or menu.disabled:
-		return false
-	var popup := menu.get_popup()
-	for index in popup.item_count:
-		var text := popup.get_item_text(index)
-		if (text.begins_with("Push") or text.begins_with("Pull")) and not popup.is_item_disabled(index):
-			popup.id_pressed.emit(popup.get_item_id(index))
-			await process_frame
-			return true
-	return false
+func _marked_cells() -> Array:
+	var board := scene.find_child("BridgeBoard", true, false) as Control
+	if board == null:
+		return []
+	return (board.get("_overlay") as Dictionary).get("targets", [])
 
 
 func _unit(state: Dictionary, id: String) -> Dictionary:

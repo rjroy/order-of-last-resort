@@ -514,18 +514,10 @@ func _commit_battle_command(description: String) -> bool:
 
 
 func _command_blast(state: Dictionary) -> void:
-	var board := _node("BridgeBoard") as Control
-	var position := Vector2i(-1, -1)
-	for unit in state.get("units", []):
-		if unit.id == "healer":
-			position = unit.position
-	if board == null or position == Vector2i(-1, -1):
-		_check(false, "Healer is visible for direct Blast")
+	var driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
+	if not await driver.command("healer", "wizard_blast", ""):
+		_check(false, "Player can stage the actual shared Blast as Healer: " + driver.error)
 		return
-	await _settlement_click(board.get_global_transform_with_canvas() * board.cell_center(position))
-	var page: Node = scene.get("_storybook_page")
-	page.emit_signal("action_selected", "wizard_blast")
-	await process_frame
 	var staged: Dictionary = scene.get("_planned_state")
 	_check(staged.get("overrides", {}).get("healer", {}).get("ability_id") == "wizard_blast",
 		"Player can stage the actual shared Blast as Healer")

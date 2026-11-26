@@ -76,14 +76,11 @@ func _run() -> void:
 		and ForfeitControls.button(root, ["cancel"]) == null,
 		"Default Enter cancels instead of forfeiting")
 
-	# Start over and queue an aimed command using the actual storybook controls.
+	# Start over and queue a command using the actual target-first controls.
 	if not await _click_button("Restart"):
 		_finish()
 		return
 	await _click_cell(board, _unit(opening, "wizard").position)
-	if not await _choose_action("wizard_pull"):
-		_finish()
-		return
 	await _click_cell(board, _unit(opening, "healer").position)
 	var before: Dictionary = scene.battle_snapshot().duplicate(true)
 	var queued: Dictionary = scene.get("_planned_state").duplicate(true)
@@ -91,11 +88,11 @@ func _run() -> void:
 	var actor: String = scene.get("_actor_id")
 	var ability: String = scene.get("_ability_id")
 	var target: String = scene.get("_target_id")
-	var aiming: bool = scene.get("_storybook_aiming")
 	var targets: Array = (scene.get("_targets") as Array).duplicate(true)
 	var highlights := _highlighted_cells(board).duplicate(true)
 	_check(queued.get("overrides", {}).get("wizard", {}).get("ability_id") == "wizard_pull"
-		and aiming and not targets.is_empty(), "Fixture queues Pull while retaining aim")
+		and not targets.is_empty() and not highlights.is_empty(),
+		"Fixture queues Pull while keeping its legal targets marked")
 	escape = ForfeitControls.button(root, ["forfeit"])
 	if escape == null:
 		_check(false, "Forfeit remains available with a queued aimed command")
@@ -121,9 +118,9 @@ func _run() -> void:
 	_check(scene.battle_snapshot() == before and scene.get("_planned_state") == queued
 		and scene.get("_plan") == plan and scene.get("_actor_id") == actor
 		and scene.get("_ability_id") == ability and scene.get("_target_id") == target
-		and scene.get("_storybook_aiming") == aiming and scene.get("_targets") == targets
+		and scene.get("_targets") == targets
 		and _highlighted_cells(board) == highlights,
-		"Cancel restores exact battle, queue, forecast, editor and aim")
+		"Cancel restores exact battle, queue, forecast, editor and marks")
 	await _open_order_popup_accessibility()
 
 	# Confirm the actual lone-survivor case, not a normal opening.

@@ -121,9 +121,10 @@ func _exercise(example: Dictionary, interactive: bool) -> void:
 		return
 	if not target.is_empty():
 		if example.has("target_position"):
-			var candidates: Array = scene.get("_targets")
-			_check(candidates.any(func(choice: Dictionary): return str(choice.get("id")) == target \
-				and choice.get("position") == example.target_position), id + ": intended target position offered")
+			# The union of the selected hero's legal targets must include the
+			# fixture's intended destination.
+			var marks: Array = (board.get("_overlay") as Dictionary).get("targets", [])
+			_check(example.target_position in marks, id + ": intended target position is marked")
 		if not await driver.target(target):
 			_check(false, id + ": " + driver.error)
 			return

@@ -139,20 +139,10 @@ func _stage_best_command() -> void:
 					best = {"actor": actor, "ability": option.id, "target": target.id}
 	if best.is_empty():
 		return
-	var board := _node("BridgeBoard") as Control
-	var actor_position := Vector2i(-1, -1)
-	for unit in state.get("units", []):
-		if unit.id == best.actor:
-			actor_position = unit.position
-	if board == null or actor_position == Vector2i(-1, -1):
-		_check(false, "Chosen actor is visible on the storybook board")
+	var driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
+	if not await driver.command(best.actor, best.ability, str(best.target)):
+		_check(false, "Storybook command editor stages the chosen legal action: " + driver.error)
 		return
-	await _settlement_click(board.get_global_transform_with_canvas() * board.cell_center(actor_position))
-	var page: Node = scene.get("_storybook_page")
-	page.emit_signal("action_selected", best.ability)
-	if not best.target.is_empty():
-		page.emit_signal("target_selected", best.target)
-	await process_frame
 	var staged: Dictionary = scene.get("_planned_state")
 	_check(staged.get("overrides", {}).get(best.actor, {}).get("ability_id") == best.ability,
 		"Storybook command editor stages the chosen legal action")

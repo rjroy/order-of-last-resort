@@ -578,6 +578,14 @@ func _check_symbol_topic() -> void:
 				break
 		_check(heading != null and heading.size.x > 0.0 and heading.size.y > 0.0,
 			"Statuses page lays out its section heading")
+		var samples: Array = []
+		for node in scene.find_children("SymbolSample_*", "", true, false):
+			if node is Control and node.is_visible_in_tree():
+				samples.append(node)
+		_check(samples.size() == 7, "Statuses page shows seven symbol samples: " + str(samples.size()))
+		for sample in samples:
+			_check(sample.visible and sample.size.x > 0.0 and sample.size.y > 0.0,
+				"Symbol sample is visible with nonzero size: " + str(sample.name))
 		var index := _button_containing("index")
 		await _activate(index, "Return to help index")
 

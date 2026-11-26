@@ -4,6 +4,7 @@ extends CanvasLayer
 const Preferences = preload("res://presentation/settings/battle_display_preferences.gd")
 const Prep = preload("res://presentation/book/guild_prep_widgets.gd")
 const VolumeControls = preload("res://presentation/settings/volume_controls.gd")
+const HelpSymbolMark = preload("res://presentation/help/help_symbol_mark.gd")
 const TOPICS := {
 	"Found a guild": ["Name your guild and choose Create guild. Your guild keeps its points and purchases between commissions.", ""],
 	"Choose a commission": ["Choose a destination and commission length. Choosing a commission starts recruitment; it does not start a battle. The illustrated commission is an example.", "commission-selection"],
@@ -11,6 +12,7 @@ const TOPICS := {
 	"Field reports": ["Read both reports and choose a route. Each report describes the next mission and only hints at what follows. The reports shown are examples.", "field-reports"],
 	"Combat controls": ["Select a hero and a destination to plan a move, or choose Actions and a target. The command is only a preview until you commit.", "battle-controls"],
 	"Battle board": ["Select a hero or a target on the board. The highlighted cells show the current choices.", "battle-board"],
+	"Statuses and symbols": ["Reaction marks are coloured seals on the board; character statuses appear as words when you select a unit.", ""],
 	"Commit a round": ["Commit plays the forecasted round. Until then you can change or clear your command.", "battle-commit"],
 	"Standing orders": ["Each hero follows their standing order every round unless you directly command that hero. Change orders using Standing orders.", ""],
 	"Direct command": ["One hero can receive a direct command for this round. The other heroes follow their standing orders; the replaced order returns next round.", "battle-controls"],
@@ -20,6 +22,15 @@ const TOPICS := {
 	"Practice lesson": ["Replay the practice lesson from the commission board. Practice has no payout or lasting wounds and does not replace a live commission.", ""],
 	"Credits": ["Game designer", ""],
 }
+const SYMBOL_SECTIONS := [
+	{"heading": "Reaction marks", "body": "Alchemy reactions leave a coloured seal on the character. A green plus is beneficial, a red exclamation mark is harmful, and a purple mark is cosmetic.", "marks": [{"category": "beneficial", "reaction_id": "emergency_crust"}, {"category": "harmful", "reaction_id": "thin_skinned"}, {"category": "cosmetic", "reaction_id": "upward_rain"}]},
+	{"heading": "Beneficial reactions", "body": "Emergency Crust absorbs 1 damage from the next hit.\nSecond Helping heals 1 HP at the end of the round if the character still stands.\nCork Soles blocks the next forced move.\nStiff Upper Lip blocks the next knockdown.\nPocket Paramedic leaves the character at 1 HP after the next lethal hit.\nGood Company heals 1 HP at the end of the round if a friend stands beside them.\nDuck! reduces the next hit from more than one tile away by 1.\nMedicinal Aftertaste adds 1 HP to the next heal."},
+	{"heading": "Harmful reactions", "body": "Thin-Skinned takes 1 extra damage from the next hit.\nRepeating Lunch loses 1 HP at the end of the round if the character still stands.\nBall Bearings sends the next forced move 1 extra tile if the path is clear.\nJelly Knees knocks the character down; they spend the next turn getting up.\nNo Refills removes 1 HP from the next heal.\nStage Fright loses 1 HP at the end of the round if a foe stands beside them.\nHandle With Care takes 1 extra damage from the next adjacent hit.\nBoot Toffee blocks the next voluntary move."},
+	{"heading": "Cosmetic reactions", "body": "Upward Rain, Cork Moon, FINE Bubbles and Spectral Napkin change only the character's idle animation and have no gameplay effect.", "marks": [{"category": "cosmetic", "reaction_id": "upward_rain"}, {"category": "cosmetic", "reaction_id": "cork_moon"}, {"category": "cosmetic", "reaction_id": "fine_bubbles"}, {"category": "cosmetic", "reaction_id": "spectral_napkin"}]},
+	{"heading": "Forecast and expiry", "body": "A forecast mark shows the reaction a character is about to receive before you commit. The committed mark fades after the round plays. Most beneficial and harmful reactions expire at the end of the next round if unused. Reactions that act at the end of a round are cleared when that round ends, and Jelly Knees is cleared when the character gets up."},
+	{"heading": "Reward statuses", "body": "These appear as words when you select a unit.\nBorrowed Courage reduces the next hit on a protected ally.\nBody Double sends the first attack aimed at the Daft Dodger before their next turn to their swap partner instead.\nDropped guard means the next hit deals extra damage.\nHeckling the Bard makes the target direct their next attack at the Bad Bard if able.\nReinforced Rivets absorbs 1 damage from the next hit per copy; unused protection expires with the fitting.\nInspired improves the next performed ability.\nKeep Your Head Down absorbs damage from the next hit before the character's turn ends.\nLend a Shield absorbs damage from the next hit before the character's turn ends.\nSteady Hands reduces the next hit by 1 before the character's next turn."},
+	{"heading": "Conditions", "body": "Laughing; skips next turn means the character loses their next turn to laughter and is then immune to laughter for the next round.\nHeld in place stops movement until the end of the character's turn.\nMisled sends the character's next attack to another target near the rogue.\nReflecting aura turns an adjacent attack on a nearby enemy.\nDown means knocked down; the character spends the next turn getting up.\nTaunted means the character's attacks are directed at the taunting hero this turn if able.\nCaught by Tripwire blocks the next voluntary move.\nJelly Knees: Down means the reaction knocked the character down; they spend the next turn getting up."},
+]
 const CAPTIONS := {
 	"commission-selection": "Example: choose a destination from the commission board.",
 	"recruitment": "Recruit three heroes and arrange their deployment order.",
@@ -312,6 +323,8 @@ func _show_topic(topic: String) -> void:
 			_return_to_options = false
 			_close()
 			get_parent().replay_practice())
+	if topic == "Statuses and symbols":
+		_add_symbol_sections(content)
 	var image_path: String = "" if topic.is_empty() else TOPICS[topic][1]
 	if not image_path.is_empty():
 		var path := "res://assets/help/" + image_path + ".png"
@@ -353,6 +366,76 @@ func _show_topic(topic: String) -> void:
 		_add_credit_link(content, "OpenAI", "https://openai.com/")
 		_add_credit_link(content, "Mirli", "https://mirli.app/")
 	selected_entry.grab_focus()
+
+
+func _add_symbol_sections(content: VBoxContainer) -> void:
+	for section in SYMBOL_SECTIONS:
+		_add_gap(content, 12)
+		var heading := Label.new()
+		heading.text = str(section.heading)
+		heading.add_theme_color_override("font_color", Color("#523b29"))
+		heading.add_theme_font_size_override("font_size", 24)
+		heading.add_theme_font_override("font", Prep.serif())
+		heading.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		content.add_child(heading)
+		var body := Label.new()
+		body.text = str(section.body)
+		body.add_theme_color_override("font_color", Color("#35241b"))
+		body.add_theme_font_size_override("font_size", 18)
+		body.add_theme_font_override("font", Prep.serif())
+		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		content.add_child(body)
+		var marks: Array = section.get("marks", [])
+		if not marks.is_empty():
+			_add_gap(content, 6)
+			var row := HBoxContainer.new()
+			row.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+			row.add_theme_constant_override("separation", 18)
+			content.add_child(row)
+			for entry in marks:
+				var column := VBoxContainer.new()
+				column.custom_minimum_size.x = 96
+				row.add_child(column)
+				var sample := HelpSymbolMark.new()
+				sample.category = str(entry.category)
+				sample.reaction_id = str(entry.reaction_id)
+				if str(entry.reaction_id).is_empty():
+					sample.name = "SymbolSample_" + str(entry.category)
+				else:
+					sample.name = "SymbolSample_" + str(entry.category) + "_" + str(entry.reaction_id)
+				sample.custom_minimum_size = Vector2(72, 72)
+				column.add_child(sample)
+				var caption_text := _caption_for(str(section.heading), str(entry.category), str(entry.reaction_id))
+				var caption := Label.new()
+				caption.text = caption_text
+				caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				caption.add_theme_color_override("font_color", Color("#523b29"))
+				caption.add_theme_font_size_override("font_size", 15)
+				caption.add_theme_font_override("font", Prep.serif())
+				column.add_child(caption)
+				sample.tooltip_text = caption_text + " reaction mark"
+
+
+func _add_gap(content: VBoxContainer, height: int) -> void:
+	var gap := Control.new()
+	gap.custom_minimum_size.y = height
+	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(gap)
+
+
+func _caption_for(heading: String, category: String, reaction_id: String) -> String:
+	if heading == "Reaction marks":
+		match category:
+			"beneficial": return "Beneficial"
+			"harmful": return "Harmful"
+			_: return "Cosmetic"
+	match reaction_id:
+		"upward_rain": return "Upward Rain"
+		"cork_moon": return "Cork Moon"
+		"fine_bubbles": return "FINE Bubbles"
+		"spectral_napkin": return "Spectral Napkin"
+	return category.capitalize()
 
 
 func _add_credit_link(content: VBoxContainer, title: String, uri: String) -> void:

@@ -1675,7 +1675,7 @@ func _render_storybook() -> void:
 		"targets": target_choices, "selected_cell": selected_cell,
 		"command_summary": summary, "inspection": inspection,
 		"locked_dose": locked_dose,
-		"forecast": "\n".join(events), "can_clear": _ongoing() and (not commanded.is_empty() or _unpreviewed_edit),
+		"forecast": "\n".join(events), "can_clear": _ongoing() and (not commanded.is_empty() or _unpreviewed_edit or not _actor_id.is_empty()),
 		"clear_label": "Clear command", "can_commit": _can_commit(), "outcome": _state.outcome,
 		"can_restart": not _fixed_mission.is_empty(), "upgrades_text": "\n".join(upgrades)})
 	if _practice != null:
@@ -1764,6 +1764,7 @@ func _clear_command() -> void:
 	if _forfeit_confirmation_open():
 		return
 	_planned_state = _rules.clear_manual(_planned_state)
+	_actor_id = ""
 	_cancel_transient_edit()
 
 

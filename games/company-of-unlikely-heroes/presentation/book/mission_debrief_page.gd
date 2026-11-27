@@ -114,14 +114,17 @@ func _build_pending(page: VBoxContainer, model: Dictionary) -> void:
 		actions[0].grab_focus()
 
 
-func _build_pending_notes(page: VBoxContainer, carry: String, scout_note: String) -> void:
+func _build_pending_notes(page: VBoxContainer, carry: Variant, scout_note: String) -> void:
 	rule(page)
 	var folio := row(page, 16)
 	var company := stack(folio, 4)
 	company.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	company.size_flags_stretch_ratio = 1.16
-	_add_notes(company, "PendingCarryScroll", "What carries forward", carry, "CarryReport",
-		17, 15)
+	_compact_font(strong_text(company, "What carries forward", 24), 20)
+	var carry_scroll := detail_scroll(company, "PendingCarryScroll", 78, "Scroll what carries forward")
+	_layout_changes.append(func(compact: bool) -> void:
+		carry_scroll.custom_minimum_size.y = 60 if compact else 78)
+	_build_carry(carry_scroll, carry, true)
 	if not scout_note.is_empty():
 		var divider := VSeparator.new()
 		divider.self_modulate = PRINT_RULE
@@ -150,7 +153,7 @@ func _build_settled(page: VBoxContainer, model: Dictionary) -> void:
 	var record := stack(reading, 12)
 	record.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_compact_font(strong_text(record, "What carries forward", 35), 28)
-	_compact_font(text(record, model.carry, 21, INK, "display"), 17).name = "CarryReport"
+	_build_carry(record, model.carry, false)
 	if not model.scout_note.is_empty():
 		space(record, 12)
 		rule(record, PRINT_RULE)
@@ -184,6 +187,29 @@ func _add_notes(parent: VBoxContainer, scroll_name: String, heading: String, wor
 	var lines := _compact_font(text(scroll, words, points, INK, "display"), compact_points)
 	lines.name = label_name
 	lines.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+
+func _build_carry(parent: Control, carry: Variant, pending: bool) -> void:
+	if carry is String:
+		var lines := _compact_font(text(parent, carry, 17 if pending else 21, INK, "display"),
+			15 if pending else 17)
+		lines.name = "CarryReport"
+		lines.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		return
+	var entries := stack(parent, 7)
+	entries.name = "CarryReport"
+	entries.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for entry: Dictionary in carry:
+		var identity := stack(entries, 1)
+		identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_compact_font(strong_text(identity, str(entry.get("name", "")), 18 if pending else 23),
+			16 if pending else 19)
+		var epithet := str(entry.get("epithet", ""))
+		if not epithet.is_empty():
+			_compact_font(text(identity, epithet, 15 if pending else 18, SUBTLE, "display"),
+				13 if pending else 15)
+		_compact_font(text(identity, str(entry.get("details", "")), 17 if pending else 21, INK, "display"),
+			15 if pending else 17)
 
 
 func _build_reward(parent: Control, offer: Dictionary, pending: bool, solo: bool) -> Button:

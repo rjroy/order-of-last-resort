@@ -1006,6 +1006,8 @@ class Validator:
 
 	func _check_character(character: Dictionary, path: String) -> void:
 		_text(character.get("label"), path + ".label")
+		if character.has("epithet"):
+			_text(character.get("epithet"), path + ".epithet")
 		if _ref(character.get("class"), "classes", path + ".class"):
 			var profile := _effective_profile(character)
 			_check_profile(profile, path)

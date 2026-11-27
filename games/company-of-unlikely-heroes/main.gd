@@ -497,6 +497,7 @@ func _show_petitions(focus_name := "") -> void:
 		var row: Dictionary = rows[index]
 		var petition: Dictionary = petitions[index]
 		var hero_id := str(petition.get("hero_id", ""))
+		row["recipient_epithet"] = str(_definitions.get("characters", {}).get(hero_id, {}).get("epithet", ""))
 		for key in ["hero_id", "grant_kind", "recipient_label", "missing_prerequisites",
 				"missing_prerequisite_labels", "recipient_locked", "affordable"]:
 			if petition.has(key):
@@ -603,7 +604,7 @@ func _purchase_petition(id: String) -> void:
 func _hero_row(id: String) -> Dictionary:
 	var hero := Catalog.profile(_definitions, id)
 	var portrait := GuildBookArt.class_portrait(_portrait_identity(id))
-	return {"id": id, "name": str(hero.get("label", id)), "portrait": portrait,
+	return {"id": id, "name": str(hero.get("label", id)), "epithet": str(hero.get("epithet", "")), "portrait": portrait,
 		"summary": _recruit_summary(hero, id), "selected": id in _picked_recruits}
 
 
@@ -953,12 +954,11 @@ func _build_recruit(parent: GridContainer, id: String) -> void:
 		photo.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	var copy := _book.stack(entry, 4)
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_book.text(copy, profile.label, 23, GuildBookPage.INK, "display")
+	_book_identity_name(copy, str(profile.label), 23)
 	var class_text := _portrait_subtitle(id, str(profile.label))
-	var stats := "%d HP" % profile.max_hp
 	if not class_text.is_empty():
-		stats = class_text + "  ·  " + stats
-	_book.text(copy, stats, 13, GuildBookPage.FOREST)
+		_book.text(copy, class_text, 13, GuildBookPage.FOREST)
+	_book.text(copy, "%d HP" % profile.max_hp, 13, GuildBookPage.FOREST)
 	var abilities: PackedStringArray = []
 	for ability_id in profile.abilities:
 		abilities.append(_definitions.abilities[ability_id].label)
@@ -1005,8 +1005,15 @@ func _build_party_slot(parent: VBoxContainer, slot: int) -> void:
 	var portrait := GuildBookArt.class_portrait(_portrait_identity(id))
 	if portrait != null:
 		_book.plate(line, portrait, Vector2(39, 39), "portrait")
-	var label := _book.text(line, name_text, 19, GuildBookPage.SUBTLE if id.is_empty() else GuildBookPage.INK, "display")
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var identity := _book.stack(line, 1)
+	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if id.is_empty():
+		_book.text(identity, name_text, 19, GuildBookPage.SUBTLE, "display")
+	else:
+		_book_identity_name(identity, name_text, 19)
+		var epithet := _portrait_subtitle(id, name_text)
+		if not epithet.is_empty():
+			_book.text(identity, epithet, 13, GuildBookPage.SUBTLE)
 	line.custom_minimum_size.y = 49
 	_book.rule(parent)
 	if id.is_empty():
@@ -1057,8 +1064,17 @@ func _portrait_identity(character_id: String) -> String:
 	return str(_definitions.characters.get(character_id, {}).get("guild_portrait", ""))
 
 
+func _book_identity_name(parent: Control, words: String, size: int) -> Label:
+	var label := _book.text(parent, words, size, GuildBookPage.INK, "display")
+	var font := label.get_theme_font("font").duplicate() as SystemFont
+	font.font_weight = 700
+	label.add_theme_font_override("font", font)
+	return label
+
+
 func _portrait_subtitle(character_id: String, character_label: String) -> String:
-	var class_label := GuildBookArt.class_label(_portrait_identity(character_id))
+	var character: Dictionary = _definitions.characters.get(character_id, {})
+	var class_label := str(character.get("epithet", GuildBookArt.class_label(_portrait_identity(character_id))))
 	return "" if class_label == character_label else class_label
 
 
@@ -1125,7 +1141,7 @@ func _show_debrief() -> void:
 		"offers": offers,
 		"claimed": {} if chosen.is_empty() else _debrief_reward(chosen),
 		"receipt": _receipt_summary(Adventure.receipt(_run)) if _uses_builtin_catalog else "",
-		"carry": _debrief_carry_lines(pending),
+		"carry": _debrief_carry_entries(pending),
 		"scout_note": str(_run.get("scout_note", "")),
 		"next_title": "" if next_mission.is_empty() else _mission_title_for(next_mission),
 		"next_is_fork": _run.phase == "route",
@@ -1168,8 +1184,8 @@ func _continue_after_debrief() -> void:
 			_begin_mission()
 
 
-func _debrief_carry_lines(compact: bool) -> String:
-	var lines: PackedStringArray = []
+func _debrief_carry_entries(compact: bool) -> Array[Dictionary]:
+	var entries: Array[Dictionary] = []
 	for id in _run.party:
 		var before: Dictionary = _run.last_result.heroes_by_id[id]
 		var after: Dictionary = _run.carry_by_id[id]
@@ -1183,16 +1199,13 @@ func _debrief_carry_lines(compact: bool) -> String:
 			recovery = "  ·  Recovered from knockdown"
 		var order: Dictionary = _definitions.orders.get(after.order, {})
 		var name_text: String = before.label
-		var class_text := _portrait_subtitle(str(id), name_text)
-		if not class_text.is_empty():
-			name_text += " (%s)" % class_text
-		var line := "%s   %d/%d HP → %d/%d HP%s%s" % [
-			name_text, before.hp, before.max_hp, next_hp, max_hp,
+		var line := "%d/%d HP → %d/%d HP%s%s" % [
+			before.hp, before.max_hp, next_hp, max_hp,
 			wounds, recovery]
 		line += "  ·  Order: %s" % order.get("label", "None") if compact \
 			else "\nStanding order: %s" % order.get("label", "None")
-		lines.append(line)
-	return ("\n" if compact else "\n\n").join(lines)
+		entries.append({"name": name_text, "epithet": _portrait_subtitle(str(id), name_text), "details": line})
+	return entries
 
 
 func _show_result() -> void:
@@ -1532,13 +1545,15 @@ func _render_storybook() -> void:
 	var commanded := _commanded_hero()
 	for unit in _roster():
 		var hero_label := _name_for(unit.id)
+		var epithet := str(_rules.entity_profile(_state, unit.id).get("epithet", ""))
 		if unit.hp > 0:
-			heroes.append({"id": unit.id, "label": hero_label})
+			heroes.append({"id": unit.id, "name": hero_label,
+				"label": hero_label if epithet.is_empty() else hero_label + " - " + epithet})
 		var choices: Array = []
 		for choice in _rules.options(_state, unit.id):
 			if choice.kind == "order":
 				choices.append({"id": choice.id, "label": choice.label})
-		orders.append({"hero_id": unit.id, "hero_label": hero_label,
+		orders.append({"hero_id": unit.id, "hero_label": hero_label, "epithet": epithet,
 			"order_id": _state.orders.get(unit.id, ""), "choices": choices,
 			"enabled": _can_change_battle_order(unit.id), "overridden": _ongoing() and unit.id == commanded,
 			"hp": "%d/%d HP" % [unit.hp, unit.max_hp]})
@@ -1571,18 +1586,29 @@ func _render_storybook() -> void:
 		if first_sentence >= 0:
 			headline = headline.substr(0, first_sentence + 1)
 	var inspection := _storybook_inspection
+	var inspection_name := ""
+	var inspection_epithet := ""
+	for unit in _state.units:
+		if unit.position == _storybook_inspected_cell and unit.hp > 0:
+			inspection_epithet = str(_rules.entity_profile(_state, unit.id).get("epithet", ""))
+			if not inspection_epithet.is_empty():
+				inspection_name = _name_for(unit.id)
+			break
 	if not _editor_unavailable_reason.is_empty():
 		inspection = _editor_unavailable_reason if inspection.is_empty() else _editor_unavailable_reason + " · " + inspection
-	var upgrades: PackedStringArray = []
+	var upgrades: Array[Dictionary] = []
 	for unit in _roster():
 		var owned: Dictionary = _run.get("upgrades_by_id", {}).get(unit.id, {})
 		if owned.is_empty():
 			continue
-		upgrades.append(_name_for(unit.id))
+		var upgrade_details: PackedStringArray = []
 		for id in owned:
 			var upgrade: Dictionary = _definitions.upgrades[id]
-			upgrades.append("%s · %s · %d of %d acquired\n%s" % [
+			upgrade_details.append("%s · %s · %d of %d acquired\n%s" % [
 				upgrade.label, upgrade.rarity.capitalize(), owned[id], upgrade.cap, upgrade.description])
+		upgrades.append({"name": _name_for(unit.id),
+			"epithet": str(_rules.entity_profile(_state, unit.id).get("epithet", "")),
+			"details": upgrade_details})
 	var deadline: int = _rules.deadline(_state)
 	var round_label := "Round %d / %d" % [_state.round, deadline] if deadline > 0 else "Round %d" % _state.round
 	var status := _objective_progress_text(_state, progress) if _ongoing() else ""
@@ -1595,11 +1621,12 @@ func _render_storybook() -> void:
 		"actions": _editor_actions.values(), "orders": orders, "aim_prompt": _aim_prompt(),
 		"targets": target_choices, "selected_cell": selected_cell,
 		"command_summary": _draft_summary, "inspection": inspection,
+		"inspection_name": inspection_name, "inspection_epithet": inspection_epithet,
 		"locked_dose": _locked_dose_text(),
 		"forecast": "\n".join(events), "can_clear": not commanded.is_empty() or not _actor_id.is_empty(),
 		"clear_label": "Clear selection" if commanded.is_empty() else "Clear command",
 		"can_commit": _can_commit(), "outcome": _state.outcome,
-		"can_restart": not _fixed_mission.is_empty(), "upgrades_text": "\n".join(upgrades)})
+		"can_restart": not _fixed_mission.is_empty(), "upgrades": upgrades})
 	if _practice != null:
 		_practice_instructions.render(_practice.step(_state, _plan, _is_aiming()),
 			_practice.forecast_open, _practice.can_commit(), _actor_id == PracticeLesson.CASTER)

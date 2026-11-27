@@ -133,11 +133,14 @@ var _forfeit_copy: Label
 var _forfeit_cancel: Button
 var _forfeit_confirm: Button
 var _upgrade_dialog: AcceptDialog
-var _upgrade_text: Label
+var _upgrade_entries: VBoxContainer
+var _upgrade_rows: Array = []
 var _draft_scroll: ScrollContainer
 var _summary: Label
 var _aim_prompt: Label
 var _inspection: Label
+var _inspection_name: Label
+var _inspection_epithet: Label
 var _unavailable_note: Label
 var _field_reader: FieldReader
 var _field_heading: Label
@@ -250,8 +253,9 @@ func render(view: Dictionary) -> void:
 	_round.text = round_label
 	_restart.visible = view.get("can_restart", true)
 	_restart.accessibility_description = "Mission ended in defeat." if outcome == "defeat" else ""
-	_upgrade_text.text = view.get("upgrades_text", "")
-	_upgrades.visible = not _restart.visible and not _upgrade_text.text.is_empty()
+	var upgrades: Array = view.get("upgrades", [])
+	_refresh_upgrades(upgrades)
+	_upgrades.visible = not _restart.visible and not upgrades.is_empty()
 	_forfeit.visible = active and not is_instance_valid(_practice_controls)
 	if not active and is_forfeit_confirmation_open():
 		_close_forfeit_confirmation()
@@ -280,6 +284,8 @@ func render(view: Dictionary) -> void:
 	_aim_prompt.visible = not _aim_prompt.text.is_empty()
 	var rows: Array = view.get("orders", [])
 	_inspection.text = view.get("inspection", "")
+	_inspection_name.text = view.get("inspection_name", "")
+	_inspection_epithet.text = view.get("inspection_epithet", "")
 	var actions: Array = view.get("actions", [])
 	_render_field_note(str(view.get("locked_dose", "")), actions, aimed)
 	_forecast.text = "Forecast" if active else "Round result"
@@ -355,6 +361,8 @@ func _render_field_note(dose: String, actions: Array, aimed: String) -> void:
 
 func _update_field_disclosure() -> void:
 	_inspection.visible = not _unavailable_note.visible and not _inspection.text.is_empty()
+	_inspection_name.visible = _inspection.visible and not _inspection_name.text.is_empty()
+	_inspection_epithet.visible = _inspection_name.visible and not _inspection_epithet.text.is_empty()
 	if _unavailable_note.visible:
 		_field_reader.tooltip_text = _unavailable_note.text
 	elif _locked_dose.visible:
@@ -507,11 +515,10 @@ func _build_header() -> void:
 	scroll.focus_mode = Control.FOCUS_ALL
 	scroll.accessibility_name = "Upgrades carried by the company"
 	_upgrade_dialog.add_child(scroll)
-	_upgrade_text = _label("", 16, PARCHMENT)
-	_upgrade_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_upgrade_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_upgrade_text.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
-	scroll.add_child(_upgrade_text)
+	_upgrade_entries = VBoxContainer.new()
+	_upgrade_entries.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_upgrade_entries.add_theme_constant_override("separation", 8)
+	scroll.add_child(_upgrade_entries)
 	_upgrades.pressed.connect(func() -> void:
 		if _help_covered or is_forfeit_confirmation_open():
 			return
@@ -528,6 +535,29 @@ func _open_upgrade_help() -> void:
 	var focus := _upgrade_dialog.gui_get_focus_owner()
 	_upgrade_dialog.hide()
 	help_from_dialog_requested.emit(_upgrade_dialog, focus)
+
+
+func _refresh_upgrades(rows: Array) -> void:
+	if rows == _upgrade_rows:
+		return
+	_upgrade_rows = rows.duplicate(true)
+	for child in _upgrade_entries.get_children():
+		_upgrade_entries.remove_child(child)
+		child.queue_free()
+	for row: Dictionary in rows:
+		var group := VBoxContainer.new()
+		group.add_theme_constant_override("separation", 2)
+		_upgrade_entries.add_child(group)
+		var heading := _reader_text(group, 18, PARCHMENT)
+		var bold := _display.duplicate() as SystemFont
+		bold.font_weight = 700
+		heading.add_theme_font_override("font", bold)
+		heading.text = str(row.get("name", ""))
+		var epithet := str(row.get("epithet", ""))
+		if not epithet.is_empty():
+			_reader_text(group, 14, MUTED).text = epithet
+		for detail in row.get("details", []):
+			_reader_text(group, 16, PARCHMENT).text = str(detail)
 
 
 func _is_help_key(event: InputEvent) -> bool:
@@ -899,6 +929,13 @@ func _build_field_reader(toolbar: Control) -> void:
 	notes.add_child(_field_heading)
 	_locked_dose = _reader_text(notes, 15, PARCHMENT)
 	_locked_dose.name = "LockedDose"
+	_inspection_name = _reader_text(notes, 17, PARCHMENT)
+	_inspection_name.name = "InspectionHeroName"
+	var bold := _display.duplicate() as SystemFont
+	bold.font_weight = 700
+	_inspection_name.add_theme_font_override("font", bold)
+	_inspection_epithet = _reader_text(notes, 14, MUTED)
+	_inspection_epithet.name = "InspectionHeroEpithet"
 	_inspection = _reader_text(notes, 15, MUTED)
 	_aim_prompt = _reader_text(notes, 15, MUTED)
 	_aim_prompt.name = "AimPrompt"
@@ -1166,6 +1203,16 @@ func _refresh_hero_picker(rows: Array, selected_hero: String, active: bool) -> v
 	_selected_hero_index = selected
 	_hero_picker.select(selected)
 	_hero_picker.disabled = not active or rows.is_empty()
+	_sync_hero_caption()
+
+
+func _sync_hero_caption() -> void:
+	var index := _selected_hero_index
+	if index > 0 and index <= _hero_rows.size():
+		var row: Dictionary = _hero_rows[index - 1]
+		_hero_picker.text = str(row.get("name", row.get("label", "")))
+	else:
+		_hero_picker.text = "Choose a hero"
 	_hero_picker.tooltip_text = _hero_picker.text + "\n" + _hero_picker.accessibility_description
 
 
@@ -1173,8 +1220,11 @@ func _select_hero_item(index: int) -> void:
 	if index <= 0 or index >= _hero_picker.item_count or _hero_picker.disabled \
 			or not _battle_popup_accepts_selection(_hero_picker.get_popup()):
 		_hero_picker.select(_selected_hero_index)
+		_sync_hero_caption()
 		return
 	hero_selected.emit(str(_hero_picker.get_item_metadata(index)))
+	_hero_picker.select(_selected_hero_index)
+	_sync_hero_caption()
 
 
 func _refresh_action_buttons(rows: Array, aimed: String) -> void:
@@ -1445,10 +1495,18 @@ func _refresh_orders(rows: Array) -> void:
 			_add_order(hero, row.hero_label)
 		var widgets: Dictionary = _order_widgets[hero]
 		var note: Label = widgets.note
+		var epithet: Label = widgets.epithet
 		var detail: Label = widgets.detail
+		var override_note: Label = widgets.override_note
 		var picker: OptionButton = widgets.picker
 		note.text = row.hero_label
-		detail.text = str(row.get("hp", "")) + (" · Overridden this round" if row.get("overridden", false) else "")
+		note.custom_minimum_size.x = minf(120.0, ceilf(note.get_theme_font("font").get_string_size(
+			note.text, HORIZONTAL_ALIGNMENT_LEFT, -1, note.get_theme_font_size("font_size")).x))
+		epithet.text = str(row.get("epithet", ""))
+		epithet.visible = not epithet.text.is_empty()
+		override_note.visible = bool(row.get("overridden", false))
+		widgets.subtitle.visible = epithet.visible
+		detail.text = str(row.get("hp", ""))
 		var items: Array = row.get("choices", [])
 		if items != widgets.choices:
 			widgets.choices = items.duplicate(true)
@@ -1461,7 +1519,8 @@ func _refresh_orders(rows: Array) -> void:
 		picker.disabled = not row.get("enabled", true) or items.is_empty()
 		widgets.selected_index = items.find_custom(func(item: Dictionary) -> bool: return item.id == row.order_id)
 		picker.select(widgets.selected_index)
-		picker.tooltip_text = "%s · %s\n%s" % [note.text, detail.text, picker.text]
+		picker.tooltip_text = "%s · %s%s\n%s" % [note.text, detail.text,
+			" · Overridden this round" if row.get("overridden", false) else "", picker.text]
 
 
 func _add_order(hero: String, label: String) -> void:
@@ -1478,10 +1537,33 @@ func _add_order(hero: String, label: String) -> void:
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	copy.add_theme_constant_override("separation", 1)
 	row.add_child(copy)
+	var identity := HBoxContainer.new()
+	identity.add_theme_constant_override("separation", 0)
+	copy.add_child(identity)
 	var note := _label("", 16, PAPER_INK)
-	copy.add_child(note)
+	var bold := _display.duplicate() as SystemFont
+	bold.font_weight = 700
+	note.add_theme_font_override("font", bold)
+	note.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	identity.add_child(note)
+	var separator := _label(" . ", 13, PAPER_MUTED)
+	separator.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	separator.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	identity.add_child(separator)
 	var detail := _label("", 13, PAPER_MUTED)
-	copy.add_child(detail)
+	detail.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	detail.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	identity.add_child(detail)
+	var subtitle := HBoxContainer.new()
+	subtitle.add_theme_constant_override("separation", 4)
+	copy.add_child(subtitle)
+	var epithet := _label("", 13, PAPER_MUTED)
+	epithet.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	subtitle.add_child(epithet)
+	var override_note := _label("Override", 13, PAPER_MUTED)
+	override_note.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	override_note.tooltip_text = "Overridden by a direct order this round."
+	override_note.accessibility_name = override_note.tooltip_text
 	var picker := OptionButton.new()
 	picker.name = hero.to_pascal_case() + "Order"
 	picker.accessibility_name = label + " standing order"
@@ -1498,11 +1580,16 @@ func _add_order(hero: String, label: String) -> void:
 	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		picker.add_theme_color_override(state, PAPER_INK)
 	picker.add_theme_color_override("font_disabled_color", PAPER_MUTED)
-	row.add_child(picker)
+	var picker_column := VBoxContainer.new()
+	picker_column.add_theme_constant_override("separation", 1)
+	row.add_child(picker_column)
+	picker_column.add_child(picker)
+	picker_column.add_child(override_note)
 	var popup := picker.get_popup()
 	popup.visibility_changed.connect(_battle_popup_visibility_changed.bind(popup))
 	popup.window_input.connect(_popup_help_input.bind(picker, popup))
-	var widgets := {"row": row, "rule": rule, "note": note, "detail": detail, "picker": picker,
+	var widgets := {"row": row, "rule": rule, "note": note, "epithet": epithet, "detail": detail,
+		"override_note": override_note, "subtitle": subtitle, "picker": picker,
 		"choices": [], "selected_index": -1}
 	_order_widgets[hero] = widgets
 	picker.item_selected.connect(func(index: int) -> void:

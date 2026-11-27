@@ -2,7 +2,8 @@
   "characters": {
     "bard": {
       "class": "wizard",
-      "label": "Bad Bard",
+      "label": "Crispin",
+      "epithet": "Bad Bard",
       "guild_portrait": "bard",
       "cast_key": "bard",
       "cast_art_key": "wizard",

@@ -175,6 +175,12 @@ func _deploy_with_keyboard() -> bool:
 		"Recruitment names the accepted destination and mission count")
 	_check(depart != null and depart.disabled and scene.selected_recruits().is_empty(),
 		"An empty company cannot depart")
+	for hero in [
+		["knight", "Edwin", "Anxious Knight"],
+		["healer", "Marta", "Unimpressed Healer"],
+		["wizard", "Pip", "Enthusiastic Caster"],
+	]:
+		_check_identity(_node("RecruitCard_" + hero[0]), hero[0] + " recruit card", hero[1], hero[2])
 	for index in initial.size():
 		var recruit := _node("Recruit_" + initial[index]) as Button
 		if recruit == null or not recruit.has_focus():
@@ -184,6 +190,7 @@ func _deploy_with_keyboard() -> bool:
 		_check(scene.selected_recruits() == initial.slice(0, index + 1), "Enter recruits " + initial[index])
 		if index + 1 < initial.size():
 			await _key_in_window(KEY_TAB)
+	_check_identity(_node("DeploymentSlot_2"), "Healer deployment slot", "Marta", "Unimpressed Healer")
 	var earlier := _node("PartyEarlier_healer") as Button
 	if earlier == null or earlier.disabled:
 		_check(false, "Healer can move earlier from the second position")
@@ -201,6 +208,26 @@ func _deploy_with_keyboard() -> bool:
 	await _key_in_window(KEY_ENTER)
 	_check(scene.current_screen() == "routes", "Keyboard departure opens the route choice")
 	return scene.current_screen() == "routes"
+
+
+func _check_identity(area: Node, context: String, personal_name: String, epithet: String) -> void:
+	if area == null:
+		_check(false, context + " exists")
+		return
+	var labels := area.find_children("*", "Label", true, false)
+	var name_label: Label
+	var epithet_label: Label
+	for label: Label in labels:
+		if label.text == personal_name:
+			name_label = label
+		elif label.text == epithet:
+			epithet_label = label
+	if name_label == null or epithet_label == null:
+		_check(false, context + " shows separate personal name and epithet")
+		return
+	_check(name_label.get_global_rect().position.y < epithet_label.get_global_rect().position.y
+		and name_label.get_theme_font_size("font_size") > epithet_label.get_theme_font_size("font_size"),
+		context + " emphasizes the personal name above the epithet subtitle")
 
 
 func _key_in_window(code: int, unicode := 0, shift := false) -> void:

@@ -35,6 +35,8 @@ func _run() -> void:
 	var loadout := _node("OutingLoadout") as Window
 	_check(upgrades != null and upgrades.is_visible_in_tree() and not upgrades.disabled
 		and loadout != null and not loadout.visible, "Outing upgrades are available before confirmation")
+	if upgrades != null and loadout != null:
+		await _check_upgrade_identities(upgrades, loadout, run_before)
 	var escape := ForfeitControls.button(viewport, ["forfeit"])
 	_check(escape != null, "Normal combat exposes Forfeit before committing a round")
 	if escape == null:
@@ -88,6 +90,53 @@ func _run() -> void:
 			and guild.get("reward_offers", []).is_empty() and guild.get("chosen_reward", {}).is_empty(),
 			"Returning to guild performs the normal outing reset")
 	_cleanup()
+
+
+func _check_upgrade_identities(button: BaseButton, dialog: Window, run: Dictionary) -> void:
+	button.pressed.emit()
+	await process_frame
+	await process_frame
+	_check(dialog.visible, "Outing upgrades opens the earned upgrades dialog")
+	var defs: Dictionary = scene.get("_definitions")
+	var labels := dialog.find_children("*", "Label", true, false)
+	var all_text := ""
+	for label: Label in labels:
+		if label.is_visible_in_tree():
+			all_text += label.text + "\n"
+	for hero_id in run.get("upgrades_by_id", {}):
+		var owned: Dictionary = run.upgrades_by_id[hero_id]
+		if owned.is_empty():
+			continue
+		var hero: Dictionary = defs.characters[hero_id]
+		var hero_name := str(hero.label)
+		var epithet := str(hero.get("epithet", ""))
+		var heading: Label
+		var subtitle: Label
+		for label: Label in labels:
+			if label.is_visible_in_tree() and label.text == hero_name:
+				heading = label
+			elif label.is_visible_in_tree() and label.text == epithet and not epithet.is_empty():
+				subtitle = label
+		_check(heading != null, "Outing upgrades shows %s as a separate heading" % hero_name)
+		if heading != null:
+			var font := heading.get_theme_font("font")
+			if font is SystemFont:
+				_check(font.font_weight >= 700, "Outing upgrade hero name is bold")
+		if not epithet.is_empty():
+			_check(heading != null and subtitle != null
+				and subtitle.get_global_rect().position.y >= heading.get_global_rect().end.y,
+				"Outing upgrades shows %s beneath %s" % [epithet, hero_name])
+			if subtitle != null:
+				var font := subtitle.get_theme_font("font")
+				if font is SystemFont:
+					_check(font.font_weight < 700, "Outing upgrade epithet uses normal weight")
+		for id in owned:
+			var upgrade: Dictionary = defs.upgrades[id]
+			_check(str(upgrade.label) in all_text and str(upgrade.description) in all_text
+				and "%d of %d acquired" % [owned[id], upgrade.cap] in all_text,
+				"Outing upgrades retains %s's effect and acquisition count" % str(id))
+	dialog.hide()
+	await process_frame
 
 
 func _earn_upgrade_and_deploy() -> bool:

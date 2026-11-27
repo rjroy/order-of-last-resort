@@ -129,9 +129,13 @@ func _build_filter(parent: Control, options: Array, hero_filter: String) -> void
 func _build_group_heading(parent: Control, record: Dictionary) -> void:
 	var heading := _book.row(parent, 10)
 	Prep.picture(_book, heading, record.get("portrait") as Texture2D, 36 if _compact else 44)
-	var label := Prep.text(_book, heading, str(record.get("recipient_label", "")), 24, Prep.QUIET)
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var identity := _book.stack(heading, 1)
+	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	identity.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_identity_name(identity, str(record.get("recipient_label", "")), 24)
+	var epithet := str(record.get("recipient_epithet", ""))
+	if not epithet.is_empty():
+		Prep.text(_book, identity, epithet, 16, Prep.QUIET)
 	_book.rule(parent, Prep.RULE)
 
 
@@ -212,7 +216,8 @@ func _build_preview(parent: VBoxContainer, record: Dictionary, balance: int, fee
 	var illustration_row: BoxContainer
 	var preview_title: Label
 	if painting != null:
-		preview_title = _build_preview_heading(body, title, str(record.get("recipient_label", "")))
+		preview_title = _build_preview_heading(body, title, str(record.get("recipient_label", "")),
+			str(record.get("recipient_epithet", "")))
 		illustration_row = BoxContainer.new()
 		illustration_row.add_theme_constant_override("separation", 9)
 		body.add_child(illustration_row)
@@ -230,7 +235,8 @@ func _build_preview(parent: VBoxContainer, record: Dictionary, balance: int, fee
 		var copy := _book.stack(heading, 4)
 		copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		copy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		_build_preview_heading(copy, title, str(record.get("recipient_label", "")))
+		_build_preview_heading(copy, title, str(record.get("recipient_label", "")),
+			str(record.get("recipient_epithet", "")))
 	var details: Array = record.get("details", [])
 	var effects: Array[Label] = []
 	for line_index in details.size():
@@ -275,12 +281,22 @@ func _fit_illustrated_preview(body: VBoxContainer, illustration_row: BoxContaine
 	_book.tree_exiting.connect(func() -> void: viewport.size_changed.disconnect(reflow), CONNECT_ONE_SHOT)
 
 
-func _build_preview_heading(parent: Control, title: String, recipient := "") -> Label:
+func _build_preview_heading(parent: Control, title: String, recipient := "", epithet := "") -> Label:
 	var heading := Prep.text(_book, parent, title, 33 if _compact else 40)
 	heading.name = "PetitionPreviewTitle"
 	if not recipient.is_empty() and recipient != title:
-		Prep.text(_book, parent, recipient, 18, Prep.QUIET).name = "PetitionRecipient"
+		_identity_name(parent, recipient, 21).name = "PetitionRecipient"
+		if not epithet.is_empty():
+			Prep.text(_book, parent, epithet, 16, Prep.QUIET)
 	return heading
+
+
+func _identity_name(parent: Control, words: String, size: int) -> Label:
+	var label := _book.text(parent, words, size, GuildBookPage.INK, "display")
+	var font := label.get_theme_font("font").duplicate() as SystemFont
+	font.font_weight = 700
+	label.add_theme_font_override("font", font)
+	return label
 
 
 func _build_purchase(parent: Control, record: Dictionary, balance: int) -> void:

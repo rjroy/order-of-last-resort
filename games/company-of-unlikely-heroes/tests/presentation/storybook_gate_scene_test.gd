@@ -29,6 +29,7 @@ func _run() -> void:
 		_check(false, "Storybook Gate exposes an interactive board")
 		_finish()
 		return
+	_check_hero_names(board)
 	var before: Dictionary = scene.battle_snapshot().duplicate(true)
 	_check(before.get("mission_id") == "wrong_side_of_the_door", "Requested Gate mission is loaded")
 	var knight := _unit(before, "knight")
@@ -48,11 +49,14 @@ func _run() -> void:
 	await _hover(Vector2(-1, -1))
 	await _keyboard_move(board, knight, targets[0], before)
 	await _full_hero_actions(board, before)
+	await _check_overridden_healer_subtitle(board, before)
 	await _unavailable_bonk(board, before)
 	await _click_cell(board, healer.position)
 	_check(scene.get("_actor_id") == "healer", "Clicking Healer selects Healer on the board")
+	_check_closed_hero_caption("Marta")
 	await _click_cell(board, knight.position)
 	_check(scene.get("_actor_id") == "knight", "Clicking Knight selects Knight on the board")
+	_check_closed_hero_caption("Edwin")
 	await _click_cell(board, targets[0].position)
 	_check_move(targets[0], "Clicking an adjacent square automatically stages Move")
 	var move_overlay: Dictionary = board.get("_overlay")
@@ -94,6 +98,37 @@ func _run() -> void:
 			"Explicit commit resolves the displayed forecast")
 		_check(scene.battle_snapshot() != before, "Commit advances actual battle state")
 	_finish()
+
+
+func _check_hero_names(board: Control) -> void:
+	var expected := {
+		"knight": ["Edwin", "Anxious Knight"],
+		"healer": ["Marta", "Unimpressed Healer"],
+		"wizard": ["Pip", "Enthusiastic Caster"],
+	}
+	var picker := scene.find_child("DirectOrderHero", true, false) as OptionButton
+	if picker == null:
+		_check(false, "Battle exposes the hero chooser")
+		return
+	_check_closed_hero_caption("Edwin")
+	var choices := {}
+	for index in picker.item_count:
+		choices[str(picker.get_item_metadata(index))] = picker.get_item_text(index)
+	var figures := {}
+	for unit: Dictionary in board.get("_units"):
+		figures[str(unit.id)] = str(unit.get("label", ""))
+	for id: String in expected:
+		var identity: Array = expected[id]
+		_check(choices.get(id, "") == "%s - %s" % identity,
+			id + " chooser shows name followed by epithet")
+		_check(figures.get(id, "") == identity[0],
+			id + " board nameplate uses only the personal name")
+
+
+func _check_closed_hero_caption(expected: String) -> void:
+	var picker := scene.find_child("DirectOrderHero", true, false) as OptionButton
+	_check(picker != null and picker.text == expected,
+		"Closed hero chooser displays only %s" % expected)
 
 
 func _keyboard_move(board: Control, knight: Dictionary, target: Dictionary, before: Dictionary) -> void:
@@ -197,7 +232,10 @@ func _full_hero_actions(board: Control, before: Dictionary) -> void:
 
 	await _targeted_pull(board, before)
 
-	if not await _click_button("StandingOrders") or not await _choose_order("wizard", "order_blast"):
+	if not await _click_button("StandingOrders"):
+		return
+	_check_standing_order_identity(before)
+	if not await _choose_order("wizard", "order_blast"):
 		return
 	var edited: Dictionary = scene.battle_snapshot()
 	_check(edited.get("orders", {}).get("wizard") == "order_blast",
@@ -210,6 +248,98 @@ func _full_hero_actions(board: Control, before: Dictionary) -> void:
 	await _choose_order("wizard", before.get("orders", {}).get("wizard", ""))
 	await _click_button("StandingOrders")
 	_check(scene.battle_snapshot() == before, "Restoring the order returns to the opening state")
+
+
+func _check_standing_order_identity(state: Dictionary) -> void:
+	var page: Node = scene.get("_storybook_page")
+	var rows: Dictionary = page.get("_order_widgets")
+	if not rows.has("knight"):
+		_check(false, "Standing orders contains Edwin's identity")
+		return
+	var widgets: Dictionary = rows.knight
+	var name_label := widgets.get("note") as Label
+	var hp_label := widgets.get("detail") as Label
+	var epithet := widgets.get("epithet") as Label
+	var row := widgets.get("row") as Control
+	if name_label == null or hp_label == null or epithet == null or row == null:
+		_check(false, "Standing orders exposes Edwin's name, HP and epithet")
+		return
+	var name_rect := name_label.get_global_rect()
+	var hp_rect := hp_label.get_global_rect()
+	var epithet_rect := epithet.get_global_rect()
+	var unit := _unit(state, "knight")
+	_check(name_label.is_visible_in_tree() and hp_label.is_visible_in_tree()
+		and epithet.is_visible_in_tree() and name_label.text == "Edwin"
+		and hp_label.text == "%d/%d HP" % [unit.hp, unit.max_hp]
+		and epithet.text == "Anxious Knight",
+		"Standing orders shows Edwin, his current HP and his epithet")
+	_check(hp_rect.position.y < name_rect.end.y and hp_rect.end.y > name_rect.position.y
+		and hp_rect.position.x >= name_rect.end.x and epithet_rect.position.y >= name_rect.end.y,
+		"Standing orders places name and HP on the first line and epithet below")
+	var first_line: Array[Label] = []
+	for label: Label in row.find_children("*", "Label", true, false):
+		var bounds := label.get_global_rect()
+		if label.is_visible_in_tree() and bounds.position.y < name_rect.end.y and bounds.end.y > name_rect.position.y:
+			first_line.append(label)
+	first_line.sort_custom(func(a: Label, b: Label) -> bool:
+		return a.get_global_rect().position.x < b.get_global_rect().position.x)
+	var text := ""
+	for label in first_line:
+		text += label.text
+		var font := label.get_theme_font("font")
+		var required := font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
+			label.get_theme_font_size("font_size"))
+		_check(label.size.x + 0.5 >= required.x and label.size.y + 0.5 >= required.y,
+			"Standing orders allocates drawable space for first-line text '%s'" % label.text)
+	_check(text == "Edwin . %d/%d HP" % [unit.hp, unit.max_hp],
+		"Standing orders separates the first-line name and HP with a spaced period")
+	var name_font := name_label.get_theme_font("font")
+	var hp_font := hp_label.get_theme_font("font")
+	if name_font is SystemFont and hp_font is SystemFont:
+		_check(name_font.font_weight >= 700 and hp_font.font_weight == 400,
+			"Standing orders uses bold for the name and regular weight for HP")
+
+
+func _check_overridden_healer_subtitle(board: Control, before: Dictionary) -> void:
+	var healer := _unit(before, "healer")
+	var targets: Array = rules.targets(rules.state_before_action(before, "healer"), "healer", "move")
+	if healer.is_empty() or targets.is_empty():
+		_check(false, "Gate fixture provides a legal Marta move")
+		return
+	await _click_cell(board, healer.position)
+	await _click_cell(board, targets[0].position)
+	_check((scene.get("_planned_state") as Dictionary).get("overrides", {}).has("healer"),
+		"Marta's direct Move overrides her standing order")
+	if not await _click_button("StandingOrders"):
+		return
+	var page: Node = scene.get("_storybook_page")
+	var rows: Dictionary = page.get("_order_widgets")
+	if not rows.has("healer"):
+		_check(false, "Standing orders contains Marta")
+	else:
+		var widgets: Dictionary = rows.healer
+		var epithet := widgets.get("epithet") as Label
+		var status := widgets.get("override_note") as Label
+		if epithet == null or status == null:
+			_check(false, "Marta's epithet and override status are present")
+		else:
+			for viewport_size in [Vector2i(1280, 820), Vector2i(960, 615)]:
+				root.size = viewport_size
+				for tick in 5:
+					await process_frame
+				var width := epithet.get_theme_font("font").get_string_size(epithet.text,
+					HORIZONTAL_ALIGNMENT_LEFT, -1, epithet.get_theme_font_size("font_size")).x
+				_check(epithet.is_visible_in_tree() and epithet.text == "Unimpressed Healer"
+					and epithet.size.x + 0.5 >= width,
+					"Marta's full epithet has drawable width while overridden at %s" % viewport_size)
+				_check(status.is_visible_in_tree() and not status.text.is_empty(),
+					"Marta's override remains visible at %s" % viewport_size)
+			root.size = Vector2i(1280, 820)
+			for tick in 5:
+				await process_frame
+	await _click_button("StandingOrders")
+	await _click_button("ClearCommand")
+	_check(scene.battle_snapshot() == before, "Marta subtitle check leaves the opening battle unchanged")
 
 
 func _targeted_pull(board: Control, before: Dictionary) -> void:

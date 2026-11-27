@@ -17,7 +17,7 @@ const PRESENTATION := {
 		"short_title": "Teach the Healer: Blast", "short_summary": "Blast can replace Bonk",
 		"details": ["Hits the nearest damageable target, even an ally or obstacle.",
 			"At recruitment, equip Blast instead of Bonk."],
-		"note": "The Healer keeps Bonk until you switch their offense.",
+		"note": "Marta keeps Bonk until you switch her offense.",
 		"buy_label": "Teach Blast",
 	},
 }

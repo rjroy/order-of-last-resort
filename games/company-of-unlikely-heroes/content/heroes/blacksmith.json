@@ -32,7 +32,8 @@
   "characters": {
     "blacksmith": {
       "class": "blacksmith",
-      "label": "Hobby Smith",
+      "label": "Hester",
+      "epithet": "Hobby Smith",
       "guild_portrait": "blacksmith",
       "cast_key": "blacksmith",
       "cast_art_key": "blacksmith",

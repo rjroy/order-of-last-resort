@@ -34,7 +34,8 @@
   "characters": {
     "alchemist": {
       "class": "alchemist",
-      "label": "Mixologist",
+      "label": "Juniper",
+      "epithet": "Mixologist",
       "guild_portrait": "alchemist",
       "cast_key": "alchemist",
       "cast_art_key": "healer",

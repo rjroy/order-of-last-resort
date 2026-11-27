@@ -92,6 +92,9 @@ func _build_slot(parent: Control, hero: Dictionary, index: int, filled: int) -> 
 	copy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var title := str(hero.get("name", ""))
 	_book.strong_text(copy, title, 21 if _compact else 29)
+	var epithet := str(hero.get("epithet", ""))
+	if not epithet.is_empty():
+		Prep.text(_book, copy, epithet, 16 if _compact else 18, Prep.QUIET)
 	if selected:
 		Prep.text(_book, copy, "Editing loadout", 17 if _compact else 21, Prep.GOLD, "italic").name = "EditingLoadout_" + id
 	else:
@@ -178,6 +181,9 @@ func _build_recruit(parent: Control, hero: Dictionary, picked: bool, full: bool)
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	copy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_book.strong_text(copy, title, 22 if _compact else 27)
+	var epithet := str(hero.get("epithet", ""))
+	if not epithet.is_empty():
+		Prep.text(_book, copy, epithet, 16 if _compact else 18, Prep.QUIET)
 	var summary := str(hero.get("summary", ""))
 	if not summary.is_empty():
 		Prep.text(_book, copy, summary, 16 if _compact else 18, Prep.QUIET)
@@ -195,9 +201,13 @@ func _build_recruit(parent: Control, hero: Dictionary, picked: bool, full: bool)
 
 func _build_loadout(parent: VBoxContainer, model: Dictionary, hero: Dictionary) -> void:
 	var heading := _book.row(parent, 12)
-	var title := _book.strong_text(heading, str(hero.get("name", "")), 31 if _compact else 42)
+	var identity := _book.stack(heading, 2)
+	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var title := _book.strong_text(identity, str(hero.get("name", "")), 31 if _compact else 42)
 	title.name = "LoadoutHero"
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var epithet := str(hero.get("epithet", ""))
+	if not epithet.is_empty():
+		Prep.text(_book, identity, epithet, 18 if _compact else 21, Prep.QUIET)
 	var open_recruits := _paper_button(heading, "RecruitList", "Available recruits", 17 if _compact else 21)
 	open_recruits.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	open_recruits.accessibility_name = "Return to available recruits"

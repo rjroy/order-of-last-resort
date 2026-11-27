@@ -60,6 +60,9 @@
       },
       "targeting": {
         "kind": "automatic",
+        "direct": {
+          "help": "Hold a chosen eligible opponent within two tiles against its next voluntary movement."
+        },
         "range": 2
       }
     },
@@ -70,7 +73,10 @@
       "handler": "repel",
       "params": {},
       "targeting": {
-        "kind": "automatic"
+        "kind": "automatic",
+        "direct": {
+          "help": "Repel a chosen living character, friend or foe, one clear tile away from you."
+        }
       }
     },
     "alchemist_etching_paste": {

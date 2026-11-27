@@ -104,46 +104,51 @@ func _move_into_vacated_cell() -> void:
 	var wizard_cell: Vector2i = _unit(before, "wizard").position
 	await _cell(wizard_cell)
 	await _explicit_move_into_vacated_cell(before, vacated)
-	await _key(KEY_ESCAPE)
-	await _implicit_move_into_vacated_cell(before, wizard_cell, vacated)
+	if not await _button("ClearCommand"):
+		return
+	_check(scene.get("_actor_id") == "" and scene.get("_planned_state").overrides.is_empty(),
+		"Clear command discards the Move and returns to neutral")
+	await _quick_move_then_vacated_replacement(before, wizard_cell, vacated)
 
 
 func _explicit_move_into_vacated_cell(before: Dictionary, vacated: Vector2i) -> void:
-	var menu := scene.find_child("Actions", true, false) as MenuButton
-	var move_label: String = rules.ability_definition(before, "move", "wizard").get("label", "")
-	var move_index := -1
-	if menu != null and menu.is_visible_in_tree():
-		var popup := menu.get_popup()
-		for i in popup.item_count:
-			if popup.get_item_text(i).begins_with(move_label) and not popup.is_item_disabled(i):
-				move_index = i
-				break
-		if move_index >= 0:
-			popup.id_pressed.emit(popup.get_item_id(move_index))
-			await process_frame
-	if move_index < 0:
-		_check(false, "Wizard can explicitly select Move")
+	if not await _button("DirectOrder_move"):
 		return
-	_check(vacated in _highlighted_cells(), "Explicit Wizard Move highlights legal A3")
+	_check(scene.get("_aimed_ability_id") == "move" and vacated in _highlighted_cells(),
+		"Explicit Move aims at the forecast-vacated A3")
+	_check(scene.get("_planned_state").overrides.is_empty(), "Aiming Move does not stage it")
 	await _cell(vacated)
 	_check(_wizard_move_is("0,2"),
-		"Clicking the highlighted vacated A3 stages Wizard Move rather than selecting Healer")
+		"After aiming Move, clicking A3 stages Wizard Move rather than selecting Healer")
 	_check(scene.battle_snapshot() == before, "Explicit Wizard Move remains an uncommitted forecast")
 
 
-func _implicit_move_into_vacated_cell(before: Dictionary, wizard_cell: Vector2i, vacated: Vector2i) -> void:
+func _quick_move_then_vacated_replacement(before: Dictionary, wizard_cell: Vector2i, vacated: Vector2i) -> void:
 	var step := Vector2i(1, 3) # B4
+	await _cell(wizard_cell)
+	_check(step in _highlighted_cells(), "Wizard selection marks the quick Move to B4")
 	await _cell(step)
-	_check(_wizard_move_is("1,3"), "Clicking B4 without opening Actions queues an implicit Wizard Move")
-	_check(vacated in _highlighted_cells(), "Implicit Wizard Move highlights forecast-vacated A3")
+	_check(_wizard_move_is("1,3"), "Clicking B4 without aiming queues the Wizard Move directly")
+	var queued: Dictionary = scene.get("_planned_state").duplicate(true)
+	var plan: Dictionary = scene.get("_plan").duplicate(true)
 
 	var knight_cell: Vector2i = _unit(before, "knight").position
-	_check(knight_cell not in _highlighted_cells(), "Knight is not highlighted for implicit Wizard Move")
+	_check(knight_cell not in _highlighted_cells(), "Knight is not highlighted for quick Wizard Move")
 	await _cell(knight_cell)
-	_check(scene.get("_actor_id") == "knight", "Clicking unhighlighted Knight still selects Knight")
+	_check(scene.get("_actor_id") == "knight" and scene.get("_planned_state") == queued,
+		"Clicking Knight selects him without replacing the Wizard Move")
 	await _cell(wizard_cell)
-	_check(_wizard_move_is("1,3") and vacated in _highlighted_cells(),
-		"Reselecting Wizard restores the queued Move and its A3 highlight")
+	_check(_wizard_move_is("1,3") and scene.get("_plan") == plan,
+		"Reselecting Wizard retains the queued Move and its forecast")
+	await _cell(vacated)
+	_check(scene.get("_actor_id") == "healer" and scene.get("_planned_state") == queued
+		and scene.get("_plan") == plan,
+		"Without aiming, clicking the currently occupied A3 selects Healer and preserves the B4 draft")
+	await _cell(wizard_cell)
+	if not await _button("DirectOrder_move"):
+		return
+	_check(scene.get("_aimed_ability_id") == "move" and vacated in _highlighted_cells(),
+		"Aiming Move again marks A3 even while Healer visibly occupies it")
 
 	var motion := InputEventMouseMotion.new()
 	motion.position = board.get_global_transform_with_canvas() * board.cell_center(vacated)
@@ -152,13 +157,13 @@ func _implicit_move_into_vacated_cell(before: Dictionary, wizard_cell: Vector2i,
 	await process_frame
 	var inspection: Label = scene.get("_storybook_page").get("_inspection")
 	var healer_name: String = rules.display_name(before, "healer")
-	_check(inspection.is_visible_in_tree() and "A3" in inspection.text
-		and healer_name in inspection.text and "Move destination" in inspection.text,
-		"Implicit Move inspection describes both the current Healer and the forecast destination at A3")
+	_check(inspection.is_visible_in_tree() and "A3" in inspection.text and healer_name in inspection.text
+		and "Legal target" in inspection.text and "Legal target" in board.tooltip_text,
+		"Aimed Move inspection describes both the current Healer and the forecast destination at A3")
 	await _cell(vacated)
 	_check(_wizard_move_is("0,2"),
-		"Clicking A3 highlighted by implicit Move replaces B4 with A3 rather than selecting Healer")
-	_check(scene.battle_snapshot() == before, "Implicit Move replacement does not commit battle state")
+		"Clicking aimed A3 replaces B4 with A3 rather than selecting Healer")
+	_check(scene.battle_snapshot() == before, "Move replacement does not commit battle state")
 
 
 func _highlighted_cells() -> Array:
@@ -182,6 +187,9 @@ func _round(step: Array, inspect_opening_knight := false) -> bool:
 			_check(false, "Route actor is present: " + actor)
 			return false
 		await _cell(unit.position)
+		if scene.get("_actor_id") != actor:
+			_check(false, "Route selects or retains " + actor)
+			return false
 		await _cell(destination)
 		var planned: Dictionary = scene.get("_planned_state")
 		var command: Dictionary = planned.get("overrides", {}).get(actor, {})

@@ -269,7 +269,9 @@ func _test_committed_round() -> void:
 	var state := _state([_unit("wizard_instance", "wizard", Vector2i(3, 3)),
 		_unit("foe", "harpooner", Vector2i(4, 3)),
 		_unit("civilian", "ferryman", Vector2i(10, 10))])
-	var selected: Dictionary = rules.choose_manual(state, "wizard_instance", "wizard_blast")
+	var selected: Dictionary = rules.choose_manual(state, "wizard_instance", "wizard_blast", "foe")
+	_check(selected.get("overrides", {}).get("wizard_instance", {}).get("target_id") == "foe",
+		"Direct Blast stores the chosen foe")
 	var plan: Dictionary = rules.preview_round(selected)
 	_check(plan.get("valid", false), "Direct action round is valid")
 	if not plan.get("valid", false):

@@ -7,7 +7,8 @@ const Support = preload("res://rules/support.gd")
 const Upgrades = preload("res://rules/upgrades.gd")
 
 
-static func describe(state: Dictionary, actor: Dictionary, _source_id: String, base: Dictionary) -> Dictionary:
+static func describe(state: Dictionary, actor: Dictionary, _source_id: String, base: Dictionary,
+		direct := false) -> Dictionary:
 	var label := ""
 	var help := ""
 	var form_id: String = base.get("fitted_form", "")
@@ -15,13 +16,14 @@ static func describe(state: Dictionary, actor: Dictionary, _source_id: String, b
 	match form_id:
 		"healing_sonnet_in_tune":
 			label = "Healing Sonnet, in tune"
-			help = "Heal a random wounded hero."
+			help = "Heal a chosen wounded hero." if direct else "Heal a random wounded hero."
 		"company_chorus":
 			label = "Company Chorus"
-			help = "Heal a random wounded hero and adjacent wounded heroes."
+			help = "Heal a chosen wounded hero and adjacent wounded heroes." if direct \
+				else "Heal a random wounded hero and adjacent wounded heroes."
 		"inspiring_melody_in_tune":
 			label = "Inspiring Melody, in tune"
-			help = "Inspire a random hero who is not already Inspired."
+			help = "Inspire a chosen eligible hero." if direct else "Inspire a random hero who is not already Inspired."
 		_:
 			return {}
 	var choices: Array = []
@@ -37,12 +39,12 @@ static func describe(state: Dictionary, actor: Dictionary, _source_id: String, b
 		elif hero.hp >= hero.max_hp:
 			continue
 		choices.append({"id": hero.id, "position": hero.position, "label": Board.display_name(state, hero)})
-	if not is_melody and Upgrades.amount(state, actor, "front_row_seats") > 0 and choices.size() > 2:
+	if not direct and not is_melody and Upgrades.amount(state, actor, "front_row_seats") > 0 and choices.size() > 2:
 		var health := choices.map(func(choice: Dictionary) -> int: return Board.entity(state, choice.id).hp)
 		health.sort()
 		choices = choices.filter(func(choice: Dictionary) -> bool: return Board.entity(state, choice.id).hp <= health[1])
 	return {"id": base.fitted_form, "label": label, "help": help,
-		"targeting": {"kind": "automatic"}, "choices": choices,
+		"targeting": {"kind": "entity" if direct else "automatic"}, "choices": choices,
 		"unavailable_reason": "no eligible hero", "primary": "steady" if is_melody else "amount",
 		"selection": "random"}
 
@@ -52,8 +54,9 @@ static func apply(state: Dictionary, actor: Dictionary, _source_id: String, base
 	if form.get("id", "") not in ["healing_sonnet_in_tune", "inspiring_melody_in_tune", "company_chorus"]:
 		return
 	var listener := Board.entity(state, choice.id)
-	# The resolver selects once using the ordinary encounter stream; apply that draw once.
-	state.rng_state = choice.rng_seed
+	# Only the autonomous resolver draws from the encounter stream.
+	if choice.has("rng_seed"):
+		state.rng_state = choice.rng_seed
 	if form.id == "inspiring_melody_in_tune":
 		Statuses.grant_inspiration(state, actor, listener, events)
 		return

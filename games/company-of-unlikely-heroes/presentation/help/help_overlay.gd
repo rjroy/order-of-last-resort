@@ -10,12 +10,12 @@ const TOPICS := {
 	"Choose a commission": ["Choose a destination and commission length. Choosing a commission starts recruitment; it does not start a battle. The illustrated commission is an example.", "commission-selection"],
 	"Recruit and deploy": ["Recruit three different heroes. Earlier and Later change their deployment and action order. Edit loadout changes their equipped abilities and starting order.", "recruitment"],
 	"Field reports": ["Read both reports and choose a route. Each report describes the next mission and only hints at what follows. The reports shown are examples.", "field-reports"],
-	"Combat controls": ["Select a hero and a destination to plan a move, or choose Actions and a target. The command is only a preview until you commit.", "battle-controls"],
-	"Battle board": ["Select a hero or a target on the board. The highlighted cells show the current choices.", "battle-board"],
+	"Combat controls": ["Select a hero to see their abilities. Click a legal destination for a quick Move, or choose an ability and then a marked target if it needs one. Abilities without a target stage immediately. Read the locked dose in the notes beside the abilities before choosing a recipient. If it doesn't fit, scroll over the notes or Tab to them and use Up and Down.", "battle-controls"],
+	"Battle board": ["Outside targeting, click a hero to select or retain them. Use the hero picker to switch while aiming. Choose an ability to mark only its legal targets; if several valid occupants share a cell, choose the intended occupant.", "battle-board"],
 	"Statuses and symbols": ["Reaction marks are coloured seals on the board; character statuses appear as words when you select a unit.", ""],
-	"Commit a round": ["Commit plays the forecasted round. Until then you can change or clear your command.", "battle-commit"],
+	"Commit a round": ["The draft beside the round controls shows your planned command. Open Forecast to see the whole round. Finish or cancel targeting before using Commit. Until then you can change or clear the draft.", "battle-commit"],
 	"Standing orders": ["Each hero follows their standing order every round unless you directly command that hero. Change orders using Standing orders.", ""],
-	"Direct command": ["One hero can receive a direct command for this round. The other heroes follow their standing orders; the replaced order returns next round.", "battle-controls"],
+	"Direct command": ["One hero can receive a direct command for this round. Switching heroes or choosing Cancel targeting preserves a staged command. Escape backs out of the current step without discarding it. Clear selection returns to neutral when no command is staged; Clear command discards the command and returns to neutral. Other heroes follow their standing orders; the replaced order returns next round.", "battle-controls"],
 	"Forecast": ["Open Forecast to compare the planned actions in initiative order. Change or clear the command before committing; nothing resolves until Commit.", "battle-forecast"],
 	"Mission objective": ["The current battle objective appears here.", ""],
 	"Debrief and rewards": ["After a road victory, review the party and choose one offered reward before continuing. Survivors carry wounds and standing orders; fallen heroes return at 1 HP. Rewards last only for the outing.", ""],
@@ -35,7 +35,7 @@ const CAPTIONS := {
 	"commission-selection": "Example: choose a destination from the commission board.",
 	"recruitment": "Recruit three heroes and arrange their deployment order.",
 	"field-reports": "Example: compare the disclosed reports before choosing a route.",
-	"battle-controls": "Select a hero, then plan an action using the battle controls.",
+	"battle-controls": "Select a hero and choose a direct-order ability.",
 	"battle-forecast": "The forecast shows the planned round before it is committed.",
 	"battle-board": "The board shows heroes, targets and highlighted choices.",
 	"battle-commit": "Commit plays the planned round.",
@@ -677,10 +677,16 @@ func _node_added(node: Node) -> void:
 		node.help_from_dialog_requested.connect(_open_from_dialog)
 	if node is PopupMenu and get_parent().is_ancestor_of(node):
 		_popup_rows[node] = -1
-		node.tree_exiting.connect(_forget_popup.bind(node))
-		node.window_input.connect(_remember_popup_input.bind(node))
+		var forget_popup := _forget_popup.bind(node)
+		if not node.tree_exiting.is_connected(forget_popup):
+			node.tree_exiting.connect(forget_popup)
+		var remember_input := _remember_popup_input.bind(node)
+		if not node.window_input.is_connected(remember_input):
+			node.window_input.connect(remember_input)
 	if node is Window and get_parent().is_ancestor_of(node):
-		node.visibility_changed.connect(_covered_window_visibility_changed.bind(node))
+		var visibility_changed := _covered_window_visibility_changed.bind(node)
+		if not node.visibility_changed.is_connected(visibility_changed):
+			node.visibility_changed.connect(visibility_changed)
 	if node != self and get_parent().is_ancestor_of(node) and not is_ancestor_of(node):
 		_install_new_hint.call_deferred(node)
 
@@ -819,14 +825,21 @@ func _register_hint(child: Node) -> void:
 		child.tooltip_text = hint if _hints else ""
 	elif not _hints:
 		child.tooltip_text = ""
-	child.mouse_entered.connect(_show_hint.bind(child))
-	child.mouse_exited.connect(_update_next_step)
-	child.tree_exiting.connect(_forget_hint.bind(child))
+	var show_hint := _show_hint.bind(child)
+	if not child.mouse_entered.is_connected(show_hint):
+		child.mouse_entered.connect(show_hint)
+	if not child.mouse_exited.is_connected(_update_next_step):
+		child.mouse_exited.connect(_update_next_step)
+	var forget_hint := _forget_hint.bind(child)
+	if not child.tree_exiting.is_connected(forget_hint):
+		child.tree_exiting.connect(forget_hint)
 
 
 func _hint_for(button: BaseButton) -> String:
 	var text: String = button.text.to_lower()
 	var node_name := str(button.name).to_lower()
+	if button is OptionButton and node_name == "directorderhero":
+		return "Choose or switch the hero for a direct command."
 	if button is OptionButton and "order" in node_name:
 		return "Choose this hero's standing order; it returns after a direct command."
 	if node_name == "targets":

@@ -182,12 +182,15 @@ func _add_variants(examples: Array[Dictionary]) -> void:
 			var unit := _unit(state, id)
 			unit.hp = unit.max_hp
 		_unit(state, "wizard").hp -= 2
+		blast.target = "wizard"
 		examples.append(blast)
 	var fallback := _copy_case(examples, "wizard_blast", "variant_blast_fallback")
 	if not fallback.is_empty():
 		for id in fallback.state.party:
 			var unit := _unit(fallback.state, id)
 			unit.hp = unit.max_hp
+		# Ordinary Blast formerly took the adjacent Smith by encounter order.
+		fallback.target = "blacksmith"
 		fallback.effective = "wizard_blast"
 		fallback["fallback"] = true
 		examples.append(fallback)

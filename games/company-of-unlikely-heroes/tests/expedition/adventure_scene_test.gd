@@ -76,8 +76,9 @@ func _run() -> void:
 		_check(false, "Starting a full company launches battle")
 		_finish()
 		return
-	for name in ["BridgeBoard", "Actions", "StandingOrders", "ForecastDetails", "ClearCommand", "Commit"]:
+	for name in ["BridgeBoard", "StandingOrders", "ForecastDetails", "ClearCommand", "Commit"]:
 		_check(_node(name) != null, "Battle exposes " + name)
+	_check(_node("Actions") == null, "Battle has no legacy Actions menu")
 	_check(_node("ModeDirect") == null and _node("ModeStanding") == null,
 		"Battle has no retired mode selectors")
 	var battle: Dictionary = scene.battle_snapshot()

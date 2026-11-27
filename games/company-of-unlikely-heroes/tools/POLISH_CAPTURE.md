@@ -37,7 +37,7 @@ use board seed 6; the full driver also fixes its reward RNG.
   committed resolution, forfeit confirmation and result. It creates a corrupt
   disposable profile, deletes it, creates a guild, then renews its board with
   seed 6 before deployment. The long name is injected into the field; battle
-  action selection emits the existing test driver's menu signal. Other
+  action selection uses the test driver's visible ability button. Other
   navigation uses the existing capture driver's input helpers.
 The retired practice-only no-reward debrief is not part of commission flow.
 Commission road victories with no reward continue without that page.

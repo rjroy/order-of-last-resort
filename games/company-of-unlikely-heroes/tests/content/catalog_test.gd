@@ -108,6 +108,10 @@ func _test_executable_authoring() -> void:
 		_check("abilities.test_heal.params.prefer_wounded_self: requires automatic heal targeting" in errors,
 			"Explicit heal rejects self-preference %s" % str(value))
 	heal_fixture.abilities.test_heal.params.erase("prefer_wounded_self")
+	heal_fixture.abilities.test_heal.targeting.direct = {"help": "Choose a patient."}
+	_check("abilities.test_heal.targeting.direct: requires automatic targeting and a handler that supports a Direct entity choice"
+		in catalog.validate(heal_fixture), "An already explicit heal does not accept a Direct targeting overlay")
+	heal_fixture.abilities.test_heal.targeting.erase("direct")
 	_check(catalog.validate(heal_fixture).is_empty(), "Explicit heal without self-preference validates")
 	var other_handler := defs.duplicate(true)
 	other_handler.abilities.knight_push.params["prefer_wounded_self"] = true

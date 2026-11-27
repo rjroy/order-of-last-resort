@@ -49,6 +49,10 @@
       },
       "targeting": {
         "kind": "automatic",
+        "direct": {
+          "label": "Blast",
+          "help": "Hit a chosen living character or damageable obstacle. Characters can be knocked down, even allies."
+        },
         "objects": true,
         "capabilities": [
           "damageable"

@@ -76,7 +76,7 @@ func _rapid_swap(mirrored: bool) -> void:
 	# Keep the two real commits and live board, but stage the second command
 	# without UI frame waits so the first throw is still in its windup.
 	var middle: Dictionary = scene.battle_snapshot()
-	scene.set("_planned_state", rules.choose_manual(middle, "rogue", "rogue_confusing_dodge"))
+	scene.set("_planned_state", rules.choose_manual(middle, "rogue", "rogue_confusing_dodge", "knight"))
 	scene.call("_refresh")
 	var plan: Dictionary = scene.get("_plan")
 	var retrieves: bool = plan.events.any(func(event):

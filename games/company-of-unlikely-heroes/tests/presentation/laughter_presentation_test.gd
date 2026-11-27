@@ -67,7 +67,6 @@ func _show_editor(state: Dictionary) -> void:
 	scene.set("_state", state.duplicate(true))
 	scene.set("_planned_state", state.duplicate(true))
 	scene.call("_sync_actors")
-	scene.call("_sync_command")
 	scene.call("_refresh")
 	await process_frame
 	var driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
@@ -78,18 +77,13 @@ func _show_editor(state: Dictionary) -> void:
 
 
 func _actions_unavailable() -> bool:
-	var menu := _node("Actions") as MenuButton
-	if menu == null or not menu.is_visible_in_tree():
-		return false
-	if menu.disabled:
-		return true
-	var popup := menu.get_popup()
-	if popup.item_count == 0:
-		return false
-	for index in popup.item_count:
-		if not popup.is_item_disabled(index):
+	for id in ["move", "healer_bonk", "healer_heal"]:
+		var button := scene.find_child("DirectOrder_" + id, true, false) as Button
+		if button == null or not button.is_visible_in_tree() or not button.disabled \
+				or str(button.get_meta("ability_id", "")) != id:
 			return false
-	return true
+	var board := _node("BridgeBoard")
+	return board != null and (board.get("_overlay") as Dictionary).get("targets", []).is_empty()
 
 
 func _visible_text() -> String:

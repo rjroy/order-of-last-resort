@@ -132,6 +132,20 @@ func _events(plan: Dictionary, ability: String) -> Array:
 	return found
 
 
+func _song_effects(plan: Dictionary, song: String, actor: String, echo := false) -> Array:
+	var melody := song == "inspiring_melody"
+	var kind := "performance" if melody else "damage"
+	return _events(plan, song).filter(func(event: Dictionary) -> bool:
+		return event.get("unit_id") == actor and event.get("type") == kind \
+			and bool(event.get("song_echo", false)) == echo and not str(event.get("target_id", "")).is_empty() \
+			and (not melody or event.get("status_id") == "laughter"))
+
+
+func _heard_song(plan: Dictionary, song: String, actor: String, listener: String) -> bool:
+	return _song_effects(plan, song, actor).any(func(event: Dictionary) -> bool:
+		return event.get("target_id") == listener)
+
+
 func _dry_performance(plan: Dictionary, ability: String, echo: bool) -> bool:
 	for event in _events(plan, ability):
 		if event.get("type") == "performance" and bool(event.get("song_echo", false)) == echo \
@@ -270,8 +284,8 @@ func _test_friend(state: Dictionary, order: String) -> void:
 			"Equal-distance legal summon squares have a stable tie break")
 
 
-func _song_round(state: Dictionary, song: String, direct: bool) -> Dictionary:
-	var selected: Dictionary = rules.choose_manual(state, "bard", song) if direct \
+func _song_round(state: Dictionary, song: String, direct: bool, target := "") -> Dictionary:
+	var selected: Dictionary = rules.choose_manual(state, "bard", song, target) if direct \
 		else rules.set_order(state, "bard", "order_" + song)
 	return _round(selected, ("Direct " if direct else "Standing ") + song)
 
@@ -282,14 +296,20 @@ func _song_sequence(profile: Dictionary, purchased: bool, direct: bool) -> void:
 		return
 	for index in range(3):
 		var song := "healing_sonnet" if index == 1 else "inspiring_melody"
-		var plan := _song_round(state, song, direct)
+		# The former seed-12345 route chose enemy_a for all three live songs.
+		# With Weaving, Melody's round-two echo reaches enemy_b instead.
+		var target := "enemy_a" if direct else ""
+		var plan := _song_round(state, song, direct, target)
 		if plan.is_empty():
 			return
-		var live := _events(plan, song)
+		var live := _song_effects(plan, song, "bard")
 		var other := "inspiring_melody" if index == 1 else "healing_sonnet"
-		var echoes := _events(plan, other)
-		_check(not live.is_empty(), "Live song resolves in sequence round %d" % (index + 1))
-		_check((not echoes.is_empty()) == (purchased and index > 0),
+		var echoes := _song_effects(plan, other, "bard", true)
+		_check(live.size() == 1, "Live %s reaches a listener in sequence round %d" % [song, index + 1])
+		if not target.is_empty():
+			_check(live.size() == 1 and live[0].get("target_id") == target,
+				"Direct %s reaches the chosen listener %s in round %d" % [song, target, index + 1])
+		_check(echoes.size() == 1 if purchased and index > 0 else _events(plan, other).is_empty(),
 			"Only a purchased alternate echoes the immediately previous song")
 		if not echoes.is_empty() and not live.is_empty():
 			_check(plan.events.find(live[0]) < plan.events.find(echoes[0]), "Live song resolves before echo")
@@ -298,8 +318,12 @@ func _song_sequence(profile: Dictionary, purchased: bool, direct: bool) -> void:
 			"Sequence applies Sonnet exactly once when live or echoed")
 		state = plan.result
 	# A repeated melody must not echo the previous echoed sonnet.
-	var repeated := _song_round(state, "inspiring_melody", direct)
+	# enemy_a is still immune after round three, so the old draw reached enemy_b.
+	var repeated := _song_round(state, "inspiring_melody", direct, "enemy_b" if direct else "")
 	if not repeated.is_empty():
+		if direct:
+			_check(_heard_song(repeated, "inspiring_melody", "bard", "enemy_b"),
+				"Repeated Direct Melody reaches the other listener while enemy_a is immune")
 		_check(_events(repeated, "healing_sonnet").is_empty(), "Same song and echoed song do not re-prime weaving")
 		_check(_enemy_hp(repeated.result) == _enemy_hp(state),
 			"Repeating Melody causes no echoed Sonnet damage")
@@ -461,22 +485,27 @@ func _test_song_actor_isolation(profile: Dictionary) -> void:
 	state.units.insert(1, _unit("necromancer", "necromancer", Vector2i(2, 3)))
 	state.party = ["bard", "necromancer"]
 	state = rules.set_order(state, "bard", "order_hold")
-	state = rules.choose_manual(state, "necromancer", "inspiring_melody")
+	state = rules.choose_manual(state, "necromancer", "inspiring_melody", "enemy_a")
 	var first := _round(state, "Nonwoven Crypter sings first")
 	if first.is_empty():
 		return
-	_check(not _events(first, "inspiring_melody").is_empty(), "Crypter actually sings Melody")
+	_check(_heard_song(first, "inspiring_melody", "necromancer", "enemy_a"),
+		"Crypter's first Direct Melody makes the chosen listener laugh")
 	state = rules.set_order(first.result, "bard", "order_healing_sonnet")
 	var second := _round(state, "Bard sings after Crypter")
 	if second.is_empty():
 		return
 	_check(_events(second, "inspiring_melody").is_empty()
+		and _heard_song(second, "healing_sonnet", "bard", "enemy_a")
 		and _enemy_hp(first.result) - _enemy_hp(second.result) == 1,
 		"Crypter's previous song does not prime Bard's weaving")
 	state = rules.set_order(second.result, "bard", "order_hold")
-	state = rules.choose_manual(state, "necromancer", "inspiring_melody")
+	# The first listener's immunity has expired, and the original third draw chose it again.
+	state = rules.choose_manual(state, "necromancer", "inspiring_melody", "enemy_a")
 	var third := _round(state, "Crypter sings after Bard")
 	if not third.is_empty():
+		_check(_heard_song(third, "inspiring_melody", "necromancer", "enemy_a"),
+			"Crypter's second Direct Melody makes the chosen listener laugh")
 		_check(_events(third, "healing_sonnet").is_empty()
 			and _enemy_hp(third.result) == _enemy_hp(second.result),
 			"Bard's previous song does not grant weaving to Crypter")

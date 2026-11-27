@@ -1,13 +1,15 @@
 # Help book screenshots
 
-These PNGs are unretouched crops of the live game. The source is a 1280 × 820 Godot viewport running `main.tscn` from game revision `bf26c348e745c536cfa80b5b39bdecf26d3e4c76`. Captured with Godot 4.7.2 (`ed1daf0bf`), GL Compatibility on Linux. The capture uses the stock catalog and a fresh guild named The Lantern Company with board seed 677. The battle is a separate standalone launch of The Wrong Side of the Door.
+These PNGs are unretouched crops of the live game from a 1280 × 820 Godot viewport. Except for the battle-controls image, they were captured from `main.tscn` at game revision `bf26c348e745c536cfa80b5b39bdecf26d3e4c76`. The battle-controls image was recaptured on branch baseline `8de1fae4c0b1092aa8acdb4cf6448102490daad6` with the olr-tu2 working-tree changes, from `battle-controls-full.png` at `Rect2i(35, 555, 564, 56)`. Captures used Godot 4.7.2 (`ed1daf0bf`), GL Compatibility on Linux. The capture uses the stock catalog and a fresh guild named The Lantern Company with board seed 677. The battle is a separate standalone launch of The Wrong Side of the Door.
+
+The current capture recipe uses `Rect2i(35, 679, 564, 56)` for battle controls after the footer layout changed. The accepted image remains the earlier crop described above.
 
 | Image | Native size | Suggested caption |
 | --- | --- | --- |
 | [commission-selection.png](commission-selection.png) | 408 × 608 | Choose a commission by its destination and length. The mission count includes the finale. |
 | [recruitment.png](recruitment.png) | 530 × 581 | Recruit three heroes. Use Earlier and Later to set where they start and who acts first. |
 | [field-reports.png](field-reports.png) | 592 × 657 | Compare the immediate missions on Routes A and B. Farther ahead hints at a later mission type, not the exact encounter. |
-| [battle-controls.png](battle-controls.png) | 616 × 96 | Use a hero’s Actions or click a legal destination to replace one standing order for the round. Open Forecast before you decide. |
+| [battle-controls.png](battle-controls.png) | 564 × 56 | Select a hero and a visible ability, then choose its target if needed. Open Forecast before you decide. |
 | [battle-commit.png](battle-commit.png) | 382 × 60 | Clear command to restore the standing order for this round. Commit when you’re ready to play out the forecast. |
 | [battle-board.png](battle-board.png) | 522 × 345 | The solid Knight is still at B2. The ghost at C2 shows the planned move to the pressure plate. |
 | [battle-forecast.png](battle-forecast.png) | 438 × 320 | Read the forecast in order: the Knight moves onto the plate, then the gate opens. The live gate stays shut until the round is committed. |

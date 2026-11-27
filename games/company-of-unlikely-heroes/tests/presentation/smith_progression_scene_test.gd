@@ -71,10 +71,11 @@ func _release_at_initiative(defs: Dictionary, smith_first: bool) -> void:
 		_check(not _unit(opening, "knight").has("fitted_by"),
 			"Earlier Smith has not yet mutated the real board")
 	if not await driver.action("smith_quick_release"):
-		_check(false, "Wearer's pre-activation Actions menu offers Quick Release: " + driver.error)
+		_check(false, "Wearer's pre-activation controls offer Quick Release: " + driver.error)
 		return
-	var ids: Array = (scene.get("_targets") as Array).map(func(choice: Dictionary): return choice.id)
-	_check("1,2" in ids, "Quick Release offers an open adjacent destination")
+	var release_board := scene.find_child("BridgeBoard", true, false) as Control
+	var marks: Array = (release_board.get("_overlay") as Dictionary).get("targets", [])
+	_check(Vector2i(1, 2) in marks, "Quick Release marks an open adjacent destination")
 	if not await driver.target("1,2"):
 		_check(false, "Choose the Quick Release destination: " + driver.error)
 		return

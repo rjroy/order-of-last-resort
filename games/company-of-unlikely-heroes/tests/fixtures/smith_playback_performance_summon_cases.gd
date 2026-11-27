@@ -29,14 +29,20 @@ static func cases() -> Array[Dictionary]:
 			"healing_sonnet", "bard_take_the_stage":
 				_unit(state, "bard").hp -= 2
 				_unit(state, "blacksmith").hp -= 1
+				# The old seeded choice was the Smith; Company Chorus also heals the Bard.
+				target = "blacksmith"
 				if ability == "bard_take_the_stage":
 					_unit(state, "bard").upgrades = {"bard_house_lights": 1}
+			"inspiring_melody":
+				target = "necromancer"
 			"summon_skeleton":
 				state = _summon(state)
 				target = "2,1"
 			"raise_dead":
 				_unit(state, "corpse").hp = 0
 				state = _perform(state, "raise_dead", "corpse")
+			"necro_grave_bell":
+				target = "enemy"
 			"necromancer_say_hello_to_that_one":
 				_unit(state, "necromancer").upgrades = {"necromancer_say_hello_to_that_one": 1}
 				state = _summon(state)

@@ -31,18 +31,18 @@ func _run() -> void:
 		"Fixture has one living hero west of the closed, unheld gate")
 	scene.set("_state", stranded)
 	scene.call("_begin_attempt")
-	# The editor normally auto-selects a survivor; also cover an empty selection.
-	scene.set("_actor_id", "")
-	scene.call("_sync_command")
-	scene.call("_refresh")
 	await process_frame
+	# Exercise Forfeit from neutral through the same control a player uses.
+	if scene.get("_actor_id") != "" and not await _click_button("ClearCommand"):
+		_finish()
+		return
 	var escape := ForfeitControls.button(root, ["forfeit"])
 	for name in ["ForecastDetails", "StandingOrders"]:
 		var control := scene.find_child(name, true, false) as BaseButton
 		_check(control != null and control.is_visible_in_tree() and not control.disabled,
 			name + " is available before confirmation")
 	_check(escape != null and scene.get("_actor_id") == ""
-		and (scene.get("_targets") as Array).is_empty(),
+		and scene.get("_aimed_ability_id") == "" and _highlighted_cells(board).is_empty(),
 		"Forfeit is discoverable without a selected hero or targets")
 	if escape == null:
 		_finish()
@@ -50,7 +50,7 @@ func _run() -> void:
 	await ForfeitControls.click(self, escape)
 	_check(scene.battle_snapshot() == stranded and scene.current_screen() == "battle",
 		"Opening confirmation does not commit or forfeit")
-	var cancel := ForfeitControls.button(root, ["cancel"])
+	var cancel := _forfeit_cancel_button()
 	_check(cancel != null, "Forfeit requires an explicit confirmation with Cancel")
 	if cancel == null:
 		_finish()
@@ -62,10 +62,10 @@ func _run() -> void:
 	await ForfeitControls.click(self, escape)
 	await _key(KEY_ESCAPE)
 	_check(scene.battle_snapshot() == stranded
-		and ForfeitControls.button(root, ["cancel"]) == null and escape.has_focus(),
+		and _forfeit_cancel_button() == null and escape.has_focus(),
 		"Escape cancels confirmation, restores Forfeit focus, and does not change the battle")
 	await ForfeitControls.click(self, escape)
-	cancel = ForfeitControls.button(root, ["cancel"])
+	cancel = _forfeit_cancel_button()
 	if cancel == null:
 		_check(false, "Confirmation reopens after Escape")
 		_finish()
@@ -73,57 +73,83 @@ func _run() -> void:
 	_check(cancel.has_focus(), "Reopened confirmation defaults focus to Cancel")
 	await _key(KEY_ENTER)
 	_check(scene.battle_snapshot() == stranded
-		and ForfeitControls.button(root, ["cancel"]) == null,
+		and _forfeit_cancel_button() == null,
 		"Default Enter cancels instead of forfeiting")
 
-	# Start over and queue an aimed command using the actual storybook controls.
+	# Start over and stage Pull. Test the modal with an enabled Commit before
+	# testing an in-progress aim, where Commit would be disabled anyway.
 	if not await _click_button("Restart"):
 		_finish()
 		return
 	await _click_cell(board, _unit(opening, "wizard").position)
-	if not await _choose_action("wizard_pull"):
+	if not await _click_button("DirectOrder_wizard_pull"):
 		_finish()
 		return
 	await _click_cell(board, _unit(opening, "healer").position)
 	var before: Dictionary = scene.battle_snapshot().duplicate(true)
 	var queued: Dictionary = scene.get("_planned_state").duplicate(true)
 	var plan: Dictionary = scene.get("_plan").duplicate(true)
-	var actor: String = scene.get("_actor_id")
-	var ability: String = scene.get("_ability_id")
-	var target: String = scene.get("_target_id")
-	var aiming: bool = scene.get("_storybook_aiming")
-	var targets: Array = (scene.get("_targets") as Array).duplicate(true)
-	var highlights := _highlighted_cells(board).duplicate(true)
-	_check(queued.get("overrides", {}).get("wizard", {}).get("ability_id") == "wizard_pull"
-		and aiming and not targets.is_empty(), "Fixture queues Pull while retaining aim")
+	var command: Dictionary = queued.get("overrides", {}).get("wizard", {})
+	_check(scene.get("_actor_id") == "wizard" and scene.get("_aimed_ability_id") == ""
+		and command.get("ability_id") == "wizard_pull" and command.get("target_id") == "healer"
+		and plan.get("valid", false), "Fixture stages a valid Pull on Healer")
+	var staged_marks := _draft_marks(board)
+	var commit := scene.find_child("Commit", true, false) as BaseButton
+	_check(commit != null and commit.is_visible_in_tree() and not commit.disabled,
+		"Staged Pull is committable before opening confirmation")
 	escape = ForfeitControls.button(root, ["forfeit"])
 	if escape == null:
-		_check(false, "Forfeit remains available with a queued aimed command")
+		_check(false, "Forfeit remains available with a staged command")
 		_finish()
 		return
 	await ForfeitControls.click(self, escape)
-	cancel = ForfeitControls.button(root, ["cancel"])
+	cancel = _forfeit_cancel_button()
 	if cancel == null:
 		_check(false, "Queued command offers a cancelable confirmation")
 		_finish()
 		return
 	# The paper and scrim do not dismiss the dialog, run a command, or steal keyboard focus.
-	var commit := scene.find_child("Commit", true, false) as BaseButton
 	if commit != null:
 		await ForfeitControls.click(self, commit)
 	await ForfeitControls.click(self, escape)
 	await _click_cell(board, _unit(opening, "knight").position)
 	await _key(KEY_DOWN)
 	_check(cancel.is_visible_in_tree() and cancel.has_focus() and scene.battle_snapshot() == before
-		and scene.get("_planned_state") == queued and scene.get("_actor_id") == actor,
+		and scene.get("_planned_state") == queued and scene.get("_actor_id") == "wizard"
+		and scene.get("_aimed_ability_id") == "",
 		"Backdrop clicks, board clicks, and keyboard input cannot dismiss or change the battle")
 	await ForfeitControls.click(self, cancel)
 	_check(scene.battle_snapshot() == before and scene.get("_planned_state") == queued
-		and scene.get("_plan") == plan and scene.get("_actor_id") == actor
-		and scene.get("_ability_id") == ability and scene.get("_target_id") == target
-		and scene.get("_storybook_aiming") == aiming and scene.get("_targets") == targets
-		and _highlighted_cells(board) == highlights,
-		"Cancel restores exact battle, queue, forecast, editor and aim")
+		and scene.get("_plan") == plan and scene.get("_actor_id") == "wizard"
+		and scene.get("_aimed_ability_id") == "" and _draft_marks(board) == staged_marks,
+		"Cancel restores the exact battle, queue, forecast, selection and staged marks")
+
+	if not await _click_button("DirectOrder_wizard_pull"):
+		_finish()
+		return
+	var aimed_marks := _draft_marks(board)
+	_check(scene.get("_aimed_ability_id") == "wizard_pull" and commit != null and commit.disabled
+		and _unit(opening, "healer").position in aimed_marks.targets,
+		"Re-aiming Pull shows legal targets and disables Commit without replacing the draft")
+	await ForfeitControls.click(self, escape)
+	cancel = _forfeit_cancel_button()
+	if cancel == null:
+		_check(false, "Forfeit still offers confirmation during an active aim")
+		_finish()
+		return
+	_check(cancel.has_focus(), "Aimed confirmation moves keyboard focus to its Cancel")
+	await ForfeitControls.click(self, cancel)
+	_check(_forfeit_cancel_button() == null and escape.has_focus(),
+		"Cancel dismisses the aimed confirmation and restores Forfeit focus")
+	_check(scene.battle_snapshot() == before and scene.get("_planned_state") == queued
+		and scene.get("_plan") == plan and scene.get("_actor_id") == "wizard"
+		and scene.get("_aimed_ability_id") == "wizard_pull" and _draft_marks(board) == aimed_marks,
+		"Cancel also restores the in-progress Pull aim and its exact marks")
+	if not await _click_button("CancelTargeting"):
+		_finish()
+		return
+	_check(scene.get("_aimed_ability_id") == "" and scene.get("_planned_state") == queued,
+		"Cancel targeting ends the aim and leaves the queued Pull for order editing")
 	await _open_order_popup_accessibility()
 
 	# Confirm the actual lone-survivor case, not a normal opening.
@@ -150,7 +176,7 @@ func _run() -> void:
 		await _key(KEY_ENTER)
 		_check(scene.battle_snapshot().get("outcome") == "defeat",
 			"Confirmed stranded Gate resolves as ordinary defeat")
-		_check(ForfeitControls.button(root, ["cancel"]) == null
+		_check(_forfeit_cancel_button() == null
 			and ForfeitControls.button(root, ["forfeit mission"]) == null,
 			"Keyboard confirmation closes the active confirmation")
 		var restart := scene.find_child("Restart", true, false) as BaseButton
@@ -163,6 +189,20 @@ func _run() -> void:
 	_finish()
 
 
+func _draft_marks(board: Control) -> Dictionary:
+	var overlay: Dictionary = board.get("_overlay")
+	return {"targets": _highlighted_cells(board).duplicate(true), "chosen": overlay.get("chosen_target")}
+
+
+func _forfeit_cancel_button() -> BaseButton:
+	# The inert background can still contain a visible Cancel targeting
+	# button. Look for Cancel only inside the visible confirmation.
+	var modal := scene.find_child("ForfeitConfirmation", true, false) as Control
+	if modal == null or not modal.is_visible_in_tree():
+		return null
+	return ForfeitControls.button(modal, ["cancel"])
+
+
 func _open_order_popup_accessibility() -> void:
 	if not await _click_button("StandingOrders"):
 		return
@@ -170,7 +210,10 @@ func _open_order_popup_accessibility() -> void:
 	var picker := scene.find_child("KnightOrder", true, false) as OptionButton
 	var leaf := scene.find_child("ExtraDetails", true, false) as Control
 	var escape := ForfeitControls.button(root, ["forfeit"])
-	if picker == null or leaf == null or escape == null or not picker.is_visible_in_tree():
+	if leaf == null or not leaf.is_visible_in_tree() or page.get("_expanded") != "orders":
+		_check(false, "Clicking Standing orders opens the orders leaf")
+		return
+	if picker == null or escape == null or not picker.is_visible_in_tree():
 		_check(false, "Open orders leaf offers Knight's order picker and Forfeit")
 		return
 	var guard := ""
@@ -204,7 +247,7 @@ func _open_order_popup_accessibility() -> void:
 	# would first dismiss the existing popup.
 	escape.pressed.emit()
 	await process_frame
-	var cancel := ForfeitControls.button(root, ["cancel"])
+	var cancel := _forfeit_cancel_button()
 	_check(cancel != null and not popup.visible,
 		"Accessible Forfeit closes the previously open order popup")
 	# Godot OptionButton listens to PopupMenu.index_pressed and updates its

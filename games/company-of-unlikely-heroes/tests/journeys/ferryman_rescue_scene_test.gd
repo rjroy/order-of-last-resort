@@ -10,7 +10,8 @@ const Cues = preload("res://presentation/cast/cast_cues.gd")
 const ROUTE := [
 	["healer", "move", "0,3"], [], ["knight", "move", "2,1"],
 	["knight", "knight_push", "crate"], ["wizard", "move", "1,1"],
-	["wizard", "wizard_pull", "harpooner"], [], ["wizard", "wizard_blast", ""], []
+	# Blast originally aimed at the Knight; his aura redirects it to the Harpooner.
+	["wizard", "wizard_pull", "harpooner"], [], ["wizard", "wizard_blast", "knight"], []
 ]
 
 var scene: Node

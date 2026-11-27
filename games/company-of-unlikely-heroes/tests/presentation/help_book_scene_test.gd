@@ -259,12 +259,17 @@ func _test_battle() -> void:
 	var driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
 	var staged: bool = await driver.command("wizard", "wizard_pull", "healer")
 	_check(staged, "Can stage an aimed direct command: " + driver.error)
+	var aimed: bool = await driver.action("wizard_pull")
+	_check(aimed, "Can begin targeting while retaining the staged command: " + driver.error)
 	var before: Dictionary = scene.battle_snapshot().duplicate(true)
 	var planned: Dictionary = scene.get("_planned_state").duplicate(true)
 	var forecast: Dictionary = scene.get("_plan").duplicate(true)
 	var actor: String = scene.get("_actor_id")
-	var target: String = scene.get("_target_id")
-	var focus := scene.find_child("Commit", true, false) as Control
+	var command: Dictionary = planned.get("overrides", {}).get(actor, {}).duplicate(true)
+	var aim: String = scene.get("_aimed_ability_id")
+	_check(command.get("target_id") == "healer" and aim == "wizard_pull",
+		"Fixture retains the staged target while aiming Pull")
+	var focus := scene.find_child("CancelTargeting", true, false) as Control
 	if focus != null:
 		focus.grab_focus()
 		await process_frame
@@ -278,10 +283,15 @@ func _test_battle() -> void:
 		_check(scene.battle_snapshot() == before, "Help does not advance battle")
 		_check(scene.get("_planned_state") == planned and scene.get("_plan") == forecast,
 			"Help preserves uncommitted command and forecast")
-		_check(scene.get("_actor_id") == actor and scene.get("_target_id") == target,
-			"Help preserves selected actor and target")
+		_check(scene.get("_actor_id") == actor and scene.get("_aimed_ability_id") == aim
+			and scene.get("_planned_state").get("overrides", {}).get(actor, {}) == command,
+			"Help preserves selected actor, targeting and staged target")
 		if focus != null:
 			_check(root.gui_get_focus_owner() == focus, "Help restores battle keyboard focus")
+	var cancel := _named_button("CancelTargeting")
+	if await _activate(cancel, "Cancel targeting"):
+		_check(scene.get("_aimed_ability_id") == "" and scene.get("_planned_state") == planned,
+			"Cancel targeting preserves the staged command after Help")
 	var forecast_button := _named_button("ForecastDetails")
 	if await _activate(forecast_button, "Forecast"):
 		var page = scene.get("_storybook_page")
@@ -297,7 +307,8 @@ func _test_battle() -> void:
 				_check(root.gui_get_focus_owner() == forecast_panel, "Mouse close restores forecast panel focus")
 				_check(scene.battle_snapshot() == before and scene.get("_planned_state") == planned
 					and scene.get("_plan") == forecast, "Forecast and staged command survive Help over secondary panel")
-				_check(scene.get("_actor_id") == actor and scene.get("_target_id") == target,
+				_check(scene.get("_actor_id") == actor
+					and scene.get("_planned_state").get("overrides", {}).get(actor, {}) == command,
 					"Help over forecast preserves selected actor and target")
 	await _test_battle_options(before, planned, actor)
 

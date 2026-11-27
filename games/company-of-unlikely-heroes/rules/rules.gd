@@ -14,6 +14,8 @@ const Statuses = preload("res://rules/statuses.gd")
 const Summons = preload("res://rules/summons.gd")
 const Upgrades = preload("res://rules/upgrades.gd")
 
+enum ActionResult { PERFORMED, INVALID, STALE_FORM }
+
 
 func new_game(definitions_input: Variant, mission_id: String) -> Dictionary:
 	var authored: Variant = definitions_input if definitions_input != null else Catalog.read_default()
@@ -199,8 +201,9 @@ func set_order(state: Dictionary, unit_id: String, order_id: String) -> Dictiona
 	return result
 
 
+## Like command_ability, query the Direct form on the actor's before-action board.
 func targets(state: Dictionary, unit_id: String, ability_id: String) -> Array:
-	return Actions.targets(state, Board.entity(state, unit_id), ability_id) if state.outcome == "ongoing" else []
+	return Actions.targets(state, Board.entity(state, unit_id), ability_id, true) if state.outcome == "ongoing" else []
 
 
 ## `state` is the board at the start of the caster's turn, as for target selection.
@@ -208,17 +211,19 @@ func dose_forecast(state: Dictionary, unit_id: String, ability_id: String) -> Di
 	var actor := Board.entity(state, unit_id)
 	if state.outcome != "ongoing" or not Actions.can_act(state, actor):
 		return {}
-	var form := Actions.action_form(state, actor, ability_id)
+	var form := Actions.action_form(state, actor, ability_id, true)
 	if form.converted:
 		return form.alternate.get("reaction_forecast", {})
 	return Alchemy.reaction_forecast(state, actor, form.base.get("handler", ""))
 
 
-func preview(state: Dictionary, unit_id: String, ability_id: String, target_id := "") -> Dictionary:
+## Simulate one action as authored by default, including automatic selection.
+## Opt into Direct targeting explicitly; this does not stage an override or resolve earlier turns.
+func preview(state: Dictionary, unit_id: String, ability_id: String, target_id := "", direct := false) -> Dictionary:
 	var result := state.duplicate(true)
 	var events: Array = []
 	var valid: bool = state.get("outcome") == "ongoing" and _execute_action(result, Board.entity(result, unit_id),
-		{"ability_id": ability_id, "target_id": target_id}, events)
+		{"ability_id": ability_id, "target_id": target_id, "direct": direct}, events) == ActionResult.PERFORMED
 	return _plan("action", state, result, events, valid)
 
 
@@ -241,6 +246,7 @@ func choose_manual(state: Dictionary, unit_id: String, ability_id: String, targe
 		return result
 	if not result.overrides.is_empty() and not result.overrides.has(unit_id):
 		return result
+	var command := {"ability_id": ability_id, "target_id": target_id}
 	if ability_id == Fittings.QUICK_RELEASE:
 		# Another hero's command cannot supply the fitting, but an earlier
 		# standing Try This can. The same turn board drives the picker.
@@ -249,10 +255,19 @@ func choose_manual(state: Dictionary, unit_id: String, ability_id: String, targe
 			return result
 	else:
 		var ability := Actions.owned_ability(state, actor, ability_id)
-		if ability.is_empty() or (ability.handler == "perform" and not Actions.accepts_target_argument(ability, target_id)):
+		if ability.is_empty():
 			return result
+		var aims_alternate: bool = ability.get("fitted_form") in Fittings.DIRECT_PRIMARY_FORMS
+		if ability.handler == "perform" and not aims_alternate and not ability.targeting.has("direct") \
+				and not Actions.accepts_target_argument(ability, target_id):
+			return result
+		if aims_alternate:
+			var before := state_before_action(state, unit_id)
+			var form := Actions.action_form(before, Board.entity(before, unit_id), ability_id, true)
+			# Bind the offered effect even before a fitting exists; Try This can change it.
+			command["intended_form_id"] = form.alternate.id if form.converted else ability_id
 	# Stored intent is checked on the board as this actor gets their turn.
-	result.overrides[unit_id] = {"ability_id": ability_id, "target_id": target_id}
+	result.overrides[unit_id] = command
 	return result
 
 
@@ -374,9 +389,32 @@ func _resolve_turn(state: Dictionary, actor: Dictionary, events: Array) -> void:
 			{"unit_id": actor.id, "target_id": action.target_id})
 	elif not action.has("ability_id"):
 		Board.authored_event(state, events, "wait", action.get("wait", "hold"), {"actor": name}, {"unit_id": actor.id})
-	elif not _execute_action(state, actor, action, events):
-		Board.authored_event(state, events, "wait", "invalid", {"actor": name},
-			{"unit_id": actor.id, "ability_id": action.ability_id})
+	else:
+		var result := _execute_action(state, actor, action, events)
+		if result != ActionResult.PERFORMED:
+			_report_invalid_action(state, actor, action, name, result, events)
+
+
+func _report_invalid_action(state: Dictionary, actor: Dictionary, action: Dictionary, name: String,
+		result: ActionResult, events: Array) -> void:
+	var data := {"unit_id": actor.id, "ability_id": action.ability_id}
+	if result == ActionResult.STALE_FORM:
+		data["reason"] = "direct_form_changed"
+		data["intended_form_id"] = action.intended_form_id
+		Board.event(events, "wait", "%s cannot use the selected form anymore. Choose the Direct Order again." % name, data)
+		return
+	if action.get("direct", false):
+		var target_id: String = action.get("target_id", "")
+		if not target_id.is_empty():
+			data["target_id"] = target_id
+			Board.event(events, "wait", "%s cannot carry out the Direct Order: %s is no longer a legal target." % [
+				name, display_name(state, target_id)], data)
+			return
+		var form := Actions.command_ability(state, actor, action.ability_id)
+		if form.get("targeting", {}).get("kind") in ["cell", "entity"]:
+			Board.event(events, "wait", "%s cannot carry out the Direct Order without a target." % name, data)
+			return
+	Board.authored_event(state, events, "wait", "invalid", {"actor": name}, data)
 
 
 func _has_objective_turn_action(state: Dictionary, actor: Dictionary) -> bool:
@@ -394,12 +432,16 @@ func _has_objective_turn_action(state: Dictionary, actor: Dictionary) -> bool:
 		and (state.overrides.has(actor.id) or state.orders.has(actor.id))
 
 
-func _execute_action(state: Dictionary, actor: Dictionary, action: Dictionary, events: Array) -> bool:
+func _execute_action(state: Dictionary, actor: Dictionary, action: Dictionary, events: Array) -> ActionResult:
 	var gate_was_open := Board.pressure_gate_open(state)
 	var first := events.size()
 	var origin: Variant = actor.get("position")
-	var form: Dictionary = action["form"] if action.has("form") else Actions.action_form(state, actor, action.ability_id)
+	var form: Dictionary = action["form"] if action.has("form") else Actions.action_form(
+		state, actor, action.ability_id, action.get("direct", false))
 	var ability: Dictionary = form.alternate if form.converted else form.base
+	var actual_form_id: String = ability.id if form.converted else action.ability_id
+	if action.get("direct", false) and action.get("intended_form_id", actual_form_id) != actual_form_id:
+		return ActionResult.STALE_FORM
 	var bonus_stat := ""
 	match ability.get("handler"):
 		"move":
@@ -410,7 +452,7 @@ func _execute_action(state: Dictionary, actor: Dictionary, action: Dictionary, e
 	var recipe: String = actor.get("bottled_reaction", {}).get("recipe", "") \
 		if form.base.get("handler") == "repeat_batch" else ""
 	if not Actions.execute(state, actor, action, form, events):
-		return false
+		return ActionResult.INVALID
 	if first < events.size():
 		# Effects name their own sources (e.g. a protector who absorbs the hit).
 		# Preserve the actual actor and effect scope without adding a log event.
@@ -429,13 +471,13 @@ func _execute_action(state: Dictionary, actor: Dictionary, action: Dictionary, e
 		"treasure_noise":
 			if Board.deployed_hero(state, actor):
 				FrontierObjectives.add_noise(state, actor, form.base.handler, events)
-	return true
+	return ActionResult.PERFORMED
 
 
 func _intent(state: Dictionary, actor: Dictionary) -> Dictionary:
 	var profile := Board.profile(state, actor)
 	if "commandable" in profile.get("capabilities", []) and state.overrides.has(actor.id):
-		return state.overrides[actor.id]
+		return state.overrides[actor.id].merged({"direct": true}, true)
 	var order: String = state.orders.get(actor.id, "")
 	var behavior: String = profile.get("habits", {}).get(order, profile.get("behavior", ""))
 	return Behaviors.decide(state, actor, behavior)

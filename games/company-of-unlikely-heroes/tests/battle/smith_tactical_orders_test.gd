@@ -102,14 +102,14 @@ func _direct_rows() -> void:
 	# The Smith stands first and applies the fitting; nothing is pre-seeded on
 	# the initial board. Selection is checked on the real board at the hero slot.
 	var rows := [
-		["healer", "healer_bonk", "friend"], ["healer", "healer_heal", ""],
-		["wizard", "wizard_blast", ""], ["wizard", "wizard_pull", "foe"],
-		["rogue", "rogue_wasnt_me", "foe"], ["rogue", "rogue_confusing_dodge", ""],
+		["healer", "healer_bonk", "friend"], ["healer", "healer_heal", "foe"],
+		["wizard", "wizard_blast", "friend"], ["wizard", "wizard_pull", "foe"],
+		["rogue", "rogue_wasnt_me", "foe"], ["rogue", "rogue_confusing_dodge", "foe"],
 		["knight", "knight_rescue_line", "friend"], ["healer", "healer_field_dressing", "foe"],
-		["wizard", "wizard_ring_sparks", ""], ["rogue", "rogue_tripwire", ""],
+		["wizard", "wizard_ring_sparks", ""], ["rogue", "rogue_tripwire", "friend"],
 		["knight", "knight_shield_throw", "friend"],
-		["knight", "healer_bonk", "friend"], ["healer", "wizard_blast", ""],
-		["wizard", "rogue_confusing_dodge", ""], ["alchemist", "wizard_pull", "foe"],
+		["knight", "healer_bonk", "friend"], ["healer", "wizard_blast", "friend"],
+		["wizard", "rogue_confusing_dodge", "foe"], ["alchemist", "wizard_pull", "foe"],
 		["bard", "knight_push", "foe"],
 	]
 	for row: Array in rows:
@@ -289,7 +289,7 @@ func _conductive() -> void:
 	_unit(s, "blacksmith").hp = 10
 	# Knight is nearer than Smith; the secondary heal reaches Smith.
 	_unit(s, "blacksmith").position = Vector2i(1, 3)
-	var result := _round(rules.choose_manual(s, "wizard", "wizard_blast"), "Conductive Mending")
+	var result := _round(rules.choose_manual(s, "wizard", "wizard_blast", "knight"), "Conductive Mending")
 	if not result.is_empty():
 		_check(_unit(result, "knight").hp == 14 and _unit(result, "blacksmith").hp == 12,
 			"Conductive Personality: secondary wounded hero heals half rounded up")

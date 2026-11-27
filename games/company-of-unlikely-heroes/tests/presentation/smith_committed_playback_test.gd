@@ -88,6 +88,7 @@ func _state(wearer: String) -> Dictionary:
 
 
 func _commit(state: Dictionary, actor: String, ability: String, target := "") -> Dictionary:
+	# This is a single authored-action simulation, not a staged Direct Order.
 	var before := state.duplicate(true)
 	var plan := _rules.preview(state, actor, ability, target)
 	if not _check(plan.get("valid", false), "Legal fixture: " + ability + " / " + target):
@@ -323,11 +324,11 @@ func _queued_recovery_tail() -> void:
 	var cover := _commit(state, "patient", "healer_bonk", "wearer")
 	if cover.is_empty():
 		return
-	var first := _commit_round(cover.state, "wearer", "healer_heal")
+	var first := _commit_round(cover.state, "wearer", "healer_heal", "wearer")
 	var timeline := _timeline(cover)
 	timeline.enqueue(first.cues, _art)
 	timeline.advance(16.0)
-	var next := _commit_round(first.state, "wearer", "healer_heal")
+	var next := _commit_round(first.state, "wearer", "healer_heal", "wearer")
 	timeline.enqueue(next.cues, _art)
 	var heals: Array = timeline.get("_entries").filter(func(entry: Playback.Entry):
 		return entry.cue.get("performance", {}).get("form_id") == "healer_heal")

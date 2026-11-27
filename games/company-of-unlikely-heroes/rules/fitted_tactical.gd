@@ -12,7 +12,8 @@ const Upgrades = preload("res://rules/upgrades.gd")
 const BOOT_TOFFEE := "boot_toffee"
 
 
-static func describe(state: Dictionary, actor: Dictionary, _source_id: String, base: Dictionary) -> Dictionary:
+static func describe(state: Dictionary, actor: Dictionary, _source_id: String, base: Dictionary,
+		direct := false) -> Dictionary:
 	var id: String = base.get("fitted_form", "")
 	match id:
 		"keep_your_head_down":
@@ -28,11 +29,13 @@ static func describe(state: Dictionary, actor: Dictionary, _source_id: String, b
 				"no other hero in staff reach", amount)
 		"doctors_orders":
 			var amount := int(base.params.amount)
-			var choices := _nearest_choices(state, actor, _damageable_opponents(state, actor))
-			return _form(id, "Doctor's Orders", "Deal %d damage to the nearest living opponent." % amount,
-				"automatic", choices, "no damageable opponent", amount)
+			var choices := _entity_choices(state, _damageable_opponents(state, actor))
+			var help := "Deal %d damage to a chosen living opponent." if direct \
+				else "Deal %d damage to the nearest living opponent."
+			return _form(id, "Doctor's Orders", help % amount, _primary_kind(direct),
+				_nearest_primary_choices(actor, choices, direct), "no damageable opponent", amount)
 		"mending_blast":
-			return _mending_blast(state, actor, id, int(base.params.damage))
+			return _mending_blast(state, actor, id, int(base.params.damage), direct)
 		"send_off":
 			return _form(id, "Send-Off",
 				"Push a character or movable obstacle one open step away. No recoil or collision damage.",
@@ -43,7 +46,7 @@ static func describe(state: Dictionary, actor: Dictionary, _source_id: String, b
 			return _form(id, "It Was Me", "Bonk an adjacent opponent for 2 damage and taunt them if they survive.",
 				"entity", _entity_choices(state, candidates), "no adjacent damageable opponent", 2)
 		"clear_jump":
-			return _clear_jump(state, actor, id)
+			return _clear_jump(state, actor, id, direct)
 		"safety_distance":
 			return _form(id, "Safety Distance", "Send a friendly character exactly two tiles away one open step farther.",
 				"entity", _shove_choices(state, actor, true), "no friendly character with an open shove at range two")
@@ -59,7 +62,7 @@ static func describe(state: Dictionary, actor: Dictionary, _source_id: String, b
 			return _form(id, "Ring of Salve", "Heal every adjacent wounded friendly character for %d HP." % amount,
 				"none", choices, "no adjacent wounded friendly character", amount)
 		"cut_the_wire":
-			return _cut_the_wire(state, actor, id)
+			return _cut_the_wire(state, actor, id, direct)
 		"lend_a_shield":
 			var amount := int(base.params.damage)
 			var available := Shield.position(actor) == null
@@ -88,10 +91,11 @@ static func apply(state: Dictionary, actor: Dictionary, _source_id: String, _bas
 			Combat.hurt(state, actor, target, amount, form.label, "", events)
 			_report_idle(state, actor, "me_or_you", "Me or You", "no company heal", events)
 		"mending_blast":
+			var secondary := Board.nearest(target, _wounded_heroes(state, actor)) \
+				if Upgrades.amount(state, actor, "conductive_personality") > 0 else {}
 			Support.heal(state, actor, target, amount, events, form.label)
-			if choice.has("secondary_id"):
+			if not secondary.is_empty():
 				# The bolt inherits More Powder, not the one-time primary bonus or actual healed HP.
-				var secondary := Board.entity(state, choice.secondary_id)
 				Support.heal(state, actor, secondary, ceili(base_amount * 0.5), events, "Conductive Personality")
 			_report_idle(state, actor, "demolition_practice", "Demolition Practice", "no obstacle hit", events)
 			_report_idle(state, actor, "duck", "Duck!", "no knockdown", events)
@@ -159,21 +163,28 @@ static func _entity_choices(state: Dictionary, candidates: Array) -> Array:
 	return candidates.map(func(target: Dictionary) -> Dictionary: return _choice(state, target))
 
 
-static func _nearest_choices(state: Dictionary, actor: Dictionary, candidates: Array) -> Array:
-	var target := Board.nearest(actor, candidates, true)
-	return [] if target.is_empty() else [_choice(state, target)]
+static func _primary_kind(direct: bool) -> String:
+	return "entity" if direct else "automatic"
 
 
-static func _mending_blast(state: Dictionary, actor: Dictionary, id: String, amount: int) -> Dictionary:
-	var wounded := _heroes(state, actor, true).filter(func(hero: Dictionary) -> bool:
+static func _nearest_primary_choices(actor: Dictionary, choices: Array, direct: bool) -> Array:
+	if direct:
+		return choices
+	var nearest := Board.nearest(actor, choices, true)
+	return [] if nearest.is_empty() else [nearest]
+
+
+static func _wounded_heroes(state: Dictionary, actor: Dictionary) -> Array:
+	return _heroes(state, actor, true).filter(func(hero: Dictionary) -> bool:
 		return hero.hp < hero.max_hp and Board.capable(state, hero, "healable"))
-	var choices := _nearest_choices(state, actor, wounded)
-	if not choices.is_empty() and Upgrades.amount(state, actor, "conductive_personality") > 0:
-		var secondary := Board.nearest(choices[0], wounded)
-		if not secondary.is_empty():
-			choices[0]["secondary_id"] = secondary.id
-	return _form(id, "Mending Blast", "Heal the nearest wounded hero (including yourself) for %d HP." % amount,
-		"automatic", choices, "no wounded hero", amount)
+
+
+static func _mending_blast(state: Dictionary, actor: Dictionary, id: String, amount: int, direct: bool) -> Dictionary:
+	var choices := _entity_choices(state, _wounded_heroes(state, actor))
+	var help := "Heal a chosen wounded hero (including yourself) for %d HP." if direct \
+		else "Heal the nearest wounded hero (including yourself) for %d HP."
+	return _form(id, "Mending Blast", help % amount, _primary_kind(direct),
+		_nearest_primary_choices(actor, choices, direct), "no wounded hero", amount)
 
 
 static func _shove_choices(state: Dictionary, actor: Dictionary, safety_distance: bool) -> Array:
@@ -197,37 +208,55 @@ static func _shove_choices(state: Dictionary, actor: Dictionary, safety_distance
 	return choices
 
 
-static func _clear_jump(state: Dictionary, actor: Dictionary, id: String) -> Dictionary:
-	var form := _form(id, "Clear Jump", "Jump to the nearest open neighbor of the furthest opponent, without swapping.",
-		"automatic", [], "movement blocked")
+static func _clear_jump(state: Dictionary, actor: Dictionary, id: String, direct: bool) -> Dictionary:
+	var help := "Jump to the nearest open tile beside a chosen opponent, without swapping." if direct \
+		else "Jump to the nearest open neighbor of the furthest opponent, without swapping."
+	var form := _form(id, "Clear Jump", help, _primary_kind(direct), [], "movement blocked")
 	if not Board.capable(state, actor, "mobile") or Movement.voluntary_blocked(state, actor) \
 			or not Statuses.ids_with_handler(state, actor, "stop_move").is_empty():
 		return form
+	var opponents := Board.occupants(state, {}).filter(func(target: Dictionary) -> bool:
+		return Board.opponents(state, actor, target))
+	form["unavailable_reason"] = "no living opponent"
+	if opponents.is_empty():
+		return form
+	form["unavailable_reason"] = "no open landing beside an opponent" if direct \
+		else "no open landing beside the furthest opponent"
+	# The autonomous form checks the furthest opponent even if another has a landing.
+	if not direct:
+		opponents = [_furthest_opponent(actor, opponents)]
+	for opponent: Dictionary in opponents:
+		var choice := _jump_choice(state, actor, opponent)
+		if not choice.is_empty():
+			form.choices.append(choice)
+	return form
+
+
+static func _furthest_opponent(actor: Dictionary, opponents: Array) -> Dictionary:
 	var furthest: Dictionary = {}
 	var furthest_distance := -1
-	for target: Dictionary in Board.occupants(state, {}):
-		if not Board.opponents(state, actor, target):
-			continue
+	for target: Dictionary in opponents:
 		var distance := Board.distance(actor.position, target.position)
 		if distance > furthest_distance or (distance == furthest_distance and target.id < furthest.id):
 			furthest = target
 			furthest_distance = distance
-	form["unavailable_reason"] = "no living opponent"
-	if furthest.is_empty():
-		return form
-	form["unavailable_reason"] = "no open landing beside the furthest opponent"
+	return furthest
+
+
+static func _jump_choice(state: Dictionary, actor: Dictionary, opponent: Dictionary) -> Dictionary:
 	var shortest := 2147483647
-	var choice: Dictionary = {}
+	var destination: Vector2i = actor.position
 	for direction: Vector2i in Board.DIRECTIONS:
-		var landing: Vector2i = furthest.position + direction
+		var landing: Vector2i = opponent.position + direction
 		var distance := Board.distance(actor.position, landing)
 		if distance > 0 and distance < shortest and Board.can_enter(state, landing):
 			shortest = distance
-			choice = _choice(state, furthest)
-			choice["destination"] = landing
-	if not choice.is_empty():
-		form.choices.append(choice)
-	return form
+			destination = landing
+	if destination == actor.position:
+		return {}
+	var choice := _choice(state, opponent)
+	choice["destination"] = destination
+	return choice
 
 
 static func _unpick_the_stitch(state: Dictionary, actor: Dictionary, id: String, amount: int) -> Dictionary:
@@ -246,7 +275,7 @@ static func _unpick_the_stitch(state: Dictionary, actor: Dictionary, id: String,
 	return form
 
 
-static func _cut_the_wire(state: Dictionary, actor: Dictionary, id: String) -> Dictionary:
+static func _cut_the_wire(state: Dictionary, actor: Dictionary, id: String, direct: bool) -> Dictionary:
 	var choices: Array = []
 	for target: Dictionary in Board.occupants(state, {}):
 		if not Board.allied(state, actor, target) or Board.distance(actor.position, target.position) > 2:
@@ -259,9 +288,10 @@ static func _cut_the_wire(state: Dictionary, actor: Dictionary, id: String) -> D
 			choice["holds"] = holds
 			choice["sticky"] = sticky
 			choices.append(choice)
-	var nearest := Board.nearest(actor, choices, true)
-	return _form(id, "Cut the Wire", "Free the nearest friendly character within two tiles from movement holds, including yourself.",
-		"automatic", [nearest] if not nearest.is_empty() else [], "no friendly character held in reach")
+	var help := "Free a chosen friendly character within two tiles from movement holds, including yourself." if direct \
+		else "Free the nearest friendly character within two tiles from movement holds, including yourself."
+	return _form(id, "Cut the Wire", help, _primary_kind(direct),
+		_nearest_primary_choices(actor, choices, direct), "no friendly character held in reach")
 
 
 static func _release_holds(state: Dictionary, actor: Dictionary, target: Dictionary, choice: Dictionary,

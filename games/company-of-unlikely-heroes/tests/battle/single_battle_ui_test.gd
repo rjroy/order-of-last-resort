@@ -45,7 +45,7 @@ func _run() -> void:
 	await _launch_external(FIXTURE_MISSION)
 	await _exercise_battle("external", true)
 	await _exercise_external_gate(Vector2i(9, 6), LONG_KNIGHT)
-	await _exercise_external_gate(Vector2i(18, 5), LONG_KNIGHT + ", Keeper of the Autumn Road and Seven Bridges", true)
+	await _exercise_external_gate(Vector2i(18, 5), LONG_KNIGHT + ", Keeper of the Autumn Road and Seven Bridges")
 
 	# A retired flag may be rejected or treated as an alias, but it must never
 	# lead to the old command desk. Inspect options before launch because an
@@ -124,17 +124,18 @@ func _exercise_battle(label: String, external: bool) -> void:
 		_check(false, label + ": Knight has an opening move")
 		return
 	await _click(board.get_global_transform_with_canvas() * board.cell_center(knight.position))
-	_check(scene.get("_actor_id") == "knight", label + ": board selects Knight")
+	_check(scene.get("_actor_id") == "knight" and scene.get("_planned_state").overrides.is_empty(),
+		label + ": the first board click selects or retains Knight without staging")
 	await _click(board.get_global_transform_with_canvas() * board.cell_center(targets[0].position))
 	var planned: Dictionary = scene.get("_planned_state")
 	var command: Dictionary = planned.get("overrides", {}).get("knight", {})
 	_check(command.get("ability_id") == "move" and command.get("target_id") == targets[0].id,
-		label + ": board destination stages a move")
+		label + ": the second board click stages Move without pressing an ability")
 	_check(scene.battle_snapshot() == before, label + ": staging leaves battle uncommitted")
 	await _commit_forecast(before, label)
 
 
-func _exercise_external_gate(dimensions: Vector2i, hero_label: String, test_targets := false) -> void:
+func _exercise_external_gate(dimensions: Vector2i, hero_label: String) -> void:
 	var plate := dimensions - Vector2i.ONE
 	var fixture := RulesCatalog.definitions()
 	fixture.characters.knight.label = hero_label
@@ -167,7 +168,22 @@ func _exercise_external_gate(dimensions: Vector2i, hero_label: String, test_targ
 	_check((board.get("_bounds") as Rect2i).size == dimensions and board.cell_at(board.cell_center(plate)) == plate,
 		"External pressure gate maps the full authored board")
 	var before: Dictionary = scene.battle_snapshot().duplicate(true)
-	await _check_long_action_rail(hero_label, plate, test_targets)
+	_check(scene.find_child("Actions", true, false) == null and scene.find_child("Targets", true, false) == null,
+		"Custom Gate uses the Direct Order strip instead of legacy menus")
+	var picker := scene.find_child("DirectOrderHero", true, false) as OptionButton
+	_check(picker != null and picker.is_visible_in_tree() and picker.selected >= 0
+		and str(picker.get_item_metadata(picker.selected)) == "knight"
+		and picker.get_item_text(picker.selected) == hero_label,
+		"Custom Gate hero selector names the long-name Knight and exposes his ID")
+	var move := scene.find_child("DirectOrder_move", true, false) as Button
+	_check(move != null and move.is_visible_in_tree() and not move.disabled
+		and str(move.get_meta("ability_id", "")) == "move",
+		"Custom Gate shows the explicit Move control as well as quick Move")
+	for node in scene.find_children("*", "BaseButton", true, false):
+		var button := node as BaseButton
+		if button.is_visible_in_tree():
+			_check(root.get_visible_rect().encloses(button.get_global_rect()),
+				"Custom Gate leaves %s fully on screen at 1280x820" % button.name)
 	board.grab_focus()
 	await process_frame
 	await _key(KEY_RIGHT)
@@ -180,8 +196,18 @@ func _exercise_external_gate(dimensions: Vector2i, hero_label: String, test_targ
 	_check(plan.get("valid", false) and rules.tile_definition(plan.result, gate).passable,
 		"Keyboard Move to the external plate forecasts an open gate")
 	await _key(KEY_ESCAPE)
-	_check(scene.get("_planned_state").get("overrides", {}).is_empty(),
-		"Clearing the keyboard preview leaves the external plate unstaged")
+	_check(scene.get("_actor_id") == "",
+		"Escape clears the selection while retaining the staged keyboard preview")
+	_check(not (scene.get("_planned_state") as Dictionary).get("overrides", {}).is_empty(),
+		"Escape retains the staged keyboard preview for the external plate")
+	var clear := scene.find_child("ClearCommand", true, false) as BaseButton
+	if clear != null and clear.is_visible_in_tree() and not clear.disabled:
+		await _click(clear.get_global_rect().get_center())
+	_check(scene.get("_actor_id") == "" and scene.get("_planned_state").overrides.is_empty(),
+		"Clear command discards the staged keyboard preview and returns to neutral")
+	# Select Knight but leave the plan empty until the edge click with Forecast
+	# open. An already staged move would hide a blocked board click.
+	await _click(board.get_global_transform_with_canvas() * board.cell_center(Vector2i(plate.x - 1, plate.y)))
 	var forecast := scene.find_child("ForecastDetails", true, false) as BaseButton
 	var leaf := scene.find_child("ExtraDetails", true, false) as Control
 	if forecast == null or leaf == null:
@@ -190,83 +216,16 @@ func _exercise_external_gate(dimensions: Vector2i, hero_label: String, test_targ
 	await _click(forecast.get_global_rect().get_center())
 	_check(leaf.is_visible_in_tree() and not leaf.get_global_rect().intersects(board.get_global_rect()),
 		"Forecast leaves the entire external %s board unobscured" % dimensions)
+	_check(scene.get("_actor_id") == "knight" and scene.get("_planned_state").overrides.is_empty(),
+		"External Gate selects Knight without staging a Move before the edge click")
 	await _click(board.get_global_transform_with_canvas() * board.cell_center(plate))
 	plan = scene.get("_plan")
+	var command: Dictionary = scene.get("_planned_state").overrides.get("knight", {})
 	_check(leaf.is_visible_in_tree() and scene.battle_snapshot() == before
+		and command.get("ability_id") == "move" and command.get("target_id") == "%d,%d" % [plate.x, plate.y]
 		and plan.get("valid", false) and rules.tile_definition(plan.result, gate).passable,
 		"Real click reaches the external %s edge plate while Forecast is open" % dimensions)
 	await _commit_forecast(before, "external pressure gate %s" % dimensions)
-
-
-func _check_long_action_rail(hero_label: String, plate: Vector2i, test_targets: bool) -> void:
-	var actions := scene.find_child("Actions", true, false) as MenuButton
-	var targets := scene.find_child("Targets", true, false) as MenuButton
-	var commit := scene.find_child("Commit", true, false) as BaseButton
-	if actions == null or targets == null or commit == null:
-		_check(false, "Custom Gate exposes the ordinary command rail")
-		return
-	var full_label := hero_label + "’s actions"
-	var commit_bounds := commit.get_global_rect()
-	_check(not targets.is_visible_in_tree() and root.get_visible_rect().encloses(commit_bounds),
-		"An authored long name leaves the entire Commit control on screen without Targets: %s" % commit_bounds)
-	_check(actions.text == full_label and actions.accessibility_name == full_label and actions.tooltip_text == full_label,
-		"Ellipsizing preserves the full authored Actions caption for hover and accessibility")
-	var font_size := actions.get_theme_font_size("font_size")
-	var caption_width := actions.get_theme_font("font").get_string_size(full_label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
-	_check(actions.text_overrun_behavior == TextServer.OVERRUN_TRIM_ELLIPSIS and actions.size.x < caption_width,
-		"The overlong Actions caption is constrained and ellipsized")
-	if not test_targets:
-		return
-	var menu := actions.get_popup()
-	var move_index := -1
-	for index in menu.item_count:
-		if menu.get_item_text(index) == "move":
-			move_index = index
-			break
-	if not await _choose_menu_item(actions, move_index):
-		return
-	var choices: Array = scene.get("_targets")
-	var plate_index := choices.find_custom(func(choice: Dictionary) -> bool: return choice.position == plate)
-	if choices.size() < 2 or plate_index < 0:
-		_check(false, "Fixture has two real Move choices including the plate")
-		return
-	var plate_id: String = choices[plate_index].id
-	# Exercise the chooser at the presentation boundary with real eligible targets.
-	# Which overlapping entity produces the chooser is covered by the Necromancer scene test.
-	scene.set("_storybook_ambiguous", choices)
-	scene.call("_render_storybook")
-	await process_frame
-	await process_frame
-	_check(targets.is_visible_in_tree() and root.get_visible_rect().encloses(targets.get_global_rect())
-		and commit.get_global_rect().is_equal_approx(commit_bounds)
-		and not targets.get_global_rect().intersects(actions.get_global_rect()),
-		"Showing Targets fits the chooser without shifting Commit")
-	if not await _choose_menu_item(targets, plate_index):
-		return
-	var staged: Dictionary = scene.get("_planned_state").get("overrides", {}).get("knight", {})
-	_check(staged.get("target_id") == plate_id,
-		"Selecting the plate in the visible Targets menu keeps the original action semantics")
-	var clear := scene.find_child("ClearCommand", true, false) as BaseButton
-	await _click(clear.get_global_rect().get_center())
-	_check(not targets.is_visible_in_tree() and scene.get("_planned_state").get("overrides", {}).is_empty(),
-		"Clear restores the no-target state for the real board click")
-
-
-func _choose_menu_item(button: MenuButton, index: int) -> bool:
-	await _click(button.get_global_rect().get_center())
-	var popup := button.get_popup()
-	if index >= 0 and popup.visible:
-		for _step in popup.item_count:
-			if popup.get_focused_item() == index:
-				await _key(KEY_ENTER)
-				if not popup.visible:
-					return true
-				break
-			await _key(KEY_DOWN)
-	if popup.visible:
-		await _key(KEY_ESCAPE)
-	_check(false, "The visible %s menu accepts its intended selection" % button.name)
-	return false
 
 
 func _commit_forecast(before: Dictionary, label: String) -> void:

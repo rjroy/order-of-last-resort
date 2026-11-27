@@ -94,9 +94,9 @@ static func _case(defs: Dictionary, row: Array) -> Dictionary:
 		"knight_push":
 			_unit(state, enemy).position = Vector2i(5, 1)
 			target = enemy
-		"healer_bonk", "knight_shield_throw":
+		"healer_bonk", "wizard_blast", "knight_shield_throw":
 			target = "alchemist"
-		"wizard_pull", "rogue_wasnt_me", "healer_field_dressing":
+		"healer_heal", "wizard_pull", "rogue_wasnt_me", "rogue_confusing_dodge", "healer_field_dressing":
 			target = enemy
 		"knight_rescue_line":
 			_unit(state, "alchemist").position = Vector2i(5, 1)
@@ -104,6 +104,7 @@ static func _case(defs: Dictionary, row: Array) -> Dictionary:
 			target = "alchemist"
 		"rogue_tripwire":
 			_unit(state, "alchemist").statuses.tripwire_tangled = {"remaining": 2}
+			target = "alchemist"
 	if ability == "knight_shield_throw":
 		_unit(state, hero).upgrades = {"knight_shield_throw": 1}
 	return {"id": ability, "state": state, "actor": hero, "ability": ability,

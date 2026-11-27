@@ -4,6 +4,8 @@ Use this runbook for a hero who can be recruited, equipped, and played through a
 
 ## 1. Settle the play and delivery scope
 
+Give each playable hero a personal name that suits their personality, separate from their class title. For example, Edwin is the Knight.
+
 Write down the class's job in a three-hero party: what earns it a place, what it does on its own turn, and why the player would sometimes spend the company's **one direct command** on it. Specify legal targets and tie-breaks, use limits, and effects on later turns. Describe two concrete rounds: one where bringing the hero pays off and one where it does not. Start with an agreed encounter and three existing slots; roster growth does not require new missions or a fourth slot.
 
 **Starting kit**

@@ -39,6 +39,9 @@ func _run() -> void:
 	for hero in HEROES:
 		await _knockdown_recovery(hero, false)
 	await _knockdown_recovery("knight", true)
+	await _queued_pull_down(false)
+	await _queued_pull_down(true)
+	await _blast_impact_handoff()
 	for hero in ["wizard", "alchemist"]:
 		for facing in [-1, 1]:
 			await _pull_recovery(hero, facing)
@@ -56,8 +59,139 @@ func _run() -> void:
 	quit(0 if failures.is_empty() else 1)
 
 
+func _queued_pull_down(lethal: bool) -> void:
+	var hero := "wizard"
+	var before := _fixture(hero)
+	_entity(before, "attacker").position = Vector2i(6, 3)
+	if lethal:
+		_entity(before, "victim").hp = 2
+	var plan: Dictionary = rules.preview(before, "victim", "wizard_pull", "attacker")
+	var label := "queued lethal Pull recoil" if lethal else "queued living Pull recoil"
+	if not plan.get("valid", false):
+		_check(false, label + ": real Pull resolves")
+		return
+	var after: Dictionary = rules.apply_plan(before, plan)
+	_check(int(_entity(after, "victim").hp) == 0 if lethal else rules.knocked_down(after, "victim"),
+		label + ": recoil produces the expected rules state")
+	var cues: Array = Cues.build(before, after, plan.events)
+	var pull: Array = cues.filter(func(cue): return cue.get("unit_id") == "victim" and cue.get("clip") == "pull")
+	if pull.size() != 1:
+		_check(false, label + ": actual Pull cue exists")
+		return
+	board.clear_action_playback()
+	var unit := {"id": "victim", "art_key": hero, "cast_key": hero, "cell": _entity(after, "victim").position,
+		"facing": 1, "hp": 0 if lethal else 10, "max_hp": 20, "prone": true, "guild_knockdown_art": true}
+	if lethal:
+		unit["visual_defeat"] = true
+	var cells := {}
+	for x in 12:
+		for y in 12:
+			cells[Vector2i(x, y)] = "stone"
+	board.set_render_state(cells, [unit])
+	# A prior gesture by the caster makes the real Pull wait in the timeline.
+	var blocker := {"unit_id": "victim", "cast_key": "wizard", "clip": "blast",
+		"source_cell": _entity(before, "victim").position}
+	board.play_committed_actions([blocker])
+	# Keep the rule-produced cue indexes relative to their own enqueue batch.
+	board.play_committed_actions(cues)
+	board.set_process(false)
+	board.set_actual_draw_capture_enabled(true)
+	await _capture()
+	var entries: Array = board.get("_playback").get("_entries")
+	var pull_entries := entries.filter(func(entry): return entry.cue.get("unit_id") == "victim" \
+		and entry.cue.get("clip") == "pull")
+	if pull_entries.size() != 1 or pull_entries[0].elapsed_ms >= 0.0:
+		_check(false, label + ": Pull waits behind an earlier gesture")
+		return
+	var pull_entry = pull_entries[0]
+	var waiting: Dictionary = board.actual_draw_snapshot().actors.get("victim", {})
+	_check(waiting.get("clip") == "blast", label + ": earlier gesture remains visible while Pull waits")
+	board._process((-pull_entry.elapsed_ms - 1.0) / 1000.0)
+	board.set_process(false)
+	await _capture()
+	waiting = board.actual_draw_snapshot().actors.get("victim", {})
+	_check(waiting.get("clip") == "blast", label + ": earlier gesture persists immediately before Pull")
+	board._process(0.002)
+	board.set_process(false)
+	await _capture()
+	var starting: Dictionary = board.actual_draw_snapshot().actors.get("victim", {})
+	_check(starting.get("clip") == "pull" and starting.get("frame_index") == 0,
+		label + ": Pull starts at its first frame, not the downed pose")
+	board._process(maxf(0.0, pull_entry.clip.total_ms - pull_entry.elapsed_ms - 1.0) / 1000.0)
+	board.set_process(false)
+	await _capture()
+	var ending: Dictionary = board.actual_draw_snapshot().actors.get("victim", {})
+	_check(ending.get("clip") == "pull" \
+		and ending.get("frame_index") == pull_entry.clip.frame_index(pull_entry.clip.total_ms - 1.0),
+		label + ": authored Pull plays through its final frame before the handoff")
+	board._process((board.action_playback_remaining_ms() + 1.0) / 1000.0)
+	board.set_process(false)
+	await _capture()
+	var held: Dictionary = board.actual_draw_snapshot().actors.get("victim", {})
+	var held_clip := "defeat" if lethal else "pull"
+	var clip = board.get("_cast").clip_for(hero, held_clip)
+	_check(held.get("clip") == held_clip and held.get("frame_index") == clip.frame_index(INF),
+		label + ": correct downed pose holds after playback")
+	board.set_actual_draw_capture_enabled(false)
+
+
+func _blast_impact_handoff() -> void:
+	var before := _fixture("knight")
+	_entity(before, "attacker").character_id = "wizard"
+	var plan: Dictionary = rules.preview(before, "attacker", "wizard_blast")
+	if not plan.get("valid", false):
+		_check(false, "Blast impact handoff: actual Blast resolves")
+		return
+	var after: Dictionary = rules.apply_plan(before, plan)
+	_check(rules.knocked_down(after, "victim"), "Blast impact handoff: actual hit knocks down Knight")
+	var cues: Array = Cues.build(before, after, plan.events)
+	board.clear_action_playback()
+	var cells := {}
+	for x in 12:
+		for y in 12:
+			cells[Vector2i(x, y)] = "stone"
+	var unit := {"id": "victim", "art_key": "knight", "cast_key": "knight",
+		"cell": _entity(after, "victim").position, "hp": 10, "max_hp": 20,
+		"prone": true, "guild_knockdown_art": true}
+	board.set_render_state(cells, [unit])
+	board.play_committed_actions(cues)
+	board.set_process(false)
+	board.set_actual_draw_capture_enabled(true)
+	var entries: Array = board.get("_playback").get("_entries")
+	var falls := entries.filter(func(entry): return entry.cue.get("unit_id") == "victim" \
+		and entry.cue.get("hero_knockdown") == "down")
+	if falls.size() != 1 or falls[0].elapsed_ms >= 0.0:
+		_check(false, "Blast impact handoff: fall waits for impact")
+		board.set_actual_draw_capture_enabled(false)
+		return
+	var fall = falls[0]
+	await _capture()
+	_check(board.actual_draw_snapshot().actors.get("victim", {}).get("clip") == "ready",
+		"Blast impact handoff: victim stays ready before impact")
+	board._process((-fall.elapsed_ms - 1.0) / 1000.0)
+	board.set_process(false)
+	await _capture()
+	_check(board.actual_draw_snapshot().actors.get("victim", {}).get("clip") == "ready",
+		"Blast impact handoff: victim stays ready immediately before impact")
+	board._process(0.002)
+	board.set_process(false)
+	await _capture()
+	_check(board.actual_draw_snapshot().actors.get("victim", {}).get("clip") == "down",
+		"Blast impact handoff: fall begins at impact")
+	board._process((board.action_playback_remaining_ms() + 1.0) / 1000.0)
+	board.set_process(false)
+	await _capture()
+	var held: Dictionary = board.actual_draw_snapshot().actors.get("victim", {})
+	var clip = board.get("_cast").clip_for("knight", "down")
+	_check(held.get("clip") == "down" and held.get("frame_index") == clip.frame_index(INF),
+		"Blast impact handoff: final down frame is held")
+	board.set_actual_draw_capture_enabled(false)
+
+
 func _fixture(hero: String, attack := "wizard") -> Dictionary:
 	var defs: Dictionary = load("res://tests/fixtures/rules_catalog.gd").add_fixed_escort(Catalog.read_default())
+	# These lethal-transition fixtures intentionally exercise two points of recoil.
+	defs.abilities.wizard_pull.params.recoil_damage = 2
 	if hero == "alchemist":
 		defs.classes.alchemist.abilities.append("wizard_pull")
 	if hero == "rogue":

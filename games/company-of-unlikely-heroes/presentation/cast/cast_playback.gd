@@ -549,7 +549,13 @@ func waiting_swap_cell(unit_id: String) -> Variant:
 func hero_pending_pose(unit_id: String) -> String:
 	# The final rules snapshot can be ahead of this unit's queued reactions.
 	for entry in _entries:
-		if entry.cue.get("unit_id") != unit_id or not entry.cue.has("hero_knockdown"):
+		if entry.cue.get("unit_id") != unit_id:
+			continue
+		# A Pull supplies its own fall rather than a separate down reaction.
+		# Until it starts, the final knockdown must not hide earlier gestures.
+		if entry.cue.get("pull_recoil_down", false) and entry.elapsed_ms < 0.0:
+			return "ready"
+		if not entry.cue.has("hero_knockdown"):
 			continue
 		var kind: String = entry.cue.hero_knockdown
 		if entry.elapsed_ms < 0.0:

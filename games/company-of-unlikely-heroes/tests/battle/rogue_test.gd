@@ -254,10 +254,19 @@ func _test_retreat_and_hybrid() -> void:
 	_check(result == plan.get("result"), "Retreat round commit matches forecast")
 	_check(_unit_at(result, "rogue").get("position") == Vector2i(3, 4),
 		"Retreat moves away from the nearest opponent rather than the farther opponent")
-	var chosen: Dictionary = rules.choose_manual(state, "rogue", "rogue_confusing_dodge", "")
-	_check(chosen.get("overrides", {}).get("rogue", {}).get("ability_id") == "rogue_confusing_dodge",
-		"Hybrid can reserve Rogue's Dodge")
+	_check("near" in _ids(rules.targets(state, "rogue", "rogue_confusing_dodge")),
+		"Hybrid offers the nearby opponent as a Dodge partner")
+	var chosen: Dictionary = rules.choose_manual(state, "rogue", "rogue_confusing_dodge", "near")
+	_check(chosen.get("overrides", {}).get("rogue", {}) == {
+		"ability_id": "rogue_confusing_dodge", "target_id": "near"},
+		"Hybrid reserves Rogue's Dodge on the nearby opponent")
+	var chosen_before := chosen.duplicate(true)
 	var forecast: Dictionary = rules.preview_round(chosen)
 	var committed: Dictionary = rules.commit_round(chosen, forecast)
-	_check(forecast.get("valid", false) and committed == forecast.get("result"),
+	_check(chosen == chosen_before and forecast.get("valid", false) and committed == forecast.get("result"),
 		"Rogue hybrid override commits the forecast")
+	_check(forecast.get("events", []).any(func(event):
+		return event.get("type") == "swap" and event.get("unit_id") == "rogue" \
+			and event.get("target_id") == "near" and event.get("position") == Vector2i(5, 4) \
+			and event.get("target_position") == Vector2i(4, 4)),
+		"Direct Dodge swaps Rogue and the selected nearby opponent, not the farther one")

@@ -37,7 +37,8 @@ static func perform(state: Dictionary, actor: Dictionary, ability: Dictionary, a
 					name, ability.label, choice.label], data)
 		else:
 			_sonnet(state, actor, ability, ability_id, listener, events, bonus)
-		state.rng_state = choice.rng_seed
+		if choice.has("rng_seed"):
+			state.rng_state = choice.rng_seed
 	for index in range(first_event, events.size()):
 		events[index]["ability_id"] = ability_id
 		if echoed:

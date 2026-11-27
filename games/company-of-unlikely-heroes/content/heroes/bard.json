@@ -6,7 +6,7 @@
       "guild_portrait": "bard",
       "cast_key": "bard",
       "cast_art_key": "wizard",
-      "description": "Pick the tune, not the audience. A melody makes an opponent laugh away their turn; a sonnet hurts one.",
+      "description": "A melody makes an opponent laugh away their turn; a sonnet hurts one.",
       "abilities": [
         "move",
         "inspiring_melody",
@@ -33,6 +33,9 @@
       },
       "targeting": {
         "kind": "automatic",
+        "direct": {
+          "help": "A chosen eligible opponent skips its next turn laughing, then is immune to laughter through the following round."
+        },
         "teams": [
           "enemies"
         ]
@@ -49,6 +52,9 @@
       },
       "targeting": {
         "kind": "automatic",
+        "direct": {
+          "help": "Deal damage to a chosen living opponent. Despite the name, nobody is healed."
+        },
         "teams": [
           "enemies"
         ]

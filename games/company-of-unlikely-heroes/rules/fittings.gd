@@ -13,6 +13,8 @@ const Shield = preload("res://rules/shield.gd")
 const Statuses = preload("res://rules/statuses.gd")
 const Upgrades = preload("res://rules/upgrades.gd")
 const QUICK_RELEASE := "smith_quick_release"
+const DIRECT_PRIMARY_FORMS := ["doctors_orders", "mending_blast", "clear_jump", "cut_the_wire",
+	"dinner_bell", "inspiring_melody_in_tune", "healing_sonnet_in_tune", "company_chorus"]
 
 
 static func eligible(state: Dictionary, smith: Dictionary, wearer: Dictionary) -> bool:
@@ -75,7 +77,8 @@ static func clear_mission(state: Dictionary) -> void:
 
 
 ## Return the registered form even when unavailable so callers can explain why the base branch wins.
-static func alternate(state: Dictionary, actor: Dictionary, source_id: String, base: Dictionary) -> Dictionary:
+static func alternate(state: Dictionary, actor: Dictionary, source_id: String, base: Dictionary,
+		direct := false) -> Dictionary:
 	if FittingState.source(actor).is_empty():
 		return {}
 	match base.get("fitted_form"):
@@ -84,7 +87,11 @@ static func alternate(state: Dictionary, actor: Dictionary, source_id: String, b
 		"clear_the_floor":
 			return _clear_floor_form(state, actor, base)
 	var adapter := _adapter(base.fitted_form)
-	return adapter.describe(state, actor, source_id, base) if adapter != null else {}
+	if adapter == null:
+		return {}
+	if direct and base.fitted_form in DIRECT_PRIMARY_FORMS:
+		return adapter.describe(state, actor, source_id, base, true)
+	return adapter.describe(state, actor, source_id, base)
 
 
 static func _adapter(id: String) -> GDScript:

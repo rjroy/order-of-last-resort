@@ -647,7 +647,10 @@ func _test_healer_escapes_wave() -> void:
 	state.orders = {}
 	state.overrides = {}
 	state.objective = {"handler": "escort", "subject": "civilian", "destination": Vector2i(11, 11)}
-	var stay: Dictionary = rules.choose_manual(state, "healer", "healer_heal")
+	var stay: Dictionary = rules.choose_manual(state, "healer", "healer_heal", "healer")
+	_check(stay.get("overrides", {}).get("healer", {}).get("target_id") == "healer"
+		and rules.preview(state, "healer", "healer_heal", "healer", true).get("valid", false),
+		"Stay comparison stages an actionable self Heal")
 	var escape: Dictionary = rules.choose_manual(state, "healer", "move", "3,4")
 	var stay_plan: Dictionary = rules.preview_round(stay)
 	var before := escape.duplicate(true)

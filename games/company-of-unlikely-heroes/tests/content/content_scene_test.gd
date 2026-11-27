@@ -45,7 +45,7 @@ func _run() -> void:
 		"Board marks the relocated escort destination")
 	var driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
 	_check(await driver.select_actor("knight"), "Original knight is selectable: " + driver.error)
-	_check(_has_action("knight_push", "Push") and not _has_action("wizard_blast", "Blast nearest"),
+	_check(_has_action("knight_push", "Push") and not _has_action("wizard_blast", "Blast"),
 		"Original knight offers Push but not the other knight's Blast")
 	for target in [
 		{"id": "crate", "name": "Supply crate"},
@@ -66,13 +66,22 @@ func _run() -> void:
 	if clear != null and clear.is_visible_in_tree() and not clear.disabled:
 		await _click(clear.get_global_rect().get_center())
 	_check(await driver.select_actor("second_knight"), "Second knight is selectable: " + driver.error)
-	_check(_has_action("wizard_blast", "Blast nearest") and not _has_action("knight_push", "Push"),
+	_check(_has_action("wizard_blast", "Blast") and not _has_action("knight_push", "Push"),
 		"Second knight offers authored Blast but not Push")
 	var blasted: bool = await driver.action("wizard_blast")
 	_check(blasted, "Blast is selectable: " + driver.error)
 	if blasted:
-		_check(scene.get("_planned_state").get("overrides", {}).get("second_knight", {}).get("ability_id") == "wizard_blast",
-			"Selecting Blast stages the second knight's authored ability")
+		_check(scene.get("_planned_state").get("overrides", {}).get("second_knight", {}).is_empty(),
+			"Blast waits for the second knight's target")
+		var targeted: bool = await driver.target("second_crate", "wizard_blast")
+		_check(targeted, "Board accepts the authored Relic chest as Blast target: " + driver.error)
+		if targeted:
+			var command: Dictionary = scene.get("_planned_state").get("overrides", {}).get("second_knight", {})
+			_check(command.get("ability_id") == "wizard_blast" and command.get("target_id") == "second_crate",
+				"Second knight stages its authored Blast against the chosen chest")
+			_check("Relic chest" in (page.get("_summary") as Label).text,
+				"Blast draft identifies the chosen authored target")
+			_check(scene.battle_snapshot() == before, "Choosing Blast's target does not commit the forecast")
 	if clear != null and not clear.disabled:
 		await _click(clear.get_global_rect().get_center())
 	var orders := scene.find_child("StandingOrders", true, false) as BaseButton

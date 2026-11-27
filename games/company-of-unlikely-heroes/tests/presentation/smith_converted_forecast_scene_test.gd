@@ -22,6 +22,7 @@ func _run() -> void:
 	await _buffer()
 	await _recall()
 	await _ordinary_blast()
+	await _changed_blast_form()
 	_finish()
 
 
@@ -173,6 +174,10 @@ func _ordinary_blast() -> void:
 	var state := _opening(["blacksmith", "wizard", "healer"], [[1, 1], [2, 1], [0, 3]])
 	if state.is_empty():
 		return
+	# Keep the chosen opponent alive so this compares an ordinary round, not a terminal commit.
+	var raider := _unit(state, "test_raider")
+	raider.hp = 20
+	raider.max_hp = 20
 	await _mount(state)
 	if not await driver.select_actor("wizard"):
 		_check(false, "Caster can be selected: " + driver.error)
@@ -181,19 +186,27 @@ func _ordinary_blast() -> void:
 	_check(blast_label.to_lower().contains("blast") and blast_label.to_lower().contains("ordinary"),
 		"The enabled Direct Order button names the ordinary Blast fallback: " + blast_label)
 	if not await driver.action("wizard_blast"):
-		_check(false, "No-patient Blast button stages the ordinary fallback: " + driver.error)
+		_check(false, "No-patient Blast button aims the ordinary fallback: " + driver.error)
+		return
+	_check(scene.get("_aimed_ability_id") == "wizard_blast" and _marks_contain(state, "test_raider"),
+		"Ordinary Blast marks the eligible raider for explicit targeting")
+	if not await driver.target("test_raider", "wizard_blast"):
+		_check(false, "Choose the raider for ordinary Blast: " + driver.error)
 		return
 	var draft: Dictionary = scene.get("_planned_state").overrides.get("wizard", {})
-	_check(draft.get("ability_id") == "wizard_blast" and draft.get("target_id") == ""
-		and scene.get("_aimed_ability_id") == "", "Ordinary Blast stages without aiming or choosing a target")
+	_check(draft.get("ability_id") == "wizard_blast" and draft.get("target_id") == "test_raider"
+		and scene.get("_aimed_ability_id") == "", "Ordinary Blast stages the selected raider")
 	var plan: Dictionary = (scene.get("_plan") as Dictionary).duplicate(true)
+	_check(plan.get("result", {}).get("outcome") == "ongoing",
+		"Fallback fixture remains an ordinary nonterminal round")
 	_check(_fitted_before_action(plan, "wizard"), "Earlier standing Smith fits Caster before Blast fallback")
 	_check(plan.get("events", []).any(func(e: Dictionary):
 		return e.get("type") == "fitted_fallback" and e.get("unit_id") == "wizard"),
 		"Forecast explicitly records the ordinary fitted fallback")
 	var damage: Array = plan.get("events", []).filter(func(e: Dictionary):
 		return e.get("type") == "damage" and e.get("source_id") == "wizard")
-	_check(damage.size() == 1, "Ordinary Blast forecasts its actual damage victim")
+	_check(damage.size() == 1 and damage[0].get("target_id") == "test_raider",
+		"Ordinary Blast forecasts damage to the chosen raider")
 	if damage.size() == 1:
 		await _press("ForecastDetails")
 		_check(_visible_text_contains(str(damage[0].get("text", ""))),
@@ -204,6 +217,25 @@ func _ordinary_blast() -> void:
 	_check(scene.battle_snapshot() == state and sounds.is_empty(), "Fallback forecast is silent and immutable")
 	await _press("Commit")
 	_check(scene.battle_snapshot() == plan.get("result"), "Fallback commit equals forecast")
+
+
+func _changed_blast_form() -> void:
+	var state := _opening(["blacksmith", "wizard", "healer"], [[1, 1], [2, 1], [0, 3]])
+	if state.is_empty():
+		return
+	_unit(state, "healer").hp -= 2
+	state = rules.set_order(state, "blacksmith", "order_hold")
+	await _mount(state)
+	if not await driver.command("wizard", "wizard_blast", "healer"):
+		_check(false, "Queue ordinary Blast on the Healer: " + driver.error)
+		return
+	_check(scene.get("_draft_target_cell") == _unit(state, "healer").position,
+		"Ordinary Blast draft marks the chosen target")
+	if not await driver.order("blacksmith", "order_try_this"):
+		_check(false, "Switch the earlier Smith to Try This: " + driver.error)
+		return
+	_check("Action form changed" in scene.get("_draft_summary") and scene.get("_draft_target_cell") == null,
+		"The draft explains the change instead of presenting Mending Blast as the queued action")
 
 
 func _direct_order_label(ability: String) -> String:

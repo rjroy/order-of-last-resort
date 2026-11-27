@@ -88,7 +88,7 @@ func _heal_case(wounded: String, clip: String) -> void:
 		return
 	var board := _node("BridgeBoard")
 	var before: Dictionary = scene.battle_snapshot()
-	if not await _command("healer", "healer_heal"):
+	if not await _command("healer", "healer_heal", wounded):
 		return
 	var plan: Dictionary = scene.get("_plan").duplicate(true)
 	var actual_target := ""

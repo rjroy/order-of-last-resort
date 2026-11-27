@@ -9,14 +9,14 @@ const Commissions = preload("res://expedition/commissions.gd")
 const Rules = preload("res://rules/rules.gd")
 const Reactions = preload("res://rules/alchemy_reactions.gd")
 
-# Hero, petition, source ability, prerequisites, target, effective ability.
+# Hero, petition, source ability, prerequisites, target (role or ID), effective ability.
 const ROWS := [
 	["knight", "knight_learn_bonk", "healer_bonk", [], "ally", "keep_your_head_down"],
-	["healer", "teach_healer_blast", "wizard_blast", [], "", "mending_blast"],
-	["wizard", "wizard_learn_dodge", "rogue_confusing_dodge", ["recruit_rogue"], "", "clear_jump"],
+	["healer", "teach_healer_blast", "wizard_blast", [], "ally", "mending_blast"],
+	["wizard", "wizard_learn_dodge", "rogue_confusing_dodge", ["recruit_rogue"], "enemy", "clear_jump"],
 	["bard", "bard_learn_push", "knight_push", ["recruit_bard"], "enemy", "fitted_pull"],
 	["rogue", "rogue_learn_potion", "alchemist_potion", ["recruit_rogue", "recruit_alchemist"], "enemy", "bitter_medicine"],
-	["necromancer", "necro_learn_melody", "inspiring_melody", ["recruit_necromancer", "recruit_bard"], "", "inspiring_melody_in_tune"],
+	["necromancer", "necro_learn_melody", "inspiring_melody", ["recruit_necromancer", "recruit_bard"], "blacksmith", "inspiring_melody_in_tune"],
 	["alchemist", "alchemist_learn_pull", "wizard_pull", ["recruit_alchemist"], "enemy", "send_off"],
 ]
 
@@ -107,7 +107,7 @@ static func _case(row: Array) -> Dictionary:
 	if hero == "rogue":
 		_unit(state, ally).position = Vector2i(9, 9)
 		_unit(state, enemy).position = Vector2i(5, 4)
-	result.target = ally if row[4] == "ally" else (enemy if row[4] == "enemy" else "")
+	result.target = ally if row[4] == "ally" else (enemy if row[4] == "enemy" else str(row[4]))
 	result.state = state
 	return result
 

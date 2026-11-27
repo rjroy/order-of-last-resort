@@ -7,7 +7,8 @@ const Shield = preload("res://rules/shield.gd")
 const Summons = preload("res://rules/summons.gd")
 
 
-static func describe(state: Dictionary, actor: Dictionary, _source_id: String, base: Dictionary) -> Dictionary:
+static func describe(state: Dictionary, actor: Dictionary, _source_id: String, base: Dictionary,
+		direct := false) -> Dictionary:
 	match base.get("fitted_form", ""):
 		"recall_skeleton":
 			var choices: Array = []
@@ -31,22 +32,7 @@ static func describe(state: Dictionary, actor: Dictionary, _source_id: String, b
 				"targeting": {"kind": "none"}, "choices": choices,
 				"unavailable_reason": "no living zombie with an original corpse", "primary": "steady"}
 		"dinner_bell":
-			var candidates: Array = []
-			for target in Board.occupants(state, {}):
-				if target.id == actor.id or Board.distance(actor.position, target.position) <= 1:
-					continue
-				var direction := Board.dominant_step(target.position, actor.position)
-				var destination: Vector2i = target.position + direction
-				if Board.can_enter(state, destination):
-					candidates.append({"id": target.id, "position": target.position,
-						"destination": destination, "direction": direction})
-			var nearest := Board.nearest(actor, candidates)
-			var choices: Array = [] if nearest.is_empty() else [{"id": "", "target_id": nearest.id,
-				"destination": nearest.destination, "direction": nearest.direction}]
-			return {"id": base.fitted_form, "label": "Dinner Bell",
-				"help": "Draw the nearest other character with an open step one tile closer.",
-				"targeting": {"kind": "automatic"}, "choices": choices,
-				"unavailable_reason": "no character with an open step", "primary": "steady", "selection": "first"}
+			return _dinner_bell(state, actor, base.fitted_form, direct)
 		"stay_close_to_that_one":
 			var choices: Array = []
 			for hero in state.units:
@@ -60,6 +46,27 @@ static func describe(state: Dictionary, actor: Dictionary, _source_id: String, b
 				"targeting": {"kind": "entity"}, "choices": choices,
 				"unavailable_reason": "no living hero", "primary": "steady"}
 	return {}
+
+
+static func _dinner_bell(state: Dictionary, actor: Dictionary, id: String, direct: bool) -> Dictionary:
+	var choices: Array = []
+	for target in Board.occupants(state, {}):
+		if target.id == actor.id or Board.distance(actor.position, target.position) <= 1:
+			continue
+		var direction := Board.dominant_step(target.position, actor.position)
+		var destination: Vector2i = target.position + direction
+		if Board.can_enter(state, destination):
+			choices.append({"id": target.id, "position": target.position, "label": Board.display_name(state, target),
+				"destination": destination, "direction": direction})
+	if not direct:
+		var nearest := Board.nearest(actor, choices)
+		choices = [] if nearest.is_empty() else [{"id": "", "target_id": nearest.id,
+			"destination": nearest.destination, "direction": nearest.direction}]
+	var help := "Draw a chosen character with an open step one tile closer." if direct \
+		else "Draw the nearest other character with an open step one tile closer."
+	return {"id": id, "label": "Dinner Bell", "help": help,
+		"targeting": {"kind": "entity" if direct else "automatic"}, "choices": choices,
+		"unavailable_reason": "no character with an open step", "primary": "steady", "selection": "first"}
 
 
 static func apply(state: Dictionary, actor: Dictionary, _source_id: String, _base: Dictionary,
@@ -90,7 +97,7 @@ static func apply(state: Dictionary, actor: Dictionary, _source_id: String, _bas
 				Board.display_name(state, zombie), Board.display_name(state, corpse), Board.coordinate(position)],
 				{"unit_id": actor.id, "target_id": corpse.id, "summon_id": zombie.id, "position": position})
 		"dinner_bell":
-			var target := Board.entity(state, choice.target_id)
+			var target := Board.entity(state, choice.get("target_id", choice.id))
 			if target.is_empty() or not Board.can_enter(state, choice.destination) \
 					or Movement.blocks_forced(state, target, events):
 				return

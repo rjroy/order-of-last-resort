@@ -9,7 +9,7 @@ godot --path games/company-of-unlikely-heroes -- --mission=explosive_situation
 godot --path games/company-of-unlikely-heroes -- --mission=mirror_company
 ```
 
-To repeat the review, in Explosive Situation select Wizard and use **Blast nearest**. Forecast shows both Bomber explosions. In Mirror Company select Wizard and move from B4 to A4. Forecast shows the Knight's aura redirecting the rival Blast to the Rival Knight, then the rival Healer restoring 2 HP. Commit each and compare the live outcome.
+To repeat the review, in Explosive Situation select Wizard, choose **Blast**, and select the legal target that produces both Bomber explosions in Forecast. In Mirror Company select Wizard and move from B4 to A4. Forecast shows the Knight's aura redirecting the rival Blast to the Rival Knight, then the rival Healer restoring 2 HP. Commit each and compare the live outcome.
 
 From an isolated source copy without `.godot`, `.lore`, or the authoring package, both ordinary launches ran in Godot 4.7.2. For each, the opening, preview, forecast, reaction, and committed captures matched the accepted in-engine frames pixel-for-pixel at 1280 × 820. Gate opening and preview also matched the prior captures pixel-for-pixel; the post-commit difference was confined to the Healer's animation. Legacy openings of all three missions matched before and after promotion.
 

@@ -540,6 +540,17 @@ class Validator:
 		var kind := ""
 		if _choice(authored_kind, ABILITY_TARGETING[handler], path + ".targeting.kind"):
 			kind = authored_kind
+		if targeting.has("direct"):
+			var direct_path := path + ".targeting.direct"
+			var direct := _dictionary(targeting.direct, direct_path)
+			if kind != "automatic" or handler not in ["blast", "heal", "perform", "repel", "stop_target", "swap_furthest"]:
+				_error(direct_path, "requires automatic targeting and a handler that supports a Direct entity choice")
+			for field in direct:
+				if field not in ["label", "help"]:
+					_error(direct_path + "." + str(field), "unknown Direct targeting field")
+			if direct.has("label"):
+				_text(direct.label, direct_path + ".label")
+			_text(direct.get("help"), direct_path + ".help")
 		if ability.has("fitted_form") and _choice(ability.fitted_form, FITTED_FORMS.keys(), path + ".fitted_form"):
 			var registration: Array = FITTED_FORMS[ability.fitted_form]
 			if registration[0] != handler:

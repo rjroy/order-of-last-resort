@@ -152,7 +152,7 @@ func _run() -> void:
 				and "healer_heal" in healer.get("abilities", []),
 				"Equipped Healer deploys Blast and Heal, not Bonk")
 			_check("wizard_blast" in wizard.get("abilities", []), "Wizard retains Blast")
-			await _command_blast(state)
+			await _command_blast(state, rules)
 		await _capture(purchase_id + "_mission")
 	profile_path = "user://petition_walkthrough_%d_%d_song.json" % [OS.get_process_id(), Time.get_ticks_usec()]
 	paths.append(profile_path)
@@ -513,19 +513,34 @@ func _commit_battle_command(description: String) -> bool:
 	return true
 
 
-func _command_blast(state: Dictionary) -> void:
+func _command_blast(state: Dictionary, rules: Variant) -> void:
+	var context: Dictionary = rules.state_before_action(state, "healer")
+	var target_id := ""
+	for target: Dictionary in rules.targets(context, "healer", "wizard_blast"):
+		if rules.entity_profile(context, target.id).get("team") == "enemies":
+			target_id = target.id
+			break
+	if target_id.is_empty():
+		_check(false, "The equipped Healer has a legal enemy target for Blast")
+		return
 	var driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
-	if not await driver.command("healer", "wizard_blast", ""):
+	if not await driver.command("healer", "wizard_blast", target_id):
 		_check(false, "Player can stage the actual shared Blast as Healer: " + driver.error)
 		return
 	var staged: Dictionary = scene.get("_planned_state")
-	_check(staged.get("overrides", {}).get("healer", {}).get("ability_id") == "wizard_blast",
-		"Player can stage the actual shared Blast as Healer")
+	var command: Dictionary = staged.get("overrides", {}).get("healer", {})
+	_check(command.get("ability_id") == "wizard_blast" and command.get("target_id") == target_id,
+		"Staging the borrowed Blast stores the chosen enemy " + target_id)
 	var plan: Dictionary = scene.get("_plan")
-	_check(plan.get("valid", false), "Healer Blast has a legal forecast")
+	_check(plan.get("valid", false) and plan.get("events", []).any(func(event: Dictionary) -> bool:
+		return event.get("type") == "damage" and event.get("source_id") == "healer" \
+			and event.get("ability_id") == "wizard_blast" and event.get("target_id") == target_id),
+		"Healer Blast forecasts a hit on the chosen enemy " + target_id)
 	var commit := _node("Commit") as BaseButton
 	if commit == null or commit.disabled or not commit.is_visible_in_tree():
 		_check(false, "Player can commit the Healer Blast")
 		return
 	await _settlement_click(commit.get_global_rect().get_center())
 	_check(scene.current_screen() in ["battle", "debrief", "result"], "Healer Blast commits in combat")
+	if scene.current_screen() == "battle":
+		_check(scene.battle_snapshot() == plan.get("result"), "Committed Healer Blast matches its forecast")

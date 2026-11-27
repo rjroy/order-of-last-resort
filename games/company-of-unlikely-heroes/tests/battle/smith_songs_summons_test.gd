@@ -105,8 +105,8 @@ func _test_sonnet() -> void:
 		_entity(s, "bard").fitted_by = "blacksmith"
 		_entity(s, "bard").upgrades = {"bard_sharper_notes": 1}
 		_entity(s, "necromancer").hp = 4
-		_check(rules.targets(s, "bard", "healing_sonnet").is_empty(),
-			"Sonnet chooses its own patient")
+		_check(_ids(rules.targets(s, "bard", "healing_sonnet")) == ["necromancer"],
+			"Direct fitted Sonnet offers the wounded hero, not the full-health heroes or opponent")
 		if standing:
 			s.orders.bard = "order_healing_sonnet"
 			s = _round(s, "standing Sonnet")
@@ -116,6 +116,20 @@ func _test_sonnet() -> void:
 			_check(_entity(s, "necromancer").hp == 6 and _entity(s, "enemy").hp == 10,
 				"Fitted Sonnet heals the only wounded hero with Sharper Notes, not the opponent")
 			_check(not _entity(s, "bard").has("fitted_by"), "Sonnet consumes fitting")
+	var seeded := _state()
+	seeded.rng_state = 12345
+	_entity(seeded, "bard").fitted_by = "blacksmith"
+	_entity(seeded, "blacksmith").hp = 4
+	_entity(seeded, "necromancer").hp = 4
+	var choices := _ids(rules.targets(seeded, "bard", "healing_sonnet"))
+	_check("blacksmith" in choices and "necromancer" in choices and choices.size() == 2,
+		"Direct fitted Sonnet offers both wounded heroes")
+	var automatic := _act(seeded, "bard", "healing_sonnet")
+	if not automatic.is_empty():
+		_check((_entity(automatic, "blacksmith").hp == 5 and _entity(automatic, "necromancer").hp == 4)
+			or (_entity(automatic, "blacksmith").hp == 4 and _entity(automatic, "necromancer").hp == 5),
+			"Seeded automatic Sonnet heals exactly one wounded hero")
+		_check(automatic.rng_state != seeded.rng_state, "Automatic Sonnet consumes its seeded draw")
 	var fallback := _state()
 	_entity(fallback, "bard").fitted_by = "blacksmith"
 	fallback = _act(fallback, "bard", "healing_sonnet")

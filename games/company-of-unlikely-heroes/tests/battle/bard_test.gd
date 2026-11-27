@@ -113,11 +113,15 @@ func _test_kit() -> void:
 			hold = true
 	_check(hold, "Bard offers standing Hold")
 	for song in ["inspiring_melody", "healing_sonnet"]:
-		_check(rules.targets(state, "bard", song).is_empty(), song + " has no manual target choices")
+		var choices: Array = rules.targets(state, "bard", song)
+		_check(choices.size() == 1 and choices[0].get("id") == "enemy_a",
+			song + " Direct form offers the living opponent, not ally, corpse or crate")
 		_check(not rules.preview(state, "bard", song, "ally").get("valid", false)
 			and not rules.preview(state, "bard", song, "crate").get("valid", false)
 			and not rules.preview(state, "bard", song, "enemy_a").get("valid", false),
-			song + " cannot manually target an ally, crate, or opponent")
+			song + " low-level automatic preview does not accept a target argument")
+		_check(rules.preview(state, "bard", song).get("valid", false),
+			song + " low-level automatic preview selects an eligible listener")
 
 
 func _test_solo_immunity() -> void:

@@ -799,6 +799,9 @@
       },
       "targeting": {
         "kind": "automatic",
+        "direct": {
+          "help": "Sing Healing Sonnet to a chosen eligible opponent and every opponent next to them."
+        },
         "teams": [
           "enemies"
         ]

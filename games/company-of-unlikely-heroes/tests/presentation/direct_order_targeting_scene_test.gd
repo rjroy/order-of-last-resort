@@ -24,6 +24,7 @@ func _run() -> void:
 	await _scenario_invalid_target()
 	await _scenario_move_and_cell_ability()
 	await _scenario_draft_and_cancel()
+	await _scenario_automatic_action()
 	await _scenario_occupant_choice()
 	await _scenario_occupant_dismissal()
 	await _scenario_leaf_hides_occupant_choice()
@@ -123,7 +124,11 @@ func _scenario_draft_and_cancel() -> void:
 		return
 	if not await _press_ability(opening, "wizard", "wizard_blast"):
 		return
-	_check(_staged_override("wizard").get("ability_id") == "wizard_blast", "Automatic Blast stages immediately")
+	_check(_staged_override("wizard").is_empty(), "Blast waits for an explicit target")
+	await _click_cell(Vector2i(2, 2))
+	var blast := _staged_override("wizard")
+	_check(blast.get("ability_id") == "wizard_blast" and blast.get("target_id") == "healer",
+		"Choosing Blast and clicking the legal ally stages that target")
 	var draft: Dictionary = scene.get("_planned_state").duplicate(true)
 	await _click_cell(Vector2i(2, 2))
 	_check(scene.get("_actor_id") == "healer" and scene.get("_planned_state") == draft,
@@ -181,6 +186,19 @@ func _scenario_draft_and_cancel() -> void:
 			await process_frame
 			_check(scene.get("_actor_id") == "" and scene.get_viewport().gui_get_focus_owner() == board,
 				"Clear selection returns to keyboard-usable neutral")
+
+
+func _scenario_automatic_action() -> void:
+	var opening := knight_state()
+	if not await _launch(opening):
+		_check(false, "Knight fixture launches")
+		return
+	if not await _press_ability(opening, "knight", "knight_aura"):
+		return
+	var staged := _staged_override("knight")
+	_check(staged.get("ability_id") == "knight_aura" and staged.get("target_id", "") == "",
+		"Untargeted Guard stages immediately without an aim click")
+	_check(scene.battle_snapshot() == opening, "Staging Guard does not resolve the round")
 
 
 func _scenario_occupant_choice() -> void:
@@ -488,6 +506,18 @@ static func wizard_state() -> Dictionary:
 	defs.missions.direct_order_wizard_mission.encounter = "direct_order_wizard_encounter"
 	defs.missions.direct_order_wizard_mission.erase("default_party")
 	return _mission_state(defs, "direct_order_wizard_mission")
+
+
+static func knight_state() -> Dictionary:
+	var defs := _catalog_defs()
+	defs.encounters.direct_order_knight_encounter = {"board": "road", "seed": 2, "placements": [
+		{"id": "knight", "character": "knight", "at": [1, 1]},
+		{"id": "practice_raider", "character": "practice_raider", "at": [3, 1]},
+	]}
+	defs.missions.direct_order_knight_mission = defs.missions.shield_wall.duplicate(true)
+	defs.missions.direct_order_knight_mission.encounter = "direct_order_knight_encounter"
+	defs.missions.direct_order_knight_mission.erase("default_party")
+	return _mission_state(defs, "direct_order_knight_mission")
 
 
 static func edge_state() -> Dictionary:

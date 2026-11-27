@@ -2061,6 +2061,10 @@ func _update_draft_display() -> void:
 	if hero.is_empty():
 		_draft_summary = "Standing orders only · One Direct Order per round."
 		return
+	for event: Dictionary in _plan.get("events", []):
+		if event.get("unit_id") == hero and event.get("reason") == "direct_form_changed":
+			_draft_summary = "%s: Action form changed. Choose the Direct Order again." % _name_for(hero)
+			return
 	var draft: Dictionary = _planned_state.overrides[hero]
 	var before := _rules.state_before_action(_planned_state, hero)
 	var action := _rules.command_ability(before, hero, draft.ability_id)

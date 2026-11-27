@@ -52,6 +52,12 @@ static func _in_reach(actor: Dictionary, position: Vector2i, targeting: Dictiona
 	return not targeting.has("range") or (reach > 0 and reach <= int(targeting.range))
 
 
+static func _swap_cells_open(state: Dictionary, actor: Dictionary, candidate: Dictionary) -> bool:
+	return actor.position != candidate.position \
+		and Board.can_enter(state, candidate.position, candidate.id) \
+		and Board.can_enter(state, actor.position, actor.id)
+
+
 static func _entity_allowed(state: Dictionary, actor: Dictionary, candidate: Dictionary, ability: Dictionary) -> bool:
 	if ability.handler in ["healing_potion", "acid", "plain_tonic"]:
 		return Alchemy.can_target(state, actor, candidate, ability)
@@ -89,12 +95,11 @@ static func _entity_allowed(state: Dictionary, actor: Dictionary, candidate: Dic
 		"swap_ally":
 			return candidate.get("character_id") == ability.params.character \
 				and Board.team(state, candidate) == Board.team(state, actor) \
-				and actor.position != candidate.position \
 				and Board.distance(actor.position, candidate.position) <= int(ability.params.range) \
-				and Board.can_enter(state, candidate.position, candidate.id) \
-				and Board.can_enter(state, actor.position, actor.id)
+				and _swap_cells_open(state, actor, candidate)
 		"swap_furthest":
-			return candidate.has("character_id")
+			return candidate.has("character_id") \
+				and (ability.targeting.kind == "automatic" or _swap_cells_open(state, actor, candidate))
 		"misdirect":
 			return Board.team(state, candidate) != Board.team(state, actor) \
 				and not Statuses.misdirection_victim(state, candidate, actor).is_empty() \
@@ -191,11 +196,15 @@ static func _legal_choices(state: Dictionary, actor: Dictionary, ability: Dictio
 					result.append({"id": id, "label": Board.coordinate(position), "position": position})
 		"entity", "automatic":
 			for candidate in Board.occupants(state, targeting):
-				if _entity_allowed(state, actor, candidate, ability):
-					var choice := {"id": candidate.id, "label": Board.display_name(state, candidate),
-						"position": candidate.position}
-					if ability.handler == "hook" and not _digs_in(state, actor, candidate):
-						choice["destination"] = candidate.position + _pull_step(actor, candidate)
+				if not _entity_allowed(state, actor, candidate, ability):
+					continue
+				var choice := {"id": candidate.id, "label": Board.display_name(state, candidate),
+					"position": candidate.position}
+				if ability.handler == "hook" and not _digs_in(state, actor, candidate):
+					choice["destination"] = candidate.position + _pull_step(actor, candidate)
+				elif ability.handler == "repel" and targeting.kind == "entity":
+					choice = _repel_choice(state, actor, choice, ability_id)
+				if not choice.is_empty():
 					result.append(choice)
 		"none":
 			if ability.handler == "apply_status" and Statuses.accepts(state, actor, ability.params.status, actor):
@@ -243,14 +252,15 @@ static func extra_sweep_reaches(state: Dictionary, actor: Dictionary, candidate:
 
 
 ## Resolve the form at the actor's slot, before selecting any manual or standing target.
-static func action_form(state: Dictionary, actor: Dictionary, id: String) -> Dictionary:
+static func action_form(state: Dictionary, actor: Dictionary, id: String, direct := false) -> Dictionary:
 	var base := owned_ability(state, actor, id)
-	var alternate := Fittings.alternate(state, actor, id, base) if base.has("fitted_form") and can_act(state, actor) else {}
+	var alternate := Fittings.alternate(state, actor, id, base, direct) \
+		if base.has("fitted_form") and can_act(state, actor) else {}
 	return {"base": base, "alternate": alternate, "converted": not alternate.get("choices", []).is_empty()}
 
 
 static func command_ability(state: Dictionary, actor: Dictionary, id: String) -> Dictionary:
-	var form := action_form(state, actor, id)
+	var form := action_form(state, actor, id, true)
 	var alternate: Dictionary = form.alternate
 	if form.converted:
 		var reason := _improvement_reason(actor, _fine_adjustment(state, actor))
@@ -259,15 +269,12 @@ static func command_ability(state: Dictionary, actor: Dictionary, id: String) ->
 			var benefit := "adds 1 to the primary amount" if alternate.primary == "amount" else "grants Steady Hands"
 			help += " %s %s." % [reason, benefit]
 		return alternate.merged({"label": "%s → %s" % [form.base.label, alternate.label], "help": help}, true)
-	var base: Dictionary = form.base
+	var base := _command_base(state, actor, id, form.base)
 	if base.is_empty():
 		return {}
-	if id == "healer_heal" and Upgrades.amount(state, actor, "me_or_you") > 0:
-		base = base.merged({"label": "Heal self or split among allies",
-			"help": "If hurt, heal self; otherwise split among other living deployed heroes, unused shares lost."}, true)
 	var blocked := false
 	if base.targeting.kind in ["automatic", "none"]:
-		blocked = _base_preflight(state, actor, {"ability_id": id}, base).is_empty()
+		blocked = _base_preflight(state, actor, {"ability_id": id, "direct": true}, form.base).is_empty()
 	if not alternate.is_empty():
 		var reason: String = alternate.unavailable_reason
 		var shield_away := not Shield.available(actor, id)
@@ -275,6 +282,25 @@ static func command_ability(state: Dictionary, actor: Dictionary, id: String) ->
 		return base.merged({"label": base.label + label, "command_blocked": blocked or shield_away,
 			"help": "%s unavailable: %s. %s" % [alternate.label, reason, base.help]}, true)
 	return base.merged({"command_blocked": true}) if blocked else base
+
+
+## Project only the ordinary Direct form; an available fitting takes precedence.
+static func _command_base(state: Dictionary, actor: Dictionary, id: String, base: Dictionary) -> Dictionary:
+	if base.is_empty():
+		return {}
+	if _has_split_heal(state, actor, id):
+		return base.merged({"label": "Heal self or split among allies",
+			"targeting": {"kind": "none"},
+			"help": "If hurt, heal self; otherwise split among other living deployed heroes, unused shares lost."}, true)
+	var aimed: Dictionary = base.targeting.get("direct", {})
+	if aimed.is_empty():
+		return base
+	return base.merged({"label": aimed.get("label", base.label), "help": aimed.help,
+		"targeting": base.targeting.merged({"kind": "entity"}, true)}, true)
+
+
+static func _has_split_heal(state: Dictionary, actor: Dictionary, id: String) -> bool:
+	return id == "healer_heal" and Upgrades.amount(state, actor, "me_or_you") > 0
 
 
 static func standing_alternate(state: Dictionary, actor: Dictionary, id: String, policy := "") -> Dictionary:
@@ -333,11 +359,11 @@ static func _standing_choice(state: Dictionary, actor: Dictionary, alternate: Di
 	return Board.nearest(actor, choices, true)
 
 
-static func targets(state: Dictionary, actor: Dictionary, ability_id: String) -> Array:
-	var form := action_form(state, actor, ability_id)
+static func targets(state: Dictionary, actor: Dictionary, ability_id: String, direct := false) -> Array:
+	var form := action_form(state, actor, ability_id, direct)
 	if form.converted:
 		return form.alternate.choices if form.alternate.targeting.kind in ["cell", "entity"] else []
-	var ability: Dictionary = form.base
+	var ability: Dictionary = _command_base(state, actor, ability_id, form.base) if direct else form.base
 	if ability.is_empty() or ability.targeting.kind not in ["cell", "entity"] or not Shield.available(actor, ability_id):
 		return []
 	return _legal_choices(state, actor, ability, ability_id)
@@ -380,7 +406,8 @@ static func _base_selection(state: Dictionary, actor: Dictionary, ability: Dicti
 				func(candidate: Dictionary) -> bool: return Board.opponents(state, actor, candidate)):
 			return {}
 		return {"id": "", "recipients": choices}
-	if ability.handler == "perform":
+	if ability.handler == "perform" and ability.targeting.kind == "automatic":
+		# Front Row Seats restricts the autonomous draw, not who can hear the song.
 		if ability_id == "healing_sonnet" and Upgrades.amount(state, actor, "front_row_seats") > 0:
 			choices = _front_row(state, choices)
 		var draw := EncounterRandom.uniform_draw(state.rng_state, choices.size())
@@ -403,10 +430,8 @@ static func _base_selection(state: Dictionary, actor: Dictionary, ability: Dicti
 			return choices[0]
 		var nearest := Board.nearest(actor, choices)
 		if ability.handler == "repel" and not nearest.is_empty():
-			var destination := _step_away(state, actor, nearest, ability_id)
-			if destination == nearest.position:
-				return {}
-			nearest["destination"] = destination
+			# Autonomous repel checks the nearest recipient first and never tries another.
+			return _repel_choice(state, actor, nearest, ability_id)
 		return nearest
 	return _target_choice(choices, target_id)
 
@@ -424,6 +449,14 @@ static func _front_row(state: Dictionary, choices: Array) -> Array:
 	var health := choices.map(func(choice: Dictionary) -> int: return Board.entity(state, choice.id).hp)
 	health.sort()
 	return choices.filter(func(choice: Dictionary) -> bool: return Board.entity(state, choice.id).hp <= health[1])
+
+
+static func _repel_choice(state: Dictionary, actor: Dictionary, choice: Dictionary, id: String) -> Dictionary:
+	var destination := _step_away(state, actor, choice, id)
+	if destination == choice.position:
+		return {}
+	choice["destination"] = destination
+	return choice
 
 
 static func _step_away(state: Dictionary, actor: Dictionary, target: Dictionary, id: String) -> Vector2i:
@@ -478,15 +511,16 @@ static func _base_preflight(state: Dictionary, actor: Dictionary, action: Dictio
 		ability: Dictionary) -> Dictionary:
 	var id: String = action.ability_id
 	var target_id: String = action.get("target_id", "")
-	if ability.is_empty() or not can_act(state, actor) or not accepts_target_argument(ability, target_id) \
+	var selection_form := _command_base(state, actor, id, ability) if action.get("direct", false) else ability
+	if selection_form.is_empty() or not can_act(state, actor) or not accepts_target_argument(selection_form, target_id) \
 			or not Shield.available(actor, id):
 		return {}
 	if ability.handler == "move" and action.get("retrieve_shield", false) and Shield.can_retrieve(actor):
 		return {"kind": "retrieve", "choice": {}}
-	if id == "healer_heal" and Upgrades.amount(state, actor, "me_or_you") > 0:
+	if _has_split_heal(state, actor, id):
 		return {"kind": "split", "choice": {}}
-	var choice := _base_selection(state, actor, ability, target_id, id, action.get("automatic_target_id", ""))
-	if ability.handler == "perform":
+	var choice := _base_selection(state, actor, selection_form, target_id, id, action.get("automatic_target_id", ""))
+	if ability.handler == "perform" and (selection_form.targeting.kind == "automatic" or not choice.is_empty()):
 		return {"kind": "song", "choice": choice}
 	return {"kind": "choice", "choice": choice} if not choice.is_empty() else {}
 

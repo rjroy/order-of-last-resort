@@ -27,7 +27,10 @@
       "handler": "swap_furthest",
       "params": {},
       "targeting": {
-        "kind": "automatic"
+        "kind": "automatic",
+        "direct": {
+          "help": "Swap places with a chosen living character, friend or foe, if both can enter the other's tile."
+        }
       }
     },
     "rogue_wasnt_me": {

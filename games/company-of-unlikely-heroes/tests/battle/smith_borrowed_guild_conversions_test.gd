@@ -144,7 +144,20 @@ func _exercise(example: Array) -> void:
 			and event.get("source_ability_id") == ability), label + ": conversion identifies performer, Smith and source ability")
 		_check(not _unit(result, hero).has("fitted_by"), label + ": alternate consumes fitting")
 		_check_outcome(example, result, hero, ally, enemy)
-	var staged: Dictionary = rules.choose_manual(state, hero, ability, target)
+	# These conversions are automatic in the authored preview above, but their
+	# Direct forms now require an explicit primary recipient.
+	var direct_target := target
+	if ability in ["wizard_blast", "inspiring_melody"]:
+		direct_target = ally
+	elif ability == "rogue_confusing_dodge":
+		direct_target = enemy
+	var direct_choices: Array = rules.targets(before, hero, ability)
+	if not direct_target.is_empty():
+		_check(direct_choices.any(func(choice: Dictionary): return choice.id == direct_target),
+			label + ": selected Direct recipient is legal at the actor's slot")
+	var staged: Dictionary = rules.choose_manual(state, hero, ability, direct_target)
+	_check(staged.get("overrides", {}).get(hero, {}).get("target_id") == direct_target,
+		label + ": Direct intent retains the selected target")
 	var round_plan: Dictionary = rules.preview_round(staged)
 	_check(round_plan == rules.preview_round(staged) and state == original,
 		label + ": full round forecast is deterministic and does not mutate source")

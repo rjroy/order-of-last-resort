@@ -34,7 +34,7 @@ func _test_hopeless_ritual() -> void:
 	if state.is_empty():
 		return
 	_check(_round(state).outcome == "ongoing", "Two heroes and one enemy can still fill all three circles")
-	state = rules.choose_manual(state, "wizard", "wizard_blast")
+	state = rules.choose_manual(state, "wizard", "wizard_blast", "knight")
 	var blasted := _round(state)
 	_check(not Board.alive(Board.entity(blasted, "knight")), "Legal friendly-fire Blast defeats the Knight")
 	_check(Board.alive(Board.entity(blasted, "enemy")), "The living enemy counts, but two bodies are not enough")
@@ -121,6 +121,7 @@ func _ritual(units: Array, party: Array) -> Dictionary:
 
 func _definitions() -> Dictionary:
 	var defs := Fixture.definitions()
+	defs.abilities.wizard_blast.targeting.direct = {"label": "Blast", "help": "Blast a chosen target."}
 	for profile in defs.classes.values():
 		profile.erase("behavior")
 	defs.missions.fixture.failures = [{"handler": "party_wiped", "event": "Party lost"}]

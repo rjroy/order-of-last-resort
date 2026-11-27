@@ -91,7 +91,7 @@ func _enemy_without_corpse_marker() -> void:
 	state.orders = {}
 	state.overrides = {}
 	scene.call("_show_battle", state)
-	scene.set("_planned_state", rules.choose_manual(state, "caster", "wizard_blast"))
+	scene.set("_planned_state", rules.choose_manual(state, "caster", "wizard_blast", "victim"))
 	scene.call("_refresh")
 	var plan: Dictionary = scene.get("_plan")
 	if not plan.get("valid", false) or _entity(plan.result, "victim").hp > 0:
@@ -177,7 +177,7 @@ func _case(hero: String, shield_away: bool) -> void:
 	for id in state.party:
 		state = rules.set_order(state, id, "order_hold")
 	scene.call("_show_battle", state)
-	scene.set("_planned_state", rules.choose_manual(state, "caster", "wizard_blast"))
+	scene.set("_planned_state", rules.choose_manual(state, "caster", "wizard_blast", "fallen"))
 	scene.call("_refresh")
 	var plan: Dictionary = scene.get("_plan").duplicate(true)
 	if not plan.get("valid", false) or _entity(plan.get("result", {}), "fallen").get("hp", 1) != 0:

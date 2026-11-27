@@ -365,7 +365,8 @@ func _test_authored_patrol_route() -> void:
 			"patrol": [
 				{"orders": [{"unit": "healer", "order": "order_aggressive"}],
 					"action": {"unit": "wizard", "ability": "wizard_pull", "target": "raider_one"}},
-				{}, {"action": {"unit": "wizard", "ability": "wizard_blast"}}
+				# The Healer's ward redirects this Blast to raider_two.
+				{}, {"action": {"unit": "wizard", "ability": "wizard_blast", "target": "healer"}}
 			],
 			"rescue": [
 				{"action": {"unit": "healer", "ability": "move", "target": "0,3"}},
@@ -439,7 +440,7 @@ func _play_route(run: Dictionary, route: Array, expected: String, label: String)
 				label + ": manual action was accepted")
 			state = chosen
 			var turn_state: Dictionary = rules.state_before_action(state, actor)
-			var action_preview: Dictionary = rules.preview(turn_state, actor, ability, target)
+			var action_preview: Dictionary = rules.preview(turn_state, actor, ability, target, true)
 			_check(action_preview.get("valid", false), label + ": action is legal at the actor's turn")
 		var before := state.duplicate(true)
 		var plan: Dictionary = rules.preview_round(state)

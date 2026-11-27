@@ -66,10 +66,15 @@
       "handler": "heal",
       "params": {
         "amount": 3,
-        "prefer_wounded_self": true
+        "prefer_wounded_self": true,
+        "allow_self": true
       },
       "targeting": {
         "kind": "automatic",
+        "direct": {
+          "label": "Heal",
+          "help": "Heal yourself or a chosen healable ally, even at full health."
+        },
         "teams": [
           "heroes"
         ],

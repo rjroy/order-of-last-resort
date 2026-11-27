@@ -136,31 +136,41 @@ func _full_hero_actions(board: Control, before: Dictionary) -> void:
 	await _click_cell(board, wizard.position)
 	_check(scene.get("_actor_id") == "wizard", "Clicking Wizard selects Wizard")
 	_check(scene.find_child("Actions", true, false) == null, "The old Actions menu is removed")
-	_check_ability("wizard_blast", "Blast nearest", true)
+	_check_ability("wizard_blast", "Blast", true)
 	_check_ability("wizard_pull", "Pull and recoil", true)
 	_check_ability("move", "Move one tile", true)
+	# The guard is farther away than the nearby allies. Aimed Blast must
+	# use the clicked guard rather than the standing order's nearest target.
+	var guard := _unit(before, "gate_guard")
+	if guard.is_empty():
+		_check(false, "Gate opens with a guard to target with Blast")
+		return
 	if not await _click_button("DirectOrder_wizard_blast"):
 		return
-	var planned: Dictionary = scene.get("_planned_state")
-	var command: Dictionary = planned.get("overrides", {}).get("wizard", {})
-	_check(command.get("ability_id") == "wizard_blast" and command.get("target_id", "") == "",
-		"Pressing the automatic Blast button stages it without selecting a target")
-	_check(scene.get("_aimed_ability_id") == "", "Automatic Blast does not enter aiming")
+	_check(scene.get("_aimed_ability_id") == "wizard_blast"
+		and (scene.get("_planned_state") as Dictionary).get("overrides", {}).is_empty(),
+		"Pressing Blast aims without staging a command")
+	_check(guard.position in _highlighted_cells(board), "Aimed Blast marks the guard")
+	var commit := scene.find_child("Commit", true, false) as BaseButton
+	_check(commit != null and commit.is_visible_in_tree() and commit.disabled,
+		"Commit is disabled until Blast has a target")
+	await _click_cell(board, guard.position)
+	_check_wizard_command("wizard_blast", "gate_guard", "Clicking the marked guard stages Blast on that guard")
+	_check(scene.get("_aimed_ability_id") == "" and commit != null and not commit.disabled,
+		"Choosing a Blast target ends aiming and enables Commit")
 	var page: Node = scene.get("_storybook_page")
 	_check((page.get("_target_rows") as Array).is_empty(),
-		"Automatic Blast does not display an occupant picker")
+		"The guard on its own cell needs no occupant picker")
 	_check(scene.battle_snapshot() == before, "Blast forecast does not commit actual battle state")
 	var plan: Dictionary = scene.get("_plan")
-	var blast_target := ""
 	var blast_text := ""
 	for event in plan.get("events", []):
-		if event.get("type") == "damage" and event.get("source_id") == "wizard":
-			blast_target = str(event.get("target_id", ""))
+		if event.get("type") == "damage" and event.get("source_id") == "wizard" \
+				and event.get("ability_id") == "wizard_blast" and event.get("target_id") == "gate_guard":
 			blast_text = str(event.get("text", ""))
 			break
-	_check(plan.get("valid", false) and not blast_target.is_empty()
-		and not _unit(before, blast_target).is_empty(),
-		"Blast forecast resolves a real target in the opening fixture")
+	_check(plan.get("valid", false) and not blast_text.is_empty(),
+		"Blast forecast damages the selected guard rather than choosing the nearest ally")
 	if await _click_button("ForecastDetails"):
 		var visible_event := false
 		for label in scene.find_children("*", "Label", true, false):
@@ -272,7 +282,7 @@ func _unavailable_bonk(board: Control, before: Dictionary) -> void:
 	var context: Dictionary = rules.state_before_action(scene.get("_planned_state"), "healer")
 	_check(rules.targets(context, "healer", "healer_bonk").is_empty(),
 		"Opening Healer Bonk has no legal targets")
-	_check_ability("healer_heal", "Heal self or nearest ally", true)
+	_check_ability("healer_heal", "Heal", true)
 	var bonk := _check_ability("healer_bonk", "Bonk and taunt", false)
 	if bonk != null:
 		var explanation := "%s %s %s" % [bonk.text, bonk.accessibility_name, bonk.tooltip_text]
@@ -293,7 +303,7 @@ func _unavailable_bonk(board: Control, before: Dictionary) -> void:
 func _check_ability(id: String, label: String, enabled: bool) -> Button:
 	var button := scene.find_child("DirectOrder_" + id, true, false) as Button
 	_check(button != null and button.is_visible_in_tree() and str(button.get_meta("ability_id", "")) == id
-		and (label in button.text or label in button.accessibility_name) and button.disabled != enabled,
+		and (label == button.text or label == button.accessibility_name) and button.disabled != enabled,
 		"Visible Direct Order %s has its label, identity and expected enabled state" % id)
 	return button
 

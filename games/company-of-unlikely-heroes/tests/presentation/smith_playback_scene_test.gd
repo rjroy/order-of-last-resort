@@ -64,8 +64,8 @@ func _run() -> void:
 		for ability in native_abilities:
 			if ability not in unique_abilities:
 				unique_abilities.append(ability)
-		_check(borrowed.size() == 7 and native.size() == 25 and unique_abilities.size() == 25,
-			"complete run requires seven borrowed and 25 distinct native source abilities")
+		_check(borrowed.size() == 7 and native.size() == 24 and unique_abilities.size() == 24,
+			"complete run requires seven borrowed and 24 distinct native source abilities")
 	if not selected.is_empty():
 		examples = examples.filter(func(example: Dictionary): return example.get("id") == selected)
 		_check(examples.size() == 1, "unknown case: " + selected)

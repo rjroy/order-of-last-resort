@@ -38,7 +38,6 @@ func _test_cast_and_form() -> void:
 		["healer", "healer_bonk", "keep_your_head_down", [cover], "dressing"],
 		["knight", "healer_bonk", "keep_your_head_down", [cover], "fitted_knight_cover"], # borrowed
 		["healer", "healer_heal", "doctors_orders", [damage], "fitted_doctor_snap"],
-		["healer", "healer_field_dressing", "unpick_the_stitch", [damage], "bonk"],
 		["wizard", "wizard_blast", "mending_blast", [heal], "fitted_mend_outward"],
 		["healer", "wizard_blast", "mending_blast", [heal], "heal"], # borrowed
 		["wizard", "wizard_pull", "send_off", [push], "shunt"],
@@ -71,6 +70,9 @@ func _test_cast_and_form() -> void:
 	use.effects = [{"kind": "heal", "target_id": "wearer", "amount": 0}]
 	_expect_keys(use, ["fitted_empty_press"])
 	_expect_keys(_use("wizard", "wizard_pull", "send_off", []), ["fitted_empty_press"])
+	_expect_keys(_use("healer", "healer_heal", "doctors_orders",
+		[{"kind": "damage", "amount": 0}]), ["fitted_doctor_snap"])
+	# Custom catalogs may still bind the retained Unpick form.
 	_expect_keys(_use("healer", "healer_field_dressing", "unpick_the_stitch",
 		[{"kind": "damage", "amount": 0}]), ["fitted_empty_press"])
 	_expect_keys(_use("healer", "healer_bonk", "keep_your_head_down", [damage]), [])

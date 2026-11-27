@@ -144,7 +144,7 @@ func _dispatch_catalog() -> void:
 		["wizard_ring_sparks", "wizard_blast"],
 		["alchemist_etching_paste", "alchemist_acid"],
 		["healer_bonk", "shield_bash"],
-		["healer_field_dressing", "healer_bonk"],
+		["healer_heal", "healer_bonk"],
 		["rogue_confusing_dodge", "rogue_wasnt_me"],
 		["raise_dead", "summon_skeleton"],
 		["wave", "dont_go"],

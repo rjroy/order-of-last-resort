@@ -800,7 +800,10 @@ class Validator:
 			if targeting.get("kind") not in ["none", "automatic"]:
 				_error(path, "use_ability requires an ability without an explicit target")
 			return
-		if not is_same(targeting.get("kind"), "entity"):
+		var direct: Variant = targeting.get("direct")
+		var aimed_heal: bool = handler == "most_injured" and ability.get("handler") == "heal" \
+			and targeting.get("kind") == "automatic" and direct is Dictionary and not direct.is_empty()
+		if not is_same(targeting.get("kind"), "entity") and not aimed_heal:
 			_error(path, "%s requires entity targeting" % handler)
 		if handler == "rescue" and not is_same(ability.get("handler"), "pull"):
 			_error(path, "rescue requires an ability with the pull handler")

@@ -139,38 +139,44 @@ func _full_hero_actions(board: Control, before: Dictionary) -> void:
 	_check_ability("wizard_blast", "Blast", true)
 	_check_ability("wizard_pull", "Pull and recoil", true)
 	_check_ability("move", "Move one tile", true)
-	# The guard is farther away than the nearby allies. Aimed Blast must
-	# use the clicked guard rather than the standing order's nearest target.
+	# The guard is outside Blast's reach. The Knight is farther away than
+	# the Healer but remains a legal direct target.
 	var guard := _unit(before, "gate_guard")
-	if guard.is_empty():
-		_check(false, "Gate opens with a guard to target with Blast")
+	var knight := _unit(before, "knight")
+	if guard.is_empty() or knight.is_empty():
+		_check(false, "Gate opens with a guard and Knight")
 		return
 	if not await _click_button("DirectOrder_wizard_blast"):
 		return
 	_check(scene.get("_aimed_ability_id") == "wizard_blast"
 		and (scene.get("_planned_state") as Dictionary).get("overrides", {}).is_empty(),
 		"Pressing Blast aims without staging a command")
-	_check(guard.position in _highlighted_cells(board), "Aimed Blast marks the guard")
+	_check(guard.position not in _highlighted_cells(board), "Aimed Blast excludes the out-of-range guard")
+	_check(knight.position in _highlighted_cells(board), "Aimed Blast marks the farther legal Knight")
 	var commit := scene.find_child("Commit", true, false) as BaseButton
 	_check(commit != null and commit.is_visible_in_tree() and commit.disabled,
 		"Commit is disabled until Blast has a target")
-	await _click_cell(board, guard.position)
-	_check_wizard_command("wizard_blast", "gate_guard", "Clicking the marked guard stages Blast on that guard")
+	await _click_cell(board, knight.position)
+	_check_wizard_command("wizard_blast", "knight", "Clicking the marked Knight stages Blast on the Knight")
 	_check(scene.get("_aimed_ability_id") == "" and commit != null and not commit.disabled,
 		"Choosing a Blast target ends aiming and enables Commit")
 	var page: Node = scene.get("_storybook_page")
 	_check((page.get("_target_rows") as Array).is_empty(),
-		"The guard on its own cell needs no occupant picker")
+		"The Knight on his own cell needs no occupant picker")
 	_check(scene.battle_snapshot() == before, "Blast forecast does not commit actual battle state")
 	var plan: Dictionary = scene.get("_plan")
 	var blast_text := ""
+	var knight_reflect := false
 	for event in plan.get("events", []):
+		if event.get("type") == "reflect" and event.get("ward_id") == "knight" \
+				and event.get("target_id") == "gate_guard":
+			knight_reflect = true
 		if event.get("type") == "damage" and event.get("source_id") == "wizard" \
 				and event.get("ability_id") == "wizard_blast" and event.get("target_id") == "gate_guard":
 			blast_text = str(event.get("text", ""))
-			break
-	_check(plan.get("valid", false) and not blast_text.is_empty(),
-		"Blast forecast damages the selected guard rather than choosing the nearest ally")
+	_check(plan.get("valid", false) and knight_reflect and not blast_text.is_empty()
+		and _unit(plan.get("result", {}), "healer").get("hp") == _unit(before, "healer").get("hp"),
+		"Blast forecast targets the Knight, whose Guard reflects it to the out-of-range guard")
 	if await _click_button("ForecastDetails"):
 		var visible_event := false
 		for label in scene.find_children("*", "Label", true, false):

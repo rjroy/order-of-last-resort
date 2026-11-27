@@ -21,7 +21,6 @@ const PLATES := {
 	"bard_learn_push": "bard_learn_push",
 	"bard_follow_company": "bard_follow_company",
 	"healer_blast_order": "healer_blast_order",
-	"healer_field_dressing": "healer_field_dressing",
 	"healer_triage_order": "healer_triage_order",
 	"knight_rescue_line": "knight_rescue_line",
 	"knight_escort_order": "knight_escort_order",
@@ -61,8 +60,8 @@ func _run() -> void:
 	for row: Dictionary in rows:
 		actual_ids[row.id] = true
 	var catalog_ids: Array = defs.guild_progression.petitions.keys()
-	_check(PLATES.size() == 29 and actual_ids.size() == catalog_ids.size(),
-		"All catalog petitions are shown and the 29 legacy plates remain covered")
+	_check(PLATES.size() == 28 and actual_ids.size() == catalog_ids.size(),
+		"All catalog petitions are shown and the 28 active legacy plates remain covered")
 	for id in catalog_ids:
 		_check(actual_ids.has(id), "Register includes catalog petition " + id)
 		if id not in PLATES:

@@ -15,6 +15,7 @@ func _initialize() -> void:
 	# The assertions own effect quantities rather than stock balance.
 	defs.abilities.wizard_blast.params.damage = 4
 	defs.abilities.healer_heal.params.amount = 3
+	defs.abilities.healer_heal.targeting.range = 5
 	defs.abilities.healer_heal.params.prefer_wounded_self = true
 	defs.abilities.healing_sonnet.params.damage = 1
 	_blast()

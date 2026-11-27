@@ -1,7 +1,7 @@
 extends SceneTree
 
 # Run: godot --headless --path games/company-of-unlikely-heroes --script res://tests/guild/guild_full_catalog_test.gd
-# The register is an integration contract; prices are deliberately not pinned.
+# The register is an integration contract; only specifically requested prices are pinned.
 const Catalog = preload("res://content/catalog.gd")
 const Progression = preload("res://guild/guild_progression.gd")
 const Adventure = preload("res://expedition/adventure.gd")
@@ -20,8 +20,7 @@ const TRAINING := {
 	"knight_learn_bonk": ["knight", []],
 	"teach_healer_blast": ["healer", []],
 	"healer_blast_order": ["healer", ["teach_healer_blast"]],
-	"healer_field_dressing": ["healer", []],
-	"healer_triage_order": ["healer", ["healer_field_dressing"]],
+	"healer_triage_order": ["healer", []],
 	"wizard_ring_sparks": ["wizard", []],
 	"wizard_stand_back": ["wizard", []],
 	"wizard_learn_dodge": ["wizard", ["recruit_rogue"]],
@@ -68,6 +67,7 @@ func _initialize() -> void:
 	defs = Catalog.read_default()
 	defs.characters.harpooner.behavior = "hold"
 	defs.characters.ferryman.behavior = "hold"
+	_test_requested_healer_caster_contract()
 	_test_register()
 	_test_ability_order_coverage()
 	_test_fallback_hold_preference()
@@ -99,6 +99,141 @@ func _row(profile: Dictionary, id: String) -> Dictionary:
 		if row.get("id") == id:
 			return row
 	return {}
+
+
+func _test_requested_healer_caster_contract() -> void:
+	var heal: Dictionary = defs.abilities.healer_heal
+	var blast: Dictionary = defs.abilities.wizard_blast
+	var pull: Dictionary = defs.abilities.wizard_pull
+	_check(heal.params.amount == 2 and heal.targeting.get("range") == 3,
+		"Stock Heal restores 2 HP at maximum range 3")
+	_check(blast.params.damage == 3 and blast.targeting.get("range") == 4,
+		"Stock Blast deals 3 HP at maximum range 4")
+	_check(pull.params.recoil_damage == 1 and pull.params.status == "knockdown",
+		"Stock Pull has one recoil damage and retains knockdown")
+	_check(not defs.abilities.has("healer_field_dressing")
+		and not defs.guild_progression.petitions.has("healer_field_dressing"),
+		"Hero Field Dressing ability and petition are removed")
+	_check(defs.abilities.has("frontier_heal")
+		and defs.abilities.frontier_heal.handler == "enemy_heal",
+		"Enemy Field Dressing remains available")
+	var profile := _profile()
+	profile.points = 6
+	var row := _row(profile, "healer_triage_order")
+	_check(row.get("cost") == 6 and row.get("can_buy", false)
+		and row.get("prerequisites", []).is_empty(), "Triage costs 6 and has no prerequisite")
+	var unlearned := Progression.default_loadout(defs, profile, "healer")
+	unlearned.order_id = "order_healer_triage"
+	_check(Progression.effective_kit(defs, profile, "healer", unlearned).is_empty(),
+		"Triage is unavailable before its independent purchase")
+	var bought := Progression.purchased_profile(defs, profile, "healer_triage_order")
+	_check(not bought.has("error") and bought.get("points") == 0,
+		"Triage can be purchased with exactly 6 points")
+	if not bought.has("error"):
+		var loadout := Progression.default_loadout(defs, bought, "healer")
+		loadout.order_id = "order_healer_triage"
+		_check(not Progression.effective_kit(defs, bought, "healer", loadout).is_empty(),
+			"Purchased Triage is compatible with base Heal")
+		_test_triage_rounds(bought, loadout)
+	_check(defs.behaviors.guild_healer_triage.params.ability == "healer_heal",
+		"Triage delegates base Heal")
+	var legacy := _profile()
+	legacy.purchased_ids = ["healer_field_dressing", "healer_triage_order"]
+	legacy.preferred_loadouts.healer = {"slots": {"offense": "healer_bonk",
+		"utility": "healer_field_dressing"}, "order_id": "order_healer_triage"}
+	var restored := Progression.default_loadout(defs, legacy, "healer")
+	_check(restored.get("slots", {}).get("utility") == "healer_heal"
+		and restored.get("order_id") == "order_healer_triage",
+		"Legacy preference replaces Field Dressing with Heal and preserves owned Triage")
+	_check(legacy.points == 1000000 and legacy.purchased_ids == ["healer_field_dressing", "healer_triage_order"],
+		"Resolving legacy preference does not refund or mutate purchases")
+	legacy.purchased_ids = ["healer_field_dressing"]
+	var unowned := Progression.default_loadout(defs, legacy, "healer")
+	_check(unowned.get("slots", {}).get("utility") == "healer_heal"
+		and unowned.get("order_id") != "order_healer_triage",
+		"Legacy Field Dressing alone does not grant Triage")
+	var custom := defs.duplicate(true)
+	custom.abilities["healer_field_dressing"] = heal.duplicate(true)
+	custom.abilities.healer_field_dressing.targeting.kind = "entity"
+	custom.abilities.healer_field_dressing.targeting.erase("direct")
+	custom.abilities.healer_field_dressing.params.erase("prefer_wounded_self")
+	custom.abilities.healer_field_dressing.fitted_form = "unpick_the_stitch"
+	custom.guild_progression.petitions["healer_field_dressing"] = {
+		"label": "Field Dressing", "description": "Custom utility", "cost": 4,
+		"grant": {"kind": "ability", "hero_id": "healer", "slot_id": "utility",
+			"ability_id": "healer_field_dressing"}}
+	custom.behaviors.guild_healer_triage.params.ability = "healer_field_dressing"
+	legacy.purchased_ids = ["healer_field_dressing", "healer_triage_order"]
+	_check(Progression.default_loadout(custom, legacy, "healer") == legacy.preferred_loadouts.healer,
+		"Custom catalogs retaining Field Dressing keep the saved custom loadout")
+
+
+func _test_triage_rounds(profile: Dictionary, loadout: Dictionary) -> void:
+	var state := _battle(profile, "healer", loadout)
+	if state.is_empty():
+		_check(false, "Purchased Triage deploys with its stock kit")
+		return
+	_unit_at(state, "healer").hp = 18
+	_unit_at(state, "patient").position = Vector2i(4, 3)
+	_unit_at(state, "patient").hp = 16
+	_unit_at(state, "enemy").position = Vector2i(10, 8)
+	state.units.append(_unit("chosen", "wizard", Vector2i(6, 3), 10))
+	state.units.append(_unit("outside", "knight", Vector2i(7, 3), 1))
+	state.party = ["healer", "patient", "chosen", "outside"]
+	state = rules.set_order(state, "healer", "order_healer_triage")
+	var before := state.duplicate(true)
+	var plan: Dictionary = rules.preview_round(state)
+	var committed: Dictionary = rules.commit_round(state, plan)
+	var healed_chosen := false
+	for event in plan.get("events", []):
+		if event.get("type") == "heal" and event.get("target_id") == "chosen":
+			healed_chosen = true
+	_check(plan.get("valid", false) and state == before and healed_chosen
+		and committed == plan.get("result"),
+		"Triage forecasts and commits a heal on the most injured in-range patient")
+	_check(_unit_at(committed, "chosen").get("hp") == 12
+		and _unit_at(committed, "healer").get("hp") == 18
+		and _unit_at(committed, "patient").get("hp") == 16
+		and _unit_at(committed, "outside").get("hp") == 1,
+		"Triage heals 2 at range 3 rather than self, the nearer patient, or the more injured patient outside range")
+
+	var healthy := before.duplicate(true)
+	for unit in healthy.units:
+		if unit.id in healthy.party:
+			unit.hp = unit.max_hp
+	_unit_at(healthy, "outside").hp = 1
+	var wait_plan: Dictionary = rules.preview_round(healthy)
+	var waited := false
+	var used_heal := false
+	for event in wait_plan.get("events", []):
+		if event.get("unit_id") == "healer" and event.get("type") == "wait":
+			waited = true
+		var resolved: Dictionary = event.get("resolved_action", {})
+		if resolved.get("unit_id") == "healer" and resolved.get("ability_id") == "healer_heal":
+			used_heal = true
+	var wait_result: Dictionary = rules.commit_round(healthy, wait_plan)
+	_check(wait_plan.get("valid", false) and waited and not used_heal
+		and wait_result == wait_plan.get("result"),
+		"Triage actually waits without using Heal when all legal patients are healthy")
+
+	# Me or You replaces normal Heal targeting and retains its own split scope.
+	var legendary := before.duplicate(true)
+	_unit_at(legendary, "healer").upgrades = {"healer_me_or_you": 1}
+	legendary.party = ["healer", "outside", "patient"]
+	var self_plan: Dictionary = rules.preview_round(legendary)
+	var self_result: Dictionary = rules.commit_round(legendary, self_plan)
+	_check(self_plan.get("valid", false) and self_result == self_plan.get("result")
+		and _unit_at(self_result, "healer").get("hp") == 20
+		and _unit_at(self_result, "patient").get("hp") == 16,
+		"Purchased Triage invokes Me or You to heal wounded self instead of waiting")
+	_unit_at(legendary, "healer").hp = 20
+	var split_plan: Dictionary = rules.preview_round(legendary)
+	var split_result: Dictionary = rules.commit_round(legendary, split_plan)
+	_check(split_plan.get("valid", false) and split_result == split_plan.get("result")
+		and _unit_at(split_result, "patient").get("hp") == 17
+		and _unit_at(split_result, "outside").get("hp") == 2
+		and _unit_at(split_result, "chosen").get("hp") == 10,
+		"Purchased Triage invokes Me or You split across deployed party, including outside Heal range")
 
 
 func _test_fallback_hold_preference() -> void:
@@ -408,7 +543,6 @@ func _test_scoped_actions() -> void:
 		return
 	for example in [
 		["knight", "knight_rescue_line", "patient"],
-		["healer", "healer_field_dressing", "patient"],
 		["wizard", "wizard_ring_sparks", ""],
 		["rogue", "rogue_tripwire", ""],
 		["necromancer", "necro_grave_bell", ""],
@@ -428,7 +562,7 @@ func _test_scoped_actions() -> void:
 		if state.is_empty():
 			_check(false, id + " deploys with its purchased action equipped")
 			continue
-		if id == "healer_field_dressing" or id == "rogue_learn_potion":
+		if id == "rogue_learn_potion":
 			_unit_at(state, "patient").position = Vector2i(3, 4)
 		var ability: String = defs.guild_progression.petitions[id].grant.ability_id
 		var plan: Dictionary = rules.preview(state, hero, ability, example[2])
@@ -439,8 +573,6 @@ func _test_scoped_actions() -> void:
 			_check(rules.apply_plan(state, plan) == plan.result, id + " commits its forecast")
 		if id == "knight_rescue_line" and plan.get("valid", false):
 			_check(_unit_at(plan.result, "patient").position == Vector2i(3, 4), "Rescue Line pulls the ally one tile")
-		if id == "healer_field_dressing" and plan.get("valid", false):
-			_check(_unit_at(plan.result, "patient").hp == 12, "Field Dressing heals the chosen ally by two")
 		if id == "wizard_ring_sparks" and plan.get("valid", false):
 			_check(_unit_at(plan.result, "enemy").hp == 18, "Ring of Sparks damages an adjacent enemy")
 		if id == "alchemist_etching_paste" and plan.get("valid", false):
@@ -454,7 +586,7 @@ func _test_scoped_orders(profile: Dictionary) -> void:
 	for example in [
 		["knight", "knight_escort_order", "", "move"],
 		["healer", "healer_blast_order", "teach_healer_blast", "wizard_blast"],
-		["healer", "healer_triage_order", "healer_field_dressing", "healer_field_dressing"],
+		["healer", "healer_triage_order", "", "healer_heal"],
 		["wizard", "wizard_stand_back", "", "move"],
 		["bard", "bard_follow_company", "", "move"],
 		["rogue", "rogue_tripwire_order", "rogue_tripwire", "rogue_tripwire"],

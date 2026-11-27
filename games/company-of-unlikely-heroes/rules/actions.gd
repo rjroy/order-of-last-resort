@@ -303,6 +303,16 @@ static func _has_split_heal(state: Dictionary, actor: Dictionary, id: String) ->
 	return id == "healer_heal" and Upgrades.amount(state, actor, "me_or_you") > 0
 
 
+## Me or You replaces recipient selection with the base action's own split policy.
+## The caller must first give an available fitted alternate its normal precedence.
+static func standing_split_heal(state: Dictionary, actor: Dictionary, id: String) -> Dictionary:
+	if not _has_split_heal(state, actor, id):
+		return {}
+	var action := {"ability_id": id}
+	var base := owned_ability(state, actor, id)
+	return action if not _base_preflight(state, actor, action, base).is_empty() else {}
+
+
 static func standing_alternate(state: Dictionary, actor: Dictionary, id: String, policy := "") -> Dictionary:
 	if FittingState.source(actor).is_empty():
 		return {}

@@ -18,7 +18,6 @@ const ROWS := [
 	["rogue_wasnt_me", "rogue", "it_was_me", ""],
 	["rogue_confusing_dodge", "rogue", "clear_jump", ""],
 	["knight_rescue_line", "knight", "safety_distance", "knight_rescue_line"],
-	["healer_field_dressing", "healer", "unpick_the_stitch", "healer_field_dressing"],
 	["wizard_ring_sparks", "wizard", "ring_of_salve", "wizard_ring_sparks"],
 	["rogue_tripwire", "rogue", "cut_the_wire", "rogue_tripwire"],
 	["knight_shield_throw", "knight", "lend_a_shield", ""],
@@ -96,7 +95,7 @@ static func _case(defs: Dictionary, row: Array) -> Dictionary:
 			target = enemy
 		"healer_bonk", "wizard_blast", "knight_shield_throw":
 			target = "alchemist"
-		"healer_heal", "wizard_pull", "rogue_wasnt_me", "rogue_confusing_dodge", "healer_field_dressing":
+		"healer_heal", "wizard_pull", "rogue_wasnt_me", "rogue_confusing_dodge":
 			target = enemy
 		"knight_rescue_line":
 			_unit(state, "alchemist").position = Vector2i(5, 1)
@@ -153,10 +152,10 @@ func _initialize() -> void:
 			failures.append(id + ": forecast did not perform " + entry.effective)
 		if state != before:
 			failures.append(id + ": forecast changed opening")
-	if all.size() != 13:
-		failures.append("Expected 13 cases, got %d" % all.size())
+	if all.size() != 12:
+		failures.append("Expected 12 cases, got %d" % all.size())
 	for failure in failures:
 		push_error("FAIL: " + failure)
 	if failures.is_empty():
-		print("PASS: 13 tactical playback fixture forecasts")
+		print("PASS: 12 tactical playback fixture forecasts")
 	quit(0 if failures.is_empty() else 1)

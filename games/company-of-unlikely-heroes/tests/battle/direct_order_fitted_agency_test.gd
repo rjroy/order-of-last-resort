@@ -263,7 +263,7 @@ func _songs() -> void:
 
 func _fallback() -> void:
 	var state := _state("wizard", [_unit("enemy", "harpooner", Vector2i(7, 3))])
-	_discover(state, "wizard_blast", ["enemy", "civilian"], ["actor"])
+	_discover(state, "wizard_blast", ["enemy"], ["actor", "civilian"])
 	var plan := _direct_fallback(state, "wizard_blast", "enemy")
 	if plan.get("valid", false):
 		_check(_find(plan.result, "enemy").hp == 16 and _find(plan.result, "actor").get("fitted_by") == "smith",

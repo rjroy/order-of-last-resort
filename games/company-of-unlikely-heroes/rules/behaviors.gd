@@ -76,6 +76,9 @@ static func decide(state: Dictionary, actor: Dictionary, behavior_id: String) ->
 			var alternate := Actions.standing_alternate(state, actor, params.ability, "most_injured")
 			if not alternate.is_empty():
 				return alternate
+			var split_heal := Actions.standing_split_heal(state, actor, params.ability)
+			if not split_heal.is_empty():
+				return split_heal
 			return _most_injured(state, actor, params.ability)
 		"pass_blame":
 			var alternate := Actions.standing_alternate(state, actor, params.ability)
@@ -263,13 +266,19 @@ static func _follow(state: Dictionary, actor: Dictionary, move_ability: String,
 static func _most_injured(state: Dictionary, actor: Dictionary, id: String) -> Dictionary:
 	var recipient := ""
 	var most_missing := 0
-	for choice in Actions.targets(state, actor, id):
+	var ability := Actions.owned_ability(state, actor, id)
+	var aimed: bool = ability.get("targeting", {}).get("kind") == "automatic"
+	for choice in Actions.targets(state, actor, id, aimed):
 		var candidate := Board.entity(state, choice.id)
 		var missing: int = candidate.max_hp - candidate.hp
 		if missing > most_missing:
 			most_missing = missing
 			recipient = candidate.id
-	return _action(id, recipient) if not recipient.is_empty() else {"wait": "hold"}
+	if recipient.is_empty():
+		return {"wait": "hold"}
+	if aimed:
+		return {"ability_id": id, "target_id": recipient, "direct": true}
+	return _action(id, recipient)
 
 
 static func _pass_blame(state: Dictionary, actor: Dictionary, id: String) -> Dictionary:

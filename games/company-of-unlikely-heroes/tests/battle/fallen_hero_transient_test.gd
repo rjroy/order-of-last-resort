@@ -33,6 +33,7 @@ func _run() -> void:
 	root.add_child(container)
 
 	var defs := Catalog.read_default()
+	defs.abilities.wizard_blast.params.damage = 4
 	defs.classes.knight.abilities.append("knight_rescue_line")
 	defs = load("res://tests/fixtures/rules_catalog.gd").add_fixed_escort(defs)
 	var rules := Rules.new()

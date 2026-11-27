@@ -13,6 +13,14 @@ Write down the class's job in a three-hero party: what earns it a place, what it
 - One movement standing order that reflects how readily the hero enters danger: retreat, hold, follow an ally, or pursue an opponent. Hold counts as movement but is not universal.
 - One ability standing order for either base ability. Choose a targeting rule that shows the hero's personality most clearly, even when it works against the party. This is the normal guild default.
 
+**Starting values for damage and healing**
+
+| HP | Damage | Healing |
+|---:|---|---|
+| 1 | The opponent also suffers a penalty. | The recipient also gets a benefit. |
+| 2 | No side effect. | No side effect. |
+| 3 | The caster also suffers a penalty. | The caster also suffers a penalty. |
+
 **Standing orders express personality, not smart gameplay.** A hero acting on their own should behave in a recognizable way, even when that is bad for the party. A dangerous or inconvenient habit can make a better puzzle, a funnier moment, and a stronger character than an order that always picks the tactically best action. Make its consequences understandable and leave the player room to plan around them or spend the one direct command to intervene.
 
 For example, the Enthusiastic Caster's standing Blast seeks the nearest legal target, even a friend. If that friend is protected by the Knight's reflecting aura, the blast can instead be reflected toward the nearest enemy or obstacle. Positioning can turn the Caster's indiscriminate enthusiasm into a useful combination, but without that protection the same habit can hurt the company. Forecast must make the chosen target, reflection, and resulting recipient legible before commitment, so the player can judge and change the plan.

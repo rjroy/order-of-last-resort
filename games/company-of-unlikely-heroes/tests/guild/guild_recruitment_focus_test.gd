@@ -5,7 +5,7 @@ extends "res://tests/journeys/commission_scene_test.gd"
 const Catalog = preload("res://content/catalog.gd")
 const Profile = preload("res://guild/guild_profile.gd")
 const PETITIONS := ["recruit_bard", "recruit_rogue", "recruit_necromancer", "recruit_alchemist",
-	"teach_healer_blast", "healer_blast_order", "healer_field_dressing", "healer_triage_order",
+	"teach_healer_blast", "healer_blast_order", "healer_triage_order",
 	"knight_rescue_line", "order_knight_advance", "order_healer_aggressive"]
 
 
@@ -105,52 +105,38 @@ func _check_loadout_focus() -> void:
 	_check(pursuit != null and pursuit.disabled and pursuit.text == "Requires Bonk",
 		"Pursue and bonk stays incompatible with Blast")
 
-	if not await _tab_to("Utility_healer_field_dressing"):
+	if not await _tab_to("Order_order_healer_triage"):
 		return
-	await _key(KEY_ENTER)
-	_check_loadout_target("Order_order_hold", "Select", "Equipping Field Dressing")
-	await _capture("04-field-dressing-focused")
 	var triage := _node("Order_order_healer_triage") as Button
 	var support := _node("Order_order_support") as Button
 	var depart := _node("StartAdventure") as Button
-	_check(triage != null and not triage.disabled and support != null and support.disabled
-		and depart != null and depart.disabled
+	_check(triage != null and not triage.disabled and support != null and not support.disabled
+		and depart != null and not depart.disabled
 		and _saved_loadout("healer").get("slots", {}).get("utility") == "healer_heal",
-		"Field Dressing enables Triage but blocks departure and save until Support is replaced")
+		"Base Heal allows both Support and purchased Triage without blocking departure")
+	await _capture("04-triage-focused")
 	await _key(KEY_ENTER)
-	_check(_saved_loadout("healer").get("slots", {}).get("utility") == "healer_field_dressing"
-		and _saved_loadout("healer").get("order_id") == "order_hold",
-		"Choosing the focused compatible order saves Field Dressing")
-
-	if not await _tab_to("Utility_healer_field_dressing"):
-		return
-	var scroll := _node("LoadoutScroll") as ScrollContainer
-	var dressing := _node("Utility_healer_field_dressing") as Button
-	if scroll == null or dressing == null:
-		return
-	# Put an already equipped item in view at a nonzero reading position.
-	scroll.scroll_vertical = 43
-	await process_frame
-	await process_frame
-	_check(_reachable(dressing) and dressing.has_focus(),
-		"The equipped Field Dressing starts in view at the test reading position")
-	var previous := scroll.scroll_vertical
-	await _key(KEY_ENTER)
-	scroll = _node("LoadoutScroll") as ScrollContainer
-	_check(scroll != null and previous > 0 and scroll.scroll_vertical == previous,
-		"Reactivating an already-visible loadout control does not jump back to the top")
+	var recruit_list := _node("RecruitList") as Button
+	_check(recruit_list != null and recruit_list.has_focus() and not recruit_list.disabled,
+		"Selecting Triage returns keyboard focus to the available recruits control")
+	_check(_saved_loadout("healer").get("slots", {}).get("utility") == "healer_heal"
+		and _saved_loadout("healer").get("order_id") == "order_healer_triage",
+		"Choosing Triage saves it with base Heal")
 
 	if not await _tab_to("EditHero_knight"):
 		return
 	await _key(KEY_ENTER)
-	scroll = _node("LoadoutScroll") as ScrollContainer
+	var scroll := _node("LoadoutScroll") as ScrollContainer
 	_check(scroll != null and scroll.scroll_vertical == 0, "Switching to the Knight opens a fresh loadout at the top")
 	if not await _tab_to("Utility_knight_rescue_line"):
 		return
 	await _key(KEY_ENTER)
 	_check_loadout_target("Order_order_knight_advance_move", "Select", "Equipping Rescue Line")
 	var guard := _node("Order_order_guard") as Button
-	_check(guard != null and guard.disabled, "Guard still needs the Knight's original utility")
+	depart = _node("StartAdventure") as Button
+	_check(guard != null and guard.disabled and depart != null and depart.disabled
+		and _saved_loadout("knight").get("slots", {}).get("utility") != "knight_rescue_line",
+		"Rescue Line disables Guard and blocks departure and save until a compatible order is chosen")
 	await _capture("05-rescue-line-focused")
 	await _key(KEY_ENTER)
 	_check(_saved_loadout("knight").get("slots", {}).get("utility") == "knight_rescue_line"
@@ -158,10 +144,22 @@ func _check_loadout_focus() -> void:
 		"Choosing the focused compatible order saves Rescue Line")
 	if not await _tab_to("Utility_knight_rescue_line"):
 		return
+	var rescue := _node("Utility_knight_rescue_line") as Button
+	scroll = _node("LoadoutScroll") as ScrollContainer
+	if scroll == null or rescue == null:
+		return
+	# Keep the equipped option visible at a nonzero reading position.
+	scroll.scroll_vertical = 43
+	await process_frame
+	await process_frame
+	_check(_reachable(rescue) and rescue.has_focus(),
+		"The equipped Rescue Line starts in view at the test reading position")
+	var previous := scroll.scroll_vertical
 	await _key(KEY_ENTER)
 	_check_loadout_target("Utility_knight_rescue_line", "Equipped", "Reactivating visible Rescue Line")
 	scroll = _node("LoadoutScroll") as ScrollContainer
-	_check(scroll != null and scroll.scroll_vertical == 0, "Equipping the visible Rescue Line does not scroll needlessly")
+	_check(scroll != null and previous > 0 and scroll.scroll_vertical == previous,
+		"Reactivating an already-visible loadout control does not jump back to the top")
 
 
 func _saved_loadout(hero: String) -> Dictionary:

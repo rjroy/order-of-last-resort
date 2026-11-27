@@ -99,6 +99,16 @@ static func default_loadout(defs: Dictionary, profile: Dictionary, hero_id: Stri
 	var preference: Dictionary = profile.get("preferred_loadouts", {}).get(hero_id, {})
 	if not effective_kit(defs, profile, hero_id, preference, playtest, legacy_precedence).is_empty():
 		return preference.duplicate(true)
+	# Retire only the stock ability. A custom catalog that still defines it
+	# retains its own slot and preference semantics.
+	if hero_id == "healer" and not defs.get("abilities", {}).has("healer_field_dressing") \
+			and not _petitions(defs).has("healer_field_dressing") \
+			and preference.get("slots", {}) is Dictionary \
+			and preference.get("slots", {}).get("utility") == "healer_field_dressing":
+		var recovered := preference.duplicate(true)
+		recovered.slots.utility = "healer_heal"
+		if not effective_kit(defs, profile, hero_id, recovered, playtest, legacy_precedence).is_empty():
+			return recovered
 	var slots: Dictionary = {}
 	var saved_slots: Variant = preference.get("slots", {})
 	for slot_id in choices:

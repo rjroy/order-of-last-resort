@@ -41,17 +41,18 @@
     "wizard_blast": {
       "fitted_form": "mending_blast",
       "label": "Blast nearest",
-      "help": "Hits and knocks down the nearest unit, friend or foe. Obstacles can take the hit.",
+      "help": "Deal 3 damage and knock down the nearest unit within 4 tiles, friend or foe. Obstacles can take the hit.",
       "handler": "blast",
       "params": {
-        "damage": 4,
+        "damage": 3,
         "status": "knockdown"
       },
       "targeting": {
         "kind": "automatic",
+        "range": 4,
         "direct": {
           "label": "Blast",
-          "help": "Hit a chosen living character or damageable obstacle. Characters can be knocked down, even allies."
+          "help": "Deal 3 damage to a chosen living character or damageable obstacle within 4 tiles. Characters can be knocked down, even allies."
         },
         "objects": true,
         "capabilities": [
@@ -62,10 +63,10 @@
     "wizard_pull": {
       "fitted_form": "send_off",
       "label": "Pull and recoil",
-      "help": "Pull a target onto your tile. Recoil hurts and knocks you down.",
+      "help": "Pull a target onto your tile. Recoil deals 1 damage and knocks you down.",
       "handler": "pull",
       "params": {
-        "recoil_damage": 2,
+        "recoil_damage": 1,
         "status": "knockdown"
       },
       "targeting": {

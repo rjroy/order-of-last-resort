@@ -60,7 +60,26 @@ func _run() -> void:
 	var actual_ids := {}
 	for row: Dictionary in rows:
 		actual_ids[row.id] = true
-	_check(PLATES.size() == 29 and actual_ids.size() == 29, "Expected exactly 29 stock petitions")
+	var catalog_ids: Array = defs.guild_progression.petitions.keys()
+	_check(PLATES.size() == 29 and actual_ids.size() == catalog_ids.size(),
+		"All catalog petitions are shown and the 29 legacy plates remain covered")
+	for id in catalog_ids:
+		_check(actual_ids.has(id), "Register includes catalog petition " + id)
+		if id not in PLATES:
+			var matches := rows.filter(func(row: Dictionary) -> bool: return row.id == id)
+			if matches.size() != 1:
+				_check(false, id + ": exactly one fallback row exists")
+				continue
+			var row: Dictionary = matches[0]
+			_build(rows, id)
+			var preview := book.find_child("PetitionPreviewScroll", true, false)
+			var mount := preview.find_child("PetitionRecipientPortrait", true, false) if preview != null else null
+			var images := mount.find_children("*", "TextureRect", true, false) if mount != null else []
+			_check(ViewModel.action_plate(id) == null and preview != null \
+				and preview.find_child("PetitionActionPlate", true, false) == null \
+				and images.size() == 1 and images[0].texture is AtlasTexture \
+				and images[0].texture.atlas == row.portrait,
+				id + ": new stock petition uses its recipient portrait fallback")
 	for id in PLATES:
 		_check(actual_ids.has(id), "Stock register includes " + id)
 		var path := "res://assets/guild-book/petitions/%s.png" % PLATES[id]

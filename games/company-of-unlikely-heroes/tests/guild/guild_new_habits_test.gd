@@ -173,6 +173,11 @@ func _test_orders() -> void:
 			equipped_profile = _buy(unrecruited, "recruit_" + hero)
 			if equipped_profile.is_empty():
 				continue
+			if hero == "rogue":
+				_check(order not in _order_ids(equipped_profile, hero), order + " is not free on recruitment")
+				equipped_profile = _buy(equipped_profile, _order_petition(hero, order))
+				if equipped_profile.is_empty():
+					continue
 		else:
 			_check(order not in _order_ids(profile, hero), order + " is not free in commissions")
 			var petition := _order_petition(hero, order)
@@ -334,7 +339,9 @@ func _enemy_hp(state: Dictionary) -> int:
 
 
 func _test_song_weaving() -> void:
-	var profile := _profile()
+	var profile := _buy(_profile(), _order_petition("bard", "order_healing_sonnet"))
+	if profile.is_empty():
+		return
 	for direct in [false, true]:
 		_song_sequence(profile, false, direct)
 	var purchased := _buy(profile, "song_weaving")
@@ -350,7 +357,7 @@ func _test_song_weaving() -> void:
 	var first := _song_round(state, "inspiring_melody", false)
 	if first.is_empty():
 		return
-	state = rules.set_order(first.result, "bard", "order_hold")
+	state = rules.choose_manual(first.result, "bard", "move", "3,2")
 	var gap := _round(state, "Skipped song round")
 	if gap.is_empty():
 		return
@@ -484,7 +491,7 @@ func _test_song_actor_isolation(profile: Dictionary) -> void:
 		return
 	state.units.insert(1, _unit("necromancer", "necromancer", Vector2i(2, 3)))
 	state.party = ["bard", "necromancer"]
-	state = rules.set_order(state, "bard", "order_hold")
+	state.orders.erase("bard")
 	state = rules.choose_manual(state, "necromancer", "inspiring_melody", "enemy_a")
 	var first := _round(state, "Nonwoven Crypter sings first")
 	if first.is_empty():
@@ -499,7 +506,8 @@ func _test_song_actor_isolation(profile: Dictionary) -> void:
 		and _heard_song(second, "healing_sonnet", "bard", "enemy_a")
 		and _enemy_hp(first.result) - _enemy_hp(second.result) == 1,
 		"Crypter's previous song does not prime Bard's weaving")
-	state = rules.set_order(second.result, "bard", "order_hold")
+	state = second.result
+	state.orders.erase("bard")
 	# The first listener's immunity has expired, and the original third draw chose it again.
 	state = rules.choose_manual(state, "necromancer", "inspiring_melody", "enemy_a")
 	var third := _round(state, "Crypter sings after Bard")

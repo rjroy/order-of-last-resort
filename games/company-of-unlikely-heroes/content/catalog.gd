@@ -71,7 +71,7 @@ const REWARD_EFFECTS := ["max_hp", "shield_damage", "dig_in", "shield_throw", "w
 	"spare_vial", "brittle_glass", "keep_the_culture",
 	"hammer_damage", "follow_through", "reinforced_rivets", "fine_adjustment", "quick_release", "double_shift"]
 const REWARD_FIELDS := ["hero_id", "rarity", "cap", "label", "description", "effect", "amount",
-	"ability", "order", "behavior", "requires_abilities", "requires_any_ability"]
+	"ability", "order", "behavior", "requires_abilities", "requires_any_ability", "requires_order"]
 const REWARD_GRANTS := {
 	"shield_throw": {"ability": "knight_shield_throw", "handler": "attack", "kind": "entity"},
 	"house_lights": {"ability": "bard_take_the_stage", "handler": "perform", "kind": "automatic"},
@@ -349,10 +349,11 @@ class Validator:
 		var guild := _dictionary(_defs.get(path), path)
 		if not _errors.is_empty():
 			return _errors
-		_guild_fields(guild, ["kits", "petitions", "starting_habits"], path)
+		_guild_fields(guild, ["kits", "petitions", "starting_habits", "starting_defaults"], path)
 		var kits := _dictionary(guild.get("kits"), path + ".kits")
 		var petitions := _dictionary(guild.get("petitions"), path + ".petitions")
 		var starting := _dictionary(guild.get("starting_habits", {}), path + ".starting_habits")
+		var starting_defaults := _dictionary(guild.get("starting_defaults", {}), path + ".starting_defaults")
 		var roster: Variant = playtest_roster if playtest_roster != null else \
 			_record(_defs, "commission_settings").get("recruitment_roster")
 		if not roster is Array:
@@ -390,8 +391,12 @@ class Validator:
 			for order in habits:
 				_ref(order, "orders", habit_path + "." + str(order))
 				_behavior_for_kit(habits[order], hero.get("abilities", []), habit_path + "." + str(order))
-			if hero.has("default_order") and not habits.has(hero.default_order):
-				_error(habit_path, "must include the hero's default order")
+		for hero_id in starting_defaults:
+			var default_path := path + ".starting_defaults." + str(hero_id)
+			var order: Variant = starting_defaults[hero_id]
+			if not kits.has(hero_id) or not starting.has(hero_id) \
+					or not order is String or not _record(starting, hero_id).has(order):
+				_error(default_path, "expected an authored starting order for a hero with a guild kit")
 		for id in petitions:
 			_check_petition(kits, petitions, id)
 		var benefits := {}
@@ -720,7 +725,9 @@ class Validator:
 		if not _choice(handler, ["use_ability", "pursue", "hold", "rescue", "threat", "escort",
 				"retreat", "greet", "hook_and_seek", "follow_party", "retreat_attack",
 				"finite_healer", "swap_ally", "follow_ally", "most_injured", "nearest_target",
-				"pass_blame", "make_friend", "fit_nearest"], path + ".handler"):
+				"pass_blame", "make_friend", "fit_nearest", "personality_escape_swap",
+				"personality_summon_skeleton", "personality_raise_dead", "personality_targeted",
+				"advance_move"], path + ".handler"):
 			return
 		path += ".params."
 		if params.has("ability_slot"):
@@ -736,12 +743,21 @@ class Validator:
 			_check_behavior_action(params.get("ability"), "summon", "cell", path + "ability")
 		if handler == "fit_nearest":
 			_check_behavior_action(params.get("ability"), "fit", "entity", path + "ability")
+		if handler == "personality_escape_swap":
+			_check_behavior_action(params.get("ability"), "swap_furthest", "automatic", path + "ability")
+		if handler == "personality_summon_skeleton":
+			_check_behavior_action(params.get("ability"), "summon", "cell", path + "ability")
+		if handler == "personality_raise_dead":
+			_check_behavior_action(params.get("ability"), "summon", "entity", path + "ability")
+		if handler == "personality_targeted":
+			_check_behavior_ability(handler, params, path + "ability")
+			_choice(params.get("policy"), ["nearest_ally", "nearest_character", "nearest_enemy"], path + "policy")
 		if handler in ["pursue", "threat", "escort", "retreat", "greet", "hook_and_seek",
-				"follow_ally", "follow_party", "retreat_attack", "finite_healer", "swap_ally"]:
+				"follow_ally", "follow_party", "retreat_attack", "finite_healer", "swap_ally", "advance_move"]:
 			var move: Variant = params.get("move_ability")
 			if _ref(move, "abilities", path + "move_ability") and not is_same(_defs.abilities[move].get("handler"), "move"):
 				_error(path + "move_ability", "ability must use the move handler")
-		if handler in ["pursue", "retreat", "greet", "hook_and_seek", "retreat_attack", "finite_healer", "swap_ally"]:
+		if handler in ["pursue", "retreat", "greet", "hook_and_seek", "retreat_attack", "finite_healer", "swap_ally", "advance_move"]:
 			_text(params.get("team"), path + "team")
 		if handler == "finite_healer":
 			_check_behavior_action(params.get("heal_ability"), "enemy_heal", "automatic", path + "heal_ability")
@@ -1454,6 +1470,8 @@ class Validator:
 		for field in ["requires_abilities", "requires_any_ability"]:
 			if upgrade.has(field) and _id_list(upgrade[field], path + "." + field, "abilities").is_empty():
 				_error(path + "." + field, "requires a nonempty ability list")
+		if upgrade.has("requires_order"):
+			_ref(upgrade.requires_order, "orders", path + ".requires_order")
 		var effect: Variant = upgrade.get("effect")
 		if _choice(effect, REWARD_EFFECTS, path + ".effect"):
 			_check_reward_grants(upgrade, profile, path, effect)

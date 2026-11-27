@@ -85,25 +85,25 @@ func _run() -> void:
 			_check(scene.selected_recruits() == ["knight", "rogue", "wizard"],
 				"Purchased Rogue is selectable in the three-hero party")
 			await _press("EditHero_rogue")
-			var blame := _node("Order_order_pass_the_blame") as BaseButton
-			_check(blame != null and not blame.disabled,
-				"Recruited Rogue has the native Pass the Blame order")
+			var dodge := _node("Order_order_confusing_dodge") as BaseButton
+			_check(dodge != null and not dodge.disabled,
+				"Recruited Rogue has the native Confusing Dodge order")
 		elif purchase_id == "knight_rescue_line":
 			for id in FOUNDERS:
 				await _press("Recruit_" + id)
 			await _press("EditHero_knight")
 			await _click_loadout("Utility_knight_rescue_line")
 			var guard := _node("Order_order_guard") as BaseButton
-			var advance := _node("Order_order_advance") as BaseButton
+			var advance := _node("Order_order_knight_advance_move") as BaseButton
 			_check(guard == null or guard.disabled,
 				"Guard is incompatible with Rescue Line replacing the aura")
 			_check(advance != null and not advance.disabled,
-				"Advance remains compatible with Rescue Line")
+				"Move-only advance remains compatible with Rescue Line")
 			var order_focus := viewport.gui_get_focus_owner() as BaseButton
 			_check(order_focus != null and str(order_focus.name).begins_with("Order_")
 				and not order_focus.disabled and order_focus != guard,
 				"Invalidating Guard moves keyboard focus to a compatible standing order")
-			await _click_loadout("Order_order_advance")
+			await _click_loadout("Order_order_knight_advance_move")
 		else:
 			for id in FOUNDERS:
 				await _press("Recruit_" + id)
@@ -137,8 +137,8 @@ func _run() -> void:
 		elif purchase_id == "recruit_rogue":
 			_check("rogue" in state.get("party", []), "Purchased Rogue deploys")
 			var rogue: Dictionary = rules.entity_profile(state, "rogue")
-			_check(rogue.get("habits", {}).has("order_pass_the_blame"),
-				"Deployed Rogue retains Pass the Blame")
+			_check(rogue.get("habits", {}).has("order_confusing_dodge"),
+				"Deployed Rogue retains Confusing Dodge")
 		elif purchase_id == "knight_rescue_line":
 			var knight: Dictionary = rules.entity_profile(state, "knight")
 			_check("knight_rescue_line" in knight.get("abilities", []),
@@ -222,11 +222,11 @@ func _check_full_petition_board(board_size: Vector2i) -> void:
 	var cards: Array[BaseButton] = []
 	for node in scroll.find_children("Petition_*", "BaseButton", true, false):
 		cards.append(node as BaseButton)
-	_check(cards.size() == 29, context + ": all 29 catalog petitions are present")
-	for id in ["recruit_bard", "recruit_rogue", "recruit_necromancer",
-			"recruit_alchemist", "teach_healer_blast", "song_weaving",
-			"recruit_blacksmith", "blacksmith_learn_bonk", "blacksmith_learn_acid"]:
-		_check(_node("Petition_" + id) is BaseButton, context + ": card exists for " + id)
+	var catalog: Dictionary = load("res://content/catalog.gd").read_default()
+	var petition_ids: Array = catalog.guild_progression.petitions.keys()
+	_check(cards.size() == petition_ids.size(), context + ": all catalog petitions are present")
+	for id in petition_ids:
+		_check(_node("Petition_" + id) is BaseButton, context + ": catalog card exists for " + id)
 	if cards.is_empty():
 		return
 	_check(scroll.get_v_scroll_bar().max_value > scroll.get_v_scroll_bar().page,
@@ -387,7 +387,9 @@ func _check_purchased_song(store: Variant) -> void:
 	_check(song != null and song.disabled, "Purchased Song Weaving remains a selectable owned card after reload")
 	var scroll := _node("PetitionScroll") as ScrollContainer
 	if scroll != null:
-		_check(scroll.find_children("Petition_*", "BaseButton", true, false).size() == 29,
+		var catalog: Dictionary = load("res://content/catalog.gd").read_default()
+		_check(scroll.find_children("Petition_*", "BaseButton", true, false).size() \
+			== catalog.guild_progression.petitions.size(),
 			"Owned Song Weaving remains in the complete register")
 
 

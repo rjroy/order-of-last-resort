@@ -239,9 +239,18 @@ func _test_receipts(defs: Dictionary) -> void:
 
 
 func _test_same_board_stale_return(defs: Dictionary) -> void:
+	# Fund one test-owned point for this independent concurrency fixture.
+	defs = defs.duplicate(true)
+	defs.guild_progression.petitions.order_knight_advance.cost = 1
 	var pair := _new_profile()
 	var path: String = pair[0]
-	var original: Dictionary = pair[1]
+	var funded: Dictionary = pair[1].duplicate(true)
+	funded.points = 1
+	funded = profile_store.call("_write_profile", path, funded)
+	var original: Dictionary = profile_store.call("purchase", path, funded, defs, "order_knight_advance")
+	if original.has("error"):
+		_check(false, "Stale-return fixture purchases Advance: " + str(original))
+		return
 	var board: Array = commissions.call("board", defs, SEED)
 	if board.is_empty():
 		_check(false, "Stale-return fixture has a commission board")
@@ -353,6 +362,11 @@ func _test_same_board_stale_return(defs: Dictionary) -> void:
 
 
 func _test_purchase_path(defs: Dictionary, purchase_id: String) -> void:
+	if purchase_id == "teach_healer_blast":
+		# Buy the old native order independently while keeping the four-road
+		# balance and Blast purchase path intact.
+		defs = defs.duplicate(true)
+		defs.guild_progression.petitions.order_healer_aggressive.cost = 1
 	var pair := _new_profile()
 	var path: String = pair[0]
 	var profile: Dictionary = pair[1]
@@ -386,13 +400,20 @@ func _test_purchase_path(defs: Dictionary, purchase_id: String) -> void:
 			and _contains_id(bard.get("slots", {}), "healing_sonnet"),
 			"Bard joins with both songs equipped")
 		var orders: Variant = profile_store.call("order_options", defs, bought, "bard", bard)
-		for id in ["order_hold", "order_inspiring_melody", "order_healing_sonnet"]:
-			_check(_contains_id(orders, id), "Bard starts with order " + id)
+		_check(_contains_id(orders, "order_inspiring_melody") \
+			and _contains_id(orders, "order_hold") and not _contains_id(orders, "order_healing_sonnet"),
+			"Bard starts with Melody and Hold, without free Sonnet")
 		var invalid: Dictionary = adventure.call("start_guild_commission", defs,
 			commissions.call("board", defs, SEED + 1)[0], PARTY + ["bard"], bought, {}, 444)
 		_check(invalid.is_empty(), "Bard unlock does not allow a four-hero party")
 	else:
 		_check(roster.size() == 3 and _has_founders(roster), "Teaching does not recruit Bard")
+		bought.points = 1
+		bought = profile_store.call("_write_profile", path, bought)
+		bought = profile_store.call("purchase", path, bought, defs, "order_healer_aggressive")
+		if bought.has("error"):
+			_check(false, "Fixture purchases Bonk pursuit: " + str(bought))
+			return
 		var blast_loadout := default_after.duplicate(true)
 		blast_loadout["slots"]["offense"] = "wizard_blast"
 		var options: Variant = profile_store.call("order_options", defs, bought, "healer", blast_loadout)

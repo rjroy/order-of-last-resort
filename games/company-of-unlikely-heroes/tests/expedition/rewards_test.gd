@@ -2,6 +2,8 @@ extends SceneTree
 
 # Run: godot --headless --path games/company-of-unlikely-heroes --script res://tests/expedition/rewards_test.gd
 const Catalog = preload("res://content/catalog.gd")
+const Progression = preload("res://guild/guild_progression.gd")
+const Rewards = preload("res://expedition/rewards.gd")
 var adventure: Script = load("res://expedition/adventure.gd")
 var rules = preload("res://rules/rules.gd").new()
 var failures: Array[String] = []
@@ -31,6 +33,7 @@ func _initialize() -> void:
 	_test_smith_scoped_fixture()
 	_test_smith_claim_reset()
 	_test_smith_scoped_gates()
+	_test_exit_strategy_order_gate()
 	if failures.is_empty():
 		print("PASS: reward content and outing")
 	else:
@@ -464,6 +467,58 @@ func _test_smith_scoped_gates() -> void:
 			var chosen: Dictionary = adventure.call("choose_reward", settled, "blacksmith", id)
 			_check((chosen.get("upgrades_by_id", {}).get("blacksmith", {}).get(id, 0) == 1) == eligible,
 				id + ": actual scoped claim enforces the equipped-offense gate")
+
+
+func _test_exit_strategy_order_gate() -> void:
+	var source: Dictionary = preload("res://tests/fixtures/controlled_commission.gd").build(defs)
+	var reward := "rogue_exit_strategy"
+	# Make the draw deterministic without depending on rarity weights.
+	for id in source.upgrades.keys():
+		if source.upgrades[id].get("hero_id") == "rogue" and id != reward:
+			source.upgrades.erase(id)
+	var profile := {"guild_id": "exit-strategy-fixture", "board_seed": 12345, "board_generation": 0,
+		"points": 1000000, "recruited_ids": ["rogue", "knight", "healer"],
+		"purchased_ids": [], "preferred_loadouts": {}}
+	var board: Array = preload("res://expedition/commissions.gd").board(source, 12345)
+	_check(not board.is_empty(), "Exit Strategy fixture has a commission")
+	if board.is_empty():
+		return
+	var fresh: Dictionary = adventure.call("start_guild_commission", source, board[0],
+		["rogue", "knight", "healer"], profile, {}, 42)
+	# A custom scoped kit without Retreat isolates the negative gate. The
+	# ordinary fresh guild kit retains both of its authored starters.
+	var without_retreat := source.duplicate(true)
+	without_retreat.guild_progression.starting_habits.rogue.erase("order_retreat")
+	var custom_board: Array = preload("res://expedition/commissions.gd").board(without_retreat, 12345)
+	_check(not custom_board.is_empty(), "Custom no-Retreat fixture has a commission")
+	if custom_board.is_empty():
+		return
+	var custom: Dictionary = adventure.call("start_guild_commission", without_retreat, custom_board[0],
+		["rogue", "knight", "healer"], profile, {}, 42)
+	_check(fresh.get("phase") == "route" and custom.get("phase") == "route",
+		"Both Exit Strategy fixture outings start")
+	if fresh.get("phase") != "route" or custom.get("phase") != "route":
+		return
+	for example in [[custom, without_retreat, false], [fresh, source, true]]:
+		var run: Dictionary = example[0]
+		var fixture: Dictionary = example[1]
+		var expected: bool = example[2]
+		var loadout: Dictionary = Progression.default_loadout(fixture, profile, "rogue")
+		var kit: Dictionary = Progression.effective_kit(fixture, profile, "rogue", loadout)
+		_check(kit.get("habits", {}).has("order_retreat") == expected,
+			"Fixture's scoped kit reflects whether Retreat is available")
+		_check(Rewards.eligible(fixture, "rogue", reward, {}, kit) == expected,
+			"Exit Strategy eligibility requires Retreat in the frozen kit")
+		var settled := _victory(_route(run))
+		var offer := {"hero_id": "rogue", "upgrade_id": reward}
+		_check((offer in settled.get("reward_offers", [])) == expected,
+			"Exit Strategy is drawn only when Retreat was accessible at departure")
+		# Exercise the claim-time eligibility recheck even for an invalid stale offer.
+		if not expected:
+			settled.reward_offers.append(offer)
+		var chosen: Dictionary = adventure.call("choose_reward", settled, "rogue", reward)
+		_check((chosen.get("upgrades_by_id", {}).get("rogue", {}).get(reward, 0) == 1) == expected,
+			"Exit Strategy claim rechecks the frozen Retreat order")
 
 
 func _check_reset(finished: Dictionary, party: Array, label: String) -> void:

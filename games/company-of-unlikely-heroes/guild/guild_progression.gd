@@ -92,18 +92,34 @@ static func slot_options(defs: Dictionary, profile: Dictionary, hero_id: String,
 
 
 static func default_loadout(defs: Dictionary, profile: Dictionary, hero_id: String,
-		playtest := false) -> Dictionary:
+		playtest := false, legacy_precedence := true) -> Dictionary:
 	var choices := slot_options(defs, profile, hero_id, playtest)
 	if choices.is_empty():
 		return {}
 	var preference: Dictionary = profile.get("preferred_loadouts", {}).get(hero_id, {})
-	if not effective_kit(defs, profile, hero_id, preference, playtest).is_empty():
+	if not effective_kit(defs, profile, hero_id, preference, playtest, legacy_precedence).is_empty():
 		return preference.duplicate(true)
 	var slots: Dictionary = {}
+	var saved_slots: Variant = preference.get("slots", {})
 	for slot_id in choices:
-		slots[slot_id] = choices[slot_id][0]
+		var saved: Variant = saved_slots.get(slot_id) if saved_slots is Dictionary else null
+		slots[slot_id] = saved if saved is String and saved in choices[slot_id] else choices[slot_id][0]
+	if _equipped_abilities(defs, profile, hero_id, {"slots": slots}, playtest).is_empty():
+		for slot_id in choices:
+			slots[slot_id] = choices[slot_id][0]
 	var loadout := {"slots": slots, "order_id": Catalog.profile(defs, hero_id).get("default_order", "")}
-	var orders := order_options(defs, profile, hero_id, loadout, playtest)
+	var orders := order_options(defs, profile, hero_id, loadout, playtest, legacy_precedence)
+	var authored_starters: Dictionary = defs.get("guild_progression", {}).get("starting_habits", {})
+	var authored_defaults: Dictionary = defs.get("guild_progression", {}).get("starting_defaults", {})
+	if not playtest and authored_starters.has(hero_id):
+		for order in orders:
+			if order.id == authored_defaults.get(hero_id, "") and order.compatible:
+				loadout.order_id = order.id
+				return loadout
+		for order in orders:
+			if order.id in authored_starters[hero_id] and order.compatible:
+				loadout.order_id = order.id
+				return loadout
 	for order in orders:
 		if order.id == loadout.order_id and order.compatible:
 			return loadout
@@ -116,13 +132,14 @@ static func default_loadout(defs: Dictionary, profile: Dictionary, hero_id: Stri
 
 ## Resolve explicit standalone choices against the same slot and order rules as
 ## guild appointments, without a guild roster, purchases, or passive grants.
-static func playtest_kit(defs: Dictionary, hero_id: String, fields: Dictionary) -> Dictionary:
+static func playtest_kit(defs: Dictionary, hero_id: String, fields: Dictionary,
+		legacy_precedence := true) -> Dictionary:
 	var profile := {"recruited_ids": [], "purchased_ids": [], "preferred_loadouts": {}}
 	for petition_id in _petitions(defs):
 		var spec: Dictionary = _petitions(defs)[petition_id]
 		if not spec.get("teaser", false) and spec.get("grant", {}).get("kind") in ["ability", "order"]:
 			profile.purchased_ids.append(petition_id)
-	var loadout := default_loadout(defs, profile, hero_id, true)
+	var loadout := default_loadout(defs, profile, hero_id, true, legacy_precedence)
 	if loadout.is_empty():
 		if not _kits(defs).has(hero_id):
 			return {"error": "Hero '%s' has no configurable catalog kit." % hero_id}
@@ -134,14 +151,14 @@ static func playtest_kit(defs: Dictionary, hero_id: String, fields: Dictionary) 
 			return {"error": "Hero '%s' has no '%s' loadout slot." % [hero_id, field]}
 		else:
 			loadout.slots[field] = fields[field]
-	var kit := effective_kit(defs, profile, hero_id, loadout, true)
+	var kit := effective_kit(defs, profile, hero_id, loadout, true, legacy_precedence)
 	if kit.is_empty():
 		var choices := slot_options(defs, profile, hero_id, true)
 		for slot in loadout.slots:
 			if loadout.slots[slot] not in choices[slot]:
 				return {"error": "Hero '%s': ability '%s' is invalid for slot '%s'. Available IDs: %s." % [
 					hero_id, loadout.slots[slot], slot, ", ".join(choices[slot])]}
-		var orders := order_options(defs, profile, hero_id, loadout, true)
+		var orders := order_options(defs, profile, hero_id, loadout, true, legacy_precedence)
 		if orders.is_empty():
 			if not _equipped_abilities(defs, profile, hero_id, loadout, true).is_empty():
 				return {"error": "Hero '%s': order '%s' cannot be selected; no orders are available for this kit." % [
@@ -165,20 +182,20 @@ static func playtest_kit(defs: Dictionary, hero_id: String, fields: Dictionary) 
 
 
 static func order_options(defs: Dictionary, profile: Dictionary, hero_id: String,
-		loadout: Dictionary, playtest := false) -> Array[Dictionary]:
+		loadout: Dictionary, playtest := false, legacy_precedence := true) -> Array[Dictionary]:
 	var abilities := _equipped_abilities(defs, profile, hero_id, loadout, playtest)
-	return _order_rows(defs, profile, hero_id, abilities) if not abilities.is_empty() else []
+	return _order_rows(defs, profile, hero_id, abilities, loadout.slots, playtest, legacy_precedence) if not abilities.is_empty() else []
 
 
 static func effective_kit(defs: Dictionary, profile: Dictionary, hero_id: String, loadout: Dictionary,
-		playtest := false) -> Dictionary:
+		playtest := false, legacy_precedence := true) -> Dictionary:
 	if loadout.size() != 2 or not loadout.get("order_id") is String:
 		return {}
 	var abilities := _equipped_abilities(defs, profile, hero_id, loadout, playtest)
 	if abilities.is_empty():
 		return {}
 	var habits: Dictionary = {}
-	for row in _order_rows(defs, profile, hero_id, abilities):
+	for row in _order_rows(defs, profile, hero_id, abilities, loadout.slots, playtest, legacy_precedence):
 		if row.compatible:
 			habits[row.id] = row.behavior_id
 	if not habits.has(loadout.order_id):
@@ -224,14 +241,20 @@ static func _starting_habits(defs: Dictionary, hero_id: String) -> Dictionary:
 
 
 static func _order_rows(defs: Dictionary, profile: Dictionary, hero_id: String,
-		abilities: Array[String]) -> Array[Dictionary]:
+		abilities: Array[String], slots: Dictionary, playtest := false,
+		legacy_precedence := true) -> Array[Dictionary]:
 	var starting := _starting_habits(defs, hero_id)
+	var legacy: Dictionary = Catalog.profile(defs, hero_id).get("habits", {}) if playtest else {}
 	var habits := starting.duplicate()
 	for grant in _owned_grants(defs, profile, hero_id):
 		if grant.kind == "order":
 			habits[grant.order_id] = grant.behavior_id
+	# Stock standalone keeps its original habits; external guild definitions
+	# take precedence over raw character habits on matching IDs.
+	habits.merge(legacy, legacy_precedence)
 	var rows: Array[Dictionary] = []
-	var starting_compatible := false
+	var any_compatible := false
+	var legacy_compatible := false
 	for id in habits:
 		var behavior_id: String = habits[id]
 		var behavior: Dictionary = defs.behaviors[behavior_id]
@@ -251,11 +274,16 @@ static func _order_rows(defs: Dictionary, profile: Dictionary, hero_id: String,
 		for ability in abilities:
 			missing.erase(ability)
 		var compatible := missing.is_empty()
-		starting_compatible = starting_compatible or (starting.has(id) and compatible)
+		any_compatible = any_compatible or compatible
+		legacy_compatible = legacy_compatible or (legacy.has(id) and compatible)
 		rows.append({"id": id, "label": defs.orders[id].label, "behavior_id": behavior_id,
 			"compatible": compatible, "missing_abilities": missing})
-	# Learned orders do not revoke a fallback that made an existing loadout valid.
-	if not starting_compatible and not habits.has(HOLD_ORDER) \
+	# Retain a previously saved fallback only for its exact equipped slots.
+	var preference: Variant = profile.get("preferred_loadouts", {}).get(hero_id, {})
+	var saved_hold: bool = not playtest and preference is Dictionary and preference.size() == 2 \
+		and preference.get("order_id") == HOLD_ORDER and preference.get("slots") == slots
+	var legacy_fallback := playtest and not legacy_compatible
+	if (not any_compatible or saved_hold or legacy_fallback) and not habits.has(HOLD_ORDER) \
 			and defs.orders.has(HOLD_ORDER) and defs.behaviors.has(HOLD_BEHAVIOR):
 		rows.append({"id": HOLD_ORDER, "label": defs.orders[HOLD_ORDER].label, "behavior_id": HOLD_BEHAVIOR,
 			"compatible": true, "missing_abilities": []})

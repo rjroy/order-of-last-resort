@@ -5,7 +5,8 @@ extends "res://tests/journeys/commission_scene_test.gd"
 const Catalog = preload("res://content/catalog.gd")
 const Profile = preload("res://guild/guild_profile.gd")
 const PETITIONS := ["recruit_bard", "recruit_rogue", "recruit_necromancer", "recruit_alchemist",
-	"teach_healer_blast", "healer_blast_order", "healer_field_dressing", "healer_triage_order", "knight_rescue_line"]
+	"teach_healer_blast", "healer_blast_order", "healer_field_dressing", "healer_triage_order",
+	"knight_rescue_line", "order_knight_advance", "order_healer_aggressive"]
 
 
 func _run() -> void:
@@ -64,11 +65,11 @@ func _unlock_preparation() -> bool:
 		return false
 	var fixture: Dictionary = earning._fixture()
 	var defs := Catalog.read_default()
-	# Three controlled commissions pay for the real petitions without editing the save.
-	for index in 3:
+	# Four controlled commissions pay for the real petitions without editing the save.
+	for index in 4:
 		var run: Dictionary = earning._run_commission(fixture, profile, 10, 2)
 		profile = Profile.settle_return(profile_path, profile, run, earning.SEED + 1)
-		if not profile.has("error") and index < 2:
+		if not profile.has("error") and index < 3:
 			profile = Profile.renew(profile_path, profile, earning.SEED)
 		if profile.has("error"):
 			break
@@ -107,7 +108,7 @@ func _check_loadout_focus() -> void:
 	if not await _tab_to("Utility_healer_field_dressing"):
 		return
 	await _key(KEY_ENTER)
-	_check_loadout_target("Order_order_healer_blast", "Select", "Equipping Field Dressing")
+	_check_loadout_target("Order_order_hold", "Select", "Equipping Field Dressing")
 	await _capture("04-field-dressing-focused")
 	var triage := _node("Order_order_healer_triage") as Button
 	var support := _node("Order_order_support") as Button
@@ -118,7 +119,7 @@ func _check_loadout_focus() -> void:
 		"Field Dressing enables Triage but blocks departure and save until Support is replaced")
 	await _key(KEY_ENTER)
 	_check(_saved_loadout("healer").get("slots", {}).get("utility") == "healer_field_dressing"
-		and _saved_loadout("healer").get("order_id") == "order_healer_blast",
+		and _saved_loadout("healer").get("order_id") == "order_hold",
 		"Choosing the focused compatible order saves Field Dressing")
 
 	if not await _tab_to("Utility_healer_field_dressing"):
@@ -147,13 +148,13 @@ func _check_loadout_focus() -> void:
 	if not await _tab_to("Utility_knight_rescue_line"):
 		return
 	await _key(KEY_ENTER)
-	_check_loadout_target("Order_order_advance", "Select", "Equipping Rescue Line")
+	_check_loadout_target("Order_order_knight_advance_move", "Select", "Equipping Rescue Line")
 	var guard := _node("Order_order_guard") as Button
 	_check(guard != null and guard.disabled, "Guard still needs the Knight's original utility")
 	await _capture("05-rescue-line-focused")
 	await _key(KEY_ENTER)
 	_check(_saved_loadout("knight").get("slots", {}).get("utility") == "knight_rescue_line"
-		and _saved_loadout("knight").get("order_id") == "order_advance",
+		and _saved_loadout("knight").get("order_id") == "order_knight_advance_move",
 		"Choosing the focused compatible order saves Rescue Line")
 	if not await _tab_to("Utility_knight_rescue_line"):
 		return

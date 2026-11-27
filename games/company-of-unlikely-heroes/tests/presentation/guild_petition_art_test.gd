@@ -9,7 +9,7 @@ const Art = preload("res://presentation/book/guild_book_art.gd")
 const Catalog = preload("res://content/catalog.gd")
 const Progression = preload("res://guild/guild_progression.gd")
 
-# Independent of the resolver: approved-crops.tsv plus the two original action plates.
+# Independent of the resolver: approved crop manifests plus the original action plates.
 const PLATES := {
 	"recruit_bard": "bard",
 	"teach_healer_blast": "healer_blast",
@@ -39,6 +39,31 @@ const PLATES := {
 	"recruit_blacksmith": "recruit_blacksmith",
 	"blacksmith_learn_bonk": "blacksmith_learn_bonk",
 	"blacksmith_learn_acid": "blacksmith_learn_acid",
+	"knight_shield_wall": "knight_shield_wall",
+	"healer_apply_padding": "healer_apply_padding",
+	"wizard_through_shot": "wizard_through_shot",
+	"blacksmith_sweep": "blacksmith_sweep",
+	"alchemist_shared_sample": "alchemist_shared_sample",
+	"rogue_blame_furniture": "rogue_blame_furniture",
+	"necro_stay_friend": "necro_stay_friend",
+	"order_healer_aggressive": "order_healer_aggressive",
+	"order_rogue_blame": "order_rogue_blame",
+	"order_knight_advance": "order_knight_advance",
+	"order_knight_rescue_petition": "order_knight_rescue_petition",
+	"order_knight_bonk_petition": "order_knight_bonk_petition",
+	"order_bard_push_petition": "order_bard_push_petition",
+	"order_wizard_pull_petition": "order_wizard_pull_petition",
+	"order_wizard_sparks_petition": "order_wizard_sparks_petition",
+	"order_wizard_dodge_petition": "order_wizard_dodge_petition",
+	"order_alchemist_pull_petition": "order_alchemist_pull_petition",
+	"order_necro_raise": "order_necro_raise",
+	"order_necro_melody_petition": "order_necro_melody_petition",
+	"order_bard_sonnet": "order_bard_sonnet",
+	"order_rogue_potion_petition": "order_rogue_potion_petition",
+	"order_smith_pursue": "order_smith_pursue",
+	"order_smith_bonk_petition": "order_smith_bonk_petition",
+	"order_smith_acid_petition": "order_smith_acid_petition",
+	"order_alchemist_paste_petition": "order_alchemist_paste_petition",
 }
 
 var failures := 0
@@ -60,25 +85,11 @@ func _run() -> void:
 	for row: Dictionary in rows:
 		actual_ids[row.id] = true
 	var catalog_ids: Array = defs.guild_progression.petitions.keys()
-	_check(PLATES.size() == 28 and actual_ids.size() == catalog_ids.size(),
-		"All catalog petitions are shown and the 28 active legacy plates remain covered")
+	_check(PLATES.size() == 53 and actual_ids.size() == catalog_ids.size(),
+		"All catalog petitions are shown and 53 dedicated stock plates are mapped")
 	for id in catalog_ids:
 		_check(actual_ids.has(id), "Register includes catalog petition " + id)
-		if id not in PLATES:
-			var matches := rows.filter(func(row: Dictionary) -> bool: return row.id == id)
-			if matches.size() != 1:
-				_check(false, id + ": exactly one fallback row exists")
-				continue
-			var row: Dictionary = matches[0]
-			_build(rows, id)
-			var preview := book.find_child("PetitionPreviewScroll", true, false)
-			var mount := preview.find_child("PetitionRecipientPortrait", true, false) if preview != null else null
-			var images := mount.find_children("*", "TextureRect", true, false) if mount != null else []
-			_check(ViewModel.action_plate(id) == null and preview != null \
-				and preview.find_child("PetitionActionPlate", true, false) == null \
-				and images.size() == 1 and images[0].texture is AtlasTexture \
-				and images[0].texture.atlas == row.portrait,
-				id + ": new stock petition uses its recipient portrait fallback")
+		_check(PLATES.has(id), id + ": stock petition has a dedicated plate mapping")
 	for id in PLATES:
 		_check(actual_ids.has(id), "Stock register includes " + id)
 		var path := "res://assets/guild-book/petitions/%s.png" % PLATES[id]

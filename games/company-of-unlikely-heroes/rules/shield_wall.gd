@@ -68,8 +68,10 @@ static func place(state: Dictionary, knight: Dictionary, center: Vector2i, event
 	if wall.is_empty():
 		return false
 	var id := _wall_id(state, knight.id)
+	var delta: Vector2i = center - knight.position
+	var facing := Vector2i(signi(delta.x), signi(delta.y))
 	wall.merge({"id": id, "object_id": OBJECT_ID, "wall_owner_id": knight.id,
-		"hp": SHARED_HP, "max_hp": SHARED_HP, "statuses": {}})
+		"hp": SHARED_HP, "max_hp": SHARED_HP, "statuses": {}, "facing": facing})
 	state.obstacles.append(wall)
 	var cells := Board.occupied_cells(wall)
 	var coordinates := PackedStringArray()
@@ -78,7 +80,8 @@ static func place(state: Dictionary, knight: Dictionary, center: Vector2i, event
 	Board.event(events, "shield_wall_placed", "%s uses %s, blocking %s (%d shared HP)." % [
 		Board.display_name(state, knight), FITTED_LABEL if thrown else "Shield Wall",
 		", ".join(coordinates), SHARED_HP],
-		{"unit_id": knight.id, "wall_id": id, "position": center, "cells": cells, "hp": SHARED_HP})
+		{"unit_id": knight.id, "wall_id": id, "position": center, "cells": cells,
+			"hp": SHARED_HP, "facing": facing})
 	return true
 
 

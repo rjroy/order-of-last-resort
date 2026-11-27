@@ -2212,6 +2212,7 @@ func _refresh_board() -> void:
 		overlay.obstacles.append({"id": obstacle.id, "position": obstacle.position,
 			"cells": Board.occupied_cells(obstacle),
 			"hp": obstacle.hp, "max_hp": obstacle.max_hp,
+			"facing": obstacle.get("facing", Vector2i.ZERO),
 			"art_key": _rules.entity_profile(_state, obstacle.id).art_key})
 	if _ongoing():
 		var commanded := _find(_commanded_hero())

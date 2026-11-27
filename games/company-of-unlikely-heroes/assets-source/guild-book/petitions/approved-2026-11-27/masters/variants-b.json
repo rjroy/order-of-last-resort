@@ -1,0 +1,31 @@
+{
+  "native": "/home/rjroy/.codex/generated_images/01a21d86-b11a-7e93-8ac8-01cf568ad7f5/exec-39a9553a-eccc-4f32-9ef5-e409f384c119.png",
+  "thread": "01a21d86-b11a-7e93-8ac8-01cf568ad7f5",
+  "call": null,
+  "image_model": null,
+  "native_artifact_id": "exec-39a9553a-eccc-4f32-9ef5-e409f384c119",
+  "master": "masters/variants-b.png",
+  "master_sha256": "b2b2804878689c8dcdcdbc805ef14546248d0cd74fd60234d8348bdd3bf8c1ef",
+  "crops": {
+    "alchemist_shared_sample": {
+      "geometry": "627x627+0+0",
+      "plate": "plates/alchemist_shared_sample.png",
+      "sha256": "36e75a6e3915d90c05322092b3153e09ea1ae244069529c2db83a27a564dd396"
+    },
+    "rogue_blame_furniture": {
+      "geometry": "627x627+627+0",
+      "plate": "plates/rogue_blame_furniture.png",
+      "sha256": "0431772f4ccff47e11feb3af42d45284512c5984e5fb253504a7bac082659f0f"
+    },
+    "necro_stay_friend": {
+      "geometry": "627x627+0+627",
+      "plate": "plates/necro_stay_friend.png",
+      "sha256": "4f9cb1a37f2e363d381d1673ee7271b346ae1a9aafb056e5774cb376a2c7243a"
+    },
+    "order_rogue_blame": {
+      "geometry": "627x627+627+627",
+      "plate": "plates/order_rogue_blame.png",
+      "sha256": "809da6093ce74c7186e03534bb20bc13896161e09e8b993b3510f00206f318f0"
+    }
+  }
+}

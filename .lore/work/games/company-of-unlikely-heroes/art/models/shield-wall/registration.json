@@ -1,0 +1,65 @@
+{
+  "row": {
+    "size": [
+      692,
+      239
+    ],
+    "pivot": [
+      352,
+      202
+    ],
+    "alpha_bbox": [
+      4,
+      4,
+      688,
+      235
+    ],
+    "display_scale": 0.3333333333333333,
+    "center_tile_ground_origin": [
+      48,
+      62
+    ]
+  },
+  "column": {
+    "size": [
+      253,
+      698
+    ],
+    "pivot": [
+      89,
+      413
+    ],
+    "alpha_bbox": [
+      4,
+      4,
+      249,
+      694
+    ],
+    "display_scale": 0.3333333333333333,
+    "center_tile_ground_origin": [
+      40,
+      62
+    ]
+  },
+  "crest-east": {
+    "size": [
+      261,
+      697
+    ],
+    "pivot": [
+      131,
+      414
+    ],
+    "alpha_bbox": [
+      4,
+      4,
+      257,
+      693
+    ],
+    "display_scale": 0.3333333333333333,
+    "center_tile_ground_origin": [
+      48,
+      62
+    ]
+  }
+}

@@ -965,7 +965,7 @@ static func _observe_performance(cue: Dictionary, event: Dictionary, index: int,
 				return
 			_set_aim(use, event.wall_id, event.position)
 			effect.merge({"target_id": event.wall_id, "cell": event.position, "cells": event.cells.duplicate(),
-				"hp_after": event.hp,
+				"hp_after": event.hp, "facing": event.get("facing", Vector2i.ZERO),
 				"art_key": state.catalog.defs.objects[ShieldWall.OBJECT_ID].art_key}, true)
 		"summon":
 			if owner != actor:

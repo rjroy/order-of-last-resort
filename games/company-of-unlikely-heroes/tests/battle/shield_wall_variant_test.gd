@@ -9,6 +9,7 @@ const Progression = preload("res://guild/guild_progression.gd")
 const Adventure = preload("res://expedition/adventure.gd")
 const Commissions = preload("res://expedition/commissions.gd")
 const CastCues = preload("res://presentation/cast/cast_cues.gd")
+const BridgeArt = preload("res://presentation/battle/bridge_art.gd")
 const WALL := "knight_shield_wall"
 
 var rules := Rules.new()
@@ -38,6 +39,7 @@ func _initialize() -> void:
 			abilities.append(WALL)
 			base["_guild"] = Catalog.FrozenCatalog.new({"kits": {"knight": {"abilities": abilities}}})
 			_test_footprints()
+			_test_wall_sprite_specs()
 			_test_bad_spans()
 			_test_edge_attack()
 			_test_wall_playback_cues()
@@ -121,6 +123,62 @@ func _test_footprints() -> void:
 			"Wall does not extend in the aiming direction")
 
 
+func _test_wall_sprite_specs() -> void:
+	# The board draws one complete transparent sprite per wall, positioned
+	# relative to the center tile rather than one sprite for each occupied cell.
+	var cases := [
+		[Vector2i(4, 3), "row.png", Vector2(692, 239), Vector2(352, 202), Vector2(48, 62)],
+		[Vector2i(4, 5), "row.png", Vector2(692, 239), Vector2(352, 202), Vector2(48, 62)],
+		[Vector2i(5, 4), "crest-east.png", Vector2(261, 697), Vector2(131, 414), Vector2(48, 62)],
+		[Vector2i(3, 4), "column.png", Vector2(253, 698), Vector2(89, 413), Vector2(40, 62)]]
+	for sample in cases:
+		var center: Vector2i = sample[0]
+		var state := _state()
+		var plan: Dictionary = rules.preview(state, "knight", WALL, Board.cell_id(center), true)
+		_check(plan.get("valid", false), "Sprite fixture places a wall at %s" % center)
+		if not plan.get("valid", false):
+			continue
+		var placed: Dictionary = rules.apply_plan(state, plan)
+		var walls: Array = placed.obstacles.filter(func(obstacle: Dictionary) -> bool:
+			return obstacle.get("object_id") == "shield_wall")
+		_check(walls.size() == 1, "Sprite fixture has one shared wall object")
+		if walls.size() != 1:
+			continue
+		var wall: Dictionary = walls[0]
+		var facing: Vector2i = center - state.units[0].position
+		_check(wall.get("facing") == facing, "Wall at %s stores its placement facing" % center)
+		var placements: Array = plan.events.filter(func(event: Dictionary) -> bool:
+			return event.get("type") == "shield_wall_placed")
+		_check(placements.size() == 1 and placements[0].get("facing") == facing,
+			"Wall at %s emits its placement facing" % center)
+		var obstacle := {"id": wall.id, "art_key": "shield_wall", "position": wall.position,
+			"cells": Board.occupied_cells(wall), "hp": wall.hp, "max_hp": wall.max_hp,
+			"facing": wall.get("facing")}
+		var spec: Variant = BridgeArt.shield_wall_sprite_spec(obstacle)
+		_check(spec is Dictionary, "One wall produces one sprite geometry record")
+		if not spec is Dictionary:
+			continue
+		var expected_rect := Rect2(sample[4] - sample[3] / 3.0, sample[2] / 3.0)
+		_check(spec.get("texture_path", "") == "res://assets/cast/props/shield-wall/" + sample[1],
+			"Wall at %s selects the matching projection" % center)
+		var rect: Variant = spec.get("rect")
+		_check(rect is Rect2 and rect.is_equal_approx(expected_rect),
+			"Wall at %s uses the approved scale and center-tile registration" % center)
+		if facing.x != 0:
+			var move: Dictionary = rules.preview(placed, "knight", "move", "4,5")
+			_check(move.get("valid", false), "Knight can move after placing wall at %s" % center)
+			if move.get("valid", false):
+				var moved: Dictionary = rules.apply_plan(placed, move)
+				var moved_wall: Dictionary = moved.obstacles.filter(func(item: Dictionary) -> bool:
+					return item.get("id") == wall.id)[0]
+				_check(moved_wall.get("facing") == facing,
+					"Wall at %s keeps its facing after Knight moves" % center)
+				var moved_obstacle := obstacle.duplicate(true)
+				moved_obstacle["facing"] = moved_wall.get("facing")
+				_check(BridgeArt.shield_wall_sprite_spec(moved_obstacle) == spec,
+					"Wall at %s keeps its projection after Knight moves" % center)
+
+
 func _test_bad_spans() -> void:
 	var occupied := _state()
 	occupied.units[1].position = Vector2i(5, 3)
@@ -188,6 +246,8 @@ func _test_wall_playback_cues() -> void:
 	_check(not wall_id.is_empty() and placements[0].get("cells", []).size() == 3
 		and cells.all(func(cell: Vector2i) -> bool: return cell in placements[0].get("cells", [])),
 		"Placement event identifies one wall and all three cells")
+	_check(placements[0].get("facing") == Vector2i.RIGHT,
+		"Transient placement event preserves the Knight's eastward facing")
 	var hit: Dictionary = rules.preview(placed, "healer", "healer_bonk", wall_id, true)
 	_check(hit.get("valid", false), "Playback fixture attacks the wall's end")
 	if not hit.get("valid", false):
@@ -217,6 +277,8 @@ func _test_wall_playback_cues() -> void:
 	var shown: Array = appearance.get("cells", [])
 	_check(shown.size() == 3 and cells.all(func(cell: Vector2i) -> bool: return cell in shown),
 		"Appearance effect carries all three cells of the shared wall")
+	_check(appearance.get("facing") == Vector2i.RIGHT,
+		"Transient wall appearance cue preserves placement facing")
 	_check(appearance_cue < damage_cue and int(appearance.get("event_index", -1)) >= 0
 		and int(appearance.get("event_index", -1)) < int(damage.get("event_index", -1)),
 		"Wall appears in playback before the hit that removes it")

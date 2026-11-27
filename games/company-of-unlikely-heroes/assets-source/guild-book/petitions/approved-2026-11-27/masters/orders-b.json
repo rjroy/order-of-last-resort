@@ -1,0 +1,31 @@
+{
+  "native": "/home/rjroy/.codex/generated_images/01a21d88-db3a-7892-8ec9-a56d4b7c5bec/exec-dcbc1bcd-d9c0-4c4c-ac5a-3e16645c5bf7.png",
+  "thread": "01a21d88-db3a-7892-8ec9-a56d4b7c5bec",
+  "call": "exec-dcbc1bcd-d9c0-4c4c-ac5a-3e16645c5bf7",
+  "image_model": null,
+  "native_artifact_id": "exec-dcbc1bcd-d9c0-4c4c-ac5a-3e16645c5bf7",
+  "master": "masters/orders-b.png",
+  "master_sha256": "75a22507070e5a15eaae760cd695414a9948f2990039bc2c5672a5c8d028d272",
+  "crops": {
+    "order_wizard_pull_petition": {
+      "geometry": "627x627+0+0",
+      "plate": "plates/order_wizard_pull_petition.png",
+      "sha256": "87c1879142431444c5da0fb89e2207fc558ca110a8549d813d7245c503c36404"
+    },
+    "order_wizard_sparks_petition": {
+      "geometry": "627x627+627+0",
+      "plate": "plates/order_wizard_sparks_petition.png",
+      "sha256": "8fcad7bdb0792fad17c9c561f77b1705857fc050460e2f5fad0a031b41eef600"
+    },
+    "order_wizard_dodge_petition": {
+      "geometry": "627x627+0+627",
+      "plate": "plates/order_wizard_dodge_petition.png",
+      "sha256": "bdbdf18493d5c0c709211961ba3f38481f93eafb1f99af8ebe0556386ed2eec0"
+    },
+    "order_alchemist_pull_petition": {
+      "geometry": "627x627+627+627",
+      "plate": "plates/order_alchemist_pull_petition.png",
+      "sha256": "6894099cbbc29068a0f31235aeff7799c06d454ea5490b2f2486af0d88d26616"
+    }
+  }
+}

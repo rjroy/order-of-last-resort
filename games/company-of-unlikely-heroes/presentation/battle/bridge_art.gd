@@ -46,6 +46,14 @@ const SUMMON_SPRITES := {
 	"zombie": {"path": "res://assets/summons/zombie.png", "pivot": Vector2(52, 204)},
 }
 const SUMMON_TEXTURE_SCALE := 1.0 / 3.0
+const SHIELD_WALL_SPRITES := {
+	"row": {"path": "res://assets/cast/props/shield-wall/row.png",
+		"size": Vector2(692, 239), "pivot": Vector2(352, 202), "ground": Vector2(48, 62)},
+	"column": {"path": "res://assets/cast/props/shield-wall/column.png",
+		"size": Vector2(253, 698), "pivot": Vector2(89, 413), "ground": Vector2(40, 62)},
+	"crest_east": {"path": "res://assets/cast/props/shield-wall/crest-east.png",
+		"size": Vector2(261, 697), "pivot": Vector2(131, 414), "ground": Vector2(48, 62)},
+}
 const TILE_FACE := [
 	Vector2(2, 2), Vector2(42, 1), Vector2(68, 2), Vector2(91, 1), Vector2(95, 6),
 	Vector2(94, 37), Vector2(95, 62), Vector2(91, 78), Vector2(64, 79), Vector2(40, 77),
@@ -69,6 +77,7 @@ var _map_scale := 1.0
 var _map_size := Vector2.ZERO
 var _rng := RandomNumberGenerator.new()
 var _summon_textures: Dictionary[String, Texture2D] = {}
+var _shield_wall_textures: Dictionary[String, Texture2D] = {}
 var _cast := CastSprites.new()
 var _playback := CastPlayback.new()
 var _figures := Node2D.new()
@@ -142,6 +151,9 @@ func _ready() -> void:
 	mouse_exited.connect(_clear_hover)
 	for role: String in SUMMON_SPRITES:
 		_summon_textures[role] = CastSprites.load_texture(SUMMON_SPRITES[role].path)
+	for orientation: String in SHIELD_WALL_SPRITES:
+		var path: String = SHIELD_WALL_SPRITES[orientation].path
+		_shield_wall_textures[path] = CastSprites.load_texture(path)
 	_cast.load_manifest()
 	_tactical.name = "TacticalForeground"
 	_tactical.draw.connect(_draw_tactical_layer)
@@ -295,7 +307,8 @@ func prepare_committed_presentation(cues: Array, corpses: Dictionary = {}) -> vo
 					_hp_tracking[id] = true
 					_committed_hp[id] = 0
 					_tracked_opening_rows[id] = {"id": id, "position": effect.cell, "cells": effect.cells,
-						"art_key": effect.art_key, "hp": effect.hp_after, "max_hp": effect.hp_after}
+						"art_key": effect.art_key, "hp": effect.hp_after, "max_hp": effect.hp_after,
+						"facing": effect.get("facing", Vector2i.ZERO)}
 				"damage", "heal", "collapse_fall":
 					var opening: Dictionary = unit if not unit.is_empty() else _obstacle_row(id)
 					if not _hp_tracking.has(id) and (use.branch in ["converted", "boundary", "reaction"] \
@@ -673,7 +686,8 @@ func _obstacle_visuals() -> Array:
 	for obstacle: Dictionary in _presentation_obstacles():
 		var position: Variant = _obstacle_position(obstacle)
 		if position != null:
-			visuals.append([position, obstacle.get("cells", []), obstacle.hp, obstacle.art_key])
+			visuals.append([position, obstacle.get("cells", []), obstacle.hp, obstacle.art_key,
+				obstacle.get("facing", Vector2i.ZERO)])
 	return visuals
 
 
@@ -707,6 +721,22 @@ func _obstacle_position(obstacle: Dictionary) -> Variant:
 	if destination is Vector2i:
 		position = position.lerp(_tile_origin(destination), _playback.movement_fraction(id))
 	return position
+
+
+## The returned rectangle is relative to the wall's center tile.
+static func shield_wall_sprite_spec(obstacle: Dictionary) -> Dictionary:
+	var center: Vector2i = obstacle.position
+	var orientation := "column"
+	for cell: Vector2i in obstacle.get("cells", []):
+		if cell.x != center.x:
+			orientation = "row"
+			break
+	var facing: Variant = obstacle.get("facing", Vector2i.ZERO)
+	if orientation == "column" and facing is Vector2i and facing.x > 0:
+		orientation = "crest_east"
+	var sprite: Dictionary = SHIELD_WALL_SPRITES[orientation]
+	return {"texture_path": sprite.path,
+		"rect": Rect2(sprite.ground - sprite.pivot / 3.0, sprite.size / 3.0)}
 
 
 func _queue_tactical_redraw() -> void:
@@ -856,11 +886,19 @@ func _draw_tactical() -> void:
 	for obstacle: Dictionary in _presentation_obstacles():
 		var position: Variant = _obstacle_position(obstacle)
 		if position is Vector2:
-			for cell: Vector2i in obstacle.get("cells", [obstacle.position]):
-				var offset := Vector2(cell - obstacle.position) * TILE
-				_at(position + offset)
-				_draw_object_segment(obstacle.art_key)
-			_at(position)
+			if obstacle.art_key == "shield_wall":
+				var spec := shield_wall_sprite_spec(obstacle)
+				var texture: Texture2D = _shield_wall_textures.get(spec.texture_path)
+				_at(position)
+				if texture != null:
+					_ink_canvas.draw_texture_rect(texture, spec.rect, false)
+			else:
+				for cell: Vector2i in obstacle.get("cells", [obstacle.position]):
+					var offset := Vector2(cell - obstacle.position) * TILE
+					_at(position + offset)
+					_draw_object_segment(obstacle.art_key)
+			# Keep the wall's shared health bar clear of an adjacent Knight.
+			_at(position + Vector2(0, -13) if obstacle.art_key == "shield_wall" else position)
 			_draw_health(obstacle, false, false)
 	if not _cells.is_empty() and _grid_labels_visible:
 		_at(Vector2.ZERO)

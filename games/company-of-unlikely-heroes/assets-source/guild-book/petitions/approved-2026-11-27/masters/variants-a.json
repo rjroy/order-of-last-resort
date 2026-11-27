@@ -1,0 +1,31 @@
+{
+  "native": "/home/rjroy/.codex/generated_images/01a21d86-96d1-7203-90f8-87958ed645d4/exec-fc61dfaa-a191-4663-a22a-6abbdd82a3d6.png",
+  "thread": "01a21d86-96d1-7203-90f8-87958ed645d4",
+  "call": "exec-fc61dfaa-a191-4663-a22a-6abbdd82a3d6",
+  "image_model": null,
+  "native_artifact_id": "exec-fc61dfaa-a191-4663-a22a-6abbdd82a3d6",
+  "master": "masters/variants-a.png",
+  "master_sha256": "220eb2d3a4222619443bbea4a0cd5f822bc61cf63501de760915b4ac4e431481",
+  "crops": {
+    "healer_apply_padding": {
+      "geometry": "627x627+0+0",
+      "plate": "plates/healer_apply_padding.png",
+      "sha256": "c40c3af2c55c37ad0dc95fd265956472b057ac6a2f56dd35b147c1b852f4a79f"
+    },
+    "wizard_through_shot": {
+      "geometry": "627x627+627+0",
+      "plate": "plates/wizard_through_shot.png",
+      "sha256": "dda029223d1eee2b1c7b6e2887b0f1a007d8f2472a9b943cc1991c86bdca5019"
+    },
+    "blacksmith_sweep": {
+      "geometry": "627x627+0+627",
+      "plate": "plates/blacksmith_sweep.png",
+      "sha256": "c0f02f3808823419879d72c56b7142011fa743e17adc4a729e46ead853c18eb4"
+    },
+    "order_healer_aggressive": {
+      "geometry": "627x627+627+627",
+      "plate": "plates/order_healer_aggressive.png",
+      "sha256": "c6b2eeb6a9458a6b080a6735e3ed5317b6b4d5f602138b0fc87558727eb8b0bf"
+    }
+  }
+}

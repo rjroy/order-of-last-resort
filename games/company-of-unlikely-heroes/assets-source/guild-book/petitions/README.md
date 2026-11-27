@@ -59,3 +59,43 @@ Use the master and crop columns for the other plates. Encoding may affect PNG
 byte hashes; compare decoded pixels to the packaged image if a re-encoded crop
 differs. Verify preserved masters with `sha256sum -c masters.sha256` and compare
 packaged PNG hashes with `review_sha256` in the mapping.
+
+## Approved remaining stock petitions
+
+On 2026-11-27 Ronald approved the 25 exact images presented together in the
+petition review. They are copied without re-encoding to
+`assets/guild-book/petitions/<id>.png`, completing the 53 stock petition
+illustrations. The approved Shield Wall image is a petition illustration, not
+approval of a model. Runtime appearance still requires separate visual review.
+The earlier images and aliases remain unchanged.
+
+`approved-2026-11-27/masters/` preserves the seven native outputs and their
+original JSON records, including the SHA-256 of every approved plate, native
+artifact identifiers and crop geometry. The `plate` paths in those records
+describe the original review staging tree; the corresponding approved files
+are now in the runtime directory above. `briefs/`, `batches.json`, the six
+reference boards, and `references.sha256` preserve generation provenance.
+The checksum file records the original reference paths, including the ignored
+staging paths, not paths needed by the game. Its first six hashes identify the
+reference boards now preserved alongside it.
+
+The six four-up masters and the intact Shield Wall master were generated on
+2026-11-27 via Codex CLI 0.172.0 using native OpenAI `image_gen`; the image
+model was not disclosed. Reference baseline was
+`06367238eabe00512737dfaf43368ea0574d6b24`. The first reference for each
+four-up brief was the existing `founders-b.png` master and the second was the
+respective preserved class-portrait board. Shield Wall used the approved Knight
+turnaround and the packaged Stay Close plate. Each four-up plate is an opaque
+627 × 627 native quadrant; Shield Wall is the intact 1254 × 1254 master.
+
+Reproduce exports into a fresh inspection directory with Python 3 and
+ImageMagick 7 (the originals used 7.1.2-34):
+
+```sh
+python3 games/company-of-unlikely-heroes/assets-source/guild-book/petitions/approved-2026-11-27/prepare.py \
+  /tmp/opencode/petitions-2026-11-27-repro
+```
+
+The manifests pin the reviewed PNG hashes. PNG encoding can vary by
+ImageMagick version, so compare decoded pixels if reproduced file hashes differ.
+The Shield Wall export is a direct byte copy.

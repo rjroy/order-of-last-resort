@@ -1,0 +1,16 @@
+{
+  "native": "/home/rjroy/.codex/generated_images/01a21d83-fcd8-79f1-beb2-1f4d2357677b/exec-34f1c55e-814a-4a43-9a48-f166809a181c.png",
+  "thread": "01a21d83-fcd8-79f1-beb2-1f4d2357677b",
+  "call": "exec-34f1c55e-814a-4a43-9a48-f166809a181c",
+  "image_model": null,
+  "native_artifact_id": "exec-34f1c55e-814a-4a43-9a48-f166809a181c",
+  "master": "masters/shield-wall.png",
+  "master_sha256": "4f28cbd0ab6d512688beb62eb971c7c18b7fd9bc2c26c6493fb2bb109499818c",
+  "crops": {
+    "knight_shield_wall": {
+      "geometry": null,
+      "plate": "plates/knight_shield_wall.png",
+      "sha256": "4f28cbd0ab6d512688beb62eb971c7c18b7fd9bc2c26c6493fb2bb109499818c"
+    }
+  }
+}

@@ -63,25 +63,25 @@ func render(step: Lesson.Step, forecast_open: bool, reviewed: bool, caster_selec
 	match step:
 		Lesson.Step.ORDER:
 			title = "1 of 4 · Set a standing order"
-			copy = "Open Standing orders and set the Enthusiastic Caster to Blast nearest. That’s what the Caster will do when you don’t give a direct command."
+			copy = "Open Standing orders and set Pip, the Enthusiastic Caster, to Blast nearest. That’s what Pip will do when you don’t give a direct command."
 		Lesson.Step.MOVE:
 			title = "2 of 4 · Give one direct command"
 			copy = ("Choose an empty tile one step away." if caster_selected else
-				"Select the Enthusiastic Caster on the board, then choose an empty tile one step away.")
+				"Select Pip on the board, then choose an empty tile one step away.")
 			copy += " This Move replaces Blast for one round. Nothing moves yet."
 		Lesson.Step.FORECAST_MOVE:
 			title = "3 of 4 · Compare and commit"
 			if reviewed:
-				copy = "The Healer’s Support restores their own HP. The Knight’s Guard sends the arrow aimed at the Healer back at the Archer. Commit round 1 to play it out."
+				copy = "Marta’s Support restores her own HP. Edwin’s Guard sends the arrow aimed at Marta back at the Archer. Commit round 1 to play it out."
 			else:
-				copy = _read_forecast(forecast_open) + " to see who follows standing orders while you command the Caster."
+				copy = _read_forecast(forecast_open) + " to see who follows standing orders while you command Pip."
 		Lesson.Step.FORECAST_BLAST:
 			title = "4 of 4 · See the standing order return"
 			copy = "The Move lasted one round. Blast nearest is back and will hit the Archer. "
 			copy += "Commit round 2 to see it land." if reviewed else _read_forecast(forecast_open) + " to check."
 		Lesson.Step.COMPLETE:
 			title = "Practice complete"
-			copy = "Your Caster moved once, then went back to Blast. Your guild is unchanged. Take a commission when you’re ready."
+			copy = "Pip moved once, then went back to Blast. Your guild is unchanged. Take a commission when you’re ready."
 	_set_text(_heading, title)
 	_set_text(_instruction, copy)
 	_continue.visible = step == Lesson.Step.COMPLETE

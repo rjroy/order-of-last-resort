@@ -31,7 +31,8 @@
   "characters": {
     "healer": {
       "class": "healer",
-      "label": "Unimpressed Healer",
+      "label": "Marta",
+      "epithet": "Unimpressed Healer",
       "guild_portrait": "healer",
       "cast_key": "healer",
       "cast_art_key": "healer"

@@ -125,7 +125,7 @@ func _walkthrough() -> void:
 	await _premature_commit(ordered, "Before opening the forecast")
 	await _press("ForecastDetails")
 	var lesson_text := _visible_text().to_lower()
-	_check("healer" in lesson_text and "knight" in lesson_text,
+	_check("marta" in lesson_text and "edwin" in lesson_text,
 		"Lesson or forecast identifies both other founders' contributions")
 	await _press("Commit")
 	var second: Dictionary = scene.battle_snapshot().duplicate(true)

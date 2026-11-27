@@ -31,7 +31,8 @@
   "characters": {
     "knight": {
       "class": "knight",
-      "label": "Anxious Knight",
+      "label": "Edwin",
+      "epithet": "Anxious Knight",
       "guild_portrait": "knight",
       "cast_key": "knight",
       "cast_art_key": "knight"

@@ -2,7 +2,8 @@
   "characters": {
     "rogue": {
       "class": "wizard",
-      "label": "Daft Dodger",
+      "label": "Tess",
+      "epithet": "Daft Dodger",
       "guild_portrait": "rogue",
       "cast_key": "rogue",
       "cast_art_key": "wizard",

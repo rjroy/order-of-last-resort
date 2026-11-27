@@ -16,6 +16,7 @@ func _run() -> void:
 	defs.classes.wizard["guild_portrait"] = "rogue"
 	defs.characters["test_custom"] = defs.characters.rogue.duplicate(true)
 	defs.characters.test_custom.erase("guild_portrait")
+	defs.characters.test_custom.erase("epithet")
 	defs.characters.test_custom.label = "Edda"
 	defs.characters["test_namesake"] = defs.characters.test_custom.duplicate(true)
 	defs.characters.test_namesake.label = "Bad Bard"
@@ -127,9 +128,9 @@ func _run() -> void:
 				_check_long_copy(details_name, "Reward_" + str(offer.hero_id), long_reward)
 				await _check_keyboard_scroll(details_name)
 			var scout := _node("PendingScoutScroll")
-			var carry := _node("CarryReport") as Label
+			var carry := _node("CarryReport")
 			_check(scout != null and long_description in _text_in(scout), "Debrief retains the complete custom scout note")
-			_check(carry != null and long_hero_name in carry.text and "Order:" in carry.text,
+			_check(carry != null and long_hero_name in _text_in(carry) and "Order:" in _text_in(carry),
 				"Debrief retains long carry entries and standing orders")
 			await _check_keyboard_scroll("PendingScoutScroll")
 			await _check_keyboard_scroll("PendingCarryScroll")

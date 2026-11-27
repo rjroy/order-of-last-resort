@@ -13,7 +13,7 @@
       "effect": "max_hp",
       "amount": 1,
       "label": "+1 HP",
-      "description": "The Anxious Knight gains 1 maximum HP and 1 current HP when next deployed."
+      "description": "Edwin gains 1 maximum HP and 1 current HP when next deployed."
     },
     "knight_hp_2": {
       "hero_id": "knight",
@@ -22,7 +22,7 @@
       "effect": "max_hp",
       "amount": 2,
       "label": "+2 HP",
-      "description": "The Anxious Knight gains 2 maximum HP and 2 current HP when next deployed."
+      "description": "Edwin gains 2 maximum HP and 2 current HP when next deployed."
     },
     "knight_shield_damage_1": {
       "hero_id": "knight",
@@ -44,7 +44,7 @@
       "effect": "max_hp",
       "amount": 5,
       "label": "+5 HP",
-      "description": "The Anxious Knight gains 5 maximum HP and 5 current HP when next deployed."
+      "description": "Edwin gains 5 maximum HP and 5 current HP when next deployed."
     },
     "knight_dig_in": {
       "hero_id": "knight",
@@ -56,7 +56,7 @@
         "knight_aura"
       ],
       "label": "Dig In",
-      "description": "While guarding, reverse an enemy pull against the Anxious Knight and pull the enemy instead."
+      "description": "While guarding, reverse an enemy pull against Edwin and pull the enemy instead."
     },
     "knight_shield_throw": {
       "hero_id": "knight",
@@ -103,7 +103,7 @@
       "effect": "max_hp",
       "amount": 1,
       "label": "+1 HP",
-      "description": "The Unimpressed Healer gains 1 maximum HP and 1 current HP when next deployed."
+      "description": "Marta gains 1 maximum HP and 1 current HP when next deployed."
     },
     "healer_bonk_damage_1": {
       "hero_id": "healer",
@@ -124,7 +124,7 @@
       "effect": "max_hp",
       "amount": 2,
       "label": "+2 HP",
-      "description": "The Unimpressed Healer gains 2 maximum HP and 2 current HP when next deployed."
+      "description": "Marta gains 2 maximum HP and 2 current HP when next deployed."
     },
     "healer_heal_1": {
       "hero_id": "healer",
@@ -196,7 +196,7 @@
         "healer_heal"
       ],
       "label": "Me or You",
-      "description": "If hurt, the Unimpressed Healer receives the full heal. Otherwise split it evenly among the other living deployed heroes, including those at full HP. Extra points go in party order; unused healing is lost."
+      "description": "If hurt, Marta receives the full heal. Otherwise split it evenly among the other living deployed heroes, including those at full HP. Extra points go in party order; unused healing is lost."
     },
     "wizard_spare_robes": {
       "hero_id": "wizard",
@@ -205,7 +205,7 @@
       "effect": "max_hp",
       "amount": 1,
       "label": "Spare Robes",
-      "description": "The Enthusiastic Caster gains 1 maximum HP and 1 current HP when next deployed."
+      "description": "Pip gains 1 maximum HP and 1 current HP when next deployed."
     },
     "wizard_more_powder": {
       "hero_id": "wizard",
@@ -229,7 +229,7 @@
         "wizard_pull"
       ],
       "label": "Padded Landing",
-      "description": "Pull recoil deals 1 less damage, to a minimum of zero. The Enthusiastic Caster still falls over."
+      "description": "Pull recoil deals 1 less damage, to a minimum of zero. Pip still falls over."
     },
     "wizard_demolition_practice": {
       "hero_id": "wizard",
@@ -265,7 +265,7 @@
         "wizard_pull"
       ],
       "label": "Braced Casting",
-      "description": "The Enthusiastic Caster stays standing if Pull recoil ends against the board edge or impassable terrain directly behind them."
+      "description": "Pip stays standing if Pull recoil ends against the board edge or impassable terrain directly behind them."
     },
     "wizard_parting_gift": {
       "hero_id": "wizard",
@@ -289,7 +289,7 @@
         "wizard_blast"
       ],
       "label": "Conductive Personality",
-      "description": "Blast jumps to the nearest other damageable target, even the Enthusiastic Caster, for half damage rounded up. The bolt has no other effects."
+      "description": "Blast jumps to the nearest other damageable target, even Pip, for half damage rounded up. The bolt has no other effects."
     },
     "rogue_thick_coat": {
       "hero_id": "rogue",
@@ -298,7 +298,7 @@
       "effect": "max_hp",
       "amount": 1,
       "label": "Thick Coat",
-      "description": "The Daft Dodger gains 1 maximum HP and 1 current HP when next deployed."
+      "description": "Tess gains 1 maximum HP and 1 current HP when next deployed."
     },
     "rogue_cheap_shot": {
       "hero_id": "rogue",
@@ -335,7 +335,7 @@
         "rogue_confusing_dodge"
       ],
       "label": "Borrowed Courage",
-      "description": "After swapping with an ally, reduce the next hit on that ally before the Daft Dodger's next turn by 1."
+      "description": "After swapping with an ally, reduce the next hit on that ally before Tess's next turn by 1."
     },
     "rogue_pass_the_buck": {
       "hero_id": "rogue",
@@ -371,7 +371,7 @@
         "rogue_wasnt_me"
       ],
       "label": "Long Finger",
-      "description": "A marked attacker without an adjacent alternate victim can blame someone two tiles away. The Daft Dodger still cannot choose the victim."
+      "description": "A marked attacker without an adjacent alternate victim can blame someone two tiles away. Tess still cannot choose the victim."
     },
     "rogue_body_double": {
       "hero_id": "rogue",
@@ -383,7 +383,7 @@
         "rogue_confusing_dodge"
       ],
       "label": "Body Double",
-      "description": "After Dodge, the first attack aimed at the Daft Dodger before their next turn hits their living swap partner instead, friend or foe."
+      "description": "After Dodge, the first attack aimed at Tess before their next turn hits their living swap partner instead, friend or foe."
     },
     "bard_road_legs": {
       "hero_id": "bard",
@@ -392,7 +392,7 @@
       "effect": "max_hp",
       "amount": 1,
       "label": "Road Legs",
-      "description": "The Bad Bard gains 1 maximum HP and 1 current HP when next deployed."
+      "description": "Crispin gains 1 maximum HP and 1 current HP when next deployed."
     },
     "bard_sharper_notes": {
       "hero_id": "bard",
@@ -417,7 +417,7 @@
         "inspiring_melody"
       ],
       "label": "Busker's Hat",
-      "description": "If Melody has no eligible listener, heal the Bad Bard for 1. This still uses the action."
+      "description": "If Melody has no eligible listener, heal Crispin for 1. This still uses the action."
     },
     "bard_front_row_seats": {
       "hero_id": "bard",
@@ -453,7 +453,7 @@
         "healing_sonnet"
       ],
       "label": "Heckler",
-      "description": "An opponent who survives Sonnet directs their next attack at the Bad Bard if the Bad Bard is a legal target."
+      "description": "An opponent who survives Sonnet directs their next attack at Crispin if Crispin is a legal target."
     },
     "bard_house_lights": {
       "hero_id": "bard",

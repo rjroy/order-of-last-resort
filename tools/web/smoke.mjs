@@ -105,7 +105,7 @@ try {
   });
   await call("Page.navigate", { url: url.href });
 
-  async function readScreen() {
+  async function readScreen(psm = "11") {
     let shot;
     for (let attempt = 0; attempt < 100; attempt++) {
       try {
@@ -120,7 +120,7 @@ try {
     if (process.env.SMOKE_SCREENSHOT) {
       await writeFile(process.env.SMOKE_SCREENSHOT, Buffer.from(shot.data, "base64"));
     }
-    const ocr = spawnSync("tesseract", ["stdin", "stdout", "--psm", "11", "tsv"], {
+    const ocr = spawnSync("tesseract", ["stdin", "stdout", "--psm", psm, "tsv"], {
       input: Buffer.from(shot.data, "base64"), maxBuffer: 10 * 1024 * 1024,
     });
     if (ocr.error || ocr.status !== 0) throw new Error(`Tesseract failed: ${ocr.error ?? ocr.stderr}`);
@@ -184,10 +184,15 @@ try {
   // The lesson requires setting Blast, staging a move, opening Forecast, and
   // committing. Select controls by their printed labels, not private game state.
   await click(await waitFor("Standing orders", 90000, true));
-  const orderWords = await readScreen();
-  const casterOrder = find(orderWords.filter(w => w.x > 800 && w.y > 350 && w.y < 700), "Enthusiastic Caster");
-  if (!casterOrder) throw new Error("Cannot find the Caster's order row");
-  await click({ x: casterOrder.x + 205, y: casterOrder.y + 8 });
+  // Practice starts Pip on Hold position. PSM 6 reads the selected dropdown
+  // text on the parchment more reliably than the sparse-text mode.
+  const orderWords = await readScreen("6");
+  const hold = orderWords.filter(w =>
+    w.x > 800 && w.y > 350 && w.y < 700 && normalize(w.text) === "hold");
+  if (hold.length !== 1) {
+    throw new Error(`Expected one Hold position control in Standing orders, found ${hold.length}`);
+  }
+  await click({ x: hold[0].x + hold[0].width / 2, y: hold[0].y + hold[0].height / 2 });
   await click(await waitFor("Blast nearest", 90000, true));
   await waitFor("Give one direct command");
   await click(await waitFor("Standing orders", 90000, true));

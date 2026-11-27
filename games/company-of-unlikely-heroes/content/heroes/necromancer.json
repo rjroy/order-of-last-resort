@@ -2,7 +2,8 @@
   "characters": {
     "necromancer": {
       "class": "wizard",
-      "label": "Friendly Crypter",
+      "label": "Ambrose",
+      "epithet": "Friendly Crypter",
       "guild_portrait": "necromancer",
       "cast_key": "necromancer",
       "cast_art_key": "wizard",

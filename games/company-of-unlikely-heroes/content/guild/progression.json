@@ -94,7 +94,7 @@
       },
       "blacksmith_learn_acid": {
         "label": "Learn Acid",
-        "description": "Equip Acid instead of Hammer Time. The Mixologist's orders are not included.",
+        "description": "Equip Acid instead of Hammer Time. Juniper's orders are not included.",
         "cost": 5,
         "grant": {
           "kind": "ability",
@@ -145,7 +145,7 @@
       },
       "knight_rescue_line": {
         "label": "Rescue Line",
-        "description": "Pull a friendly character exactly two tiles away one open tile toward the Knight without recoil.",
+        "description": "Pull a friendly character exactly two tiles away one open tile toward Edwin without recoil.",
         "cost": 4,
         "grant": {
           "kind": "ability",
@@ -178,7 +178,7 @@
       },
       "knight_learn_bonk": {
         "label": "Learn Bonk and taunt",
-        "description": "Equip the Healer’s Bonk and taunt instead of Push.",
+        "description": "Equip Marta’s Bonk and taunt instead of Push.",
         "cost": 4,
         "grant": {
           "kind": "ability",
@@ -189,7 +189,7 @@
       },
       "teach_healer_blast": {
         "label": "Teach the Healer: Blast nearest",
-        "description": "Equip the Caster’s Blast instead of Bonk. It can hit allies or obstacles; no Caster order or rewards are included.",
+        "description": "Equip Pip’s Blast instead of Bonk. It can hit allies or obstacles; Pip’s orders and rewards are not included.",
         "cost": 4,
         "grant": {
           "kind": "ability",
@@ -225,7 +225,7 @@
       },
       "healer_triage_order": {
         "label": "Triage",
-        "description": "Use equipped Heal or Apply Padding on the patient missing the most HP within 3 tiles, including the Healer. Wait if no legal patient is wounded.",
+        "description": "Use equipped Heal or Apply Padding on the patient missing the most HP within 3 tiles, including Marta. Wait if no legal patient is wounded.",
         "cost": 6,
         "grant": {
           "kind": "order",
@@ -258,7 +258,7 @@
       },
       "wizard_learn_dodge": {
         "label": "Learn Confusing Dodge",
-        "description": "Equip the Dodger’s Confusing Dodge instead of Pull.",
+        "description": "Equip Tess’s Confusing Dodge instead of Pull.",
         "cost": 5,
         "grant": {
           "kind": "ability",
@@ -285,7 +285,7 @@
       },
       "bard_learn_push": {
         "label": "Learn Push",
-        "description": "Equip the Knight’s Push instead of Sonnet.",
+        "description": "Equip Edwin’s Push instead of Sonnet.",
         "cost": 4,
         "grant": {
           "kind": "ability",
@@ -332,7 +332,7 @@
       },
       "rogue_learn_potion": {
         "label": "Learn Healing Potion",
-        "description": "Equip the Mixologist’s Healing Potion with its forecast weighted reaction.",
+        "description": "Equip Juniper’s Healing Potion with its forecast weighted reaction.",
         "cost": 5,
         "grant": {
           "kind": "ability",
@@ -371,7 +371,7 @@
       },
       "necro_learn_melody": {
         "label": "Learn Inspiring Melody",
-        "description": "Equip the Bard’s Inspiring Melody. Laughter immunity applies; Song Weaving is not included.",
+        "description": "Equip Crispin’s Inspiring Melody. Laughter immunity applies; Song Weaving is not included.",
         "cost": 5,
         "grant": {
           "kind": "ability",
@@ -425,7 +425,7 @@
       "order_smith_acid_petition": {"label":"Smith's Acid", "description":"Use equipped Acid on the nearest legal opponent.", "cost":3, "prerequisites":["blacksmith_learn_acid"], "grant":{"kind":"order","hero_id":"blacksmith","order_id":"order_smith_acid","behavior_id":"guild_smith_acid"}},
       "alchemist_learn_pull": {
         "label": "Learn Pull and recoil",
-        "description": "Equip the Caster’s Pull with its full recoil and knockdown.",
+        "description": "Equip Pip’s Pull with its full recoil and knockdown.",
         "cost": 5,
         "grant": {
           "kind": "ability",

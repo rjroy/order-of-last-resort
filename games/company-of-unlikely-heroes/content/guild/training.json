@@ -3,7 +3,7 @@
     "knight_rescue_line": {
       "fitted_form": "safety_distance",
       "label": "Rescue Line",
-      "help": "Pull a friendly character exactly two tiles away one open tile toward the Knight, without recoil.",
+      "help": "Pull a friendly character exactly two tiles away one open tile toward the user, without recoil.",
       "handler": "hook",
       "params": {
         "allied_only": true

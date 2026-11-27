@@ -31,7 +31,8 @@
   "characters": {
     "wizard": {
       "class": "wizard",
-      "label": "Enthusiastic Caster",
+      "label": "Pip",
+      "epithet": "Enthusiastic Caster",
       "guild_portrait": "wizard",
       "cast_key": "wizard",
       "cast_art_key": "wizard"

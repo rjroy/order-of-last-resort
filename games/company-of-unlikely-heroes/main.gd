@@ -1,6 +1,7 @@
 extends Control
 
 const Rules = preload("res://rules/rules.gd")
+const Board = preload("res://rules/board.gd")
 const BridgeArt = preload("res://presentation/battle/bridge_art.gd")
 const BattleCues = preload("res://presentation/battle/battle_cues.gd")
 const BattleDisplayPreferences = preload("res://presentation/settings/battle_display_preferences.gd")
@@ -2209,7 +2210,9 @@ func _refresh_board() -> void:
 		if obstacle.hp <= 0:
 			continue
 		overlay.obstacles.append({"id": obstacle.id, "position": obstacle.position,
+			"cells": Board.occupied_cells(obstacle),
 			"hp": obstacle.hp, "max_hp": obstacle.max_hp,
+			"facing": obstacle.get("facing", Vector2i.ZERO),
 			"art_key": _rules.entity_profile(_state, obstacle.id).art_key})
 	if _ongoing():
 		var commanded := _find(_commanded_hero())
@@ -2219,8 +2222,10 @@ func _refresh_board() -> void:
 				overlay["quiet_manual_move"] = true
 		var positions := {}
 		for target: Dictionary in _board_targets():
-			positions[target.position] = true
+			for cell: Vector2i in _targetable_cells(target):
+				positions[cell] = true
 		overlay["targets"] = positions.keys()
+		overlay["forecast_obstacle_cells"] = _forecast_obstacle_cells()
 		if not _is_aiming() and _draft_target_cell is Vector2i:
 			overlay["chosen_target"] = _draft_target_cell
 		var hits: Array = []
@@ -2233,7 +2238,9 @@ func _refresh_board() -> void:
 			var predicted := _find(entity.id, _plan.result)
 			if predicted.is_empty():
 				continue
-			if predicted.hp < entity.hp:
+			if predicted.hp <= 0 and entity.hp > 0:
+				hits.append_array(Board.occupied_cells(entity))
+			elif predicted.hp < entity.hp:
 				hits.append(entity.position)
 			var manual_move: bool = entity.id == _commanded_hero() \
 				and _planned_state.overrides[entity.id].ability_id == "move"
@@ -2279,6 +2286,17 @@ func _refresh_board() -> void:
 		if _ongoing() and now_open != next_open:
 			ink["gate"] = {"cell": gate, "opens": next_open}
 	_storybook_page.render_ink(ink)
+
+
+func _forecast_obstacle_cells() -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	# Destroyed obstacles remain in the result at zero HP. Show a newly
+	# placed span even when a later action destroys it in the same round.
+	for obstacle in _plan.result.obstacles:
+		if obstacle.has("footprint_offsets") and _find(obstacle.id).is_empty():
+			cells.append_array(Board.occupied_cells(obstacle))
+	return cells
+
 
 func _shared_enemy_art() -> Dictionary:
 	var first_roles := {}
@@ -2392,7 +2410,7 @@ func _sync_inspection() -> void:
 		"%s  ·  %s" % [BridgeArt.coordinate(cell), marker.label]
 	var shield_note := _shield_tile_note(cell)
 	var target_note := ""
-	if _board_targets().any(func(target: Dictionary) -> bool: return target.position == cell):
+	if _board_targets().any(func(target: Dictionary) -> bool: return cell in _targetable_cells(target)):
 		target_note = "Legal target" if _is_aiming() else "Move destination"
 		target_note = "  ·  %s when %s acts" % [target_note, _name_for(_actor_id)]
 	for unit in _state.units:
@@ -2407,9 +2425,10 @@ func _sync_inspection() -> void:
 			_set_inspection(text + target_note, _enemy_inspection_notes(unit.id))
 			return
 	for obstacle in _state.obstacles:
-		if obstacle.position == cell and obstacle.hp > 0:
-			_set_inspection("%s%s  ·  %s  %d/%d HP%s" % [
-				place, shield_note, _name_for(obstacle.id), obstacle.hp, obstacle.max_hp, target_note])
+		if obstacle.hp > 0 and Board.occupies_cell(obstacle, cell):
+			var hp_label := "shared HP" if not obstacle.get("footprint_offsets", []).is_empty() else "HP"
+			_set_inspection("%s%s  ·  %s  %d/%d %s%s" % [
+				place, shield_note, _name_for(obstacle.id), obstacle.hp, obstacle.max_hp, hp_label, target_note])
 			return
 	var label: String = _tile_labels.get(cell, "")
 	if _safe_cells.has(cell) and marker.is_empty():
@@ -2465,7 +2484,12 @@ func _board_targets() -> Array:
 
 func _aimed_targets_at(cell: Vector2i) -> Array:
 	var targets: Array = _editor_actions.get(_aimed_ability_id, {}).get("targets", [])
-	return targets.filter(func(target: Dictionary) -> bool: return target.position == cell)
+	return targets.filter(func(target: Dictionary) -> bool: return cell in _targetable_cells(target))
+
+
+## A choice still identifies one entity, even when several segments are in reach.
+static func _targetable_cells(target: Dictionary) -> Array:
+	return target.get("target_cells", [target.position])
 
 
 func _living_hero_at(cell: Vector2i) -> String:

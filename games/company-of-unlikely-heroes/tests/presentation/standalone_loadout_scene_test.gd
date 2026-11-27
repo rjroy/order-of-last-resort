@@ -44,17 +44,15 @@ func _run() -> void:
 	var cases := [
 		{"name": "authored defaults", "args": ["--mission=wrong_side_of_the_door"], "mode": "defaults"},
 		{"name": "authored party with partial build", "args": ["--mission=wrong_side_of_the_door",
-			"--loadout=knight:utility=knight_rescue_line,order=order_knight_escort"], "mode": "authored"},
+			"--loadout=knight:offense=knight_rescue_line,order=order_knight_escort"], "mode": "authored"},
 		{"name": "explicit ordered party and repeated loadouts", "args": ["--mission=bridge_patrol",
-			"--party=wizard,knight,healer", "--loadout=knight:offense=healer_bonk,utility=knight_rescue_line,order=order_knight_escort",
+			"--party=wizard,knight,healer", "--loadout=knight:offense=knight_rescue_line,order=order_knight_rescue",
 			"--loadout=healer:offense=wizard_blast"], "mode": "party"},
 		{"name": "standalone Smith native Pursue", "args": ["--mission=bridge_patrol",
 			"--party=blacksmith,knight,healer", "--loadout=blacksmith:order=order_pursue"], "mode": "smith_plain"},
 		{"name": "standalone Smith Bonk Pursue", "args": ["--mission=bridge_patrol",
 			"--party=blacksmith,knight,healer",
 			"--loadout=blacksmith:offense=healer_bonk,order=order_pursue"], "mode": "smith_bonk"},
-		{"name": "standalone Knight fallback Hold", "args": ["--mission=wrong_side_of_the_door",
-			"--loadout=knight:offense=healer_bonk,utility=knight_rescue_line,order=order_hold"], "mode": "knight_hold"},
 		{"name": "party without mission", "args": ["--party=knight,healer,wizard"],
 			"error": ["mission", "--party"]},
 		{"name": "loadout without mission", "args": ["--loadout=knight:utility=knight_rescue_line"],
@@ -78,10 +76,13 @@ func _run() -> void:
 			"error": ["slot"], "required_error": ["weapon", "slot"]},
 		{"name": "wrong slot ability", "args": ["--mission=wrong_side_of_the_door", "--loadout=knight:utility=healer_bonk"],
 			"error": ["slot"], "required_error": ["healer_bonk", "utility"]},
+		{"name": "legacy explicit Rescue utility is rejected", "args": ["--mission=wrong_side_of_the_door",
+			"--loadout=knight:utility=knight_rescue_line"],
+			"error": ["slot"], "required_error": ["knight_rescue_line", "utility"]},
 		{"name": "unknown order", "args": ["--mission=wrong_side_of_the_door", "--loadout=knight:order=missing"],
 			"error": ["unknown", "unrecognized", "not found", "no such"], "required_error": ["missing", "order"]},
 		{"name": "incompatible order", "args": ["--mission=wrong_side_of_the_door",
-			"--loadout=knight:offense=healer_bonk,utility=knight_rescue_line,order=order_advance"],
+			"--loadout=knight:offense=knight_rescue_line,order=order_advance"],
 			"error": ["incompatible", "requires", "missing", "not compatible", "needs"],
 			"required_error": ["order_advance", "order"]},
 		{"name": "custom mission needs party", "args": ["--content=" + fixture_paths.route,
@@ -90,7 +91,7 @@ func _run() -> void:
 			"--mission=bridge_patrol", "--party=wizard,knight,healer"], "mode": "custom"},
 		{"name": "custom hero without base default order", "args": ["--content=" + fixture_paths.no_default_order,
 			"--mission=wrong_side_of_the_door",
-			"--loadout=knight:utility=knight_rescue_line,order=order_knight_escort"], "mode": "authored"},
+			"--loadout=knight:offense=knight_rescue_line,order=order_knight_escort"], "mode": "authored"},
 		{"name": "custom hero without native orders uses Hold", "args": ["--content=" + fixture_paths.no_native_orders,
 			"--mission=wrong_side_of_the_door", "--loadout=knight:order=order_hold"], "mode": "custom_hold"},
 		{"name": "custom Caster order keeps authored behavior", "args": ["--content=" + fixture_paths.custom_caster_order,
@@ -203,14 +204,6 @@ func _child() -> void:
 				hero + " retains authored abilities without loadout flags")
 	elif mode in ["smith_plain", "smith_bonk"]:
 		_check_smith_pursue(state, rules, "healer_bonk" if mode == "smith_bonk" else "blacksmith_hammer_time")
-	elif mode == "knight_hold":
-		var knight: Dictionary = rules.entity_profile(state, "knight")
-		_check("healer_bonk" in knight.get("abilities", []) and "knight_rescue_line" in knight.get("abilities", []) \
-			and "knight_push" not in knight.get("abilities", []) and "knight_aura" not in knight.get("abilities", []),
-			"Knight fallback fixture equips Bonk and Rescue Line")
-		_check(state.get("orders", {}).get("knight") == "order_hold" \
-			and knight.get("habits", {}).has("order_hold") and knight.get("habits", {}).has("order_knight_escort"),
-			"Explicit fallback Hold remains available alongside learned Stay Close")
 	elif mode == "custom_hold":
 		var knight: Dictionary = rules.entity_profile(state, "knight")
 		_check(state.get("orders", {}).get("knight") == "order_hold" \
@@ -229,17 +222,15 @@ func _child() -> void:
 	else:
 		var knight: Dictionary = rules.entity_profile(state, "knight")
 		_check("knight_rescue_line" in knight.get("abilities", [])
-			and "knight_aura" not in knight.get("abilities", []), "Knight utility override is equipped")
-		_check(state.get("orders", {}).get("knight") == "order_knight_escort",
+			and "knight_aura" in knight.get("abilities", [])
+			and "knight_push" not in knight.get("abilities", []),
+			"Knight offense override retains Aura and replaces Push")
+		_check(state.get("orders", {}).get("knight") == ("order_knight_rescue" if mode == "party" else "order_knight_escort"),
 			"Knight learned standing order is active")
 		if mode == "party":
-			_check("healer_bonk" in knight.abilities and "knight_push" not in knight.abilities,
-				"Knight offense override is equipped")
 			var healer: Dictionary = rules.entity_profile(state, "healer")
 			_check("wizard_blast" in healer.get("abilities", []) and "healer_bonk" not in healer.get("abilities", [])
 				and "healer_heal" in healer.get("abilities", []), "Second partial loadout preserves utility")
-		else:
-			_check("knight_push" in knight.abilities, "Partial override preserves default offense")
 	var opening: Dictionary = scene.battle_snapshot()
 	scene.call("_commit")
 	_check(scene.battle_snapshot() != opening, "A real round mutates the battle")

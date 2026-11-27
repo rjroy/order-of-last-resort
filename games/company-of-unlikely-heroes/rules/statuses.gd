@@ -1,6 +1,7 @@
 extends RefCounted
 
 const Board = preload("res://rules/board.gd")
+const ShieldWall = preload("res://rules/shield_wall.gd")
 const FittingState = preload("res://rules/fitting_state.gd")
 const Reactions = preload("res://rules/alchemy_reactions.gd")
 const Upgrades = preload("res://rules/upgrades.gd")
@@ -21,6 +22,7 @@ const REWARD_STATUSES := {
 	"keep_your_head_down": {"label": "Keep Your Head Down", "handler": "reduce_next_hit", "expiry": "actor_turn_end"},
 	"lend_a_shield": {"label": "Lend a Shield", "handler": "reduce_next_hit", "expiry": "actor_turn_end"},
 	STEADY_HANDS: {"label": "Steady Hands", "handler": "reduce_next_hit", "expiry": "actor_turn_start"},
+	"padding": {"label": "Padding", "handler": "damage_buffer"},
 }
 
 
@@ -284,7 +286,9 @@ static func misdirect_attack(state: Dictionary, attacker: Dictionary, target: Di
 		return {"target": target, "bonus": 0}
 	ids.sort()
 	var rogue := Board.entity(state, attacker.statuses[ids[0]].source_id)
-	var victim := misdirection_victim(state, attacker, rogue, target.id)
+	var furniture: bool = definition(state, ids[0]).params.get("obstacles_only", false)
+	var victim := _furniture_victim(state, attacker, target.id) if furniture \
+		else misdirection_victim(state, attacker, rogue, target.id)
 	expire(state, attacker, "consume_attack")
 	if victim.is_empty():
 		Board.authored_event(state, events, "misdirect", "misdirect_missing",
@@ -294,11 +298,19 @@ static func misdirect_attack(state: Dictionary, attacker: Dictionary, target: Di
 	Board.authored_event(state, events, "misdirect", "misdirect_redirect",
 		{"actor": Board.display_name(state, attacker), "target": Board.display_name(state, victim)},
 		{"unit_id": attacker.id, "target_id": victim.id, "status_id": ids[0]})
-	var bonus := Upgrades.amount(state, rogue, "cheap_shot")
+	var bonus := 0 if furniture else Upgrades.amount(state, rogue, "cheap_shot")
 	if bonus > 0:
 		Board.event(events, "misdirect", "Cheap Shot adds %d damage to the redirected hit." % bonus,
 			{"unit_id": rogue.id, "target_id": victim.id, "amount": bonus})
 	return {"target": victim, "bonus": bonus}
+
+
+static func _furniture_victim(state: Dictionary, attacker: Dictionary, exclude_id: String) -> Dictionary:
+	for candidate in Board.occupants(state, {"objects": true, "capabilities": ["damageable"]}):
+		if candidate.has("object_id") and candidate.id != exclude_id \
+				and not ShieldWall.attack_contact(attacker.position, candidate, 1).is_empty():
+			return candidate
+	return {}
 
 
 static func guarding(state: Dictionary, unit: Dictionary) -> bool:
@@ -339,7 +351,7 @@ static func reflect_attack(state: Dictionary, ward: Dictionary, events: Array) -
 			if bonus > 0:
 				Board.event(events, "reflect", "The improved shield adds %d reflected damage." % bonus,
 					{"unit_id": protector.id, "target_id": recipient.id, "amount": bonus})
-			return {"target": recipient, "bonus": bonus}
+			return {"target": recipient, "bonus": bonus, "origin": ward.position}
 	return {"target": ward, "bonus": 0}
 
 
@@ -376,6 +388,30 @@ static func grant_cover(state: Dictionary, source: Dictionary, target: Dictionar
 	Board.event(events, "status", "%s: %s can absorb %d damage on their next hit through their next turn." % [
 		label, Board.display_name(state, target), amount],
 		{"unit_id": source.id, "target_id": target.id, "status_id": status_id, "amount": amount})
+
+
+static func grant_padding(state: Dictionary, source: Dictionary, target: Dictionary, amount: int, events: Array) -> void:
+	target.statuses["padding"] = {"source_id": source.id, "amount": amount}
+	Board.event(events, "status", "%s applies Padding to %s (absorbs up to %d damage)." % [
+		Board.display_name(state, source), Board.display_name(state, target), amount],
+		{"unit_id": source.id, "target_id": target.id, "status_id": "padding", "amount": amount})
+
+
+static func absorb_padding(state: Dictionary, target: Dictionary, damage: int, events: Array,
+		unimproved: Dictionary = {}) -> int:
+	var padding: Dictionary = target.get("statuses", {}).get("padding", {})
+	if damage <= 0 or padding.is_empty():
+		return damage
+	var absorbed := mini(damage, int(padding.amount))
+	padding.amount -= absorbed
+	if padding.amount == 0:
+		target.statuses.erase("padding")
+	if not unimproved.is_empty():
+		unimproved.amount = maxi(0, int(unimproved.amount) - absorbed)
+	Board.event(events, "status", "Padding absorbs %d damage for %s." % [
+		absorbed, Board.display_name(state, target)],
+		{"unit_id": target.id, "status_id": "padding", "amount": absorbed, "consumed": padding.amount == 0})
+	return damage - absorbed
 
 
 static func clear_fitting_effects(unit: Dictionary) -> void:
@@ -432,12 +468,20 @@ static func alchemy_hit_amount(state: Dictionary, source: Dictionary, target: Di
 	if amount > 0 and range_to_source > 1 and consume_alchemy(state, target, "duck", "avoids 1 damage", events):
 		amount -= 1
 		baseline -= 1
-	if amount >= target.hp and consume_alchemy(state, target, "pocket_paramedic", "survives at 1 HP", events):
-		amount = target.hp - 1
-		baseline = mini(baseline, amount)
 	if compare:
 		unimproved.amount = maxi(0, baseline)
 	return amount
+
+
+static func alchemy_lethal_save(state: Dictionary, target: Dictionary, damage: int, events: Array,
+		unimproved: Dictionary = {}) -> int:
+	if damage > 0 and damage >= target.hp \
+			and consume_alchemy(state, target, "pocket_paramedic", "survives at 1 HP", events):
+		var amount: int = target.hp - 1
+		if not unimproved.is_empty() and unimproved.amount > 0:
+			unimproved.amount = mini(int(unimproved.amount), amount)
+		return amount
+	return damage
 
 
 static func healing_amount(state: Dictionary, target: Dictionary, amount: int, events: Array) -> int:

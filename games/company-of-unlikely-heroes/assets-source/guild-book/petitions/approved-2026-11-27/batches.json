@@ -1,0 +1,27 @@
+{
+  "shield-wall": [["knight_shield_wall", "knight"]],
+  "variants-a": [
+    ["healer_apply_padding", "healer"], ["wizard_through_shot", "wizard"],
+    ["blacksmith_sweep", "blacksmith"], ["order_healer_aggressive", "healer"]
+  ],
+  "variants-b": [
+    ["alchemist_shared_sample", "alchemist"], ["rogue_blame_furniture", "rogue"],
+    ["necro_stay_friend", "necromancer"], ["order_rogue_blame", "rogue"]
+  ],
+  "orders-a": [
+    ["order_knight_advance", "knight"], ["order_knight_rescue_petition", "knight"],
+    ["order_knight_bonk_petition", "knight"], ["order_bard_push_petition", "bard"]
+  ],
+  "orders-b": [
+    ["order_wizard_pull_petition", "wizard"], ["order_wizard_sparks_petition", "wizard"],
+    ["order_wizard_dodge_petition", "wizard"], ["order_alchemist_pull_petition", "alchemist"]
+  ],
+  "orders-c": [
+    ["order_necro_raise", "necromancer"], ["order_necro_melody_petition", "necromancer"],
+    ["order_bard_sonnet", "bard"], ["order_rogue_potion_petition", "rogue"]
+  ],
+  "orders-d": [
+    ["order_smith_pursue", "blacksmith"], ["order_smith_bonk_petition", "blacksmith"],
+    ["order_smith_acid_petition", "blacksmith"], ["order_alchemist_paste_petition", "alchemist"]
+  ]
+}

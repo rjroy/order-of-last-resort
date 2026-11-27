@@ -46,6 +46,14 @@ const SUMMON_SPRITES := {
 	"zombie": {"path": "res://assets/summons/zombie.png", "pivot": Vector2(52, 204)},
 }
 const SUMMON_TEXTURE_SCALE := 1.0 / 3.0
+const SHIELD_WALL_SPRITES := {
+	"row": {"path": "res://assets/cast/props/shield-wall/row.png",
+		"size": Vector2(692, 239), "pivot": Vector2(352, 202), "ground": Vector2(48, 62)},
+	"column": {"path": "res://assets/cast/props/shield-wall/column.png",
+		"size": Vector2(253, 698), "pivot": Vector2(89, 413), "ground": Vector2(40, 62)},
+	"crest_east": {"path": "res://assets/cast/props/shield-wall/crest-east.png",
+		"size": Vector2(261, 697), "pivot": Vector2(131, 414), "ground": Vector2(48, 62)},
+}
 const TILE_FACE := [
 	Vector2(2, 2), Vector2(42, 1), Vector2(68, 2), Vector2(91, 1), Vector2(95, 6),
 	Vector2(94, 37), Vector2(95, 62), Vector2(91, 78), Vector2(64, 79), Vector2(40, 77),
@@ -69,6 +77,7 @@ var _map_scale := 1.0
 var _map_size := Vector2.ZERO
 var _rng := RandomNumberGenerator.new()
 var _summon_textures: Dictionary[String, Texture2D] = {}
+var _shield_wall_textures: Dictionary[String, Texture2D] = {}
 var _cast := CastSprites.new()
 var _playback := CastPlayback.new()
 var _figures := Node2D.new()
@@ -142,6 +151,9 @@ func _ready() -> void:
 	mouse_exited.connect(_clear_hover)
 	for role: String in SUMMON_SPRITES:
 		_summon_textures[role] = CastSprites.load_texture(SUMMON_SPRITES[role].path)
+	for orientation: String in SHIELD_WALL_SPRITES:
+		var path: String = SHIELD_WALL_SPRITES[orientation].path
+		_shield_wall_textures[path] = CastSprites.load_texture(path)
 	_cast.load_manifest()
 	_tactical.name = "TacticalForeground"
 	_tactical.draw.connect(_draw_tactical_layer)
@@ -215,7 +227,8 @@ func set_pressure_gate_prop_installed(installed: bool) -> void:
 ## cast_key, guarded, shield_away, shield_cell, tactical_statuses, objective, variant, label and color.
 ## overlay: selected/chosen_target/commanded (Vector2i), targets/impact/threat (arrays of Vector2i),
 ## paths (each an array of Vector2i), exit (Vector2i), safe (a set of Vector2i),
-## objective_zone (array of [x, y] pairs or Vector2i), obstacles (id, art_key, position, hp, max_hp),
+## objective_zone (array of [x, y] pairs or Vector2i), obstacles (id, art_key, position, hp, max_hp,
+## optional cells including position), forecast_obstacle_cells (array of Vector2i),
 ## pen_zone (array of Vector2i), pressure_gate ({cell: Vector2i, open: bool}),
 ## shields/forecast_shields (arrays of Vector2i), quiet_manual_move (bool).
 func set_render_state(cells: Dictionary, units: Array, overlay: Dictionary = {}) -> void:
@@ -288,11 +301,19 @@ func prepare_committed_presentation(cues: Array, corpses: Dictionary = {}) -> vo
 			var id: String = effect.target_id
 			var unit: Dictionary = _units_by_id.get(id, {})
 			match effect.kind:
-				"damage", "heal":
-					if (use.branch in ["converted", "boundary", "reaction"] or use.has("dose")) \
-							and not _hp_tracking.has(id):
+				"shield_wall_placed":
+					# Zero HP masks the resolved row until the placement beat. Retain
+					# its footprint in case it is absent from the resolved board.
+					_hp_tracking[id] = true
+					_committed_hp[id] = 0
+					_tracked_opening_rows[id] = {"id": id, "position": effect.cell, "cells": effect.cells,
+						"art_key": effect.art_key, "hp": effect.hp_after, "max_hp": effect.hp_after,
+						"facing": effect.get("facing", Vector2i.ZERO)}
+				"damage", "heal", "collapse_fall":
+					var opening: Dictionary = unit if not unit.is_empty() else _obstacle_row(id)
+					if not _hp_tracking.has(id) and (use.branch in ["converted", "boundary", "reaction"] \
+							or use.has("dose") or opening.get("cells", []).size() > 1):
 						_hp_tracking[id] = true
-						var opening: Dictionary = unit if not unit.is_empty() else _obstacle_row(id)
 						if not opening.is_empty():
 							_committed_hp[id] = opening.hp
 							_tracked_opening_rows[id] = opening
@@ -353,6 +374,8 @@ func play_committed_actions(cues: Array) -> void:
 				_pull_recovery_facing.erase(id)
 		prepared.append(cue)
 	_playback.enqueue(prepared, _cast)
+	if not _playback.pending():
+		_clear_committed_projection()
 	_sync_playback_geometry()
 	_set_processing()
 	_figures.queue_redraw()
@@ -363,14 +386,9 @@ func play_committed_actions(cues: Array) -> void:
 func clear_action_playback() -> void:
 	var obstacle_visuals := _obstacle_visuals()
 	_playback.clear()
-	_hp_tracking.clear()
-	_committed_hp.clear()
-	_committed_statuses.clear()
-	_tracked_opening_rows.clear()
+	_clear_committed_projection()
 	_undead_transitions.clear()
 	_play_dead_corpses.clear()
-	_prone_recalls.clear()
-	_committed_shields.clear()
 	_recipient_marks.clear()
 	_reaction_marks.clear()
 	committed_reactions_changed.emit()
@@ -381,6 +399,15 @@ func clear_action_playback() -> void:
 	_figures.queue_redraw()
 	if obstacle_visuals != _obstacle_visuals():
 		_queue_tactical_redraw()
+
+
+func _clear_committed_projection() -> void:
+	_hp_tracking.clear()
+	_committed_hp.clear()
+	_committed_statuses.clear()
+	_tracked_opening_rows.clear()
+	_committed_shields.clear()
+	_prone_recalls.clear()
 
 
 func _remember_pull_recovery_facing(id: String) -> void:
@@ -489,12 +516,7 @@ func _process(delta: float) -> void:
 					_prone_recalls.erase(token)
 		_dispatch_playback_sound(beats, presentation)
 		if not _playback.pending():
-			_hp_tracking.clear()
-			_committed_hp.clear()
-			_committed_statuses.clear()
-			_tracked_opening_rows.clear()
-			_committed_shields.clear()
-			_prone_recalls.clear()
+			_clear_committed_projection()
 			for id in _play_dead_corpses.keys():
 				if _units_by_id.get(id, {}).get("label") != "Corpse":
 					_play_dead_corpses.erase(id)
@@ -557,6 +579,9 @@ func _apply_presentation_beat(beat: Dictionary, at: float) -> bool:
 		var cell: Variant = effect.get("cell")
 		var ink := ""
 		match effect.kind:
+			"shield_wall_placed", "collapse_fall":
+				if _hp_tracking.has(id):
+					_committed_hp[id] = effect.hp_after
 			"damage", "heal":
 				if _hp_tracking.has(id):
 					var delta: int = int(effect.get("amount", 0)) * (-1 if effect.kind == "damage" else 1)
@@ -655,13 +680,14 @@ func _cross_undead_transition(kind: String, zombie_id: String, corpse_id: String
 		return
 
 
-## Invalidate tactical ink only when a visible obstacle moves or changes HP.
+## Invalidate tactical ink when a visible obstacle's footprint or HP changes.
 func _obstacle_visuals() -> Array:
 	var visuals := []
 	for obstacle: Dictionary in _presentation_obstacles():
 		var position: Variant = _obstacle_position(obstacle)
 		if position != null:
-			visuals.append([position, obstacle.hp])
+			visuals.append([position, obstacle.get("cells", []), obstacle.hp, obstacle.art_key,
+				obstacle.get("facing", Vector2i.ZERO)])
 	return visuals
 
 
@@ -695,6 +721,22 @@ func _obstacle_position(obstacle: Dictionary) -> Variant:
 	if destination is Vector2i:
 		position = position.lerp(_tile_origin(destination), _playback.movement_fraction(id))
 	return position
+
+
+## The returned rectangle is relative to the wall's center tile.
+static func shield_wall_sprite_spec(obstacle: Dictionary) -> Dictionary:
+	var center: Vector2i = obstacle.position
+	var orientation := "column"
+	for cell: Vector2i in obstacle.get("cells", []):
+		if cell.x != center.x:
+			orientation = "row"
+			break
+	var facing: Variant = obstacle.get("facing", Vector2i.ZERO)
+	if orientation == "column" and facing is Vector2i and facing.x > 0:
+		orientation = "crest_east"
+	var sprite: Dictionary = SHIELD_WALL_SPRITES[orientation]
+	return {"texture_path": sprite.path,
+		"rect": Rect2(sprite.ground - sprite.pivot / 3.0, sprite.size / 3.0)}
 
 
 func _queue_tactical_redraw() -> void:
@@ -844,8 +886,20 @@ func _draw_tactical() -> void:
 	for obstacle: Dictionary in _presentation_obstacles():
 		var position: Variant = _obstacle_position(obstacle)
 		if position is Vector2:
-			_at(position)
-			_draw_object(obstacle)
+			if obstacle.art_key == "shield_wall":
+				var spec := shield_wall_sprite_spec(obstacle)
+				var texture: Texture2D = _shield_wall_textures.get(spec.texture_path)
+				_at(position)
+				if texture != null:
+					_ink_canvas.draw_texture_rect(texture, spec.rect, false)
+			else:
+				for cell: Vector2i in obstacle.get("cells", [obstacle.position]):
+					var offset := Vector2(cell - obstacle.position) * TILE
+					_at(position + offset)
+					_draw_object_segment(obstacle.art_key)
+			# Keep the wall's shared health bar clear of an adjacent Knight.
+			_at(position + Vector2(0, -13) if obstacle.art_key == "shield_wall" else position)
+			_draw_health(obstacle, false, false)
 	if not _cells.is_empty() and _grid_labels_visible:
 		_at(Vector2.ZERO)
 		_draw_coordinates()
@@ -1396,11 +1450,12 @@ func _draw_obstacle() -> void:
 	_line([Vector2(71, 49), Vector2(76, 43), Vector2(69, 44), Vector2(75, 37)], Color("#3c3129"), 1.15)
 
 
-func _draw_object(object: Dictionary) -> void:
-	match str(object.art_key):
+func _draw_object_segment(art_key: String) -> void:
+	match art_key:
 		"obstacle", "crate":
 			_draw_obstacle()
-	_draw_health(object, false, false)
+		"shield_wall":
+			_draw_shield_marker(false, TILE * 0.5, 2.0)
 
 
 static func _solid(terrain: String) -> bool:
@@ -1428,6 +1483,9 @@ func _draw_overlays(cell: Vector2i) -> void:
 	if cell in threatened:
 		_brackets(CORAL, 9, 2.0)
 		_line([Vector2(72, 17), Vector2(81, 9), Vector2(88, 17), Vector2(81, 25), Vector2(72, 17)], CORAL, 1.8)
+	if cell in _overlay.get("forecast_obstacle_cells", []):
+		_ink_canvas.draw_rect(Rect2(Vector2(13, 16), TILE - Vector2(26, 32)), Color(AMBER, 0.13))
+		_brackets(AMBER, 12, 1.7)
 	if cell in targets:
 		if _overlay.get("quiet_manual_move", false):
 			_ink_canvas.draw_circle(Vector2(50, 15), 3.0, MINT, true, -1.0, true)
@@ -1457,17 +1515,17 @@ func _brackets(color: Color, pad: float, weight: float) -> void:
 		_line(points, color, weight)
 
 
-func _draw_shield_marker(forecast: bool) -> void:
-	var center := SHIELD_MARK_CENTER
-	var shape := [center + Vector2(-8, -8), center + Vector2(8, -8),
-		center + Vector2(7, 1), center + Vector2(4, 6), center + Vector2(0, 9),
-		center + Vector2(-4, 6), center + Vector2(-7, 1)]
+func _draw_shield_marker(forecast: bool, center := SHIELD_MARK_CENTER, marker_scale := 1.0) -> void:
+	var shape := []
+	for offset: Vector2 in [Vector2(-8, -8), Vector2(8, -8), Vector2(7, 1),
+			Vector2(4, 6), Vector2(0, 9), Vector2(-4, 6), Vector2(-7, 1)]:
+		shape.append(center + offset * marker_scale)
 	var fill := INK if forecast else AMBER
 	if forecast:
 		_piece(shape, fill, INK, 5.0)
 	_piece(shape, fill, AMBER if forecast else INK, 2.25)
 	if not forecast:
-		_ink_canvas.draw_circle(center - Vector2(0, 1), 2.5, INK, true, -1.0, true)
+		_ink_canvas.draw_circle(center - Vector2(0, marker_scale), 2.5 * marker_scale, INK, true, -1.0, true)
 
 
 func _draw_coordinates() -> void:

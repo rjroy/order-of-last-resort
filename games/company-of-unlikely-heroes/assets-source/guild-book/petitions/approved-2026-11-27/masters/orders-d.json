@@ -1,0 +1,31 @@
+{
+  "native": "/home/rjroy/.codex/generated_images/01a21d88-db3f-70f1-9dd9-a17c09979788/exec-2ae63d6d-8086-4c21-912f-941c8f95d7c4.png",
+  "thread": "01a21d88-db3f-70f1-9dd9-a17c09979788",
+  "call": null,
+  "image_model": null,
+  "native_artifact_id": "exec-2ae63d6d-8086-4c21-912f-941c8f95d7c4",
+  "master": "masters/orders-d.png",
+  "master_sha256": "a3d62f3fb21b57ae5403e6457423e6d596705ed0a707732e99b41dc10f94cc5f",
+  "crops": {
+    "order_smith_pursue": {
+      "geometry": "627x627+0+0",
+      "plate": "plates/order_smith_pursue.png",
+      "sha256": "f69a99d0bcdf29278eb8d0bbecdda5cee71f77735c78281b4e9067ac47a36d05"
+    },
+    "order_smith_bonk_petition": {
+      "geometry": "627x627+627+0",
+      "plate": "plates/order_smith_bonk_petition.png",
+      "sha256": "e412ce0896cbeed48d715de12d3fd783ee2f72bed1174d7a4f6c5beac9877370"
+    },
+    "order_smith_acid_petition": {
+      "geometry": "627x627+0+627",
+      "plate": "plates/order_smith_acid_petition.png",
+      "sha256": "0b330fb47285997f64ba1501f4cd31617b725f0f58ea09bfb5bbc2dbe15e5450"
+    },
+    "order_alchemist_paste_petition": {
+      "geometry": "627x627+627+627",
+      "plate": "plates/order_alchemist_paste_petition.png",
+      "sha256": "c20cdf1149a54b409da9d79f465eaf5c343196e2548dd89024d1a13857f7c3fe"
+    }
+  }
+}

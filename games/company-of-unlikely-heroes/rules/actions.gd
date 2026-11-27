@@ -10,6 +10,7 @@ const Frontier = preload("res://rules/frontier_combat.gd")
 const Movement = preload("res://rules/movement.gd")
 const Performances = preload("res://rules/performances.gd")
 const Shield = preload("res://rules/shield.gd")
+const ShieldWall = preload("res://rules/shield_wall.gd")
 const Statuses = preload("res://rules/statuses.gd")
 const Summons = preload("res://rules/summons.gd")
 const Support = preload("res://rules/support.gd")
@@ -52,6 +53,10 @@ static func _in_reach(actor: Dictionary, position: Vector2i, targeting: Dictiona
 	return not targeting.has("range") or (reach > 0 and reach <= int(targeting.range))
 
 
+static func _footprint_contact(actor: Dictionary, target: Dictionary, targeting: Dictionary) -> Dictionary:
+	return ShieldWall.attack_contact(actor.position, target, int(targeting.get("range", -1)))
+
+
 static func _swap_cells_open(state: Dictionary, actor: Dictionary, candidate: Dictionary) -> bool:
 	return actor.position != candidate.position \
 		and Board.can_enter(state, candidate.position, candidate.id) \
@@ -64,10 +69,13 @@ static func _entity_allowed(state: Dictionary, actor: Dictionary, candidate: Dic
 	if ability.params.get("opponents_only", false) and not Board.opponents(state, actor, candidate):
 		return false
 	if candidate.id == actor.id:
-		return ability.handler == "heal" and Board.capable(state, actor, "healable") \
+		return ability.handler in ["heal", "padding"] and Board.capable(state, actor, "healable") \
 			and ((ability.targeting.kind == "entity" and ability.params.get("allow_self", false)) \
 				or (ability.targeting.kind == "automatic" and ability.params.get("prefer_wounded_self", false) \
 					and actor.hp < actor.max_hp))
+	if candidate.has("footprint_offsets") and ability.handler in ["bonk", "blast", "attack"]:
+		return Board.capable(state, candidate, "damageable") \
+			and not _footprint_contact(actor, candidate, ability.targeting).is_empty()
 	if not _in_reach(actor, candidate.position, ability.targeting):
 		return false
 	match ability.handler:
@@ -86,7 +94,7 @@ static func _entity_allowed(state: Dictionary, actor: Dictionary, candidate: Dic
 				and Board.is_vacant(state, candidate.position + _pull_step(actor, candidate))
 		"bonk", "blast", "attack":
 			return Board.capable(state, candidate, "damageable")
-		"heal":
+		"heal", "padding":
 			return Board.capable(state, candidate, "healable") \
 				and (ability.targeting.kind != "entity" or Board.allied(state, actor, candidate))
 		"enemy_heal":
@@ -102,7 +110,8 @@ static func _entity_allowed(state: Dictionary, actor: Dictionary, candidate: Dic
 				and (ability.targeting.kind == "automatic" or _swap_cells_open(state, actor, candidate))
 		"misdirect":
 			return Board.team(state, candidate) != Board.team(state, actor) \
-				and not Statuses.misdirection_victim(state, candidate, actor).is_empty() \
+				and (Statuses.definition(state, ability.params.status).params.get("obstacles_only", false) \
+					or not Statuses.misdirection_victim(state, candidate, actor).is_empty()) \
 				and Statuses.accepts(state, candidate, ability.params.status, actor)
 		"nominate":
 			return Board.opponents(state, actor, candidate)
@@ -175,6 +184,8 @@ static func _legal_choices(state: Dictionary, actor: Dictionary, ability: Dictio
 		return result
 	if ability.handler == "summon":
 		return _summon_choices(state, actor, ability)
+	if ability.handler == "shield_wall":
+		return ShieldWall.choices(state, actor)
 	if ability.handler == "repeat_batch":
 		return Alchemy.repeat_choices(state, actor)
 	var targeting: Dictionary = ability.targeting
@@ -200,6 +211,8 @@ static func _legal_choices(state: Dictionary, actor: Dictionary, ability: Dictio
 					continue
 				var choice := {"id": candidate.id, "label": Board.display_name(state, candidate),
 					"position": candidate.position}
+				if candidate.has("footprint_offsets") and ability.handler in ["bonk", "blast", "attack"]:
+					choice.merge(_footprint_contact(actor, candidate, targeting), true)
 				if ability.handler == "hook" and not _digs_in(state, actor, candidate):
 					choice["destination"] = candidate.position + _pull_step(actor, candidate)
 				elif ability.handler == "repel" and targeting.kind == "entity":
@@ -272,16 +285,24 @@ static func command_ability(state: Dictionary, actor: Dictionary, id: String) ->
 	var base := _command_base(state, actor, id, form.base)
 	if base.is_empty():
 		return {}
-	var blocked := false
+	var unavailable := Shield.blocked_reason(state, actor, id)
+	if base.handler == "shield_wall":
+		unavailable = ShieldWall.blocked_reason(state, actor)
+	var wall_blocked: bool = not unavailable.is_empty() \
+		and (base.handler == "shield_wall" or unavailable == "wall already standing")
+	var blocked: bool = wall_blocked
 	if base.targeting.kind in ["automatic", "none"]:
-		blocked = _base_preflight(state, actor, {"ability_id": id, "direct": true}, form.base).is_empty()
+		blocked = blocked or _base_preflight(state, actor, {"ability_id": id, "direct": true}, form.base).is_empty()
 	if not alternate.is_empty():
 		var reason: String = alternate.unavailable_reason
-		var shield_away := not Shield.available(actor, id)
-		var label := " (%s; Fitted stays)" % reason if shield_away or blocked else " (ordinary; Fitted stays)"
-		return base.merged({"label": base.label + label, "command_blocked": blocked or shield_away,
+		var denied: bool = blocked or not unavailable.is_empty()
+		var label := " (%s; Fitted stays)" % reason if denied else " (ordinary; Fitted stays)"
+		return base.merged({"label": base.label + label, "command_blocked": denied,
 			"help": "%s unavailable: %s. %s" % [alternate.label, reason, base.help]}, true)
-	return base.merged({"command_blocked": true}) if blocked else base
+	if blocked:
+		var help: String = "%s: %s." % [base.label, unavailable] if wall_blocked else base.help
+		return base.merged({"command_blocked": true, "help": help}, true)
+	return base
 
 
 ## Project only the ordinary Direct form; an available fitting takes precedence.
@@ -337,6 +358,8 @@ static func standing_alternate(state: Dictionary, actor: Dictionary, id: String,
 static func _standing_choice(state: Dictionary, actor: Dictionary, alternate: Dictionary,
 		choices: Array, policy: String) -> Dictionary:
 	match policy:
+		"shield_wall":
+			return choices[0]
 		"make_friend":
 			var opponents := Board.occupants(state, {}).filter(func(unit: Dictionary) -> bool:
 				return Board.opponents(state, actor, unit))
@@ -374,7 +397,8 @@ static func targets(state: Dictionary, actor: Dictionary, ability_id: String, di
 	if form.converted:
 		return form.alternate.choices if form.alternate.targeting.kind in ["cell", "entity"] else []
 	var ability: Dictionary = _command_base(state, actor, ability_id, form.base) if direct else form.base
-	if ability.is_empty() or ability.targeting.kind not in ["cell", "entity"] or not Shield.available(actor, ability_id):
+	if ability.is_empty() or ability.targeting.kind not in ["cell", "entity"] \
+			or not Shield.available(state, actor, ability_id):
 		return []
 	return _legal_choices(state, actor, ability, ability_id)
 
@@ -382,7 +406,7 @@ static func targets(state: Dictionary, actor: Dictionary, ability_id: String, di
 ## Escape needs legal partners before ranking them; the legacy automatic swap still ranks first.
 static func escape_swap_partners(state: Dictionary, actor: Dictionary, id: String) -> Array:
 	var ability := owned_ability(state, actor, id)
-	if ability.get("handler") != "swap_furthest" or not Shield.available(actor, id):
+	if ability.get("handler") != "swap_furthest" or not Shield.available(state, actor, id):
 		return []
 	return _legal_choices(state, actor, ability, id).filter(func(choice: Dictionary) -> bool:
 		return _swap_cells_open(state, actor, choice))
@@ -415,7 +439,8 @@ static func _alternate_selection(state: Dictionary, actor: Dictionary, alternate
 
 static func _base_selection(state: Dictionary, actor: Dictionary, ability: Dictionary, target_id: String,
 		ability_id: String, automatic_target_id := "") -> Dictionary:
-	if ability.is_empty() or not accepts_target_argument(ability, target_id) or not Shield.available(actor, ability_id):
+	if ability.is_empty() or not accepts_target_argument(ability, target_id) \
+			or not Shield.available(state, actor, ability_id):
 		return {}
 	var choices := _legal_choices(state, actor, ability, ability_id)
 	if choices.is_empty():
@@ -532,7 +557,7 @@ static func _base_preflight(state: Dictionary, actor: Dictionary, action: Dictio
 	var target_id: String = action.get("target_id", "")
 	var selection_form := _command_base(state, actor, id, ability) if action.get("direct", false) else ability
 	if selection_form.is_empty() or not can_act(state, actor) or not accepts_target_argument(selection_form, target_id) \
-			or not Shield.available(actor, id):
+			or not Shield.available(state, actor, id):
 		return {}
 	if ability.handler == "move" and action.get("retrieve_shield", false) and Shield.can_retrieve(actor):
 		return {"kind": "retrieve", "choice": {}}
@@ -570,6 +595,10 @@ static func _execute_base(state: Dictionary, actor: Dictionary, action: Dictiona
 				Support.split_heal(state, actor, amount, events)
 		_:
 			_execute_choice(state, actor, action, ability, use.choice, bonus, events)
+	if ability.has("variant_of") and events.size() > first_event:
+		var event: Dictionary = events[first_event]
+		if not str(event.get("text", "")).contains(str(ability.label)):
+			event["text"] = "%s: %s" % [ability.label, event.get("text", "")]
 	var limit := _use_limit(ability)
 	if limit >= 0:
 		var used := _uses(actor, id) + 1
@@ -589,6 +618,8 @@ static func _execute_base(state: Dictionary, actor: Dictionary, action: Dictiona
 
 
 static func _base_primary(ability: Dictionary, use: Dictionary) -> String:
+	if ability.params.get("shared_reaction", false):
+		return "steady"
 	match ability.handler:
 		"move", "quick_release":
 			return ""
@@ -664,6 +695,8 @@ static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictio
 	match ability.handler:
 		"move":
 			_move(state, actor, action, choice.get("route", [choice.position]), events)
+		"shield_wall":
+			ShieldWall.place(state, actor, choice.position, events)
 		"quick_release":
 			Fittings.release(state, actor, events)
 			_move_step(state, actor, {}, choice.position, events)
@@ -737,17 +770,23 @@ static func _execute_choice(state: Dictionary, actor: Dictionary, action: Dictio
 				Board.authored_event(state, events, "status", "gain_status",
 					{"actor": name, "status": status.label}, data)
 		"bonk", "blast", "attack":
-			_attack(state, actor, target, action.ability_id, ability, bonus, events)
+			_attack(state, actor, target, choice.position, action.ability_id, ability, bonus, events)
 		"swap_furthest", "swap_ally":
 			_swap(state, actor, target, events)
 		"misdirect":
 			Statuses.apply(state, target, params.status, actor)
-			var victim := Statuses.misdirection_victim(state, target, actor)
-			Board.authored_event(state, events, "misdirect", "misdirect_mark",
-				{"actor": name, "target": target_name, "victim": Board.display_name(state, victim)},
-				{"unit_id": actor.id, "target_id": target.id, "victim_id": victim.id, "status_id": params.status})
+			if Statuses.definition(state, params.status).params.get("obstacles_only", false):
+				Board.event(events, "misdirect", "%s marks %s to blame adjacent furniture on their next attack." % [
+					name, target_name], {"unit_id": actor.id, "target_id": target.id, "status_id": params.status})
+			else:
+				var victim := Statuses.misdirection_victim(state, target, actor)
+				Board.authored_event(state, events, "misdirect", "misdirect_mark",
+					{"actor": name, "target": target_name, "victim": Board.display_name(state, victim)},
+					{"unit_id": actor.id, "target_id": target.id, "victim_id": victim.id, "status_id": params.status})
 		"heal", "enemy_heal":
 			Support.heal(state, actor, target, int(params.amount) + bonus, events)
+		"padding":
+			Statuses.grant_padding(state, actor, target, int(params.amount), events)
 		"healing_potion", "acid", "plain_tonic", "repeat_batch":
 			Alchemy.administer(state, actor, target, ability, action.ability_id, events, bonus)
 		"pull", "hook":
@@ -793,12 +832,13 @@ static func _move_step(state: Dictionary, actor: Dictionary, action: Dictionary,
 	Shield.retrieve(state, actor, events)
 
 
-static func _attack(state: Dictionary, actor: Dictionary, target: Dictionary, id: String, ability: Dictionary,
-		bonus: int, events: Array) -> void:
+static func _attack(state: Dictionary, actor: Dictionary, target: Dictionary, contact: Vector2i,
+		id: String, ability: Dictionary, bonus: int, events: Array) -> void:
 	var heckler := heckler_target(state, actor, ability)
 	actor.statuses.erase("heckler")
 	if not heckler.is_empty():
 		target = heckler
+		contact = target.position
 		Board.event(events, "taunt", "Heckler draws %s's attack to %s." % [
 			Board.display_name(state, actor), Board.display_name(state, target)],
 			{"unit_id": actor.id, "target_id": target.id, "status_id": "heckler"})
@@ -808,6 +848,12 @@ static func _attack(state: Dictionary, actor: Dictionary, target: Dictionary, id
 			if target.id != candidate.id and Board.opponents(state, actor, candidate) \
 					and _entity_allowed(state, actor, candidate, ability):
 				recipients.append(candidate)
+	elif id == "blacksmith_sweep":
+		for candidate in Board.occupants(state, ability.targeting):
+			if candidate.id != target.id and _entity_allowed(state, actor, candidate, ability):
+				recipients.append(candidate)
+				break
+	var through := _through_target(state, actor, target.id, contact, ability) if id == "wizard_through_shot" else {}
 	var params: Dictionary = ability.params
 	var suffix: String = params.get("source_suffix", "")
 	if ability.handler == "blast" and not params.has("source_suffix"):
@@ -816,20 +862,53 @@ static func _attack(state: Dictionary, actor: Dictionary, target: Dictionary, id
 		"status": params.get("status", ""), "ability_id": id, "primary_bonus": bonus}
 	if params.has("surround_bonus"):
 		strike["surround_bonus"] = params.surround_bonus
-	var retaliation := Combat.RetaliationBatch.new() if recipients.size() > 1 else null
+	var retaliation := Combat.RetaliationBatch.new() if recipients.size() > 1 or not through.is_empty() else null
 	var defeated_target := false
 	for recipient in recipients:
 		if Board.alive(recipient):
+			if recipient.id == target.id and recipient.has("footprint_offsets"):
+				strike["impact_position"] = contact
+			else:
+				strike.erase("impact_position")
+			if id == "blacksmith_sweep" and recipient.id != target.id:
+				strike["primary_bonus"] = 0
 			var defeated := Combat.attack(state, actor, recipient, int(params.damage), strike, events, retaliation)
 			if recipient.id == target.id:
 				defeated_target = defeated
+	if not through.is_empty() and Board.alive(through.target):
+		var presentation := {"data": {"impact_position": through.position}, "copy": {}} \
+			if through.target.has("footprint_offsets") else {}
+		Combat.hurt(state, actor, through.target, 1, ability.label, "", events, presentation, retaliation)
 	Combat.flush_retaliation(state, actor, events, retaliation)
 	if defeated_target and id == "blacksmith_hammer_time" and Upgrades.amount(state, actor, "follow_through") > 0:
 		# The hit and its defeat effects can kill the Smith or change the landing.
-		var landing: Vector2i = target.position
+		var landing := contact
 		if can_act(state, actor) and can_move(state, actor) and Board.distance(actor.position, landing) == 1 \
 				and Board.can_enter(state, landing) and not Movement.blocks_voluntary(state, actor, events):
 			_move_step(state, actor, {}, landing, events, true)
+
+
+static func _through_target(state: Dictionary, actor: Dictionary, primary_id: String, contact: Vector2i,
+		ability: Dictionary) -> Dictionary:
+	var delta: Vector2i = contact - actor.position
+	if (delta.x == 0) == (delta.y == 0):
+		return {}
+	var nearest: Dictionary = {}
+	var nearest_distance := 2147483647
+	var primary_distance := Board.distance(actor.position, contact)
+	for candidate in Board.occupants(state, ability.targeting):
+		if candidate.id == primary_id or not _entity_allowed(state, actor, candidate, ability):
+			continue
+		for cell in Board.occupied_cells(candidate):
+			var offset: Vector2i = cell - actor.position
+			var aligned := (delta.x == 0 and offset.x == 0 and signi(offset.y) == signi(delta.y)) \
+				or (delta.y == 0 and offset.y == 0 and signi(offset.x) == signi(delta.x))
+			var distance := Board.distance(actor.position, cell)
+			if aligned and distance > primary_distance and distance < nearest_distance \
+					and _in_reach(actor, cell, ability.targeting):
+				nearest = {"target": candidate, "position": cell}
+				nearest_distance = distance
+	return nearest
 
 
 static func heckler_target(state: Dictionary, actor: Dictionary, ability: Dictionary) -> Dictionary:

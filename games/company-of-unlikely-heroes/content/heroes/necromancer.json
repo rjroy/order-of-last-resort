@@ -20,6 +20,15 @@
     }
   },
   "abilities": {
+    "necro_stay_friend": {
+      "variant_of": "summon_skeleton",
+      "fitted_form": "recall_skeleton",
+      "label": "Stay, Friend",
+      "help": "Summon a skeleton on an open neighboring tile. It greets normally but does not pursue.",
+      "handler": "summon",
+      "params": {"character": "skeleton", "priority": 0, "stationary": true},
+      "targeting": {"kind": "cell", "range": 1}
+    },
     "raise_dead": {
       "fitted_form": "play_dead",
       "label": "Raise Dead",

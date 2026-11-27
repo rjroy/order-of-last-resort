@@ -1,14 +1,23 @@
 extends RefCounted
 
 const Board = preload("res://rules/board.gd")
+const ShieldWall = preload("res://rules/shield_wall.gd")
 
 
 static func position(actor: Dictionary) -> Variant:
 	return actor.get("shield_position")
 
 
-static func available(actor: Dictionary, ability_id: String) -> bool:
-	return not actor.has("shield_position") or ability_id not in ["knight_aura", "knight_shield_throw"]
+static func blocked_reason(state: Dictionary, actor: Dictionary, ability_id: String) -> String:
+	if ability_id not in ["knight_aura", "knight_shield_throw"]:
+		return ""
+	if actor.has("shield_position"):
+		return "shield away"
+	return "wall already standing" if ShieldWall.has_live_wall(state, actor) else ""
+
+
+static func available(state: Dictionary, actor: Dictionary, ability_id: String) -> bool:
+	return blocked_reason(state, actor, ability_id).is_empty()
 
 
 static func can_retrieve(actor: Dictionary) -> bool:

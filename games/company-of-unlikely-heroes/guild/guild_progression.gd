@@ -99,6 +99,13 @@ static func default_loadout(defs: Dictionary, profile: Dictionary, hero_id: Stri
 	var preference: Dictionary = profile.get("preferred_loadouts", {}).get(hero_id, {})
 	if not effective_kit(defs, profile, hero_id, preference, playtest, legacy_precedence).is_empty():
 		return preference.duplicate(true)
+	var normalized: Variant = _normalized_preferred_slots(hero_id, preference, choices)
+	if normalized != preference.get("slots", {}):
+		var recovered := preference.duplicate(true)
+		recovered.slots = normalized
+		if not effective_kit(defs, profile, hero_id, recovered, playtest, legacy_precedence).is_empty():
+			return recovered
+		preference = recovered
 	# Retire only the stock ability. A custom catalog that still defines it
 	# retains its own slot and preference semantics.
 	if hero_id == "healer" and not defs.get("abilities", {}).has("healer_field_dressing") \
@@ -138,6 +145,25 @@ static func default_loadout(defs: Dictionary, profile: Dictionary, hero_id: Stri
 			loadout.order_id = order.id
 			return loadout
 	return {}
+
+
+static func _normalized_preferred_slots(hero_id: String, preference: Dictionary, choices: Dictionary) -> Variant:
+	var slots: Variant = preference.get("slots", {})
+	# Only migrate an owned old-slot choice in a catalog that moved Rescue.
+	# Another learned offense stays equipped unless the saved order needs Rescue.
+	if hero_id != "knight" or not slots is Dictionary or slots.size() != choices.size() \
+			or not choices.has("utility") or not choices.has("offense") \
+			or slots.get("utility") != "knight_rescue_line" \
+			or "knight_rescue_line" in choices.utility \
+			or "knight_rescue_line" not in choices.offense \
+			or slots.get("offense") not in choices.offense \
+			or slots.get("offense") == "knight_rescue_line":
+		return slots
+	var normalized: Dictionary = slots.duplicate()
+	normalized.utility = choices.utility[0]
+	if slots.get("offense") == "knight_push" or preference.get("order_id") == "order_knight_rescue":
+		normalized.offense = "knight_rescue_line"
+	return normalized
 
 
 ## Resolve explicit standalone choices against the same slot and order rules as
@@ -283,6 +309,9 @@ static func _order_rows(defs: Dictionary, profile: Dictionary, hero_id: String,
 						missing.erase(base)
 		for ability in abilities:
 			missing.erase(ability)
+		var base: String = params.get("ability", "")
+		if Catalog.behavior_equipped_ability(defs, abilities, behavior) != base:
+			missing.erase(base)
 		var compatible := missing.is_empty()
 		any_compatible = any_compatible or compatible
 		legacy_compatible = legacy_compatible or (legacy.has(id) and compatible)
@@ -291,7 +320,8 @@ static func _order_rows(defs: Dictionary, profile: Dictionary, hero_id: String,
 	# Retain a previously saved fallback only for its exact equipped slots.
 	var preference: Variant = profile.get("preferred_loadouts", {}).get(hero_id, {})
 	var saved_hold: bool = not playtest and preference is Dictionary and preference.size() == 2 \
-		and preference.get("order_id") == HOLD_ORDER and preference.get("slots") == slots
+		and preference.get("order_id") == HOLD_ORDER \
+		and _normalized_preferred_slots(hero_id, preference, slot_options(defs, profile, hero_id)) == slots
 	var legacy_fallback := playtest and not legacy_compatible
 	if (not any_compatible or saved_hold or legacy_fallback) and not habits.has(HOLD_ORDER) \
 			and defs.orders.has(HOLD_ORDER) and defs.behaviors.has(HOLD_BEHAVIOR):

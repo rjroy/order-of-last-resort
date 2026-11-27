@@ -257,7 +257,8 @@ func choose_manual(state: Dictionary, unit_id: String, ability_id: String, targe
 		var ability := Actions.owned_ability(state, actor, ability_id)
 		if ability.is_empty():
 			return result
-		var aims_alternate: bool = ability.get("fitted_form") in Fittings.DIRECT_PRIMARY_FORMS
+		var aims_alternate: bool = ability.get("fitted_form") in Fittings.DIRECT_PRIMARY_FORMS \
+			or (ability.has("variant_of") and ability.get("fitted_form") in Fittings.VARIANT_AIMED_FORMS)
 		if ability.handler == "perform" and not aims_alternate and not ability.targeting.has("direct") \
 				and not Actions.accepts_target_argument(ability, target_id):
 			return result
@@ -383,6 +384,10 @@ func _resolve_turn(state: Dictionary, actor: Dictionary, events: Array) -> void:
 	if action.get("wait") == "shield_away":
 		var fitting_note := "" if FittingState.source(actor).is_empty() else " Fitted stays."
 		Board.event(events, "wait", "%s cannot guard until their shield is retrieved.%s" % [name, fitting_note],
+			{"unit_id": actor.id})
+	elif action.get("wait") == "shield_wall":
+		var fitting_note := "" if FittingState.source(actor).is_empty() else " Fitted stays."
+		Board.event(events, "wait", "%s holds: %s.%s" % [name, action.wall_reason, fitting_note],
 			{"unit_id": actor.id})
 	elif action.get("wait") == "already_fitted":
 		Board.event(events, "wait", "%s holds: %s is already Fitted." % [name, display_name(state, action.target_id)],

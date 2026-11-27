@@ -10,11 +10,14 @@ const TacticalForms = preload("res://rules/fitted_tactical.gd")
 const FittingState = preload("res://rules/fitting_state.gd")
 const Movement = preload("res://rules/movement.gd")
 const Shield = preload("res://rules/shield.gd")
+const ShieldWall = preload("res://rules/shield_wall.gd")
 const Statuses = preload("res://rules/statuses.gd")
 const Upgrades = preload("res://rules/upgrades.gd")
 const QUICK_RELEASE := "smith_quick_release"
-const DIRECT_PRIMARY_FORMS := ["doctors_orders", "mending_blast", "clear_jump", "cut_the_wire",
-	"dinner_bell", "inspiring_melody_in_tune", "healing_sonnet_in_tune", "company_chorus"]
+const DIRECT_PRIMARY_FORMS := ["doctors_orders", "crash_padding", "mending_blast", "clear_jump", "cut_the_wire",
+	"dinner_bell", "inspiring_melody_in_tune", "healing_sonnet_in_tune", "company_chorus", "thrown_shield_wall"]
+# These forms already expose an aimed target without a special direct-mode adapter.
+const VARIANT_AIMED_FORMS := ["it_was_me", "recall_skeleton", "shared_tonic"]
 
 
 static func eligible(state: Dictionary, smith: Dictionary, wearer: Dictionary) -> bool:
@@ -86,6 +89,8 @@ static func alternate(state: Dictionary, actor: Dictionary, source_id: String, b
 			return _pull_form(state, actor)
 		"clear_the_floor":
 			return _clear_floor_form(state, actor, base)
+		"thrown_shield_wall":
+			return ShieldWall.fitted_form(state, actor)
 	var adapter := _adapter(base.fitted_form)
 	if adapter == null:
 		return {}
@@ -137,7 +142,9 @@ static func _clear_floor_form(state: Dictionary, actor: Dictionary, base: Dictio
 		"help": "Shove everyone and movable obstacles in Guard's reach one open step away. No damage or reflection.",
 		"targeting": {"kind": "none"}, "choices": [], "unavailable_reason": "shield away",
 		"primary": "steady"}
-	if actor.has("shield_position"):
+	var reason := Shield.blocked_reason(state, actor, "knight_aura")
+	if not reason.is_empty():
+		form["unavailable_reason"] = reason
 		return form
 	var radius := Statuses.guard_range(state, actor, Statuses.definition(state, base.params.status))
 	var snapshot: Array = []
@@ -179,6 +186,8 @@ static func apply(state: Dictionary, actor: Dictionary, source_id: String, base:
 		"clear_the_floor":
 			for recipient in choice.recipients:
 				_displace(state, actor, recipient, form.label, "push", events)
+		"thrown_shield_wall":
+			ShieldWall.place(state, actor, choice.position, events, true)
 		_:
 			_adapter(form.id).apply(state, actor, source_id, base, form, choice, bonus, events)
 

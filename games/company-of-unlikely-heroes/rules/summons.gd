@@ -80,6 +80,8 @@ static func summon(state: Dictionary, actor: Dictionary, ability: Dictionary, po
 	var character: String = ability.params.character
 	var hp := starting_hp(state, actor, character, corpse, bonus)
 	var minion := _spawn(state, actor, character, position, hp, int(ability.params.priority))
+	if ability.params.get("stationary", false):
+		minion["stationary"] = true
 	var raising := not corpse.is_empty()
 	var data := {"unit_id": actor.id, "summon_id": minion.id, "position": position, "hp": hp}
 	var copy := {"actor": Board.display_name(state, actor), "minion": Board.profile(state, minion).label,

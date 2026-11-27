@@ -20,6 +20,15 @@
     }
   },
   "abilities": {
+    "rogue_blame_furniture": {
+      "variant_of": "rogue_wasnt_me",
+      "fitted_form": "it_was_me",
+      "label": "Blame the Furniture",
+      "help": "Mark an enemy. Its next attack hits an adjacent damageable obstacle instead, if one is present when it attacks.",
+      "handler": "misdirect",
+      "params": {"status": "furniture_misdirected"},
+      "targeting": {"kind": "entity", "teams": ["enemies"]}
+    },
     "rogue_confusing_dodge": {
       "fitted_form": "clear_jump",
       "label": "Confusing Dodge",
@@ -47,6 +56,14 @@
           "enemies"
         ]
       }
+    }
+  },
+  "statuses": {
+    "furniture_misdirected": {
+      "label": "Blames the Furniture",
+      "handler": "misdirect",
+      "expiry": "consume_attack",
+      "params": {"obstacles_only": true}
     }
   },
   "orders": {

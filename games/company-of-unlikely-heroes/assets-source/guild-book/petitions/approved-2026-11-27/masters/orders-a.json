@@ -1,0 +1,31 @@
+{
+  "native": "/home/rjroy/.codex/generated_images/01a21d88-db39-7293-b53e-47cbde3fa6ff/exec-a65b14e8-cd91-4edd-b930-447047381b9e.png",
+  "thread": "01a21d88-db39-7293-b53e-47cbde3fa6ff",
+  "call": null,
+  "image_model": null,
+  "native_artifact_id": "exec-a65b14e8-cd91-4edd-b930-447047381b9e",
+  "master": "masters/orders-a.png",
+  "master_sha256": "0f1e2b94e76dd995bffaced117c04f80cd665cf395fe7f6ec33af34b6a6862ad",
+  "crops": {
+    "order_knight_advance": {
+      "geometry": "627x627+0+0",
+      "plate": "plates/order_knight_advance.png",
+      "sha256": "9489901300b53f041e12012fe0e3c95d1367676baad56a8278d676a55cc80540"
+    },
+    "order_knight_rescue_petition": {
+      "geometry": "627x627+627+0",
+      "plate": "plates/order_knight_rescue_petition.png",
+      "sha256": "53e28e7b60ae469aa45b3cecbdb94d739a4173f7d6c2e81e79a75e8e8d3bf12b"
+    },
+    "order_knight_bonk_petition": {
+      "geometry": "627x627+0+627",
+      "plate": "plates/order_knight_bonk_petition.png",
+      "sha256": "af240b43c8a16379d74b5e2d784e4ae8a44b0a7279194e97d10b4d90b81f4edd"
+    },
+    "order_bard_push_petition": {
+      "geometry": "627x627+627+627",
+      "plate": "plates/order_bard_push_petition.png",
+      "sha256": "58698fb81999a7a0fdf843b05368748e24294c2015f2ccdcbde69e103c1a9ba2"
+    }
+  }
+}

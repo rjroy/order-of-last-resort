@@ -1,0 +1,31 @@
+{
+  "native": "/home/rjroy/.codex/generated_images/01a21d88-db39-77b3-b9b0-4928c83bd54a/exec-54b8b7c9-7a8f-452b-8529-661f7b48c83f.png",
+  "thread": "01a21d88-db39-77b3-b9b0-4928c83bd54a",
+  "call": "exec-54b8b7c9-7a8f-452b-8529-661f7b48c83f",
+  "image_model": null,
+  "native_artifact_id": "exec-54b8b7c9-7a8f-452b-8529-661f7b48c83f",
+  "master": "masters/orders-c.png",
+  "master_sha256": "e9a710363407a6663ec20b8ac0613664eed9889378bb2b3a07270d87cf16e7a6",
+  "crops": {
+    "order_necro_raise": {
+      "geometry": "627x627+0+0",
+      "plate": "plates/order_necro_raise.png",
+      "sha256": "16664c0a2ed234c700958c04a29beadb87b023395ea70e11e4258a2536269330"
+    },
+    "order_necro_melody_petition": {
+      "geometry": "627x627+627+0",
+      "plate": "plates/order_necro_melody_petition.png",
+      "sha256": "4217e982093af359b78195bd1ad5aafd047e95782496bee057623736ce83af14"
+    },
+    "order_bard_sonnet": {
+      "geometry": "627x627+0+627",
+      "plate": "plates/order_bard_sonnet.png",
+      "sha256": "0160841958ea962651c656291412b40095d33ae83645821ce915fde9f4646b26"
+    },
+    "order_rogue_potion_petition": {
+      "geometry": "627x627+627+627",
+      "plate": "plates/order_rogue_potion_petition.png",
+      "sha256": "2345de39a830aa370206d32b0bd7421f77e0fd77ddb6c2c7dd90a774da821daa"
+    }
+  }
+}

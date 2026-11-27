@@ -14,6 +14,14 @@ const DOSE_FORMS := {
 
 static func describe(state: Dictionary, actor: Dictionary, source_id: String, base: Dictionary) -> Dictionary:
 	var id: String = base.fitted_form
+	if id == "shared_tonic":
+		var shared_dose := Alchemy.resolved_dose(source_id, base, "heal", id, "Shared Tonic")
+		var shared_reaction := Alchemy.dose_reaction(state, actor, shared_dose)
+		return {"id": id, "label": "Shared Tonic",
+			"help": "Give a friendly character within reach the forecast Potion reaction, shared with adjacent living characters. No built-in healing.",
+			"targeting": shared_dose.targeting, "choices": Alchemy.dose_choices(state, actor, shared_dose),
+			"unavailable_reason": "no legal friendly recipient", "primary": "steady",
+			"reaction": shared_reaction, "reaction_forecast": Alchemy.describe_reaction(shared_reaction)}
 	var dose: Dictionary
 	var label: String
 	if id == "counterbatch":
@@ -62,4 +70,7 @@ static func _help(dose: Dictionary) -> String:
 static func apply(state: Dictionary, actor: Dictionary, _source_id: String, _base: Dictionary,
 		form: Dictionary, choice: Dictionary, bonus: int, events: Array) -> void:
 	var target := Board.entity(state, choice.id)
+	if form.id == "shared_tonic":
+		Alchemy.administer_shared(state, actor, target, form.reaction, events)
+		return
 	Alchemy.administer_resolved(state, actor, target, form.dose, form.reaction, bonus, events)

@@ -2,11 +2,13 @@ extends RefCounted
 
 const Actions = preload("res://rules/actions.gd")
 const Board = preload("res://rules/board.gd")
+const Catalog = preload("res://content/catalog.gd")
 const EncounterRandom = preload("res://rules/encounter_random.gd")
 const FittingState = preload("res://rules/fitting_state.gd")
 const Fittings = preload("res://rules/fittings.gd")
 const Frontier = preload("res://rules/frontier_combat.gd")
 const Shield = preload("res://rules/shield.gd")
+const ShieldWall = preload("res://rules/shield_wall.gd")
 const Statuses = preload("res://rules/statuses.gd")
 const Summons = preload("res://rules/summons.gd")
 const Upgrades = preload("res://rules/upgrades.gd")
@@ -15,13 +17,26 @@ const Upgrades = preload("res://rules/upgrades.gd")
 static func decide(state: Dictionary, actor: Dictionary, behavior_id: String) -> Dictionary:
 	var behavior: Dictionary = state.catalog.defs.behaviors.get(behavior_id, {})
 	var params: Dictionary = behavior.get("params", {})
+	if params.has("ability"):
+		params = params.duplicate()
+		params.ability = Catalog.behavior_equipped_ability(state.catalog.defs,
+			Board.profile(state, actor).get("abilities", []), behavior)
 	match behavior.get("handler", ""):
 		"use_ability":
-			if not Shield.available(actor, params.ability):
-				return {"wait": "shield_away"}
-			var alternate := Actions.standing_alternate(state, actor, params.ability)
+			var blocked := Shield.blocked_reason(state, actor, params.ability)
+			if not blocked.is_empty():
+				return {"wait": "shield_away"} if blocked == "shield away" \
+					else {"wait": "shield_wall", "wall_reason": blocked}
+			var wall: bool = params.ability == params.get("wall_ability")
+			var alternate := Actions.standing_alternate(state, actor, params.ability, "shield_wall" if wall else "")
 			if not alternate.is_empty():
 				return alternate
+			if wall:
+				var choices := Actions.targets(state, actor, params.ability)
+				if not choices.is_empty():
+					return _action(params.ability, choices[0].id)
+				var reason := ShieldWall.blocked_reason(state, actor)
+				return {"wait": "shield_wall", "wall_reason": "no open three-tile span" if reason.is_empty() else reason}
 			return _action(params.ability)
 		"fit_nearest":
 			var heroes := Board.turn_order(state).filter(func(hero: Dictionary) -> bool:
@@ -385,6 +400,8 @@ static func _greet(state: Dictionary, actor: Dictionary, params: Dictionary) -> 
 	if not options.is_empty():
 		state.rng_state = EncounterRandom.step(state.rng_state)
 		return options[state.rng_state % options.size()]
+	if actor.get("stationary", false):
+		return {"wait": "hold"}
 	var rally := Summons.rally_target(state, actor)
 	if not rally.is_empty():
 		return _move(state, actor, params.move_ability, rally.position, 1)

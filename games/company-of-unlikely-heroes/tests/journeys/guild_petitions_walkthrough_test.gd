@@ -92,18 +92,16 @@ func _run() -> void:
 			for id in FOUNDERS:
 				await _press("Recruit_" + id)
 			await _press("EditHero_knight")
-			await _click_loadout("Utility_knight_rescue_line")
+			await _click_loadout("Offense_knight_rescue_line")
 			var guard := _node("Order_order_guard") as BaseButton
 			var advance := _node("Order_order_knight_advance_move") as BaseButton
-			_check(guard == null or guard.disabled,
-				"Guard is incompatible with Rescue Line replacing the aura")
+			_check(guard != null and not guard.disabled,
+				"Guard remains compatible with Rescue Line and Aura")
 			_check(advance != null and not advance.disabled,
 				"Move-only advance remains compatible with Rescue Line")
 			var order_focus := viewport.gui_get_focus_owner() as BaseButton
-			_check(order_focus != null and str(order_focus.name).begins_with("Order_")
-				and not order_focus.disabled and order_focus != guard,
-				"Invalidating Guard moves keyboard focus to a compatible standing order")
-			await _click_loadout("Order_order_knight_advance_move")
+			_check(order_focus == guard and not order_focus.disabled,
+				"Equipping Rescue Line keeps focus on the selected Guard order")
 		else:
 			for id in FOUNDERS:
 				await _press("Recruit_" + id)
@@ -141,8 +139,10 @@ func _run() -> void:
 				"Deployed Rogue retains Confusing Dodge")
 		elif purchase_id == "knight_rescue_line":
 			var knight: Dictionary = rules.entity_profile(state, "knight")
-			_check("knight_rescue_line" in knight.get("abilities", []),
-				"Equipped Rescue Line reaches the actual battle")
+			_check("knight_rescue_line" in knight.get("abilities", [])
+				and "knight_aura" in knight.get("abilities", [])
+				and "knight_push" not in knight.get("abilities", []),
+				"Rescue Line and Aura reach battle in place of Push")
 			await _command_rescue(state, rules)
 		else:
 			var healer: Dictionary = rules.entity_profile(state, "healer")

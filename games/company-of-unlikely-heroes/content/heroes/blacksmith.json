@@ -40,6 +40,19 @@
     }
   },
   "abilities": {
+    "blacksmith_sweep": {
+      "variant_of": "blacksmith_hammer_time",
+      "label": "Sweep",
+      "help": "Deal 1 damage to a chosen adjacent opponent and one other adjacent opponent, if present.",
+      "handler": "attack",
+      "params": {"damage": 1, "opponents_only": true},
+      "targeting": {
+        "kind": "entity",
+        "range": 1,
+        "teams": ["enemies"],
+        "capabilities": ["damageable"]
+      }
+    },
     "blacksmith_hammer_time": {
       "label": "Hammer Time",
       "help": "Deal 2 damage to an adjacent opponent or damageable obstacle. Does not shove or taunt.",

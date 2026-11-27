@@ -11,8 +11,9 @@ const REQUIRED_EVENTS := ["move", "damage", "knockdown_suffix", "reflect_absorb"
 	"push", "collision_suffix", "aura", "taunt", "heal", "heal_full", "blast_suffix", "pull",
 	"recoil_source", "cannot_advance", "recover", "hold", "invalid", "watches", "gain_status"]
 const ABILITY_TARGETING := {
-	"move": ["cell"], "apply_status": ["none"],
+	"move": ["cell"], "apply_status": ["none"], "shield_wall": ["cell"],
 	"push": ["entity", "automatic"], "bonk": ["entity", "automatic"], "heal": ["entity", "automatic"],
+	"padding": ["entity", "automatic"],
 	"enemy_heal": ["automatic"],
 	"blast": ["entity", "automatic"], "pull": ["entity", "automatic"], "attack": ["entity", "automatic"],
 	"swap_furthest": ["automatic"], "swap_ally": ["automatic"], "misdirect": ["entity"],
@@ -25,8 +26,10 @@ const ABILITY_TARGETING := {
 const FITTED_FORMS := {
 	"fitted_pull": ["push", "knight"],
 	"clear_the_floor": ["apply_status", "knight"],
+	"thrown_shield_wall": ["shield_wall", "knight"],
 	"keep_your_head_down": ["bonk", "tactical"],
 	"doctors_orders": ["heal", "tactical"],
+	"crash_padding": ["padding", "tactical"],
 	"mending_blast": ["blast", "tactical"],
 	"send_off": ["pull", "tactical"],
 	"it_was_me": ["misdirect", "tactical"],
@@ -37,6 +40,7 @@ const FITTED_FORMS := {
 	"cut_the_wire": ["stop_target", "tactical"],
 	"lend_a_shield": ["attack", "tactical"],
 	"buffer_solution": ["acid", "alchemy"],
+	"shared_tonic": ["acid", "alchemy"],
 	"bitter_medicine": ["healing_potion", "alchemy"],
 	"sealing_paste": ["acid", "alchemy"],
 	"plain_solvent": ["plain_tonic", "alchemy"],
@@ -193,6 +197,29 @@ static func validate_playtest_progression(defs: Dictionary) -> PackedStringArray
 
 static func behavior_ability_ids(behavior: Dictionary) -> Array[String]:
 	return Validator.behavior_ability_ids(behavior)
+
+
+static func behavior_equipped_ability(defs: Dictionary, abilities: Array, behavior: Dictionary) -> String:
+	var base: String = behavior.get("params", {}).get("ability", "")
+	if behavior.get("handler") not in ["use_ability", "most_injured", "pursue",
+			"pass_blame", "make_friend", "personality_summon_skeleton", "nearest_target"]:
+		return base
+	if base in abilities:
+		return base
+	var wall: String = behavior.get("params", {}).get("wall_ability", "")
+	if behavior.get("handler") == "use_ability" and wall in abilities:
+		return wall
+	var base_kind: String = defs.abilities.get(base, {}).get("targeting", {}).get("kind", "")
+	for id in abilities:
+		var variant: Dictionary = defs.abilities.get(id, {})
+		var targeting: Dictionary = variant.get("targeting", {})
+		if not base_kind.is_empty() and variant.get("variant_of", "") == base \
+				and targeting.get("kind", "") == base_kind:
+			if behavior.get("handler") == "most_injured" and base_kind == "automatic" \
+					and targeting.get("direct", {}).is_empty():
+				continue
+			return id
+	return base
 
 
 static func profile(defs: Dictionary, character_id: String) -> Dictionary:
@@ -540,6 +567,8 @@ class Validator:
 		var handler: Variant = ability.get("handler")
 		if not _choice(handler, ABILITY_TARGETING.keys(), path + ".handler"):
 			return
+		if ability.has("variant_of"):
+			_ref(ability.variant_of, "abilities", path + ".variant_of")
 		var targeting := _dictionary(ability.get("targeting"), path + ".targeting")
 		var authored_kind: Variant = targeting.get("kind")
 		var kind := ""
@@ -548,7 +577,7 @@ class Validator:
 		if targeting.has("direct"):
 			var direct_path := path + ".targeting.direct"
 			var direct := _dictionary(targeting.direct, direct_path)
-			if kind != "automatic" or handler not in ["blast", "heal", "perform", "repel", "stop_target", "swap_furthest"]:
+			if kind != "automatic" or handler not in ["blast", "heal", "padding", "perform", "repel", "stop_target", "swap_furthest"]:
 				_error(direct_path, "requires automatic targeting and a handler that supports a Direct entity choice")
 			for field in direct:
 				if field not in ["label", "help"]:
@@ -561,7 +590,7 @@ class Validator:
 			if registration[0] != handler:
 				_error(path + ".fitted_form", "does not match the source ability handler")
 		if targeting.has("range"):
-			if handler in ["move", "quick_release"] or (handler == "summon" and kind == "cell"):
+			if handler in ["move", "quick_release", "shield_wall"] or (handler == "summon" and kind == "cell"):
 				if not _is_integer(targeting.range, 1) or int(targeting.range) != 1:
 					_error(path + ".targeting.range", "supports only an adjacent cell")
 			elif handler == "apply_status":
@@ -580,17 +609,21 @@ class Validator:
 			if params.has(flag):
 				_boolean(params[flag], param_path + flag)
 				var expected := {"allied_only": "hook", "hostile_only": "stop_target", "allow_self": "heal"}
-				if handler != expected[flag]:
+				if handler != expected[flag] and not (flag == "allow_self" and handler == "padding"):
 					_error(param_path + flag, "not supported by this ability handler")
 		if params.has("opponents_only"):
 			_boolean(params.opponents_only, param_path + "opponents_only")
 			if handler not in ["attack", "repel", "stop_target", "sweep"]:
 				_error(param_path + "opponents_only", "not supported by this ability handler")
+		if params.has("shared_reaction"):
+			_boolean(params.shared_reaction, param_path + "shared_reaction")
+			if handler != "acid":
+				_error(param_path + "shared_reaction", "requires an Acid reaction")
 		if params.has("damage_ability") and handler != "perform":
 			_error(param_path + "damage_ability", "requires the perform handler")
 		if params.has("prefer_wounded_self"):
 			_boolean(params.prefer_wounded_self, param_path + "prefer_wounded_self")
-			if handler != "heal" or kind != "automatic":
+			if handler not in ["heal", "padding"] or kind != "automatic":
 				_error(param_path + "prefer_wounded_self", "requires automatic heal targeting")
 		match handler:
 			"move":
@@ -600,6 +633,14 @@ class Validator:
 					_error(path + ".targeting.range", "Quick Release requires an adjacent cell")
 				if ability.has("fitted_form"):
 					_error(path + ".fitted_form", "Quick Release removes the fitting rather than converting")
+			"shield_wall":
+				if _ref("shield_wall", "objects", path + ".handler"):
+					var wall := _record(_defs.objects, "shield_wall")
+					var capabilities: Variant = wall.get("capabilities")
+					if not _is_integer(wall.get("max_hp"), 1) or int(wall.max_hp) != 1 \
+							or not capabilities is Array or capabilities.size() != 2 \
+							or not "blocks_movement" in capabilities or not "damageable" in capabilities:
+						_error("objects.shield_wall", "requires 1 HP and only the blocks_movement and damageable capabilities")
 			"push":
 				_integer(params.get("collision_damage"), param_path + "collision_damage")
 			"apply_status":
@@ -613,8 +654,9 @@ class Validator:
 					_error(param_path + "status", "status must use the misdirect handler")
 			"bonk", "blast":
 				_integer(params.get("damage"), param_path + "damage")
-				_ref(params.get("status"), "statuses", param_path + "status")
-			"heal":
+				if handler != "blast" or not ability.has("variant_of") or params.has("status"):
+					_ref(params.get("status"), "statuses", param_path + "status")
+			"heal", "padding":
 				_integer(params.get("amount"), param_path + "amount")
 			"healing_potion", "plain_tonic", "acid":
 				var field := "damage" if handler == "acid" else "amount"
@@ -650,6 +692,8 @@ class Validator:
 				_ref(params.get("character"), "characters", param_path + "character")
 				_integer(params.get("range"), param_path + "range", 1)
 			"summon":
+				if params.has("stationary"):
+					_boolean(params.stationary, param_path + "stationary")
 				var id: Variant = params.get("character")
 				match ability.get("fitted_form"):
 					"recall_skeleton":
@@ -734,6 +778,13 @@ class Validator:
 			if handler != "pursue":
 				_error(path + "ability_slot", "only pursue can use an equipped ability slot")
 			_text(params.ability_slot, path + "ability_slot")
+		if params.has("wall_ability"):
+			if handler != "use_ability" or params.get("ability") != "knight_aura":
+				_error(path + "wall_ability", "only Guard with Reflecting aura can specify a wall alternative")
+			else:
+				var wall := _check_behavior_action(params.wall_ability, "shield_wall", "cell", path + "wall_ability")
+				if not wall.is_empty() and wall.get("variant_of") != params.ability:
+					_error(path + "wall_ability", "must be a variant of the base ability")
 		if handler in ["use_ability", "pursue", "rescue", "threat", "hook_and_seek",
 				"retreat_attack", "finite_healer", "swap_ally", "nearest_target", "most_injured"]:
 			_check_behavior_ability(handler, params, path + "ability")
@@ -850,7 +901,10 @@ class Validator:
 					_text(params.get("immune_label"), path + ".params.immune_label")
 				if params.has("skip_event"):
 					_ref(params.skip_event, "events", path + ".params.skip_event")
-			"misdirect", "stop_move", "block_voluntary_move":
+			"misdirect":
+				if params.has("obstacles_only"):
+					_boolean(params.obstacles_only, path + ".params.obstacles_only")
+			"stop_move", "block_voluntary_move":
 				pass
 
 	func _check_profile(data: Dictionary, path: String) -> void:
@@ -920,8 +974,12 @@ class Validator:
 	func _behavior_for_kit(behavior: Variant, abilities: Array, path: String) -> void:
 		if not _ref(behavior, "behaviors", path):
 			return
-		for ability in behavior_ability_ids(_defs.behaviors[behavior]):
-			if ability not in abilities:
+		var definition: Dictionary = _defs.behaviors[behavior]
+		var params := _record(definition, "params")
+		for ability in behavior_ability_ids(definition):
+			var wall_equipped: bool = definition.get("handler") == "use_ability" \
+				and ability == params.get("ability") and params.get("wall_ability") in abilities
+			if ability not in abilities and not wall_equipped:
 				_error(path, "behavior '%s' requires '%s' in the effective ability kit" % [behavior, ability])
 
 	static func behavior_ability_ids(behavior: Dictionary) -> Array[String]:

@@ -37,6 +37,14 @@
       "cast_art_key": "knight"
     }
   },
+  "objects": {
+    "shield_wall": {
+      "label": "Shield Wall",
+      "art_key": "shield_wall",
+      "max_hp": 1,
+      "capabilities": ["blocks_movement", "damageable"]
+    }
+  },
   "abilities": {
     "knight_push": {
       "label": "Push",
@@ -66,6 +74,18 @@
       "targeting": {
         "kind": "none"
       }
+    },
+    "knight_shield_wall": {
+      "label": "Shield Wall",
+      "help": "Choose an open adjacent center. The wall spans three perpendicular tiles and has 1 shared HP. You can have only one wall up.",
+      "handler": "shield_wall",
+      "variant_of": "knight_aura",
+      "fitted_form": "thrown_shield_wall",
+      "params": {},
+      "targeting": {
+        "kind": "cell",
+        "range": 1
+      }
     }
   },
   "orders": {
@@ -80,7 +100,8 @@
     "guard": {
       "handler": "use_ability",
       "params": {
-        "ability": "knight_aura"
+        "ability": "knight_aura",
+        "wall_ability": "knight_shield_wall"
       }
     },
     "advance": {

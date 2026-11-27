@@ -92,9 +92,24 @@ static func _can_target(state: Dictionary, actor: Dictionary, target: Dictionary
 
 static func administer(state: Dictionary, actor: Dictionary, target: Dictionary, ability: Dictionary,
 		id: String, events: Array, bonus := 0) -> void:
+	if ability.params.get("shared_reaction", false):
+		administer_shared(state, actor, target, next_reaction(state, actor, "acid"), events)
+		return
 	var dose := bottled_dose(actor) if ability.handler == "repeat_batch" else resolved_dose(
 		id, ability, "damage" if ability.handler == "acid" else "heal")
 	administer_resolved(state, actor, target, dose, dose_reaction(state, actor, dose), bonus, events)
+
+
+## Shared reactions have no single-dose damage or healing to bottle or repeat.
+static func administer_shared(state: Dictionary, actor: Dictionary, target: Dictionary,
+		reaction: Dictionary, events: Array) -> void:
+	var recipients: Array = [target]
+	for other in Board.occupants(state, {}):
+		if other.id != target.id and Board.distance(target.position, other.position) == 1:
+			recipients.append(other)
+	actor["dose_rng_state"] = reaction.seed
+	for recipient in recipients:
+		_react(state, actor, recipient, reaction, events)
 
 
 static func administer_resolved(state: Dictionary, actor: Dictionary, target: Dictionary, dose: Dictionary,

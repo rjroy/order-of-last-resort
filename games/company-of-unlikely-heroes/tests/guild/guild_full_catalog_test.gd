@@ -4,10 +4,12 @@ extends SceneTree
 # The register is an integration contract; only specifically requested prices are pinned.
 const Catalog = preload("res://content/catalog.gd")
 const Progression = preload("res://guild/guild_progression.gd")
+const Profile = preload("res://guild/guild_profile.gd")
 const Adventure = preload("res://expedition/adventure.gd")
 const Commissions = preload("res://expedition/commissions.gd")
 const Rules = preload("res://rules/rules.gd")
 const Rewards = preload("res://expedition/rewards.gd")
+const Combat = preload("res://rules/combat.gd")
 const FOUNDERS := ["knight", "healer", "wizard"]
 const RECRUITS := {"recruit_bard": "bard", "recruit_rogue": "rogue",
 	"recruit_necromancer": "necromancer", "recruit_alchemist": "alchemist",
@@ -16,11 +18,18 @@ const RECRUITS := {"recruit_bard": "bard", "recruit_rogue": "rogue",
 # is checked independently even for entries with no explicit prerequisite.
 const TRAINING := {
 	"knight_rescue_line": ["knight", []],
+	"knight_shield_wall": ["knight", []],
 	"knight_escort_order": ["knight", []],
 	"knight_learn_bonk": ["knight", []],
 	"teach_healer_blast": ["healer", []],
 	"healer_blast_order": ["healer", ["teach_healer_blast"]],
 	"healer_triage_order": ["healer", []],
+	"healer_apply_padding": ["healer", []],
+	"wizard_through_shot": ["wizard", []],
+	"rogue_blame_furniture": ["rogue", []],
+	"necro_stay_friend": ["necromancer", []],
+	"alchemist_shared_sample": ["alchemist", []],
+	"blacksmith_sweep": ["blacksmith", []],
 	"wizard_ring_sparks": ["wizard", []],
 	"wizard_stand_back": ["wizard", []],
 	"wizard_learn_dodge": ["wizard", ["recruit_rogue"]],
@@ -58,6 +67,17 @@ const TRAINING := {
 	"order_smith_acid_petition": ["blacksmith", ["blacksmith_learn_acid"]],
 }
 
+# Hero, native slot, native ability, other slot, base order and its independent
+# petition (empty for a starting order), and recipient recruitment petition.
+const BASE_ABILITY_VARIANTS := {
+	"knight_shield_wall": ["knight", "utility", "knight_aura", "offense", "order_guard", "", ""],
+	"wizard_through_shot": ["wizard", "offense", "wizard_blast", "utility", "order_blast", "", ""],
+	"rogue_blame_furniture": ["rogue", "offense", "rogue_wasnt_me", "utility", "order_pass_the_blame", "order_rogue_blame", "recruit_rogue"],
+	"necro_stay_friend": ["necromancer", "offense", "summon_skeleton", "utility", "order_make_a_friend", "", "recruit_necromancer"],
+	"alchemist_shared_sample": ["alchemist", "offense", "alchemist_acid", "utility", "order_throw_samples", "alchemist_throw_samples", "recruit_alchemist"],
+	"blacksmith_sweep": ["blacksmith", "offense", "blacksmith_hammer_time", "utility", "order_pursue", "order_smith_pursue", "recruit_blacksmith"],
+}
+
 var failures: Array[String] = []
 var defs: Dictionary
 var rules := Rules.new()
@@ -68,8 +88,15 @@ func _initialize() -> void:
 	defs.characters.harpooner.behavior = "hold"
 	defs.characters.ferryman.behavior = "hold"
 	_test_requested_healer_caster_contract()
+	_test_apply_padding_purchase()
+	_test_entity_heal_variant_support_compatibility()
+	_test_automatic_variant_without_direct_triage_compatibility()
+	_test_knight_rescue_slot_and_legacy()
+	_test_legacy_knight_rescue_bonk_hold()
 	_test_register()
 	_test_ability_order_coverage()
+	_test_base_ability_variants()
+	_test_shield_wall_rescue_loadout()
 	_test_fallback_hold_preference()
 	_test_practice_and_scoping()
 	_test_scoped_actions()
@@ -168,6 +195,128 @@ func _test_requested_healer_caster_contract() -> void:
 		"Custom catalogs retaining Field Dressing keep the saved custom loadout")
 
 
+func _test_apply_padding_purchase() -> void:
+	var profile := _profile()
+	var initial := Progression.default_loadout(defs, profile, "healer")
+	var row := _row(profile, "healer_apply_padding")
+	_check(not row.is_empty() and row.get("can_buy", false),
+		"Apply Padding is an available Healer petition")
+	if row.is_empty():
+		return
+	var bought := Progression.purchased_profile(defs, profile, "healer_apply_padding")
+	_check(not bought.has("error"), "Apply Padding can be purchased")
+	if bought.has("error"):
+		return
+	var unchanged := Progression.default_loadout(defs, bought, "healer")
+	_check(unchanged == initial and unchanged.get("slots", {}).get("utility") == "healer_heal",
+		"Buying Apply Padding does not equip it")
+	var choices := Progression.slot_options(defs, bought, "healer")
+	_check("healer_apply_padding" in choices.get("utility", [])
+		and "healer_apply_padding" not in choices.get("offense", []),
+		"Apply Padding is a utility choice only")
+	var selected := unchanged.duplicate(true)
+	selected.slots.utility = "healer_apply_padding"
+	var kit := Progression.effective_kit(defs, bought, "healer", selected)
+	_check("healer_apply_padding" in kit.get("abilities", [])
+		and "healer_heal" not in kit.get("abilities", [])
+		and "healer_bonk" in kit.get("abilities", [])
+		and kit.get("habits", {}).has("order_support"),
+		"Equipping Padding replaces Heal only and keeps Support")
+	if not kit.is_empty():
+		var state := _battle(bought, "healer", selected)
+		if not state.is_empty():
+			_unit_at(state, "healer").hp = 10
+			_unit_at(state, "enemy").position = Vector2i(10, 8)
+			state = rules.set_order(state, "healer", "order_support")
+			var before := state.duplicate(true)
+			var plan: Dictionary = rules.preview_round(state)
+			_check(plan.get("valid", false) and state == before
+				and rules.commit_round(state, plan) == plan.get("result"),
+				"Support Padding forecast is read-only and agrees with commit")
+			if plan.get("valid", false):
+				var result: Dictionary = plan.result
+				var healer := _unit_at(result, "healer")
+				_check(healer.hp == 10, "Support Padding never heals wounded self")
+				Combat.hurt(result, _unit_at(result, "enemy"), healer, 2, "test hit", "", [])
+				_check(healer.hp == 10, "Support applies Padding to wounded self")
+		else:
+			_check(false, "Healer equipped with Padding deploys")
+	var triage_profile := Progression.purchased_profile(defs, bought, "healer_triage_order")
+	if not triage_profile.has("error"):
+		selected.order_id = "order_healer_triage"
+		_check(not Progression.effective_kit(defs, triage_profile, "healer", selected).is_empty(),
+			"Purchased Triage is compatible with equipped Padding")
+	else:
+		_check(false, "Triage can be purchased independently of Padding")
+
+
+func _test_entity_heal_variant_support_compatibility() -> void:
+	var custom := defs.duplicate(true)
+	var entity_heal: Dictionary = custom.abilities.healer_heal.duplicate(true)
+	entity_heal.targeting.kind = "entity"
+	entity_heal.targeting.erase("direct")
+	entity_heal.params.erase("prefer_wounded_self")
+	entity_heal.erase("fitted_form")
+	custom.abilities["test_entity_heal"] = entity_heal
+	var petition: Dictionary = custom.guild_progression.petitions.healer_apply_padding.duplicate(true)
+	petition.grant.ability_id = "test_entity_heal"
+	custom.guild_progression.petitions["test_entity_heal"] = petition
+	var control_errors := Catalog.validate(custom)
+	control_errors.append_array(Catalog.validate_guild_progression(custom))
+	_check(control_errors.is_empty(), "Entity Heal fixture without variant alias is a valid catalog")
+	if not control_errors.is_empty():
+		return
+
+	# No replacement behavior is authored: Support supplies no target.
+	custom.abilities.test_entity_heal["variant_of"] = "healer_heal"
+	var errors := Catalog.validate(custom)
+	errors.append_array(Catalog.validate_guild_progression(custom))
+	if not errors.is_empty():
+		var identifies_alias := false
+		for error in errors:
+			if "test_entity_heal" in error or "variant_of" in error:
+				identifies_alias = true
+				break
+		_check(identifies_alias,
+			"Catalog rejection identifies the incompatible entity Heal alias")
+		return
+	var profile := _profile()
+	profile.purchased_ids = ["test_entity_heal"]
+	var loadout := Progression.default_loadout(custom, profile, "healer")
+	loadout.slots.utility = "test_entity_heal"
+	loadout.order_id = "order_support"
+	var support_compatible := false
+	for row in Progression.order_options(custom, profile, "healer", loadout):
+		if row.get("id") == "order_support" and row.get("compatible", false):
+			support_compatible = true
+	_check(not support_compatible and Progression.effective_kit(custom, profile, "healer", loadout).is_empty(),
+		"Support cannot delegate a targetless action to an entity-targeted Heal variant")
+
+
+func _test_automatic_variant_without_direct_triage_compatibility() -> void:
+	var custom := defs.duplicate(true)
+	var variant: Dictionary = custom.abilities.healer_apply_padding.duplicate(true)
+	variant.targeting.erase("direct")
+	custom.abilities["test_padding_without_direct"] = variant
+	var petition: Dictionary = custom.guild_progression.petitions.healer_apply_padding.duplicate(true)
+	petition.grant.ability_id = "test_padding_without_direct"
+	custom.guild_progression.petitions["test_padding_without_direct"] = petition
+	var profile := _profile()
+	profile.purchased_ids = ["test_padding_without_direct", "healer_triage_order"]
+	var loadout := Progression.default_loadout(custom, profile, "healer")
+	loadout.slots.utility = "test_padding_without_direct"
+	loadout.order_id = "order_support"
+	_check(not Progression.effective_kit(custom, profile, "healer", loadout).is_empty(),
+		"Support accepts an automatic Padding variant without direct targeting")
+	loadout.order_id = "order_healer_triage"
+	var triage_compatible := false
+	for row in Progression.order_options(custom, profile, "healer", loadout):
+		if row.get("id") == "order_healer_triage" and row.get("compatible", false):
+			triage_compatible = true
+	_check(not triage_compatible and Progression.effective_kit(custom, profile, "healer", loadout).is_empty(),
+		"Triage cannot select an automatic Heal variant without direct targeting")
+
+
 func _test_triage_rounds(profile: Dictionary, loadout: Dictionary) -> void:
 	var state := _battle(profile, "healer", loadout)
 	if state.is_empty():
@@ -242,8 +391,155 @@ func _test_fallback_hold_preference() -> void:
 	# Isolate the historical no-compatible-starter case. Stock Knight now has
 	# a compatible move-only starter even after both abilities are replaced.
 	defs.guild_progression.starting_habits.knight.erase("order_knight_advance_move")
+	defs.guild_progression.petitions.knight_rescue_line.grant.slot_id = "utility"
 	_exercise_fallback_hold_preference()
 	defs = original
+
+
+func _test_knight_rescue_slot_and_legacy() -> void:
+	var profile := _profile()
+	profile.purchased_ids = ["knight_rescue_line", "knight_learn_bonk",
+		"order_knight_advance", "order_knight_rescue_petition", "order_knight_bonk_petition"]
+	var choices := Progression.slot_options(defs, profile, "knight")
+	_check("knight_rescue_line" in choices.get("offense", [])
+		and "knight_rescue_line" not in choices.get("utility", []),
+		"Purchased Rescue Line is an offense choice, not utility")
+	var rescue := {"slots": {"offense": "knight_rescue_line", "utility": "knight_aura"},
+		"order_id": "order_guard"}
+	var kit := Progression.effective_kit(defs, profile, "knight", rescue)
+	_check("knight_rescue_line" in kit.get("abilities", [])
+		and "knight_aura" in kit.get("abilities", [])
+		and "knight_push" not in kit.get("abilities", [])
+		and kit.get("habits", {}).has("order_guard")
+		and kit.get("habits", {}).has("order_knight_rescue")
+		and not kit.get("habits", {}).has("order_advance"),
+		"Rescue replaces Push, retains Aura and Guard, and enables only its compatible learned order")
+	var push := rescue.duplicate(true)
+	push.slots.offense = "knight_push"
+	push.order_id = "order_advance"
+	var push_kit := Progression.effective_kit(defs, profile, "knight", push)
+	_check(push_kit.get("habits", {}).has("order_advance")
+		and not push_kit.get("habits", {}).has("order_knight_rescue"),
+		"Advance and Push requires Push, while Rescue order requires Rescue Line")
+
+	for example in [
+			["knight_push", "order_knight_rescue", "knight_rescue_line"],
+			["healer_bonk", "order_knight_rescue", "knight_rescue_line"],
+			["healer_bonk", "order_knight_bonk", "healer_bonk"]]:
+		var legacy := profile.duplicate(true)
+		legacy.preferred_loadouts.knight = {"slots": {"offense": example[0],
+			"utility": "knight_rescue_line"}, "order_id": example[1]}
+		var before := legacy.duplicate(true)
+		var restored := Progression.default_loadout(defs, legacy, "knight")
+		_check(restored.get("slots", {}).get("offense") == example[2]
+			and restored.get("slots", {}).get("utility") == "knight_aura"
+			and restored.get("order_id") == example[1]
+			and not Progression.effective_kit(defs, legacy, "knight", restored).is_empty(),
+			"Legacy %s / Rescue with %s preserves the order and chosen compatible offense" % [example[0], example[1]])
+		_check(legacy == before, "Resolving a legacy loadout preserves saved preferences and purchases")
+
+	var custom := defs.duplicate(true)
+	custom.guild_progression.petitions.knight_rescue_line.grant.slot_id = "utility"
+	var legacy := profile.duplicate(true)
+	legacy.preferred_loadouts.knight = {"slots": {"offense": "knight_push",
+		"utility": "knight_rescue_line"}, "order_id": "order_knight_rescue"}
+	_check(Progression.default_loadout(custom, legacy, "knight") == legacy.preferred_loadouts.knight,
+		"Custom catalog retaining utility Rescue Line keeps its own valid preference")
+
+	# Write an old-format preference to a unique disposable profile, then exercise
+	# the same reload and save boundaries used by recruitment.
+	var path := "user://rescue_legacy_%d_%d.json" % [OS.get_process_id(), Time.get_ticks_usec()]
+	var created := Profile.create(path, "Legacy Rescue Fixture", 147258)
+	if created.has("error"):
+		_check(false, "Create legacy Rescue profile: " + str(created))
+		return
+	var stored: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if not stored is Dictionary:
+		_check(false, "Created profile contains a persisted JSON object")
+		_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(path)) == OK,
+			"Remove disposable Rescue fixture " + path)
+		return
+	stored["purchased_ids"] = profile.purchased_ids.duplicate()
+	stored["preferred_loadouts"] = legacy.preferred_loadouts.duplicate(true)
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		_check(false, "Write legacy Rescue profile")
+	else:
+		file.store_string(JSON.stringify(stored))
+		file.close()
+		var loaded := Profile.load_profile(path)
+		_check(not loaded.has("error") and not loaded.is_empty(),
+			"Legacy persisted profile loads successfully: " + str(loaded.get("error", "")))
+		if not loaded.has("error") and not loaded.is_empty():
+			_check(loaded.get("preferred_loadouts", {}) == legacy.preferred_loadouts
+				and loaded.get("purchased_ids") == profile.purchased_ids,
+				"Reload preserves the old slots and purchases before resolving the loadout")
+			var restored := Profile.default_loadout(defs, loaded, "knight")
+			_check(restored.get("slots", {}) == {"offense": "knight_rescue_line", "utility": "knight_aura"}
+				and restored.get("order_id") == "order_knight_rescue",
+				"Reloaded legacy Push / Rescue preference resolves to Rescue / Aura with its saved order")
+			var saved := Profile.save_loadouts(path, loaded, defs, {"knight": restored})
+			var reloaded := Profile.load_profile(path)
+			_check(not saved.has("error") and reloaded.get("preferred_loadouts", {}).get("knight") == restored
+				and reloaded.get("purchased_ids") == profile.purchased_ids,
+				"Saving the recovered kit persists it without losing purchases")
+	for owned in [path, path + ".backup"]:
+		if FileAccess.file_exists(owned):
+			_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(owned)) == OK,
+				"Remove disposable Rescue fixture " + owned)
+
+
+func _test_legacy_knight_rescue_bonk_hold() -> void:
+	var path := "user://rescue_bonk_hold_%d_%d.json" % [OS.get_process_id(), Time.get_ticks_usec()]
+	var created := Profile.create(path, "Legacy Hold Fixture", 147258)
+	if created.has("error"):
+		_check(false, "Create legacy Hold profile: " + str(created))
+		return
+	var persisted: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if not persisted is Dictionary:
+		_check(false, "Created Hold profile contains a persisted JSON object")
+	else:
+		var purchases := ["knight_rescue_line", "knight_learn_bonk"]
+		var old_loadout := {"slots": {"offense": "healer_bonk", "utility": "knight_rescue_line"},
+			"order_id": "order_hold"}
+		persisted["purchased_ids"] = purchases
+		persisted["preferred_loadouts"] = {"knight": old_loadout}
+		var file := FileAccess.open(path, FileAccess.WRITE)
+		if file == null:
+			_check(false, "Write legacy Bonk / Rescue / Hold profile")
+		else:
+			file.store_string(JSON.stringify(persisted))
+			file.close()
+			var loaded := Profile.load_profile(path)
+			_check(not loaded.has("error") and loaded.get("preferred_loadouts", {}).get("knight") == old_loadout
+				and loaded.get("purchased_ids") == purchases,
+				"Legacy Bonk / Rescue / Hold profile reloads with both purchases")
+			if not loaded.has("error") and not loaded.is_empty():
+				var restored := Profile.default_loadout(defs, loaded, "knight")
+				var expected := {"slots": {"offense": "healer_bonk", "utility": "knight_aura"},
+					"order_id": "order_hold"}
+				_check(restored == expected,
+					"Legacy fallback Hold remains selected after recovering Bonk and Aura")
+				var kit := Progression.effective_kit(defs, loaded, "knight", restored)
+				_check(kit.get("default_order") == "order_hold"
+					and kit.get("habits", {}).has("order_hold"),
+					"Recovered legacy fallback Hold produces an effective kit")
+				var hold_offered := false
+				for row in Progression.order_options(defs, loaded, "knight", restored):
+					if row.get("id") == "order_hold" and row.get("compatible", false):
+						hold_offered = true
+				_check(hold_offered, "Recovered legacy fallback Hold is a compatible order option")
+				var saved := Profile.save_loadouts(path, loaded, defs, {"knight": restored})
+				var reloaded := Profile.load_profile(path)
+				_check(not saved.has("error") and not reloaded.has("error")
+					and reloaded.get("preferred_loadouts", {}).get("knight") == expected
+					and reloaded.get("purchased_ids") == purchases
+					and Profile.default_loadout(defs, reloaded, "knight") == expected,
+					"Recovered Bonk / Aura / Hold survives save and reload without losing purchases")
+	for owned in [path, path + ".backup"]:
+		if FileAccess.file_exists(owned):
+			_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(owned)) == OK,
+				"Remove disposable Hold fixture " + owned)
 
 
 func _exercise_fallback_hold_preference() -> void:
@@ -404,6 +700,21 @@ func _test_ability_order_coverage() -> void:
 		var ability: Dictionary = ability_spec.get("grant", {})
 		if ability.get("kind") != "ability" or ability_spec.get("teaser", false):
 			continue
+		if BASE_ABILITY_VARIANTS.has(ability_id):
+			continue # Checked with the native order and real purchases below.
+		if ability_id == "healer_apply_padding":
+			var profile := _profile()
+			profile.purchased_ids = [ability_id]
+			var loadout := Progression.default_loadout(defs, profile, "healer")
+			loadout.slots.utility = "healer_apply_padding"
+			loadout.order_id = "order_support"
+			_check(not Progression.effective_kit(defs, profile, "healer", loadout).is_empty(),
+				"Padding reuses the starting Support order without another purchase")
+			profile.purchased_ids.append("healer_triage_order")
+			loadout.order_id = "order_healer_triage"
+			_check(not Progression.effective_kit(defs, profile, "healer", loadout).is_empty(),
+				"Padding reuses independently purchased Triage")
+			continue
 		var found := false
 		for order_id in table:
 			var spec: Dictionary = table[order_id]
@@ -425,6 +736,74 @@ func _test_ability_order_coverage() -> void:
 				found = true
 				break
 		_check(found, ability_id + " has a separately purchased compatible order requiring that ability")
+
+
+func _test_base_ability_variants() -> void:
+	for id in BASE_ABILITY_VARIANTS:
+		var example: Array = BASE_ABILITY_VARIANTS[id]
+		var hero: String = example[0]
+		var slot: String = example[1]
+		var native: String = example[2]
+		var other_slot: String = example[3]
+		var order: String = example[4]
+		var order_petition: String = example[5]
+		var recruit: String = example[6]
+		var profile := _profile()
+		if not recruit.is_empty():
+			profile = Progression.purchased_profile(defs, profile, recruit)
+			if profile.has("error"):
+				_check(false, id + ": recipient can be recruited")
+				continue
+		if not order_petition.is_empty():
+			profile = Progression.purchased_profile(defs, profile, order_petition)
+			if profile.has("error"):
+				_check(false, id + ": native order can be learned before the variant")
+				continue
+		var original := Progression.default_loadout(defs, profile, hero)
+		original.order_id = order
+		_check(not Progression.effective_kit(defs, profile, hero, original).is_empty(),
+			id + ": native order works before buying the variant")
+		_check(id not in Progression.slot_options(defs, profile, hero).get(slot, []),
+			id + ": variant is not selectable before purchase")
+		var bought := Progression.purchased_profile(defs, profile, id)
+		_check(not bought.has("error"), id + ": variant can be purchased")
+		if bought.has("error"):
+			continue
+		var default_loadout := Progression.default_loadout(defs, bought, hero)
+		_check(default_loadout.slots == original.slots and default_loadout.slots.get(slot) == native,
+			id + ": purchase does not auto-equip")
+		var choices := Progression.slot_options(defs, bought, hero)
+		_check(id in choices.get(slot, []) and id not in choices.get(other_slot, []),
+			id + ": selectable only in its native slot")
+		var selected := default_loadout.duplicate(true)
+		selected.slots[slot] = id
+		selected.order_id = order
+		var kit := Progression.effective_kit(defs, bought, hero, selected)
+		var abilities: Array = kit.get("abilities", [])
+		_check(id in abilities and native not in abilities
+			and default_loadout.slots[other_slot] in abilities and kit.get("habits", {}).has(order),
+			id + ": replaces only its native ability and reuses its native order")
+
+
+func _test_shield_wall_rescue_loadout() -> void:
+	var profile := Progression.purchased_profile(defs, _profile(), "knight_shield_wall")
+	if profile.has("error"):
+		_check(false, "Shield Wall can be purchased alongside Rescue Line")
+		return
+	profile = Progression.purchased_profile(defs, profile, "knight_rescue_line")
+	if profile.has("error"):
+		_check(false, "Rescue Line can be purchased alongside Shield Wall")
+		return
+	var loadout := Progression.default_loadout(defs, profile, "knight")
+	loadout.slots.offense = "knight_rescue_line"
+	loadout.slots.utility = "knight_shield_wall"
+	loadout.order_id = "order_guard"
+	var kit := Progression.effective_kit(defs, profile, "knight", loadout)
+	_check("knight_rescue_line" in kit.get("abilities", [])
+		and "knight_shield_wall" in kit.get("abilities", [])
+		and "knight_aura" not in kit.get("abilities", [])
+		and kit.get("habits", {}).has("order_guard"),
+		"Shield Wall keeps Guard compatible with independently equipped Rescue Line")
 
 
 func _test_practice_and_scoping() -> void:

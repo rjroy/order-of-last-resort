@@ -4,6 +4,7 @@ extends RefCounted
 
 const Catalog = preload("res://content/catalog.gd")
 const Board = preload("res://rules/board.gd")
+const ShieldWall = preload("res://rules/shield_wall.gd")
 const Statuses = preload("res://rules/statuses.gd")
 const FittedCastBindings = preload("res://presentation/cast/fitted_cast_bindings.gd")
 # [expected rules handler, clip]. Catalog authors can redefine an ability ID.
@@ -159,9 +160,12 @@ static func build(before: Dictionary, after: Dictionary, events: Array, include_
 	var health := {}
 	var prone := {}
 	var shield_away := {}
+	var walls := {}
 	for obstacle in before.obstacles:
 		if obstacle.has("hp"):
 			health[obstacle.id] = int(obstacle.hp)
+		if obstacle.get("object_id") == ShieldWall.OBJECT_ID:
+			walls[obstacle.id] = true
 	for unit in before.units:
 		health[unit.id] = int(unit.hp)
 		prone[unit.id] = int(unit.hp) <= 0 or Statuses.knocked_down(before, unit)
@@ -196,6 +200,16 @@ static func build(before: Dictionary, after: Dictionary, events: Array, include_
 				var projection := _project_hp(after, actors.get(source, {}), source, hp, "boundary")
 				projection["presentation_boundary"] = true
 				cues.append(projection)
+		if action.is_empty() and include_silent and events[index].get("type") == "collapse_fall":
+			var fall: Dictionary = events[index]
+			var fallen_id: String = fall.unit_id
+			if walls.has(fallen_id):
+				var effect := {"kind": "collapse_fall", "source_id": fallen_id, "target_id": fallen_id,
+					"cell": fall.position, "event_index": index, "timing": "round_end", "hp_after": 0}
+				var projection := _project_hp(after, {}, fallen_id, effect, "boundary")
+				projection["presentation_boundary"] = true
+				cues.append(projection)
+				health[fallen_id] = 0
 		var branch := "converted" if action.has("source_ability_id") else "ordinary"
 		if echo:
 			branch = "echo"
@@ -443,6 +457,10 @@ static func build(before: Dictionary, after: Dictionary, events: Array, include_
 					health[healed] += int(event.get("amount", 0))
 			elif event.get("type") == "summon" and event.has("hp"):
 				health[event.summon_id] = int(event.hp)
+			elif event.get("type") == "shield_wall_placed":
+				walls[event.wall_id] = true
+				health[event.wall_id] = int(event.hp)
+				positions[event.wall_id] = event.position
 			elif (event.get("type") == "status" and Statuses.is_knockdown(after, event.get("status_id", ""))) \
 					or (event.get("type") == "alchemy_reaction" and event.get("reaction_id") == "jelly_knees" \
 					and event.get("applied", false)):
@@ -786,7 +804,7 @@ static func _supports_shape(definitions: Dictionary, ability: Dictionary, clip: 
 
 static func _observe_silent(cue: Dictionary, event: Dictionary, positions: Dictionary) -> void:
 	var target: String = event.get("target_id", "")
-	var cell: Variant = positions.get(target)
+	var cell: Variant = event.get("impact_position", positions.get(target))
 	match event.get("type", ""):
 		"damage":
 			if int(event.get("amount", 0)) > 0 and event.get("source_id") == cue.unit_id:
@@ -829,7 +847,7 @@ static func _observe_performance(cue: Dictionary, event: Dictionary, index: int,
 	var owner: String = event.get("unit_id", "")
 	var source: String = event.get("source_id", owner)
 	var target: String = event.get("target_id", "")
-	var cell: Variant = positions.get(target)
+	var cell: Variant = event.get("impact_position", positions.get(target))
 	if event.has("dose_delivery"):
 		use["dose"] = event.dose_delivery.duplicate()
 		_set_aim(use, use.dose.recipient_id, use.dose.cell, true)
@@ -942,6 +960,13 @@ static func _observe_performance(cue: Dictionary, event: Dictionary, index: int,
 						and earlier.to == positions.get(owner):
 					effect["phase"] = "landing"
 					effect["motion_event_index"] = earlier.event_index
+		"shield_wall_placed":
+			if owner != actor:
+				return
+			_set_aim(use, event.wall_id, event.position)
+			effect.merge({"target_id": event.wall_id, "cell": event.position, "cells": event.cells.duplicate(),
+				"hp_after": event.hp, "facing": event.get("facing", Vector2i.ZERO),
+				"art_key": state.catalog.defs.objects[ShieldWall.OBJECT_ID].art_key}, true)
 		"summon":
 			if owner != actor:
 				return
@@ -983,7 +1008,7 @@ static func _hp_effect(event: Dictionary, index: int, positions: Dictionary, hea
 	var target: String = event.get("target_id", "")
 	var source: String = event.get("source_id", event.get("unit_id", target))
 	var effect := {"kind": event.type, "source_id": source, "target_id": target,
-		"cell": positions.get(target), "event_index": index, "amount": amount}
+		"cell": event.get("impact_position", positions.get(target)), "event_index": index, "amount": amount}
 	if event.has("effect_timing"):
 		effect["timing"] = event.effect_timing
 	if health.has(target):
@@ -1014,7 +1039,7 @@ static func _observe(cue: Dictionary, event: Dictionary, positions: Dictionary) 
 		_observe_ordinary_action(cue, event, positions)
 		return
 	var id: String = event.get("target_id", "")
-	var cell: Variant = positions.get(id)
+	var cell: Variant = event.get("impact_position", positions.get(id))
 	var actor: String = cue.unit_id
 	var clip: String = cue.clip
 	var own_action: bool = event.get("unit_id") == actor
@@ -1191,7 +1216,7 @@ static func _observe_ordinary_strike(cue: Dictionary, event: Dictionary, positio
 		"damage":
 			if event.get("source_id") == cue.unit_id and not event.has("damage_cause"):
 				var target: String = event.get("target_id", "")
-				var cell: Variant = positions.get(target)
+				var cell: Variant = event.get("impact_position", positions.get(target))
 				if not cue.has("target_cell"):
 					_aim(cue, target, cell)
 				if int(event.get("amount", 0)) > 0:

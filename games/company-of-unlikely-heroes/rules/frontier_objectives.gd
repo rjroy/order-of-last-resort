@@ -305,13 +305,18 @@ static func _collapse_due_spans(state: Dictionary, events: Array) -> void:
 			{"round": state.round, "cells": span.cells.duplicate()})
 		# Resolve falls after the terrain changes so no reaction can spawn onto a gap.
 		for occupant in state.units + state.obstacles:
-			if Board.alive(occupant) and occupant.position in span.cells:
+			if not Board.alive(occupant):
+				continue
+			for cell: Vector2i in span.cells:
+				if not Board.occupies_cell(occupant, cell):
+					continue
 				occupant.hp = 0
 				FittingState.clear(occupant)
 				Board.event(events, "collapse_fall", "%s falls with the bridge at %s." % [
-					Board.display_name(state, occupant), Board.coordinate(occupant.position)],
-					{"unit_id": occupant.id, "position": occupant.position})
+					Board.display_name(state, occupant), Board.coordinate(cell)],
+					{"unit_id": occupant.id, "position": cell})
 				Summons.on_fall(state, occupant, events)
+				break
 
 
 static func _occupied_circles(state: Dictionary) -> int:

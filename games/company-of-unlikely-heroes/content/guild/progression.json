@@ -35,6 +35,40 @@
       }
     },
     "petitions": {
+      "alchemist_shared_sample": {
+        "label": "Shared Sample",
+        "description": "Equip Shared Sample instead of Acid. Share one Acid reaction with the target and adjacent living characters without guaranteed damage.",
+        "cost": 5,
+        "grant": {"kind": "ability", "hero_id": "alchemist", "slot_id": "offense", "ability_id": "alchemist_shared_sample"},
+        "prerequisites": ["recruit_alchemist"]
+      },
+      "rogue_blame_furniture": {
+        "label": "Blame the Furniture",
+        "description": "Equip Blame the Furniture instead of Wasn't Me. Mark an enemy to redirect its next attack toward adjacent furniture.",
+        "cost": 5,
+        "grant": {"kind": "ability", "hero_id": "rogue", "slot_id": "offense", "ability_id": "rogue_blame_furniture"},
+        "prerequisites": ["recruit_rogue"]
+      },
+      "necro_stay_friend": {
+        "label": "Stay, Friend",
+        "description": "Equip Stay, Friend instead of Summon Skeleton. Its skeleton greets without pursuing.",
+        "cost": 5,
+        "grant": {"kind": "ability", "hero_id": "necromancer", "slot_id": "offense", "ability_id": "necro_stay_friend"},
+        "prerequisites": ["recruit_necromancer"]
+      },
+      "wizard_through_shot": {
+        "label": "Through Shot",
+        "description": "Equip Through Shot instead of Blast. Hit a primary target and the first eligible target behind it.",
+        "cost": 5,
+        "grant": {"kind": "ability", "hero_id": "wizard", "slot_id": "offense", "ability_id": "wizard_through_shot"}
+      },
+      "blacksmith_sweep": {
+        "label": "Sweep",
+        "description": "Equip Sweep instead of Hammer Time. Hit up to two adjacent opponents for 1 damage each.",
+        "cost": 5,
+        "grant": {"kind": "ability", "hero_id": "blacksmith", "slot_id": "offense", "ability_id": "blacksmith_sweep"},
+        "prerequisites": ["recruit_blacksmith"]
+      },
       "recruit_blacksmith": {
         "label": "Recruit the Hobby Smith",
         "description": "Recruit with Hammer Time, Try This, and the Try This and Hold standing orders.",
@@ -120,6 +154,17 @@
           "ability_id": "knight_rescue_line"
         }
       },
+      "knight_shield_wall": {
+        "label": "Shield Wall",
+        "description": "Equip Shield Wall instead of Reflecting aura. Block three open tiles with one shared HP. Guard places the first legal wall or waits.",
+        "cost": 5,
+        "grant": {
+          "kind": "ability",
+          "hero_id": "knight",
+          "slot_id": "utility",
+          "ability_id": "knight_shield_wall"
+        }
+      },
       "knight_escort_order": {
         "label": "Stay Close",
         "description": "Follow the closest other ally and stop adjacent.",
@@ -167,9 +212,20 @@
           "teach_healer_blast"
         ]
       },
+      "healer_apply_padding": {
+        "label": "Apply Padding",
+        "description": "Equip Apply Padding instead of Heal. Give a patient a 2-point damage buffer, without healing.",
+        "cost": 5,
+        "grant": {
+          "kind": "ability",
+          "hero_id": "healer",
+          "slot_id": "utility",
+          "ability_id": "healer_apply_padding"
+        }
+      },
       "healer_triage_order": {
         "label": "Triage",
-        "description": "Use equipped Heal on the patient missing the most HP within 3 tiles, including the Healer. Wait if no legal patient is wounded.",
+        "description": "Use equipped Heal or Apply Padding on the patient missing the most HP within 3 tiles, including the Healer. Wait if no legal patient is wounded.",
         "cost": 6,
         "grant": {
           "kind": "order",
@@ -329,7 +385,7 @@
       },
       "alchemist_throw_samples": {
         "label": "Throw Samples",
-        "description": "Delegate the equipped Acid against the nearest hostile in reach.",
+        "description": "Delegate equipped Acid or Shared Sample against the nearest hostile in reach.",
         "cost": 3,
         "grant": {
           "kind": "order",
@@ -352,10 +408,10 @@
       "order_knight_advance": {"label":"Advance and Push", "description":"Pursue and Push the nearest opponent.", "cost":3, "grant":{"kind":"order","hero_id":"knight","order_id":"order_advance","behavior_id":"advance"}},
       "order_healer_aggressive": {"label":"Pursue and Bonk", "description":"Pursue and Bonk the nearest opponent.", "cost":3, "grant":{"kind":"order","hero_id":"healer","order_id":"order_aggressive","behavior_id":"aggressive"}},
       "order_wizard_pull_petition": {"label":"Pull the Nearest", "description":"Pull the nearest legal character, even a friend, and suffer recoil.", "cost":3, "grant":{"kind":"order","hero_id":"wizard","order_id":"order_wizard_pull","behavior_id":"guild_wizard_pull"}},
-      "order_rogue_blame": {"label":"Pass the Blame", "description":"Delegate Wasn't Me.", "cost":3, "grant":{"kind":"order","hero_id":"rogue","order_id":"order_pass_the_blame","behavior_id":"guild_pass_blame"}},
+      "order_rogue_blame": {"label":"Pass the Blame", "description":"Delegate equipped Wasn't Me or Blame the Furniture.", "cost":3, "grant":{"kind":"order","hero_id":"rogue","order_id":"order_pass_the_blame","behavior_id":"guild_pass_blame"}},
       "order_necro_raise": {"label":"Raise Dead", "description":"Raise the nearest legal corpse, with ties in encounter order.", "cost":3, "grant":{"kind":"order","hero_id":"necromancer","order_id":"order_raise_dead","behavior_id":"guild_raise_dead"}},
       "order_bard_sonnet": {"label":"Healing Sonnet", "description":"Sing Sonnet to a random eligible opponent.", "cost":3, "grant":{"kind":"order","hero_id":"bard","order_id":"order_healing_sonnet","behavior_id":"sing_sonnet"}},
-      "order_smith_pursue": {"label":"Pursue with Hammer Time", "description":"Pursue and use equipped Hammer Time.", "cost":3, "grant":{"kind":"order","hero_id":"blacksmith","order_id":"order_pursue","behavior_id":"guild_smith_hammer"}},
+      "order_smith_pursue": {"label":"Pursue with Hammer Time", "description":"Pursue and use equipped Hammer Time or Sweep.", "cost":3, "grant":{"kind":"order","hero_id":"blacksmith","order_id":"order_pursue","behavior_id":"guild_smith_hammer"}},
       "order_knight_rescue_petition": {"label":"Rescue on Standing Orders", "description":"Use equipped Rescue Line on the nearest legal ally.", "cost":3, "prerequisites":["knight_rescue_line"], "grant":{"kind":"order","hero_id":"knight","order_id":"order_knight_rescue","behavior_id":"guild_knight_rescue"}},
       "order_knight_bonk_petition": {"label":"Knight's Bonk", "description":"Use equipped Bonk on the nearest legal opponent.", "cost":3, "prerequisites":["knight_learn_bonk"], "grant":{"kind":"order","hero_id":"knight","order_id":"order_knight_bonk","behavior_id":"guild_knight_bonk"}},
       "order_wizard_sparks_petition": {"label":"Ring on Standing Orders", "description":"Use equipped Ring of Sparks, even beside friends.", "cost":3, "prerequisites":["wizard_ring_sparks"], "grant":{"kind":"order","hero_id":"wizard","order_id":"order_wizard_sparks","behavior_id":"guild_wizard_sparks"}},

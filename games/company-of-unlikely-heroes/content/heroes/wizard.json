@@ -38,6 +38,24 @@
     }
   },
   "abilities": {
+    "wizard_through_shot": {
+      "variant_of": "wizard_blast",
+      "fitted_form": "mending_blast",
+      "label": "Through Shot",
+      "help": "Deal 2 damage to the nearest target within 4 tiles, then 1 to the first eligible target directly behind it in range.",
+      "handler": "blast",
+      "params": {"damage": 2},
+      "targeting": {
+        "kind": "automatic",
+        "range": 4,
+        "direct": {
+          "label": "Through Shot",
+          "help": "Deal 2 damage to a chosen character or damageable obstacle within 4 tiles, then 1 to the first eligible target directly behind it in range."
+        },
+        "objects": true,
+        "capabilities": ["damageable"]
+      }
+    },
     "wizard_blast": {
       "fitted_form": "mending_blast",
       "label": "Blast nearest",

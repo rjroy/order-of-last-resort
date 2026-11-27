@@ -171,11 +171,27 @@ static func passable(state: Dictionary, position: Vector2i) -> bool:
 		and tile(state, position).passable
 
 
+## Geometry only: the caller decides whether a fallen entity still matters.
+## Optional footprint_offsets are distinct nonzero offsets from the canonical position.
+static func occupied_cells(subject: Dictionary) -> Array[Vector2i]:
+	var center: Vector2i = subject.position
+	var cells: Array[Vector2i] = [center]
+	for offset: Vector2i in subject.get("footprint_offsets", []):
+		cells.append(center + offset)
+	return cells
+
+
+static func occupies_cell(subject: Dictionary, position: Vector2i) -> bool:
+	var offset: Vector2i = position - subject.position
+	return offset == Vector2i.ZERO \
+		or (subject.has("footprint_offsets") and offset in subject.footprint_offsets)
+
+
 static func can_enter(state: Dictionary, position: Vector2i, ignore := "") -> bool:
 	if not passable(state, position):
 		return false
 	for candidate in state.units + state.obstacles:
-		if candidate.id != ignore and candidate.position == position and alive(candidate) \
+		if candidate.id != ignore and occupies_cell(candidate, position) and alive(candidate) \
 				and capable(state, candidate, "blocks_movement"):
 			return false
 	return true
@@ -185,7 +201,7 @@ static func is_vacant(state: Dictionary, position: Vector2i) -> bool:
 	if not passable(state, position):
 		return false
 	for candidate in state.units + state.obstacles:
-		if alive(candidate) and candidate.position == position:
+		if alive(candidate) and occupies_cell(candidate, position):
 			return false
 	return true
 
@@ -221,6 +237,9 @@ static func nearest(origin: Dictionary, candidates: Array, include_self := false
 		if not include_self and candidate.id == origin.id:
 			continue
 		var reach := distance(origin.position, candidate.position)
+		if candidate.has("footprint_offsets"):
+			for cell in occupied_cells(candidate):
+				reach = mini(reach, distance(origin.position, cell))
 		if reach < best_distance:
 			best = candidate
 			best_distance = reach

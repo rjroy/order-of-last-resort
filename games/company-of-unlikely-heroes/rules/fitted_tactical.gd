@@ -34,6 +34,14 @@ static func describe(state: Dictionary, actor: Dictionary, _source_id: String, b
 				else "Deal %d damage to the nearest living opponent."
 			return _form(id, "Doctor's Orders", help % amount, _primary_kind(direct),
 				_nearest_primary_choices(actor, choices, direct), "no damageable opponent", amount)
+		"crash_padding":
+			var amount := int(base.params.amount)
+			var candidates := _damageable_opponents(state, actor).filter(func(target: Dictionary) -> bool:
+				return Board.distance(actor.position, target.position) == 1)
+			var choices := _entity_choices(state, candidates)
+			return _form(id, "Crash Padding", "Deal %d damage to an adjacent opponent instead of padding." % amount,
+				_primary_kind(direct), _nearest_primary_choices(actor, choices, direct),
+				"no adjacent damageable opponent", amount)
 		"mending_blast":
 			return _mending_blast(state, actor, id, int(base.params.damage), direct)
 		"send_off":
@@ -65,17 +73,17 @@ static func describe(state: Dictionary, actor: Dictionary, _source_id: String, b
 			return _cut_the_wire(state, actor, id, direct)
 		"lend_a_shield":
 			var amount := int(base.params.damage)
-			var available := Shield.position(actor) == null
+			var blocked := Shield.blocked_reason(state, actor, "knight_shield_throw")
 			var candidates := _heroes(state, actor, false).filter(func(hero: Dictionary) -> bool:
-				return Board.distance(actor.position, hero.position) <= 3) if available else []
+				return Board.distance(actor.position, hero.position) <= 3) if blocked.is_empty() else []
 			return _form(id, "Lend a Shield",
 				"Cover another hero within three tiles for %d less damage on their next hit, through their next turn. The shield lands on their tile." % amount,
 				"entity", _entity_choices(state, candidates),
-				"no other hero in shield reach" if available else "shield away", amount)
+				"no other hero in shield reach" if blocked.is_empty() else blocked, amount)
 	return {}
 
 
-static func apply(state: Dictionary, actor: Dictionary, _source_id: String, _base: Dictionary,
+static func apply(state: Dictionary, actor: Dictionary, source_id: String, _base: Dictionary,
 		form: Dictionary, choice: Dictionary, bonus: int, events: Array) -> void:
 	var target := Board.entity(state, choice.id)
 	var base_amount := int(form.get("amount", 0))
@@ -90,9 +98,12 @@ static func apply(state: Dictionary, actor: Dictionary, _source_id: String, _bas
 		"doctors_orders":
 			Combat.hurt(state, actor, target, amount, form.label, "", events)
 			_report_idle(state, actor, "me_or_you", "Me or You", "no company heal", events)
+		"crash_padding":
+			Combat.attack(state, actor, target, base_amount,
+				{"source_name": form.label, "ability_id": form.id, "primary_bonus": bonus}, events)
 		"mending_blast":
 			var secondary := Board.nearest(target, _wounded_heroes(state, actor)) \
-				if Upgrades.amount(state, actor, "conductive_personality") > 0 else {}
+				if source_id == "wizard_blast" and Upgrades.amount(state, actor, "conductive_personality") > 0 else {}
 			Support.heal(state, actor, target, amount, events, form.label)
 			if not secondary.is_empty():
 				# The bolt inherits More Powder, not the one-time primary bonus or actual healed HP.

@@ -309,6 +309,9 @@ static func _order_rows(defs: Dictionary, profile: Dictionary, hero_id: String,
 						missing.erase(base)
 		for ability in abilities:
 			missing.erase(ability)
+		var base: String = params.get("ability", "")
+		if Catalog.behavior_equipped_ability(defs, abilities, behavior) != base:
+			missing.erase(base)
 		var compatible := missing.is_empty()
 		any_compatible = any_compatible or compatible
 		legacy_compatible = legacy_compatible or (legacy.has(id) and compatible)

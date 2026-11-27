@@ -42,6 +42,15 @@
     }
   },
   "abilities": {
+    "alchemist_shared_sample": {
+      "variant_of": "alchemist_acid",
+      "fitted_form": "shared_tonic",
+      "label": "Shared Sample",
+      "help": "Give a hostile character within 3 tiles the forecast Acid reaction, then share it with every adjacent living character. No guaranteed damage.",
+      "handler": "acid",
+      "params": {"damage": 1, "shared_reaction": true},
+      "targeting": {"kind": "entity", "range": 3}
+    },
     "alchemist_potion": {
       "fitted_form": "bitter_medicine",
       "label": "Healing Potion",

@@ -59,6 +59,21 @@
         ]
       }
     },
+    "healer_apply_padding": {
+      "variant_of": "healer_heal",
+      "fitted_form": "crash_padding",
+      "label": "Apply Padding",
+      "help": "Protect a patient within 3 tiles with a 2-point damage buffer. Does not heal; reapplying tops it up.",
+      "handler": "padding",
+      "params": {"amount": 2, "prefer_wounded_self": true, "allow_self": true},
+      "targeting": {
+        "kind": "automatic",
+        "range": 3,
+        "direct": {"label": "Apply Padding", "help": "Protect yourself or a chosen healable ally within 3 tiles with a 2-point damage buffer."},
+        "teams": ["heroes"],
+        "capabilities": ["healable"]
+      }
+    },
     "healer_heal": {
       "fitted_form": "doctors_orders",
       "label": "Heal self or nearest ally",

@@ -5,6 +5,7 @@ const FittingState = preload("res://rules/fitting_state.gd")
 const Frontier = preload("res://rules/frontier_combat.gd")
 const Movement = preload("res://rules/movement.gd")
 const Shield = preload("res://rules/shield.gd")
+const ShieldWall = preload("res://rules/shield_wall.gd")
 const Statuses = preload("res://rules/statuses.gd")
 const Summons = preload("res://rules/summons.gd")
 const Upgrades = preload("res://rules/upgrades.gd")
@@ -44,7 +45,12 @@ static func attack(state: Dictionary, source: Dictionary, intended: Dictionary, 
 	damage += int(reflection.bonus)
 	var primary_bonus := int(strike.get("primary_bonus", 0)) if target == reflection.target else 0
 	target = reflection.target
-	var impact: Vector2i = intended.position if target.is_empty() else target.position
+	var impact: Vector2i = strike.get("impact_position", intended.position)
+	if not target.is_empty() and (target.id != intended.id or not strike.has("impact_position")):
+		impact = target.position
+		if target.has("footprint_offsets"):
+			var origin: Vector2i = reflection.get("origin", source.position)
+			impact = ShieldWall.attack_contact(origin, target).position
 	var status_id: String = strike.get("status", "")
 	if id == "wizard_blast":
 		if target.has("object_id"):
@@ -56,8 +62,10 @@ static func attack(state: Dictionary, source: Dictionary, intended: Dictionary, 
 	# improvement. Track both through the same defenses, consuming them only once.
 	var unimproved := {"amount": damage} if id == "wizard_blast" and primary_bonus > 0 \
 		and Upgrades.amount(state, source, "conductive_personality") > 0 else {}
+	var presentation := {"data": {"impact_position": impact}, "copy": {}} \
+		if target.has("footprint_offsets") else {}
 	var amount := _hurt_and_chain(state, source, target, damage + primary_bonus, strike.source_name,
-		status_id, events, {}, unimproved)
+		status_id, events, presentation, unimproved)
 	var defeated_intended: bool = amount > 0 and target.id == intended.id and not Board.alive(target)
 	if id == "knight_shield_throw":
 		Shield.dropped(state, source, impact, events)
@@ -85,7 +93,8 @@ static func _surround_bonus(state: Dictionary, actor: Dictionary, target: Dictio
 
 static func _blast_aftereffects(state: Dictionary, wizard: Dictionary, primary: Dictionary, impact: Vector2i,
 		damage: int, events: Array) -> void:
-	if Upgrades.amount(state, wizard, "parting_gift") > 0 and Board.alive(primary):
+	if Upgrades.amount(state, wizard, "parting_gift") > 0 and Board.alive(primary) \
+			and not primary.has("footprint_offsets"):
 		var direction := toward(wizard.position, impact)
 		var destination := impact + direction
 		if Board.is_vacant(state, destination) and not Movement.blocks_forced(state, primary, events):
@@ -100,7 +109,10 @@ static func _blast_aftereffects(state: Dictionary, wizard: Dictionary, primary: 
 	var candidates := Board.occupants(state, {"objects": true, "capabilities": ["damageable"]})
 	var recipient := Board.nearest({"id": primary.id, "position": impact}, candidates)
 	if not recipient.is_empty():
-		hurt(state, wizard, recipient, ceili(damage * 0.5), "Conductive Personality's bolt", "", events)
+		var presentation := {}
+		if recipient.has("footprint_offsets"):
+			presentation = {"data": {"impact_position": ShieldWall.attack_contact(impact, recipient).position}, "copy": {}}
+		hurt(state, wizard, recipient, ceili(damage * 0.5), "Conductive Personality's bolt", "", events, presentation)
 
 
 ## Direct damage doesn't redirect. Non-attack damage (songs, recoil, Wave and
@@ -194,12 +206,14 @@ static func _apply_hit(state: Dictionary, source: Dictionary, target: Dictionary
 	if not Board.alive(target) or (not hp_loss and not Board.capable(state, target, "damageable")):
 		return -1
 	# Redirect first in attack(); resolve existing bonuses and passive armor
-	# before the Alchemist's consumables, including last-chance survival.
+	# before the Alchemist's damage modifiers, Padding, and last-chance survival.
 	var amount := damage
 	if not hp_loss:
 		amount = Statuses.hit_amount(state, target, amount, events, unimproved)
 		amount = Frontier.reduce_damage(state, target, amount, events, unimproved)
 		amount = Statuses.alchemy_hit_amount(state, source, target, amount, events, unimproved)
+		amount = Statuses.absorb_padding(state, target, amount, events, unimproved)
+		amount = Statuses.alchemy_lethal_save(state, target, amount, events, unimproved)
 	target.hp = maxi(0, target.hp - amount)
 	var applied := not status_id.is_empty() and Statuses.apply(state, target, status_id, source, events)
 	var handler = Statuses.definition(state, status_id).get("handler", "") if applied else ""

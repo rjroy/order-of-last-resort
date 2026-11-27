@@ -2,6 +2,9 @@ extends SceneTree
 
 # Run: godot --headless --path games/company-of-unlikely-heroes --script res://tests/battle/direct_order_agency_test.gd
 var rules = preload("res://rules/rules.gd").new()
+const Combat = preload("res://rules/combat.gd")
+const Catalog = preload("res://content/catalog.gd")
+const Statuses = preload("res://rules/statuses.gd")
 var defs: Dictionary
 var failures: Array[String] = []
 
@@ -20,6 +23,7 @@ func _initialize() -> void:
 	defs.abilities.healing_sonnet.params.damage = 1
 	_blast()
 	_heal()
+	_apply_padding()
 	_song()
 	if failures.is_empty():
 		print("PASS: direct order target agency")
@@ -39,8 +43,9 @@ func _unit(id: String, character: String, position: Vector2i, hp := 20) -> Dicti
 		"hp": hp, "max_hp": 20, "statuses": {}}
 
 
-func _state(actor: String, order: String) -> Dictionary:
-	var state: Dictionary = rules.new_game(defs, "test_escort")
+func _state(actor: String, order: String, fixture_defs := {}) -> Dictionary:
+	var source: Dictionary = defs if fixture_defs.is_empty() else fixture_defs
+	var state: Dictionary = rules.new_game(source, "test_escort")
 	state.width = 12
 	state.height = 12
 	state.default_tile = "stone"
@@ -170,6 +175,90 @@ func _heal() -> void:
 		_check(_entity(nearest.result, "ally").hp == 13 and _entity(nearest.result, "other").hp == 10,
 			"standing Heal still chooses nearest ally when self is full")
 	_direct(full, "healer_heal", "other", 3)
+
+
+func _apply_padding() -> void:
+	if not defs.abilities.has("healer_apply_padding"):
+		_check(false, "Apply Padding ability exists for direct and standing use")
+		return
+	# Keep the authored class valid and scope the range change to this fixture.
+	var fixture_defs := defs.duplicate(true)
+	fixture_defs.abilities.healer_apply_padding.targeting.range = 5
+	var state := _state("healer", "order_support", fixture_defs)
+	var habits: Dictionary = fixture_defs.classes.healer.habits.duplicate(true)
+	habits["test_hold"] = "hold"
+	state["_guild"] = Catalog.FrozenCatalog.new({"kits": {"actor": {
+		"abilities": ["move", "healer_bonk", "healer_apply_padding"], "habits": habits}}})
+	_entity(state, "actor").hp = 10
+	_discovery(state, "healer_apply_padding", ["actor", "ally", "other"],
+		["near", "dead", "crate", "civilian"])
+	var staged: Dictionary = rules.choose_manual(state, "actor", "healer_apply_padding", "ally")
+	_check(staged.overrides.get("actor", {}).get("target_id") == "ally",
+		"Padding stages a wounded ally as its direct target")
+	var plan := _forecast(staged, "Padding direct wounded ally")
+	if not plan.get("valid", false):
+		return
+	var protected: Dictionary = plan.result
+	_check(_entity(protected, "ally").hp == 10,
+		"Padding does not restore wounded HP")
+	_padding_pocket_paramedic(protected)
+	# A second application to a full buffer must never add protection, even
+	# if the action is accepted and resolves as a no-op.
+	var full_attempt: Dictionary = rules.preview(protected, "actor", "healer_apply_padding", "ally", true)
+	var full_result: Dictionary = full_attempt.result if full_attempt.get("valid", false) else protected.duplicate(true)
+	Combat.hurt(full_result, _entity(full_result, "near"), _entity(full_result, "ally"),
+		3, "full buffer test", "", [])
+	_check(_entity(full_result, "ally").hp == 9,
+		"Reapplying a full buffer never stacks beyond two")
+
+	var enemy := _entity(protected, "near")
+	var patient := _entity(protected, "ally")
+	Combat.hurt(protected, enemy, patient, 1, "test hit", "", [])
+	_check(patient.hp == 10, "Padding absorbs the first point")
+	# Leave one point unused while both recipient activations and round ends pass.
+	# The healer holds so these rounds cannot silently replenish the buffer.
+	var waiting: Dictionary = rules.set_order(protected, "actor", "test_hold")
+	for round_index in range(3):
+		var wait_plan := _forecast(waiting, "Padding persists round %d" % (round_index + 1))
+		if not wait_plan.get("valid", false):
+			return
+		waiting = wait_plan.result
+	_check(_entity(waiting, "ally").hp == 10, "Waiting does not change the protected patient's HP")
+	Combat.hurt(waiting, _entity(waiting, "near"), _entity(waiting, "ally"), 2,
+		"delayed hit", "", [])
+	_check(_entity(waiting, "ally").hp == 9,
+		"One remaining Padding absorbs one point after three rounds; overflow reaches HP")
+
+	# Reapply after partial consumption: total remaining protection is two, not three.
+	var reapplied: Dictionary = rules.preview(protected, "actor", "healer_apply_padding", "ally", true)
+	_check(reapplied.get("valid", false), "Padding can top up a partially spent buffer")
+	if not reapplied.get("valid", false):
+		return
+	var topped: Dictionary = reapplied.result
+	patient = _entity(topped, "ally")
+	enemy = _entity(topped, "near")
+	Combat.hurt(topped, enemy, patient, 3, "test overflow", "", [])
+	_check(patient.hp == 9, "Topped-up Padding caps at two and overflow reaches HP")
+	Combat.hurt(topped, enemy, patient, 1, "test after depletion", "", [])
+	_check(patient.hp == 8, "Consumed Padding does not absorb later damage")
+
+
+func _padding_pocket_paramedic(protected: Dictionary) -> void:
+	for incoming in [2, 4]:
+		var state := protected.duplicate(true)
+		var patient := _entity(state, "ally")
+		var source := _entity(state, "near")
+		patient.hp = 2
+		Statuses.apply_alchemy(state, patient, "pocket_paramedic", source, [])
+		Combat.hurt(state, source, patient, incoming, "test hit", "", [])
+		if incoming == 2:
+			_check(patient.hp == 2 and rules.has_status(state, "ally", "padding") == false
+				and not rules.alchemy_status(state, "ally", "pocket_paramedic").is_empty(),
+				"Padding absorbs an otherwise lethal hit without spending Pocket Paramedic")
+		else:
+			_check(patient.hp == 1 and rules.alchemy_status(state, "ally", "pocket_paramedic").is_empty()
+				and not rules.has_status(state, "ally", "padding"),
+				"Lethal overflow spends Pocket Paramedic after Padding and leaves exactly 1 HP")
 
 
 func _song() -> void:

@@ -32,6 +32,9 @@ same finale is balanced for both arrival states.
    change recruitment or preparation. On the battlefield, make progress,
    failure conditions, and the timing of decisive events visible. The player
    can discover a solution without having to discover what counts as a win.
+   When the destination gets an illustrated report, use the
+   [same child-scout sketch style](designing-road-missions.md#design-the-field-report-image-with-the-mission).
+   Show one observation that makes the named job recognizable, not the solution.
    Hero or story requirements are a separate decision in `olr-e4h`, not an
    assumed exception to balance.
 3. **Balance for arrival, not for a fresh standalone party.** Try the finale

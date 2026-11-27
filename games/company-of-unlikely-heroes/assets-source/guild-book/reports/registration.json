@@ -27,6 +27,14 @@
     "sheet-corrections.png": {
       "job": "image_201bb0c12001NywLIdtINwPJOO",
       "sha256": "00d72031052fc0641381a248418ed5a5e8bf37a3102db725e748f0b0adf12835"
+    },
+    "light_hook_pair-native.png": {
+      "job": "exec-b735c581-579a-4b7a-ae30-81c4cd8c3b8b",
+      "sha256": "6763e61ebbf0be5e50fc7c1c25adb2190583dc9c9e42269c9c33fd8983c2bb22"
+    },
+    "crossfire_blast_lane-native.png": {
+      "job": "exec-11427ac3-9690-48d5-8abb-bad5efeeec01",
+      "sha256": "7d03436151e790c5be0373f984d5c86289eb1e1ff88da7da4fdac27193a0fc2f"
     }
   },
   "cuts": {
@@ -49,6 +57,12 @@
     "dont_wake_the_giant": ["sheet-e.png", 768, 0, 768, 512],
     "unfortunate_ritual": ["sheet-e.png", 0, 512, 768, 512],
     "last_wagon": ["sheet-e.png", 768, 512, 768, 512],
-    "bridge_is_out": ["../study/connected-study.png", 10, 518, 750, 497]
+    "bridge_is_out": ["../study/connected-study.png", 10, 518, 750, 497],
+    "light_hook_pair": ["light_hook_pair-native.png", 0, 0, 1536, 1024],
+    "crossfire_blast_lane": ["crossfire_blast_lane-native.png", 0, 0, 1536, 1024]
+  },
+  "finishes": {
+    "light_hook_pair": {"size": [768, 512]},
+    "crossfire_blast_lane": {"size": [768, 512], "mirror_padding": [84, 56]}
   }
 }

@@ -74,7 +74,11 @@ intact. Enemy HP does not scale with the heroes' wounds, recruits, or upgrades.
 
 Stock reports look for art for the exact mission ID first, then use base art
 only if both missions share the same encounter ID. A changed or new encounter
-without exact art can have a text-only report. Custom catalogs keep their
+without exact art falls back to text for prototypes. `light_hook_pair` and
+`crossfire_blast_lane` now have their own
+[child-scout sketches](designing-road-missions.md#design-the-field-report-image-with-the-mission).
+Don't hide a blank by borrowing a misleading picture: the Harpoon Squad sketch
+shows a Bruiser the lighter Hook Pair doesn't have. Custom catalogs keep their
 existing presentation behavior. Write each report for the variant actually
 offered; the onward clue describes only the next mission's kind.
 

@@ -1,6 +1,6 @@
 # Field report sketch map
 
-This is the content and drawing plan for the child scout's field reports in *Barnaby’s Order of Last Resort*. The source is `../../../content/expedition/commissions.json`, `mission_reports`. The two variants for a mission share the same image. No image uses a future mission, the other branch, an onward kind, or destination-only copy. The 11 transit reports appear in commission forks; for the nine finales this set covers their authored immediate report records, not a new fork.
+This is the content and drawing plan for the child scout's field reports in *Barnaby’s Order of Last Resort*. The source is `../../../content/expedition/commissions.json`, `mission_reports`. The two variants for a mission share the same image. No image uses a future mission, the other branch, an onward kind, or destination-only copy. The 13 illustrated transit reports appear in commission forks; for the nine finales this set covers their authored immediate report records, not a new fork.
 
 The cheap cream school paper is part of each opaque PNG. A child of about six drew a single oversized observation from the encounter in dark, shaky pencil and uneven wax crayon. Shapes overlap and perspective is inconsistent; no polished lighting, caption, labels, numbers, or writing. Leave blank paper on all sides. Use wide crops contained within 510 × 212 at 1280 × 820, preserving the reviewed bridge plate's roughly 3:2 aspect when practical. Keep only features common to the two public variants, backed by the immediate encounter.
 
@@ -27,6 +27,13 @@ Two goblin heads with absurdly long green ears crowd a little shield from either
 
 A bent hook and long line tug a little hero by the cape toward a Bruiser with a disproportionately big fist. No other threat, range diagram, or landing tile.
 
+### `light_hook_pair` · accepted standalone sketch
+
+1. A Hookhand and a Harpooner cover the lane. The Hookhand can pull a hero closer while the Harpooner strikes from a distance.
+2. Watch where the Hookhand's pull will land your hero, and check the Harpooner's reach before closing.
+
+Two travelers stand apart, each holding an upright pole. The blunt-ended crook looks comically bent next to the straight pointed pole. No Bruiser or action; the report text explains the pull.
+
 ### `shield_wall` · sheet A bottom left
 
 1. Two Shieldbearers flank an Archer. Each one beside the Archer cuts the damage the Archer takes.
@@ -47,6 +54,13 @@ A small, plume-helmeted Captain has a broad Grunt close at either shoulder with 
 2. Watch the Harpooner's two-tile reach when picking a spot clear of the blast. The Bombers can set each other off while they're side by side.
 
 Two side-by-side Bombers caught in the same oversized red-orange zigzag. No Harpooner, wound, blast radius, or depiction of what set it off.
+
+### `crossfire_blast_lane` · accepted standalone sketch
+
+1. A Hookhand can pull a hero toward the Bomber, which can strike up close before it falls. Its death blast hurts everyone beside it, friend or foe.
+2. The Harpooner strikes from two tiles away while the Bomber closes in. Check the Hookhand's pull and the Bomber's blast before committing.
+
+One round plum-and-umber fellow stands on a crooked ochre path with a curled, unlit cord on his cap. The round coat and little cord are the observation. No other figure, movement, or blast.
 
 ### `unfortunate_healer` · sheet B bottom left
 

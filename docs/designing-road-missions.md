@@ -91,14 +91,33 @@ experiments verified behavior, not human enjoyment or difficulty.
    substitute for the immediate brief. Check the mission against plausible
    alternatives at a fork: each road should give some company or plan a reason
    to prefer it. Reuse an existing rule or mission kind when it honestly
-   describes the encounter; distinguish what can be authored in data from what
-   needs a new rule.
+    describes the encounter; distinguish what can be authored in data from what
+    needs a new rule.
+
+## Design the field report image with the mission
+
+The image is part of the scout's report, not decoration. At a fork it should
+give players a quick visual reason to read one report differently from the
+other. Pick **one thing a child scout would notice** about the immediate
+encounter: two enormous shields hiding an archer, for example. Draw it in
+shaky pencil and uneven wax crayon on cream school paper. Exaggerate what
+caught the child's eye rather than drawing a precise map. The text still
+carries the exact objective, rules, and stakes. The drawing must be true of
+every wording variant and must not reveal the onward mission or the other
+branch. See the [field report sketch map](../games/company-of-unlikely-heroes/assets-source/guild-book/reports/motifs.md)
+for the established style and examples.
+
+Plan the sketch when drafting the report and review it alongside the text at
+an actual fork. Reuse art only when it still tells the truth about the
+encounter. A text-only report is fine for a prototype when no honest sketch
+is available, but a blank is unfinished presentation, not a finished choice.
 
 ## Review before adding a mission to the road pool
 
 - **Design:** Keep the tactical question, the two example rounds, the
-  win/loss checks, the command budget, and the draft report together. Name the
-  existing mission used for comparison and what the new one adds.
+  win/loss checks, the command budget, and the draft report with its sketch
+  brief together. Name the existing mission used for comparison and what the
+  new one adds.
 - **Rules:** Check a complete win, each distinct loss, and the meaningful edge
   cases, using controlled inputs for new behavior. Check that the forecast
   agrees with the committed round. For catalog integration, see the

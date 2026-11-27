@@ -50,11 +50,48 @@ static func _digs_in(state: Dictionary, actor: Dictionary, target: Dictionary) -
 
 static func _in_reach(actor: Dictionary, position: Vector2i, targeting: Dictionary) -> bool:
 	var reach := Board.distance(actor.position, position)
-	return not targeting.has("range") or (reach > 0 and reach <= int(targeting.range))
+	return (not targeting.has("min_range") or reach >= int(targeting.min_range)) \
+		and (not targeting.has("range") or (reach > 0 and reach <= int(targeting.range)))
 
 
-static func _footprint_contact(actor: Dictionary, target: Dictionary, targeting: Dictionary) -> Dictionary:
-	return ShieldWall.attack_contact(actor.position, target, int(targeting.get("range", -1)))
+static func _clear_lane(state: Dictionary, origin: Vector2i, destination: Vector2i) -> bool:
+	var delta := destination - origin
+	if (delta.x != 0 and delta.y != 0) or delta == Vector2i.ZERO:
+		return false
+	var step := Vector2i(signi(delta.x), signi(delta.y))
+	var cell := origin + step
+	while cell != destination:
+		for obstacle in state.obstacles:
+			if Board.alive(obstacle) and Board.occupies_cell(obstacle, cell):
+				return false
+		cell += step
+	return true
+
+
+static func _target_position_allowed(state: Dictionary, actor: Dictionary, position: Vector2i,
+		targeting: Dictionary) -> bool:
+	return _in_reach(actor, position, targeting) \
+		and (not targeting.get("straight_line_clear", false) or _clear_lane(state, actor.position, position))
+
+
+static func _footprint_contact(state: Dictionary, actor: Dictionary, target: Dictionary,
+		targeting: Dictionary) -> Dictionary:
+	if not targeting.has("min_range") and not targeting.get("straight_line_clear", false):
+		return ShieldWall.attack_contact(actor.position, target, int(targeting.get("range", -1)))
+	var cells: Array[Vector2i] = []
+	var closest := 2147483647
+	var result := {}
+	for cell in Board.occupied_cells(target):
+		if not _target_position_allowed(state, actor, cell, targeting):
+			continue
+		cells.append(cell)
+		var distance := Board.distance(actor.position, cell)
+		if distance < closest:
+			closest = distance
+			result["position"] = cell
+	if not result.is_empty():
+		result["target_cells"] = cells
+	return result
 
 
 static func _swap_cells_open(state: Dictionary, actor: Dictionary, candidate: Dictionary) -> bool:
@@ -75,8 +112,8 @@ static func _entity_allowed(state: Dictionary, actor: Dictionary, candidate: Dic
 					and actor.hp < actor.max_hp))
 	if candidate.has("footprint_offsets") and ability.handler in ["bonk", "blast", "attack"]:
 		return Board.capable(state, candidate, "damageable") \
-			and not _footprint_contact(actor, candidate, ability.targeting).is_empty()
-	if not _in_reach(actor, candidate.position, ability.targeting):
+			and not _footprint_contact(state, actor, candidate, ability.targeting).is_empty()
+	if not _target_position_allowed(state, actor, candidate.position, ability.targeting):
 		return false
 	match ability.handler:
 		"push":
@@ -212,7 +249,7 @@ static func _legal_choices(state: Dictionary, actor: Dictionary, ability: Dictio
 				var choice := {"id": candidate.id, "label": Board.display_name(state, candidate),
 					"position": candidate.position}
 				if candidate.has("footprint_offsets") and ability.handler in ["bonk", "blast", "attack"]:
-					choice.merge(_footprint_contact(actor, candidate, targeting), true)
+					choice.merge(_footprint_contact(state, actor, candidate, targeting), true)
 				if ability.handler == "hook" and not _digs_in(state, actor, candidate):
 					choice["destination"] = candidate.position + _pull_step(actor, candidate)
 				elif ability.handler == "repel" and targeting.kind == "entity":
@@ -853,6 +890,11 @@ static func _attack(state: Dictionary, actor: Dictionary, target: Dictionary, co
 			if candidate.id != target.id and _entity_allowed(state, actor, candidate, ability):
 				recipients.append(candidate)
 				break
+	if ability.params.get("spear_followthrough", false) and Board.distance(actor.position, contact) == 1:
+		var rear: Vector2i = contact + (contact - actor.position)
+		for candidate in Board.occupants(state, {"objects": true, "capabilities": ["damageable"]}):
+			if candidate.id != target.id and Board.occupies_cell(candidate, rear):
+				recipients.append(candidate)
 	var through := _through_target(state, actor, target.id, contact, ability) if id == "wizard_through_shot" else {}
 	var params: Dictionary = ability.params
 	var suffix: String = params.get("source_suffix", "")

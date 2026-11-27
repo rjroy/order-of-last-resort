@@ -39,6 +39,9 @@ static func build(objective: Dictionary, board: Dictionary) -> Dictionary:
 				# leave_zone retains its zone ID.
 				result[field] = objective[field]
 	match objective.handler:
+		"defeat_all":
+			if objective.has("corpse_bell"):
+				result["corpse_bell"] = {"character": objective.corpse_bell.character}
 		"survive":
 			# The catalog resolves reserve placement IDs into off-board actors.
 			if objective.has("reserve_round"):

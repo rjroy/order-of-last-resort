@@ -213,8 +213,20 @@ static func _apply_hit(state: Dictionary, source: Dictionary, target: Dictionary
 		amount = Frontier.reduce_damage(state, target, amount, events, unimproved)
 		amount = Statuses.alchemy_hit_amount(state, source, target, amount, events, unimproved)
 		amount = Statuses.absorb_padding(state, target, amount, events, unimproved)
+		if amount > 0 and target.has("borrowed_armor"):
+			var lender := Board.entity(state, target.borrowed_armor)
+			target.erase("borrowed_armor")
+			if Board.alive(lender):
+				Board.event(events, "borrowed_armor", "%s's borrowed armor blocks the hit." % Board.display_name(state, target),
+					{"unit_id": lender.id, "target_id": target.id, "amount": amount})
+				amount = 0
+				if not unimproved.is_empty():
+					unimproved.amount = 0
 		amount = Statuses.alchemy_lethal_save(state, target, amount, events, unimproved)
 	target.hp = maxi(0, target.hp - amount)
+	if amount > 0 and source.get("id", "") != target.id and source.has("character_id") \
+			and not Frontier.traits(state, target, "last_damager_pursuit").is_empty():
+		target["last_damager_id"] = source.id
 	var applied := not status_id.is_empty() and Statuses.apply(state, target, status_id, source, events)
 	var handler = Statuses.definition(state, status_id).get("handler", "") if applied else ""
 	var suffix := Board.text(state, "knockdown_suffix") if applied and Statuses.is_knockdown(state, status_id) else ""
@@ -239,7 +251,9 @@ static func _apply_hit(state: Dictionary, source: Dictionary, target: Dictionary
 		Statuses.clear_fitting_effects(target)
 		Summons.on_fall(state, target, events)
 		if target.has("character_id"):
+			Frontier.mark_corpse_bell(state, target, events)
 			Frontier.announce_ally_death(state, target, events)
+			Frontier.heal_on_death(state, target, events)
 			for trait_spec in Frontier.traits(state, target, "death_blast"):
 				blasts.append({"source": target, "position": target.position,
 					"damage": int(trait_spec.damage), "range": int(trait_spec.range)})

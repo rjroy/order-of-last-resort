@@ -469,6 +469,10 @@ static func _threat(state: Dictionary, actor: Dictionary, params: Dictionary) ->
 	if not heckler.is_empty():
 		return _action(params.ability, heckler.id)
 	var target := Statuses.retarget(state, actor, params.taunt_status)
+	if not Frontier.traits(state, actor, "last_damager_pursuit").is_empty():
+		var damager := Board.entity(state, actor.get("last_damager_id", ""))
+		if Board.alive(damager) and damager.id != actor.id:
+			target = damager
 	var candidates := Board.occupants(state, {"teams": params.fallback_teams})
 	if state.objective.handler != "escort":
 		return _engage(state, actor, params, target, candidates)
@@ -499,6 +503,10 @@ static func _engage(state: Dictionary, actor: Dictionary, params: Dictionary, ta
 		if not nearest.is_empty():
 			return _action(ability_id, nearest.id)
 	# Without an escort there is no position to guard. Look for a route into firing range.
+	var targeting: Dictionary = form.base.get("targeting", {})
+	if targeting.has("min_range") or targeting.get("straight_line_clear", false):
+		var targets := [taunter] if not taunter.is_empty() else candidates
+		return _move_to_firing_position(state, actor, params.move_ability, ability_id, targets)
 	var reach := int(form.base.get("targeting", {}).get("range", 1))
 	if not taunter.is_empty():
 		return _move(state, actor, params.move_ability, taunter.position, reach)
@@ -509,6 +517,29 @@ static func _engage(state: Dictionary, actor: Dictionary, params: Dictionary, ta
 		if intent.has("ability_id"):
 			return intent
 		remaining.erase(target)
+	return {"wait": "cannot_advance"}
+
+
+static func _move_to_firing_position(state: Dictionary, actor: Dictionary, move_id: String,
+		ability_id: String, candidates: Array) -> Dictionary:
+	if not Actions.can_move(state, actor) or Actions.owned_ability(state, actor, move_id).is_empty():
+		return {"wait": "cannot_advance"}
+	# Project this actor without modifying the live forecast or its shared catalog.
+	var projected := state.duplicate()
+	var walker := actor.duplicate()
+	projected.units = state.units.duplicate()
+	projected.units[state.units.find(actor)] = walker
+	var step := Board.step_to(state, actor.position, func(cell: Vector2i) -> bool:
+		if cell == actor.position:
+			return false
+		walker.position = cell
+		for candidate in candidates:
+			if candidate.id != actor.id and _legal_target(projected, walker, ability_id, candidate.id):
+				return true
+		return false)
+	var target_id := Board.cell_id(step)
+	if step != actor.position and _legal_target(state, actor, move_id, target_id):
+		return _action(move_id, target_id)
 	return {"wait": "cannot_advance"}
 
 

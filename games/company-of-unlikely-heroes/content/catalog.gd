@@ -598,6 +598,18 @@ class Validator:
 				_error(path + ".targeting.range", "apply_status has no target range")
 			else:
 				_integer(targeting.range, path + ".targeting.range", 2 if handler == "hook" else 1)
+		if targeting.has("min_range") or targeting.has("straight_line_clear"):
+			if kind != "entity" or handler not in ["attack", "bonk", "blast"]:
+				_error(path + ".targeting", "range restrictions require an entity-targeted damaging attack")
+			if not _is_integer(targeting.get("range"), 1):
+				_error(path + ".targeting.range", "range restrictions require a positive finite range")
+			if targeting.has("min_range"):
+				_integer(targeting.min_range, path + ".targeting.min_range", 1)
+				if _is_integer(targeting.min_range, 1) and _is_integer(targeting.get("range"), 1) \
+						and int(targeting.min_range) > int(targeting.range):
+					_error(path + ".targeting.min_range", "cannot exceed range")
+			if targeting.has("straight_line_clear"):
+				_boolean(targeting.straight_line_clear, path + ".targeting.straight_line_clear")
 		if kind == "cell" or handler in ["apply_status", "sweep"]:
 			for filter in ["teams", "objects", "capabilities"]:
 				if targeting.has(filter):
@@ -616,6 +628,10 @@ class Validator:
 			_boolean(params.opponents_only, param_path + "opponents_only")
 			if handler not in ["attack", "repel", "stop_target", "sweep"]:
 				_error(param_path + "opponents_only", "not supported by this ability handler")
+		if params.has("spear_followthrough"):
+			_boolean(params.spear_followthrough, param_path + "spear_followthrough")
+			if handler != "attack" or kind != "entity" or targeting.get("range") != 1:
+				_error(param_path + "spear_followthrough", "requires an adjacent entity-targeted attack")
 		if params.has("shared_reaction"):
 			_boolean(params.shared_reaction, param_path + "shared_reaction")
 			if handler != "acid":
@@ -944,7 +960,8 @@ class Validator:
 			var entry := _dictionary(traits[i], trait_path)
 			var kind: Variant = entry.get("kind")
 			if not _choice(kind, ["adjacent_guard", "adjacent_damage_bonus", "death_blast",
-					"retaliate", "ally_death_bonus"], trait_path + ".kind"):
+					"retaliate", "ally_death_bonus", "death_heal", "health_damage_bonus",
+					"last_damager_pursuit", "borrowed_armor", "big_windup"], trait_path + ".kind"):
 				continue
 			match kind:
 				"adjacent_guard":
@@ -956,6 +973,13 @@ class Validator:
 				"death_blast", "retaliate":
 					_integer(entry.get("damage"), trait_path + ".damage", 1)
 					_integer(entry.get("range"), trait_path + ".range", 1)
+				"death_heal":
+					_integer(entry.get("amount"), trait_path + ".amount", 1)
+				"big_windup":
+					_integer(entry.get("damage"), trait_path + ".damage", 1)
+				"health_damage_bonus":
+					_choice(entry.get("condition"), ["full", "wounded"], trait_path + ".condition")
+					_integer(entry.get("damage"), trait_path + ".damage", 1)
 				"ally_death_bonus":
 					var allies := _id_list(entry.get("allies"), trait_path + ".allies", "characters")
 					if allies.is_empty():
@@ -1291,6 +1315,17 @@ class Validator:
 					if objective.has(field):
 						_text(value, field_path)
 		match objective.handler:
+			"defeat_all":
+				if objective.has("corpse_bell"):
+					var bell := _dictionary(objective.corpse_bell, path + ".corpse_bell")
+					var character: Variant = bell.get("character")
+					if not character is String or not _defs.characters.has(character) \
+							or _effective_profile(_defs.characters[character]).get("team") != objective.get("team", "enemies"):
+						_error(path + ".corpse_bell.character", "expected a character on the objective team")
+					else:
+						var capabilities: Variant = _effective_profile(_defs.characters[character]).get("capabilities", [])
+						if not capabilities is Array or "damageable" not in capabilities:
+							_error(path + ".corpse_bell.character", "expected a damageable character")
 			"pressure_gate":
 				_check_pressure_gate_cells(objective, board, path)
 			"herd_sheep":

@@ -34,6 +34,8 @@
     "missions/unfortunate_ritual.json",
     "missions/last_wagon.json",
     "missions/commission_tier_variants.json",
+    "missions/road_playtest_batch.json",
+    "missions/road_playtest_followups.json",
     "expedition/commissions.json"
   ]
 }

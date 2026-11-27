@@ -2269,14 +2269,21 @@ func _refresh_board() -> void:
 		var hits: Array = []
 		var paths: Array = []
 		var displaced: Dictionary = {}
+		var windup_impacts := _windup_impact_cells()
 		for event in _plan.events:
 			if event.type in ["pull", "push", "repel"] and event.has("from_position"):
 				displaced[event.target_id] = true
+			elif event.type == "windup_strike" and event.get("position") is Vector2i:
+				hits.append(event.position)
 		for entity in _state.units + _state.obstacles:
 			var predicted := _find(entity.id, _plan.result)
 			if predicted.is_empty():
 				continue
-			if predicted.hp <= 0 and entity.hp > 0:
+			if windup_impacts.has(entity.id):
+				for cell in windup_impacts[entity.id]:
+					if cell not in hits:
+						hits.append(cell)
+			elif predicted.hp <= 0 and entity.hp > 0:
 				hits.append_array(Board.occupied_cells(entity))
 			elif predicted.hp < entity.hp:
 				hits.append(entity.position)
@@ -2334,6 +2341,45 @@ func _forecast_obstacle_cells() -> Array[Vector2i]:
 		if obstacle.has("footprint_offsets") and _find(obstacle.id).is_empty():
 			cells.append_array(Board.occupied_cells(obstacle))
 	return cells
+
+
+func _windup_impact_cells() -> Dictionary:
+	# Replay movement before the smash rather than assigning its damage to the
+	# victim's opening tile. Other attacks retain the existing HP-delta overlay.
+	var positions := {}
+	for entity in _state.units + _state.obstacles:
+		positions[entity.id] = entity.position
+	var impacts := {}
+	var damage_cells := {}
+	var windup_source := ""
+	for event in _plan.events:
+		if event.has("resolved_action"):
+			windup_source = ""
+		match event.type:
+			"windup_strike":
+				windup_source = event.get("unit_id", "")
+			"move":
+				positions[event.unit_id] = event.position
+			"summon":
+				positions[event.summon_id] = event.position
+			"push", "pull", "repel", "recall":
+				positions[event.target_id] = event.position
+				if event.has("recoil_position"):
+					positions[event.unit_id] = event.recoil_position
+			"swap":
+				positions[event.unit_id] = event.position
+				positions[event.target_id] = event.target_position
+			"damage":
+				var id: String = event.get("target_id", "")
+				if int(event.get("amount", 0)) > 0 and positions.has(id):
+					if not damage_cells.has(id):
+						damage_cells[id] = []
+					damage_cells[id].append(event.get("impact_position", positions[id]))
+					if not windup_source.is_empty() and event.get("source_id", "") == windup_source:
+						impacts[id] = true
+	for id in impacts:
+		impacts[id] = damage_cells[id]
+	return impacts
 
 
 func _shared_enemy_art() -> Dictionary:

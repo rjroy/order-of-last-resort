@@ -12,7 +12,7 @@ const CROPS := [
 	["commission-full", "commission-selection", Rect2i(27, 138, 408, 608)],
 	["recruitment-full", "recruitment", Rect2i(27, 141, 530, 581)],
 	["reports-full", "field-reports", Rect2i(36, 125, 592, 657)],
-	["battle-controls-full", "battle-controls", Rect2i(35, 555, 564, 56)],
+	["battle-controls-full", "battle-controls", Rect2i(35, 679, 564, 56)],
 	["battle-controls-full", "battle-commit", Rect2i(866, 740, 382, 60)],
 	["battle-controls-full", "battle-board", Rect2i(318, 95, 522, 345)],
 	["battle-forecast-full", "battle-forecast", Rect2i(811, 383, 438, 320)],

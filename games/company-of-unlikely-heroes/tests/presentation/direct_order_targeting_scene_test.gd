@@ -29,6 +29,7 @@ func _run() -> void:
 	await _scenario_leaf_hides_occupant_choice()
 	await _scenario_alchemy()
 	await _scenario_empty_repeat_batch()
+	await _scenario_compact_geometry()
 	_finish()
 
 
@@ -340,6 +341,69 @@ func _scenario_empty_repeat_batch() -> void:
 	if button != null:
 		_check("empty bottle" in (button.tooltip_text + " " + button.accessibility_description).to_lower(),
 			"Repeat Batch explains the empty bottle")
+
+
+func _scenario_compact_geometry() -> void:
+	var saved_size := root.size
+	var saved_scale_size := root.content_scale_size
+	for viewport_size: Vector2i in [Vector2i(1280, 820), Vector2i(1280, 600)]:
+		# Set both physical and logical sizes so stretch mode cannot silently
+		# turn the shorter viewport back into a scaled 1280x820 canvas.
+		root.size = viewport_size
+		root.content_scale_size = viewport_size
+		await process_frame
+		await _check_compact_geometry(viewport_size)
+	root.size = saved_size
+	root.content_scale_size = saved_scale_size
+	await process_frame
+
+
+func _check_compact_geometry(viewport_size: Vector2i) -> void:
+	var opening := alchemist_state()
+	if not await _launch(opening):
+		_check(false, "Geometry fixture launches at %s" % viewport_size)
+		return
+	await process_frame
+	var page := scene.get("_storybook_page") as Control
+	var board := _node("BridgeBoard") as Control
+	var footer := page.get("_footer") as Control if page != null else null
+	var dose := _node("LockedDose") as Label
+	if page == null or board == null or footer == null or dose == null:
+		_check(false, "Geometry fixture exposes page, board, footer and dose")
+		return
+	_check(page.size.is_equal_approx(Vector2(viewport_size)),
+		"Geometry uses the requested logical viewport %s" % viewport_size)
+	var board_rect := board.get_global_rect()
+	var footer_rect := footer.get_global_rect()
+	_check(footer_rect.size.y <= 120.0, "Footer fits the 120px budget at %s" % viewport_size)
+	_check(board_rect.size.y >= float(viewport_size.y) * 0.5,
+		"Stock road board occupies at least half the viewport height at %s" % viewport_size)
+	_check(not board_rect.intersects(footer_rect),
+		"Board and footer do not overlap at %s" % viewport_size)
+	_check(dose.is_visible_in_tree(), "Dose is visible before aiming at %s" % viewport_size)
+	if not await _press_ability(opening, "alchemist", "alchemist_potion"):
+		return
+	await process_frame
+	_check(board.get_global_rect().is_equal_approx(board_rect)
+		and footer.get_global_rect().is_equal_approx(footer_rect),
+		"Aiming leaves board and footer geometry fixed at %s" % viewport_size)
+	var cancel := _node("CancelTargeting") as Button
+	if cancel == null or not cancel.is_visible_in_tree() or cancel.disabled:
+		_check(false, "Cancel targeting is available at %s" % viewport_size)
+		return
+	cancel.pressed.emit()
+	await process_frame
+	await _click_cell(Vector2i(1, 2))
+	await process_frame
+	_check(not dose.is_visible_in_tree(), "Switching hero hides dose at %s" % viewport_size)
+	_check(board.get_global_rect().is_equal_approx(board_rect)
+		and footer.get_global_rect().is_equal_approx(footer_rect),
+		"Hiding dose leaves board and footer geometry fixed at %s" % viewport_size)
+	await _click_cell(Vector2i(2, 2))
+	await process_frame
+	_check(dose.is_visible_in_tree() and board.get_global_rect().is_equal_approx(board_rect)
+		and footer.get_global_rect().is_equal_approx(footer_rect),
+		"Showing dose leaves board and footer geometry fixed at %s" % viewport_size)
 
 
 func _check_commit_blocked(opening: Dictionary, phase: String) -> void:

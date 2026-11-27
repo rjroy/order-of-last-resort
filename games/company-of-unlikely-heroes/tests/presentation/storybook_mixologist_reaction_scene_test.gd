@@ -42,6 +42,9 @@ func _run() -> void:
 	viewport.gui_embed_subwindows = true
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	root.add_child(viewport)
+	# A detached SubViewport gets no pointer-entry notification from a container.
+	# Synthetic motion updates hover, but native tooltips also need pointer entry.
+	viewport.notification(Viewport.NOTIFICATION_VP_MOUSE_ENTER)
 	scene = load("res://main.tscn").instantiate()
 	scene.configure_launch(PackedStringArray(["--mission=goblin_mob"]))
 	viewport.add_child(scene)

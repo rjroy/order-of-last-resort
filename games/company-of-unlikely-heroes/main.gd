@@ -1628,14 +1628,19 @@ func _aim_prompt() -> String:
 
 
 func _locked_dose_text() -> String:
+	var aiming := _is_aiming()
 	var notes: PackedStringArray = []
 	for action: Dictionary in _editor_actions.values():
-		if _is_aiming() and action.id != _aimed_ability_id:
+		if aiming and action.id != _aimed_ability_id:
 			continue
 		var dose: Dictionary = action.dose
-		if not dose.is_empty():
-			notes.append("%s: %s · %s" % [action.label, dose.category.capitalize(), dose.description])
-	return "" if notes.is_empty() else "Locked dose · " + "  /  ".join(notes)
+		if dose.is_empty():
+			continue
+		var reaction := "%s · %s" % [dose.category.capitalize(), dose.description]
+		if aiming:
+			return reaction
+		notes.append("%s: %s" % [action.label, reaction])
+	return "\n".join(notes)
 
 
 func _restart_fixed() -> void:
@@ -2067,11 +2072,14 @@ func _update_draft_display() -> void:
 				_draft_target_cell = target.position
 				break
 	var destination := _target_description(hero, draft, target, action)
+	var action_label: String = action.get("label", draft.ability_id)
+	if draft.ability_id == "move" and action_label == "Move one tile":
+		action_label = "Move"
+	_draft_summary = "%s: %s%s" % [_name_for(hero), action_label, destination]
 	var order_id: String = _planned_state.orders.get(hero, "")
-	var order: Dictionary = _rules.definitions(_state).orders.get(order_id, {})
-	var replaced := " instead of " + str(order.get("label", order_id)) if not order_id.is_empty() else ""
-	_draft_summary = "Preview · %s: %s%s%s this round" % [
-		_name_for(hero), action.get("label", draft.ability_id), destination, replaced]
+	if not order_id.is_empty():
+		var order: Dictionary = _rules.definitions(_state).orders.get(order_id, {})
+		_draft_summary += "\nReplaces %s this round" % str(order.get("label", order_id))
 
 
 func _target_description(hero: String, draft: Dictionary, target: Dictionary,

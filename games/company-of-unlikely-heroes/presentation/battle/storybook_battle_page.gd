@@ -68,13 +68,10 @@ const LEAF_GAP := 15.0
 const LEAF_RAIL_GAP := 7.0
 const FORFEIT_LEAF_WIDTH := 480.0
 const ACTION_BAND_HEIGHT := 56.0
-const DRAFT_SLOT_HEIGHT := 55.0
-const DOSE_SLOT_HEIGHT := 72.0
-const NOTE_SLOT_HEIGHT := 47.0
-const PREVIEW_BAND_HEIGHT := DOSE_SLOT_HEIGHT + NOTE_SLOT_HEIGHT
+const FIELD_NOTE_HEIGHT := 44.0
 const ROUND_BAND_HEIGHT := 47.0
 const FOOTER_GAP := 5.0
-const FOOTER_HEIGHT := ACTION_BAND_HEIGHT + PREVIEW_BAND_HEIGHT + ROUND_BAND_HEIGHT + 2.0 * FOOTER_GAP
+const FOOTER_HEIGHT := ACTION_BAND_HEIGHT + ROUND_BAND_HEIGHT + FOOTER_GAP
 
 
 class BattleSurface extends Control:
@@ -97,6 +94,20 @@ class ForfeitDialog extends ColorRect:
 			var element := get_accessibility_element()
 			AccessibilityServer.update_set_role(element, AccessibilityServer.ROLE_DIALOG)
 			AccessibilityServer.update_set_flag(element, AccessibilityServer.FLAG_MODAL, true)
+
+
+class FieldReader extends ScrollContainer:
+	# A compact inline reader is available by Tab/scroll. For a pointer user
+	# the existing hover affordance shows the whole note, wrapped to fit.
+	func _make_custom_tooltip(copy: String) -> Control:
+		var note := Label.new()
+		note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		note.add_theme_font_override("font", get_theme_font("font"))
+		note.add_theme_font_size_override("font_size", 15)
+		note.custom_minimum_size.x = clampf(get_viewport_rect().size.x - 32.0, 1.0, 450.0)
+		note.size.x = note.custom_minimum_size.x
+		note.text = copy
+		return note
 
 
 var _surface_root: BattleSurface
@@ -128,7 +139,8 @@ var _summary: Label
 var _aim_prompt: Label
 var _inspection: Label
 var _unavailable_note: Label
-var _dose_scroll: ScrollContainer
+var _field_reader: FieldReader
+var _field_heading: Label
 var _locked_dose: Label
 var _orders: Button
 var _forecast: Button
@@ -264,22 +276,12 @@ func render(view: Dictionary) -> void:
 	_summary.accessibility_live = AccessibilityServer.LIVE_POLITE
 	var aimed: String = view.get("aimed_action_id", "")
 	_aim_prompt.text = view.get("aim_prompt", "")
-	_aim_prompt.tooltip_text = _aim_prompt.text
 	_aim_prompt.accessibility_live = AccessibilityServer.LIVE_POLITE if not aimed.is_empty() else AccessibilityServer.LIVE_OFF
+	_aim_prompt.visible = not _aim_prompt.text.is_empty()
 	var rows: Array = view.get("orders", [])
 	_inspection.text = view.get("inspection", "")
-	if _inspection.text.is_empty() and active:
-		var company := PackedStringArray()
-		for row: Dictionary in rows:
-			if row.get("overridden", false):
-				continue
-			for choice: Dictionary in row.get("choices", []):
-				if choice.id == row.order_id:
-					company.append("%s: %s" % [row.hero_label, choice.label])
-					break
-		_inspection.text = "   ·   ".join(company)
-	_inspection.tooltip_text = _inspection.text
-	_render_locked_dose(str(view.get("locked_dose", "")))
+	var actions: Array = view.get("actions", [])
+	_render_field_note(str(view.get("locked_dose", "")), actions, aimed)
 	_forecast.text = "Forecast" if active else "Round result"
 	if _expanded == "forecast":
 		_leaf_heading.text = "Round forecast" if active else "Round result"
@@ -291,7 +293,7 @@ func render(view: Dictionary) -> void:
 	_field_notes.visible = active and not objective_details.is_empty() and objective_details != objective
 	_field_notes.text = "Mission notes: " + objective_details if _field_notes.visible else ""
 	_refresh_hero_picker(view.get("heroes", []), view.get("selected_hero_id", ""), active)
-	_refresh_action_buttons(view.get("actions", []), aimed)
+	_refresh_action_buttons(actions, aimed)
 	_cancel_targeting.visible = active and not aimed.is_empty()
 	_refresh_targets(view.get("targets", []), active, view.get("selected_cell", null))
 	_refresh_orders(rows)
@@ -334,16 +336,35 @@ func render_ink(cues: Dictionary) -> void:
 		_ink.render(cues)
 
 
-func _render_locked_dose(text: String) -> void:
-	if _locked_dose.text != text:
-		_dose_scroll.scroll_vertical = 0
-	_locked_dose.text = text
-	_locked_dose.accessibility_name = text
-	_locked_dose.tooltip_text = text
-	_locked_dose.visible = not text.is_empty()
-	_dose_scroll.visible = _locked_dose.visible
-	_inspection.offset_top = DOSE_SLOT_HEIGHT if _dose_scroll.visible else 0.0
-	_unavailable_note.offset_top = _inspection.offset_top
+func _render_field_note(dose: String, actions: Array, aimed: String) -> void:
+	var heading := ""
+	if not dose.is_empty():
+		heading = "Dose forecast" if aimed.is_empty() else "Pick a marked target"
+	elif not aimed.is_empty():
+		var index := actions.find_custom(func(action: Dictionary) -> bool: return action.id == aimed)
+		heading = "Aiming" if index < 0 else "Aiming · " + str(actions[index].label)
+	if _locked_dose.text != dose or _field_heading.text != heading:
+		_field_reader.scroll_vertical = 0
+	_locked_dose.text = dose
+	_locked_dose.visible = not dose.is_empty()
+	_field_heading.text = heading
+	_field_heading.visible = not heading.is_empty()
+	_field_reader.accessibility_name = "Battle notes" if dose.is_empty() else "Battle notes and locked dose"
+	_update_field_disclosure()
+
+
+func _update_field_disclosure() -> void:
+	_inspection.visible = not _unavailable_note.visible and not _inspection.text.is_empty()
+	if _unavailable_note.visible:
+		_field_reader.tooltip_text = _unavailable_note.text
+	elif _locked_dose.visible:
+		_field_reader.tooltip_text = _locked_dose.text
+	else:
+		var notes: PackedStringArray = []
+		for label: Label in [_inspection, _aim_prompt]:
+			if label.visible:
+				notes.append(label.text)
+		_field_reader.tooltip_text = "\n".join(notes)
 
 
 ## Scenery uses full-page coordinates with transparent space for the live grid.
@@ -811,7 +832,6 @@ func _build_footer() -> void:
 	_footer.add_theme_constant_override("separation", int(FOOTER_GAP))
 	_surface_root.add_child(_footer)
 	_build_action_band()
-	_build_preview_band()
 	_build_round_band()
 
 
@@ -844,6 +864,7 @@ func _build_action_band() -> void:
 	_action_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_action_box.add_theme_constant_override("separation", 6)
 	_action_scroll.add_child(_action_box)
+	_build_field_reader(toolbar)
 	var cancel_slot := Control.new()
 	cancel_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cancel_slot.custom_minimum_size = Vector2(146.0, 44.0)
@@ -859,37 +880,42 @@ func _build_action_band() -> void:
 	_cancel_targeting.hide()
 
 
-func _build_preview_band() -> void:
-	# Fixed slots size the board, not the text inside them. Keep the dose in
-	# its own column so a long inspection cannot steal any of its measure.
-	var preview := HBoxContainer.new()
-	preview.custom_minimum_size.y = PREVIEW_BAND_HEIGHT
-	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	preview.add_theme_constant_override("separation", 18)
-	_footer.add_child(preview)
-	var plan_notes := _preview_column(preview, 1.0)
-	var field_notes := _preview_column(preview, 1.27)
-	_summary = _label("", 18, PARCHMENT, true)
-	_draft_scroll = _preview_reader(plan_notes, "DraftSummary", "Draft summary", DRAFT_SLOT_HEIGHT, _summary)
-	_aim_prompt = _preview_label(plan_notes, 15, GOLD, DRAFT_SLOT_HEIGHT, PREVIEW_BAND_HEIGHT)
-	_aim_prompt.name = "AimPrompt"
-	_inspection = _preview_label(field_notes, 15, MUTED, DOSE_SLOT_HEIGHT, PREVIEW_BAND_HEIGHT)
-	_unavailable_note = _preview_label(field_notes, 15, GOLD, DOSE_SLOT_HEIGHT, PREVIEW_BAND_HEIGHT)
+func _build_field_reader(toolbar: Control) -> void:
+	# This bounded slot keeps aim, dose and inspection out of the board's
+	# geometry, while keeping full text reachable in either input mode.
+	_field_reader = FieldReader.new()
+	_configure_reader(_field_reader, "BattleNotes", "Battle notes")
+	_field_reader.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	_field_reader.custom_minimum_size.y = FIELD_NOTE_HEIGHT
+	toolbar.add_child(_field_reader)
+	var notes := VBoxContainer.new()
+	notes.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	notes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	notes.add_theme_constant_override("separation", 0)
+	_field_reader.add_child(notes)
+	_unavailable_note = _reader_text(notes, 15, GOLD)
 	_unavailable_note.hide()
-	_build_dose_note(field_notes)
-
-
-func _build_dose_note(parent: Control) -> void:
-	_locked_dose = _label("", 15, PARCHMENT)
+	_field_heading = _label("", 15, GOLD, true)
+	notes.add_child(_field_heading)
+	_locked_dose = _reader_text(notes, 15, PARCHMENT)
 	_locked_dose.name = "LockedDose"
-	_dose_scroll = _preview_reader(parent, "DoseNote", "Locked dose", DOSE_SLOT_HEIGHT, _locked_dose)
-	_dose_scroll.add_theme_stylebox_override("panel", _surface(Color("#30241d"), Color("#ab8967"), 8, 0))
-	_locked_dose.hide()
-	_dose_scroll.hide()
+	_inspection = _reader_text(notes, 15, MUTED)
+	_aim_prompt = _reader_text(notes, 15, MUTED)
+	_aim_prompt.name = "AimPrompt"
+	_field_reader.gui_input.connect(_preview_reader_input.bind(_field_reader, _inspection))
 
 
-func _preview_reader(parent: Control, node_name: String, title: String, height: float, text: Label) -> ScrollContainer:
-	var scroll := ScrollContainer.new()
+func _build_draft_reader(controls: Control) -> void:
+	_draft_scroll = ScrollContainer.new()
+	_configure_reader(_draft_scroll, "DraftSummary", "Draft summary")
+	_draft_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls.add_child(_draft_scroll)
+	_summary = _reader_text(_draft_scroll, 16, PARCHMENT, true)
+	_summary.mouse_filter = Control.MOUSE_FILTER_PASS
+	_draft_scroll.gui_input.connect(_preview_reader_input.bind(_draft_scroll, _summary))
+
+
+func _configure_reader(scroll: ScrollContainer, node_name: String, title: String) -> void:
 	scroll.name = node_name
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.mouse_force_pass_scroll_events = false
@@ -898,17 +924,16 @@ func _preview_reader(parent: Control, node_name: String, title: String, height: 
 	scroll.accessibility_name = title
 	scroll.accessibility_description = "If the text does not fit, use Up and Down to read it."
 	scroll.add_theme_stylebox_override("focus", _focus_outline(GOLD))
-	parent.add_child(scroll)
-	scroll.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	scroll.offset_bottom = height
-	scroll.gui_input.connect(_preview_reader_input.bind(scroll, text))
-	text.mouse_filter = Control.MOUSE_FILTER_PASS
+
+
+func _reader_text(parent: Control, pixels: int, tint: Color, display := false) -> Label:
+	var text := _label("", pixels, tint, display)
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	text.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	text.add_theme_constant_override("line_spacing", 1)
-	scroll.add_child(text)
-	return scroll
+	parent.add_child(text)
+	return text
 
 
 func _preview_reader_input(event: InputEvent, scroll: ScrollContainer, text: Label) -> void:
@@ -922,29 +947,6 @@ func _preview_reader_input(event: InputEvent, scroll: ScrollContainer, text: Lab
 	else:
 		return
 	scroll.accept_event()
-
-
-func _preview_column(parent: Container, weight: float) -> Control:
-	var column := Control.new()
-	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.clip_contents = true
-	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	column.size_flags_stretch_ratio = weight
-	parent.add_child(column)
-	return column
-
-
-func _preview_label(parent: Control, pixels: int, tint: Color, top: float, bottom: float) -> Label:
-	var label := _label("", pixels, tint)
-	label.mouse_filter = Control.MOUSE_FILTER_PASS
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.max_lines_visible = 2
-	label.add_theme_constant_override("line_spacing", 1)
-	parent.add_child(label)
-	label.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	label.offset_top = top
-	label.offset_bottom = bottom
-	return label
 
 
 func _horizontal_button_scroll() -> ScrollContainer:
@@ -961,6 +963,7 @@ func _build_round_band() -> void:
 	controls.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	controls.add_theme_constant_override("separation", 8)
 	_footer.add_child(controls)
+	_build_draft_reader(controls)
 	_orders = _button("StandingOrders", "Standing orders")
 	_orders.toggle_mode = true
 	_style_rail_button(_orders, true)
@@ -971,10 +974,6 @@ func _build_round_band() -> void:
 	_style_rail_button(_forecast, true)
 	controls.add_child(_forecast)
 	_forecast.pressed.connect(_toggle_leaf.bind("forecast"))
-	var space := Control.new()
-	space.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	controls.add_child(space)
 	_clear = _button("ClearCommand", "Clear command")
 	_style_rail_button(_clear)
 	controls.add_child(_clear)
@@ -1283,10 +1282,11 @@ func _refresh_unavailable_note() -> void:
 
 
 func _render_unavailable_note(reason: String) -> void:
+	if not reason.is_empty() and reason != _unavailable_note.text:
+		_field_reader.scroll_vertical = 0
 	_unavailable_note.text = reason
-	_unavailable_note.tooltip_text = reason
 	_unavailable_note.visible = not reason.is_empty()
-	_inspection.visible = reason.is_empty()
+	_update_field_disclosure()
 
 
 func _refresh_targets(rows: Array, active: bool, selected_cell: Variant = null) -> void:
@@ -1575,6 +1575,7 @@ func _layout_page() -> void:
 	var clear_width := maxf(_button_label_width(_clear, "Clear command"), _button_label_width(_clear, "Clear selection"))
 	var scale := clampf((content_width - 32.0) / (383.0 + clear_width), 0.0, 1.0)
 	_hero_picker.custom_minimum_size.x = (162.0 if compact else 188.0) * scale
+	_field_reader.custom_minimum_size.x = minf(content_width * 0.21, 252.0)
 	_orders.custom_minimum_size.x = (140.0 if compact else 152.0) * scale
 	_forecast.custom_minimum_size.x = (88.0 if compact else 113.0) * scale
 	_clear.custom_minimum_size.x = clear_width * scale
@@ -1594,9 +1595,14 @@ func _orders_leaf_height(arena: Rect2, beside: Rect2, board_extent: Vector2) -> 
 	if _board_scale(beside, board_extent) < minimum_scale:
 		room -= LEAF_GAP + board_extent.y * minimum_scale
 	var paper_padding := _leaf.get_theme_stylebox("panel").get_minimum_size().y
-	var desired := paper_padding + _leaf_sheet.get_combined_minimum_size().y \
-		+ _order_entries.get_combined_minimum_size().y
-	return minf(ceilf(desired), maxf(0.0, room))
+	var chrome := paper_padding + _leaf_sheet.get_combined_minimum_size().y
+	var one_row := 0.0
+	for widgets: Dictionary in _order_widgets.values():
+		one_row = maxf(one_row, widgets.row.get_combined_minimum_size().y)
+	# Keep a shorter leaf on compact screens, but not so short that focus
+	# cannot reveal one complete order row.
+	room = minf(room, maxf(arena.size.y * 0.56, chrome + one_row))
+	return minf(ceilf(chrome + _order_entries.get_combined_minimum_size().y), maxf(0.0, room))
 
 
 func _board_scale(region: Rect2, extent: Vector2) -> float:

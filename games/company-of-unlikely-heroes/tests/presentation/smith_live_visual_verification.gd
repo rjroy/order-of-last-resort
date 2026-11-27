@@ -33,7 +33,7 @@ const EXPECTED_CLIPS := {
 	"healer_bonk": "keep_your_head_down", "healer_heal": "blast",
 	"wizard_blast": "blast", "wizard_pull": "send_off",
 	"rogue_wasnt_me": "it_was_me", "rogue_confusing_dodge": "clear_jump",
-	"knight_rescue_line": "safety_distance", "healer_field_dressing": "bonk",
+	"knight_rescue_line": "safety_distance",
 	"wizard_ring_sparks": "ring_sparks", "rogue_tripwire": "cut_the_wire",
 	"knight_shield_throw": "lend_a_shield", "alchemist_acid": "acid",
 	"alchemist_potion": "hostile_dose", "alchemist_etching_paste": "etching_paste",
@@ -86,7 +86,7 @@ func _run() -> void:
 			_check(false, "missing fixture module " + path)
 		else:
 			examples.append_array(load(path).cases())
-	_check(examples.size() == 32, "matrix contains 25 native and seven borrowed cases")
+	_check(examples.size() == 31, "matrix contains 24 native and seven borrowed cases")
 	_add_variants(examples)
 	art.load_manifest()
 	if not selected.is_empty():

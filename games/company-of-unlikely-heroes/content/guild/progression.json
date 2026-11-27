@@ -167,30 +167,16 @@
           "teach_healer_blast"
         ]
       },
-      "healer_field_dressing": {
-        "label": "Field Dressing",
-        "description": "Heal a chosen healable hero, including the Healer, within one tile for 2 HP.",
-        "cost": 4,
-        "grant": {
-          "kind": "ability",
-          "hero_id": "healer",
-          "slot_id": "utility",
-          "ability_id": "healer_field_dressing"
-        }
-      },
       "healer_triage_order": {
         "label": "Triage",
-        "description": "Use equipped Field Dressing on the most injured legal patient.",
-        "cost": 3,
+        "description": "Use equipped Heal on the patient missing the most HP within 3 tiles, including the Healer. Wait if no legal patient is wounded.",
+        "cost": 6,
         "grant": {
           "kind": "order",
           "hero_id": "healer",
           "order_id": "order_healer_triage",
           "behavior_id": "guild_healer_triage"
-        },
-        "prerequisites": [
-          "healer_field_dressing"
-        ]
+        }
       },
       "wizard_ring_sparks": {
         "label": "Ring of Sparks",

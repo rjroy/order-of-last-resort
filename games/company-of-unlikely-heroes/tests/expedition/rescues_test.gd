@@ -8,14 +8,12 @@ const PULL_RESCUE: Array = [
 	{}, {}, {}
 ]
 const NO_PULL_RESCUE: Array = [
-	{"action": {"unit": "wizard", "ability": "move", "target": "3,2"}},
 	{"action": {"unit": "wizard", "ability": "wizard_blast", "target": "crate"}},
-	{"action": {"unit": "wizard", "ability": "move", "target": "4,2"}},
+	{"action": {"unit": "wizard", "ability": "wizard_blast", "target": "crate"}},
+	{"action": {"unit": "wizard", "ability": "wizard_blast", "target": "harpooner"}},
+	{"action": {"unit": "wizard", "ability": "wizard_blast", "target": "harpooner"}},
 	{"action": {"unit": "wizard", "ability": "move", "target": "4,3"}},
-	{"action": {"unit": "wizard", "ability": "wizard_blast", "target": "harpooner"}},
-	{"action": {"unit": "wizard", "ability": "wizard_blast", "target": "harpooner"}},
-	{"action": {"unit": "wizard", "ability": "move", "target": "5,3"}},
-	{"action": {"unit": "wizard", "ability": "move", "target": "6,3"}}
+	{}, {}, {}, {}
 ]
 const LOSS: Array = [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}]
 

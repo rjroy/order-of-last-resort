@@ -130,7 +130,7 @@ With `summon`, **cell** targeting places the creature on a vacant adjacent tile 
 | `escort` | `move_ability`. |
 | `hook_and_seek` | An entity `ability` using `hook`, `team`, `move_ability`, and `taunt_status`. Honors active taunt first; otherwise hooks the nearest legal target or takes one step toward the nearest member of `team`. |
 | `follow_ally` | `move_ability`; approaches the nearest other friendly character, stopping when adjacent. Requires the `follow_ally` event template. |
-| `most_injured` | Healing `ability` with entity targeting; uses it on the legal recipient missing the most HP, or holds if everyone it can reach is healthy. |
+| `most_injured` | Healing `ability` with entity targeting, or an automatic heal with a Direct entity choice; uses it on the legal recipient missing the most HP, or holds if everyone it can reach is healthy. |
 | `nearest_target` | Entity `ability`; uses it on its nearest legal recipient or holds if none qualifies. |
 | `follow_party` | `move_ability`. Takes one legal step along the shortest path to adjacency with the nearest living commandable hero in deployment order on ties. Excludes minions and civilians, and holds when already adjacent. The move event names that hero and the landing tile. |
 | `retreat` | `move_ability` and opposing `team`. Step away from the nearest living member of that team, with lowest instance ID breaking enemy-distance ties. Among equally distant legal steps, prefer the direction most aligned with the vector away from that enemy, then the fixed direction order. Hold if no step increases distance. |

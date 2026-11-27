@@ -16,26 +16,6 @@
         ]
       }
     },
-    "healer_field_dressing": {
-      "fitted_form": "unpick_the_stitch",
-      "label": "Field Dressing",
-      "help": "Heal a chosen healable hero, including yourself, within one tile for 2 HP.",
-      "handler": "heal",
-      "params": {
-        "amount": 2,
-        "allow_self": true
-      },
-      "targeting": {
-        "kind": "entity",
-        "range": 1,
-        "teams": [
-          "heroes"
-        ],
-        "capabilities": [
-          "healable"
-        ]
-      }
-    },
     "wizard_ring_sparks": {
       "fitted_form": "ring_of_salve",
       "label": "Ring of Sparks",
@@ -181,7 +161,7 @@
     "guild_healer_triage": {
       "handler": "most_injured",
       "params": {
-        "ability": "healer_field_dressing"
+        "ability": "healer_heal"
       }
     },
     "guild_bard_follow": {

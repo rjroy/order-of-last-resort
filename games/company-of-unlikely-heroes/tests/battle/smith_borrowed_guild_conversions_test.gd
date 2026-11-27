@@ -177,8 +177,9 @@ func _check_outcome(example: Array, result: Dictionary, hero: String, ally: Stri
 			_check(cover.get("source_id") == hero and cover.get("amount") == 2 and _unit(result, ally).hp == 10,
 				"Knight's fitted Bonk grants two-point cover rather than harming the ally")
 		"wizard_blast":
-			_check(_unit(result, ally).hp == 14 and _unit(result, enemy).hp == 20,
-				"Healer's fitted Blast heals the wounded ally for four")
+			var amount := int(defs.abilities.wizard_blast.params.damage)
+			_check(_unit(result, ally).hp == 10 + amount and _unit(result, enemy).hp == 20,
+				"Healer's fitted Blast heals the wounded ally by the base Blast damage")
 		"rogue_confusing_dodge":
 			_check(_unit(result, hero).position == Vector2i(6, 4) \
 				and _unit(result, enemy).position == Vector2i(7, 4) \

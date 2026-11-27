@@ -40,6 +40,7 @@ func _initialize() -> void:
 		_test_wizard_blast()
 		_test_turn_bound_status_on_object()
 		_test_wizard_pull()
+		_test_bounded_heal_blast_and_triage()
 		_test_recovery_expires_turn_end_status()
 		_test_modes_and_restart()
 		_test_round_preview()
@@ -463,6 +464,65 @@ func _test_wizard_pull() -> void:
 	_check(_find(result, "w").get("position") == Vector2i(0, 1), "Pull recoils wizard one tile away")
 	_check(rules.has_status_handler(result, "w", "skip_action"), "Pull knocks wizard down")
 	_check(_find(result, "near").get("hp", 0) == 10, "Pull respects selected target rather than nearest")
+
+
+func _test_bounded_heal_blast_and_triage() -> void:
+	# Own all tuning here, independently of the authored catalog.
+	var fixture := definitions.duplicate(true)
+	fixture.abilities.healer_heal.params.merge({"amount": 2, "allow_self": true}, true)
+	fixture.abilities.healer_heal.targeting.merge({"range": 3, "direct": {"help": "Choose a patient."}}, true)
+	fixture.abilities.wizard_blast.params.damage = 3
+	fixture.abilities.wizard_blast.targeting.merge({"range": 4, "direct": {"help": "Choose a target."}}, true)
+	fixture.abilities.wizard_pull.params.recoil_damage = 1
+	fixture.orders["blast"] = {"label": "Blast"}
+	fixture.behaviors["blast"] = {"handler": "use_ability", "params": {"ability": "wizard_blast"}}
+	fixture.classes.wizard.habits["blast"] = "blast"
+
+	for row in [["h", "healer", "healer_heal", "knight", 3],
+			["w", "wizard", "wizard_blast", "enemy", 4]]:
+		for distance in [row[4], row[4] + 1]:
+			var state := _state([_unit(row[0], "heroes", row[1], Vector2i.ZERO),
+				_unit("target", "heroes", row[3], Vector2i(distance, 0), 5)], fixture)
+			var plan: Dictionary = rules.preview(state, row[0], row[2], "target", true)
+			_check(plan.valid == (distance == row[4]), "%s Direct range %d" % [row[2], distance])
+			if plan.valid and distance == row[4]:
+				var expected: int = 7 if row[2] == "healer_heal" else 2
+				_check(_find(plan.result, "target").hp == expected, "%s Direct amount" % row[2])
+
+	for distance in [4, 5]:
+		var state := _state([_unit("w", "heroes", "wizard", Vector2i.ZERO),
+			_unit("target", "enemies", "enemy", Vector2i(distance, 0))], fixture)
+		state.orders.w = "blast"
+		var plan: Dictionary = rules.preview_round(state)
+		var after: Dictionary = rules.commit_round(state, plan)
+		_check(_find(after, "target").hp == (7 if distance == 4 else 10),
+			"Standing Blast respects inclusive range 4 and deals 3 at distance %d" % distance)
+
+	# most_injured currently validates against an entity-targeted ability.
+	# The stock catalog contract separately checks the automatic Heal binding.
+	var triage_fixture := fixture.duplicate(true)
+	triage_fixture.abilities.healer_heal.targeting.kind = "entity"
+	triage_fixture.abilities.healer_heal.targeting.erase("direct")
+	triage_fixture.abilities.healer_heal.params.erase("prefer_wounded_self")
+	triage_fixture.orders["triage"] = {"label": "Triage"}
+	triage_fixture.behaviors["triage"] = {"handler": "most_injured", "params": {"ability": "healer_heal"}}
+	triage_fixture.classes.healer.habits["triage"] = "triage"
+	for distance in [3, 4]:
+		var state := _state([_unit("h", "heroes", "healer", Vector2i.ZERO, 8),
+			_unit("patient", "heroes", "knight", Vector2i(distance, 0), 3)], triage_fixture)
+		state.orders.h = "triage"
+		var plan: Dictionary = rules.preview_round(state)
+		var after: Dictionary = rules.commit_round(state, plan)
+		_check(_find(after, "patient").hp == (5 if distance == 3 else 3),
+			"Triage heals the most injured legal patient only within range 3 at distance %d" % distance)
+		_check(_find(after, "h").hp == (8 if distance == 3 else 10),
+			"Triage selects the legal self when the more injured patient is out of range")
+
+	var pull := _state([_unit("w", "heroes", "wizard", Vector2i(1, 1)),
+		_unit("target", "enemies", "enemy", Vector2i(4, 1))], fixture)
+	var after_pull := _apply(pull, _plan(pull, "w", "wizard_pull", "target"), "bounded pull")
+	_check(_find(after_pull, "w").hp == 9 and rules.has_status_handler(after_pull, "w", "skip_action"),
+		"Pull deals one recoil damage and retains knockdown")
 
 
 func _test_recovery_expires_turn_end_status() -> void:

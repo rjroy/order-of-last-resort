@@ -14,7 +14,6 @@ func _initialize() -> void:
 	defs.abilities.healer_heal.params.amount = 3
 	defs.abilities.wizard_blast.params.damage = 4
 	defs.abilities.enemy_attack.params.damage = 4
-	defs.abilities.healer_field_dressing.params.amount = 2
 	defs.statuses.aura.params.range = 1
 	defs.characters.grunt.abilities = Catalog.profile(defs, "grunt").abilities.duplicate()
 	if "enemy_attack" not in defs.characters.grunt.abilities:
@@ -23,7 +22,7 @@ func _initialize() -> void:
 		defs.characters[hero].abilities = Catalog.profile(defs, hero).abilities.duplicate()
 	for row in [["knight", "healer_bonk"], ["healer", "wizard_blast"],
 			["wizard", "rogue_confusing_dodge"], ["alchemist", "wizard_pull"],
-			["bard", "knight_push"], ["healer", "healer_field_dressing"],
+			["bard", "knight_push"],
 			["wizard", "wizard_ring_sparks"], ["rogue", "rogue_tripwire"],
 			["knight", "knight_rescue_line"]]:
 		if row[1] not in defs.characters[row[0]].abilities:
@@ -39,7 +38,6 @@ func _initialize() -> void:
 	_test_dodge("rogue")
 	_test_dodge("wizard")
 	_test_rescue()
-	_test_dressing()
 	_test_ring()
 	_test_tripwire()
 	_test_throw()
@@ -188,14 +186,6 @@ func _test_rescue() -> void:
 			"knight_rescue_line: Safety Distance moves friend away")
 
 
-func _test_dressing() -> void:
-	var s := _state("healer")
-	_find(s, "enemy").position = Vector2i(4, 5)
-	var result := _action(s, "healer_field_dressing", "enemy")
-	if not result.is_empty():
-		_check(_find(result, "enemy").hp == 18, "healer_field_dressing: Unpick the Stitch deals two")
-
-
 func _test_ring() -> void:
 	var s := _state("wizard")
 	_find(s, "enemy").position = Vector2i(4, 5)
@@ -233,7 +223,7 @@ func _test_bard_push() -> void:
 
 
 func _test_primary_bonus_reflection() -> void:
-	for row in [["rogue", "rogue_wasnt_me"], ["healer", "healer_field_dressing"]]:
+	for row in [["rogue", "rogue_wasnt_me"]]:
 		for bonus_kind in ["fine_adjustment", "inspired"]:
 			for guarded in [false, true]:
 				var hero: String = row[0]

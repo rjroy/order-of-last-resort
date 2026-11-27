@@ -115,7 +115,6 @@ func _stock_wearers() -> void:
 	# Expectations are independent of the binding table and use the shipped atlas.
 	var rows := [
 		["healer", "doctors_orders", "healer_heal", "heal", "blast", 12],
-		["healer", "unpick_the_stitch", "healer_field_dressing", "heal", "bonk", 15],
 		["wizard", "ring_of_salve", "wizard_ring_sparks", "sweep", "ring_sparks", 12],
 		["bard", "healing_sonnet_in_tune", "healing_sonnet", "perform", "healing_sonnet", 25],
 		["bard", "inspiring_melody_in_tune", "inspiring_melody", "perform", "inspiring_melody", 13],

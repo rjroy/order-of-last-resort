@@ -28,7 +28,7 @@ func _initialize() -> void:
 	for row in [["knight", "healer_bonk"], ["healer", "wizard_blast"],
 			["wizard", "rogue_confusing_dodge"], ["alchemist", "wizard_pull"],
 			["bard", "knight_push"], ["knight", "knight_rescue_line"],
-			["healer", "healer_field_dressing"], ["wizard", "wizard_ring_sparks"],
+			["wizard", "wizard_ring_sparks"],
 			["rogue", "rogue_tripwire"]]:
 		if row[1] not in defs.characters[row[0]].abilities:
 			defs.characters[row[0]].abilities.append(row[1])
@@ -105,7 +105,7 @@ func _direct_rows() -> void:
 		["healer", "healer_bonk", "friend"], ["healer", "healer_heal", "foe"],
 		["wizard", "wizard_blast", "friend"], ["wizard", "wizard_pull", "foe"],
 		["rogue", "rogue_wasnt_me", "foe"], ["rogue", "rogue_confusing_dodge", "foe"],
-		["knight", "knight_rescue_line", "friend"], ["healer", "healer_field_dressing", "foe"],
+		["knight", "knight_rescue_line", "friend"],
 		["wizard", "wizard_ring_sparks", ""], ["rogue", "rogue_tripwire", "friend"],
 		["knight", "knight_shield_throw", "friend"],
 		["knight", "healer_bonk", "friend"], ["healer", "wizard_blast", "friend"],
@@ -153,7 +153,7 @@ func _direct_rows() -> void:
 				_check(_unit(result, friend).hp == 14, label + ": Mending Blast heals four")
 			"wizard_pull":
 				_check(_unit(result, "foe").position == Vector2i(3, 5), label + ": Send-Off moves target away")
-			"rogue_wasnt_me", "healer_field_dressing":
+			"rogue_wasnt_me":
 				_check(_unit(result, "foe").hp == 18, label + ": alternate hits opponent for two")
 			"rogue_confusing_dodge":
 				_check(_unit(result, "foe").position == Vector2i(3, 4)
@@ -178,8 +178,6 @@ func _standing_rows() -> void:
 		if s.is_empty():
 			continue
 		s.orders[hero] = row[1]
-		if row[2] == "triage":
-			_unit(s, "foe").hp = 15
 		var result := _round(s, "standing " + row[2])
 		if result.is_empty():
 			continue
@@ -188,7 +186,7 @@ func _standing_rows() -> void:
 			"bonk": _check(_unit(result, friend).hp == 10, "standing bonk: cover does not hurt friend")
 			"blast": _check(_unit(result, friend).hp == 14, "standing blast: heals nearest wounded hero")
 			"blame": _check(_unit(result, "foe").hp == 18, "standing blame: bonks isolated enemy")
-			"triage": _check(_unit(result, "foe").hp == 13, "standing triage: damages injured opponent")
+			"triage": _check(_unit(result, "foe").hp == 17, "standing triage: Doctor's Orders damages nearest opponent")
 
 
 func _triage_multiple_opponents() -> void:
@@ -197,32 +195,34 @@ func _triage_multiple_opponents() -> void:
 	other.id = "other"
 	other.position = Vector2i(3, 2)
 	other.hp = 12
-	_unit(s, "foe").hp = 19
+	_unit(s, "foe").position = Vector2i(3, 5)
+	_unit(s, "foe").hp = 10
 	s.units.append(other)
 	s.orders.healer = "order_healer_triage"
-	var result := _round(s, "Triage prioritizes wounds")
+	var result := _round(s, "Fitted Triage prioritizes distance")
 	if not result.is_empty():
-		_check(_unit(result, "foe").hp == 19 and _unit(result, "other").hp == 10,
-			"Triage chooses the more wounded of two adjacent opponents, not first in encounter order")
+		_check(_unit(result, "foe").hp == 10 and _unit(result, "other").hp == 9,
+			"Fitted Triage chooses the nearer opponent even when the other is more wounded and occurs first")
 
 	var tied := s.duplicate(true)
+	_unit(tied, "foe").position = Vector2i(3, 4)
 	_unit(tied, "foe").hp = 15
 	_unit(tied, "other").hp = 15
-	result = _round(tied, "Triage wound tie")
+	result = _round(tied, "Fitted Triage distance tie")
 	if not result.is_empty():
-		_check(_unit(result, "foe").hp == 13 and _unit(result, "other").hp == 15,
-			"Triage breaks equal missing-HP ties by encounter order")
+		_check(_unit(result, "foe").hp == 12 and _unit(result, "other").hp == 15,
+			"Fitted Triage breaks equal distance ties by encounter order")
 
-	var direct := rules.choose_manual(s, "healer", "healer_field_dressing", "foe")
+	var direct := rules.choose_manual(s, "healer", "healer_heal", "foe")
 	var slot: Dictionary = rules.state_before_action(direct, "healer")
-	var targets: Array = rules.targets(slot, "healer", "healer_field_dressing")
+	var targets: Array = rules.targets(slot, "healer", "healer_heal")
 	_check(targets.any(func(target: Dictionary): return target.id == "foe")
 		and targets.any(func(target: Dictionary): return target.id == "other"),
-		"Direct Unpick offers both adjacent opponents")
-	result = _round(direct, "Direct Unpick selected opponent")
+		"Direct Doctor's Orders offers both opponents")
+	result = _round(direct, "Direct Doctor's Orders selected opponent")
 	if not result.is_empty():
-		_check(_unit(result, "foe").hp == 17 and _unit(result, "other").hp == 12,
-			"Direct Unpick honors the chosen opponent over the more wounded opponent")
+		_check(_unit(result, "foe").hp == 7 and _unit(result, "other").hp == 12,
+			"Direct Doctor's Orders honors the chosen opponent over the nearer opponent")
 
 
 func _fallback_blast() -> void:
@@ -245,7 +245,7 @@ func _invalid_selected_target() -> void:
 	other.hp = 20
 	other.position = Vector2i(3, 2)
 	s.units.append(other)
-	s = rules.choose_manual(s, "healer", "healer_field_dressing", "foe")
+	s = rules.choose_manual(s, "healer", "healer_heal", "foe")
 	var result := _round(s, "invalid selected target")
 	if not result.is_empty():
 		_check(_unit(result, "other").hp == 20

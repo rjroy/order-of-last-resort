@@ -1,5 +1,6 @@
 {
   "commission_settings": {
+    "tiered": true,
     "recruitment_roster": [
       "knight",
       "healer",
@@ -111,6 +112,7 @@
   "mission_reports": {
     "bridge_patrol": {
       "kind": "skirmish",
+      "road_tier": 1,
       "descriptors": [
         "Two Harpooners wait on opposite sides of the road. Each can hit from two tiles away, so check both before stepping between them.",
         "These harpoons wound but don't pull. Stay more than two tiles from both raiders, or close on one without stepping into the other's reach."
@@ -118,6 +120,7 @@
     },
     "goblin_mob": {
       "kind": "skirmish",
+      "road_tier": 1,
       "descriptors": [
         "Five goblins are closing from both sides. They hit harder when two get beside the same target.",
         "The goblins are weak on their own. Watch the gaps a second goblin could use to join the first."
@@ -125,6 +128,7 @@
     },
     "harpoon_squad": {
       "kind": "ambush",
+      "road_tier": 2,
       "descriptors": [
         "A Hookhand and a Harpooner cover the lane. The Bruiser is already close enough to make a bad pull hurt.",
         "The Hookhand can drag a hero within reach of the slower Bruiser. Look at where the hero would land, not just where they stand."
@@ -132,6 +136,7 @@
     },
     "shield_wall": {
       "kind": "formation",
+      "road_tier": 2,
       "descriptors": [
         "Two Shieldbearers flank an Archer. Each one beside the Archer cuts the damage the Archer takes.",
         "The Archer is the threat at range. Separate each Shieldbearer from the Archer to break that protection."
@@ -139,6 +144,7 @@
     },
     "cowardly_captain": {
       "kind": "formation",
+      "road_tier": 2,
       "descriptors": [
         "The Captain tries to back away when heroes get beside him, but the two Grunts hit harder at his side.",
         "The Grunts aren't stronger everywhere. It's standing next to the Captain that puts extra force behind their blows."
@@ -146,6 +152,7 @@
     },
     "explosive_situation": {
       "kind": "ambush",
+      "road_tier": 2,
       "descriptors": [
         "Two Bombers go off when they fall. A blast hits anyone next to the Bomber, even its own allies.",
         "Watch the Harpooner's two-tile reach when picking a spot clear of the blast. The Bombers can set each other off while they're side by side."
@@ -153,6 +160,7 @@
     },
     "unfortunate_healer": {
       "kind": "formation",
+      "road_tier": 4,
       "descriptors": [
         "Two Bruisers have a Healer who can patch up a wounded ally within two tiles.",
         "The enemy Healer has only two heals. A Bruiser out of reach gets neither."
@@ -160,6 +168,7 @@
     },
     "duelists": {
       "kind": "skirmish",
+      "road_tier": 2,
       "descriptors": [
         "Two Duelists are waiting. A Duelist who survives a hit can strike back if the attacker is still beside them.",
         "These two punish a clean hit at arm's length. Attack from farther away or leave a gap before the return blow."
@@ -167,6 +176,7 @@
     },
     "odd_couple": {
       "kind": "ambush",
+      "road_tier": 4,
       "descriptors": [
         "The Trickster can trade places with the Ogre once. Watch for it to move closer to your company than the Ogre is.",
         "The Ogre hits hard up close. A gap that looks safe from the Ogre may not be safe from a swap."
@@ -174,6 +184,7 @@
     },
     "mirror_company": {
       "kind": "rival_band",
+      "road_tier": 4,
       "descriptors": [
         "They brought a Knight who pushes, a Wizard who blasts the nearest character, and a Healer who patches up wounded allies.",
         "The rival Healer gets two heals. Their Wizard can hit their own side, and their Knight answers a taunt."
@@ -181,9 +192,66 @@
     },
     "last_one_standing": {
       "kind": "rival_band",
+      "road_tier": 3,
       "descriptors": [
         "When a Bandit falls, the Fierce one hits harder and the Swift one moves farther. Those gains stack.",
         "The Guard Bandit shrugs off part of a heavy hit once another Bandit is down. Small hits still get through, and the armor only improves once."
+      ]
+    },
+    "light_hook_pair": {
+      "kind": "ambush",
+      "road_tier": 1,
+      "descriptors": [
+        "A Hookhand and a Harpooner cover the lane. The Hookhand can pull a hero closer while the Harpooner strikes from a distance.",
+        "Watch where the Hookhand's pull will land your hero, and check the Harpooner's reach before closing."
+      ]
+    },
+    "veteran_shield_wall": {
+      "kind": "formation",
+      "road_tier": 3,
+      "descriptors": [
+        "Tougher Shieldbearers flank the Archer. Each guard beside the Archer reduces the damage it takes.",
+        "These Shieldbearers take more punishment than the usual wall. Separate them from the Archer or work through their defenses."
+      ]
+    },
+    "veteran_explosive_situation": {
+      "kind": "ambush",
+      "road_tier": 3,
+      "descriptors": [
+        "These Bombers can survive hits that would fell the usual pair. Their death blasts hurt anyone beside them, including their allies.",
+        "The sturdier Bombers may need another hit before they explode. Watch the Harpooner's reach while choosing where to finish them."
+      ]
+    },
+    "veteran_mirror_company": {
+      "kind": "rival_band",
+      "road_tier": 5,
+      "descriptors": [
+        "The rival Wizard is tougher than usual and blasts the nearest character, friend or foe. A Knight and Healer fight alongside them.",
+        "Expect the sturdier rival Wizard to stay in the fight longer. The rival Healer can also patch up wounded allies."
+      ]
+    },
+    "veteran_unfortunate_healer": {
+      "kind": "formation",
+      "road_tier": 5,
+      "descriptors": [
+        "A tougher enemy Healer supports two Bruisers. Removing the Healer takes more punishment than usual, and the Healer has two heals.",
+        "The sturdier Healer can patch up wounded allies within two tiles. Separate a Bruiser from that support or focus on the Healer."
+      ]
+    },
+    "veteran_odd_couple": {
+      "kind": "ambush",
+      "road_tier": 5,
+      "descriptors": [
+        "This Ogre is tougher than usual and hits hard up close. The Trickster can swap places with it once.",
+        "A sturdier Ogre may stay dangerous longer, and the Trickster can bring it closer with a single swap."
+      ]
+    },
+    "crossfire_blast_lane": {
+      "kind": "ambush",
+      "road_tier": 5,
+      "descriptors": [
+        "A Hookhand can pull a hero toward the Bomber, which can strike up close before it falls. Its death blast hurts everyone beside it, friend or foe.",
+        "The Harpooner strikes from two tiles away while the Bomber closes in. Check the Hookhand's pull and the Bomber's blast before committing."
       ]
     },
     "company_rescue": {

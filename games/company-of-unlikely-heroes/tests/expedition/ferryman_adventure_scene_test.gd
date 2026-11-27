@@ -34,6 +34,7 @@ func _run() -> void:
 	# authored mission or encounter, so its settlement is reached immediately.
 	var defs: Dictionary = Catalog.read_default()
 	defs.mission_reports.company_rescue.erase("destination_descriptors")
+	defs.mission_reports.company_rescue.road_tier = 1
 	var errors: PackedStringArray = Catalog.validate(defs)
 	if not errors.is_empty():
 		_finish("Commission rescue fixture is invalid: " + str(errors))

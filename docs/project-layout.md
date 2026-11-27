@@ -12,7 +12,7 @@ to them. The Godot project root remains
 |---|---|
 | `AGENTS.md` | Repository working agreements and links to the game guide and focused runbooks. |
 | `MIGRATION.md`, `migration-commit-map.txt` | Extraction history and mapping from historical source commits. These are provenance, not a live tracker or runtime input. |
-| `docs/` | Maintained project and workflow documentation. [`adding-a-playable-class.md`](adding-a-playable-class.md) is the end-to-end recruitable-hero runbook; use it rather than duplicating its detailed design, integration, approval, and verification procedure. |
+| `docs/` | Maintained project and workflow documentation. See [Adding a playable class](adding-a-playable-class.md) for the recruitable-hero runbook, [Designing commission tiers](designing-commission-tiers.md) for route eligibility, [Designing balanced road missions](designing-road-missions.md) for encounters at forks, and [Designing balanced commission finales](designing-commission-finales.md) for named destinations. |
 | `.agents/` | Project-local agent skills and helper instructions. These guide work but are not game runtime resources. |
 | `.beads/` | Repository-local issue-tracker data when present; unlike historical issue IDs in `.lore/`, this is operational tracker state. |
 | `.git/` | Git's repository metadata and object database; do not edit it as project content. |

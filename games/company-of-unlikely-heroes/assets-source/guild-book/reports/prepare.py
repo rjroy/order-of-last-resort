@@ -18,8 +18,9 @@ def main():
     manifest = json.loads((HERE / "registration.json").read_text())
     authored = json.loads((GAME / "content/expedition/commissions.json").read_text())["mission_reports"]
     cuts = manifest["cuts"]
-    if set(cuts) != set(authored):
-        parser.error(f"Incomplete report mappings: {sorted(set(cuts) ^ set(authored))}")
+    stale = set(cuts) - set(authored)
+    if stale:
+        parser.error(f"Registered crops have no authored report: {sorted(stale)}")
     args.output.mkdir(parents=True, exist_ok=True)
     if any(args.output.iterdir()):
         parser.error(f"Output directory must be empty: {args.output}")

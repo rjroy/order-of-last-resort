@@ -5,7 +5,7 @@
 When adding a stock hero or mission, add its file's path relative to `content/` to the `parts` array in [`catalog.json`](catalog.json). A file not listed there is not loaded by the default stock catalog. `practice/catalog.json` is intentionally narrower and independent: add a part there only when practice needs that content; do not mirror every stock catalog addition automatically.
 
 - **Missions** name an encounter and may specify a positive integer `tier` for authored challenge or complexity, independent of commission length and position. The `escort` objective names a character *placement* as its `subject` and a board *location* as its `destination`. `leave_zone` names a `subject` placement and a board `zone`; the subject starts inside and must finish the round alive outside the zone. `defeat_all` requires no subject and defaults to the `enemies` team. The frontier objectives are listed below. `failures` supports `subject_dead` (for `escort`, `leave_zone`, or `wagon`), `deadline` (requires a positive encounter deadline), and `party_wiped`. Every mission referenced by a commission report must include `party_wiped`: a wipe takes precedence over victory, and surviving summons do not count. Standalone missions may omit it. Optional `default_party` is an ordered list of distinct commandable hero IDs, exactly one for each encounter slot. Direct `--mission` launch uses this list unless `--party` supplies another; the guild deploys its selected party. Author `text`, `victory_text`, `defeat_text`, and `victory_event` on the objective. For escort and leave-zone outcome events, `{subject}` is the lowercased display name and `{subject_label}` preserves its display case.
-- **Encounters** specify a board, optional round deadline and ordered placements. An absent or zero deadline is untimed. Optional `party_slots` are ordered deployment coordinates, separate from NPC and object placements. A placement has a unique `id`, one `character` or `object` definition ID, and an `at` coordinate. An optional `hp` overrides starting HP from zero through that definition's maximum; use `0` for a starting corpse. An optional `seed` sets the opening random state (default `1`, allowed `1`–`2147483646`). Party order precedes placement order. Most nearest-target ties prefer the first eligible unit in deployment order, then objects in placement order.
+- **Encounters** specify a board, optional round deadline and ordered placements. An absent or zero deadline is untimed. Optional `party_slots` are ordered deployment coordinates, separate from NPC and object placements. A placement has a unique `id`, one `character` or `object` definition ID, and an `at` coordinate. An optional `hp` overrides starting HP from zero through the placement's effective maximum; use `0` for a starting corpse. An optional `seed` sets the opening random state (default `1`, allowed `1`–`2147483646`). Party order precedes placement order. Most nearest-target ties prefer the first eligible unit in deployment order, then objects in placement order.
 - **Boards** specify dimensions, a `default_tile`, tile overrides and named locations. Optional `zones` maps each name to a nonempty list of distinct, passable cells; rules and presentation use the same named zone. Optional `shore_cells` lists eligible cells for the safe-shore tint: only the orthogonally connected group containing the objective destination is highlighted. Omit it for no tint. It does not change tile artwork or rules. Coordinates are zero-based pairs of whole numbers. **Tiles** define passability, label, artwork key and optional `collapse_to`.
 - **Characters** inherit their field values from **classes**; an override replaces the entire scalar, array or map, including `abilities` and `habits`. The required `label` is the character's display name; an optional nonblank `epithet` supplies a subtitle in hero identity views and follows the name in the combat chooser. Catalogs without an epithet retain their existing labels. Keep each habit's behavior and the autonomous `behavior` compatible with the effective kit. `default_order` must be one of that character's habits. **Objects** and classes/characters list **capabilities** by ID, separate from their team and artwork.
 - **Orders** provide player-facing labels. A character's `habits` map each order ID to a **behavior** ID. Labels are not executable IDs.
@@ -63,14 +63,44 @@ Ownership is separate from what is equipped. Borrowed abilities retain their exi
 | `mission_kinds.<kind_id>` | A nonblank `label` and a `descriptors` array of onward clues. Describe the kind of challenge shared by missions of this type, without naming an exact mission or giving details that apply to only one. |
 | `mission_reports.<mission_id>` | An entry keyed by an existing mission ID, with `kind` referencing `mission_kinds` and a `descriptors` array for the immediate field report. Give concrete information about this mission, such as an enemy interaction, an objective constraint, or a board hazard. |
 | `commission_settings.recruitment_roster` | Ordered array of distinct commandable hero IDs available for recruitment. Party size comes from destination encounter `party_slots`; all reported missions must have the same number of slots, and the roster must be large enough. |
+| `commission_settings.tiered` | Optional boolean. Set `true` to enable the slot schedule for the entire catalog. Omitting it or setting `false` preserves the legacy custom catalog rules and seeded route selection, without filtering by tier. |
+| `mission_reports.<mission_id>.road_tier` | Required on each road report in a tiered catalog: a whole number from 1 to 5. The mission's own `tier` describes complexity and does not control routes. |
 
 On a mission report, the presence of `destination_descriptors` is the destination flag; there is no separate boolean. Its strings describe the finale's job for the commission board. Give a destination report the regular `descriptors` as well. Each descriptor array must be nonempty and contain only nonblank strings; multiple strings are alternate versions of the same report or clue. For example, `formation` clues describe enemies that depend on one another, `shield_wall` reports name the Shieldbearers protecting the Archer, and `last_wagon` destination text explains the job of getting supplies to the village.
 
 Reports with `destination_descriptors` are eligible only as finales. Reports without it are eligible as transit missions. A mission with no report stays outside the commission pools. Every reported mission must support the selected roster: its encounter needs the same number of deployment slots as the destinations, its placement IDs must not collide with recruit IDs, and its failures must include `party_wiped`. An authored `default_party` is not needed for commission deployment.
 
-The stock board offers three distinct destinations at lengths **5/5/10**, counting the finale in each length. Each transit fork offers two distinct missions of different kinds, so the chosen onward clue matches exactly one option at the next fork. At the last fork both reports point to the named destination instead. The stock data has 11 transit missions across four kinds and nine eligible finales.
+The board offers three distinct destinations at lengths **5/5/10**, counting
+the finale. Stock opts into the [commission tier schedule](../../../docs/designing-commission-tiers.md#slot-schedule)
+with 18 road options. Short roads follow **T1, T1, T2, T2** before a T3
+finale; long roads follow **T1, T1, T2, T2, T3, T4, T4, T5, T5** before a
+T6 finale. Both finale slots use the same unchanged destination pool.
 
-A custom pool needs at least three eligible destinations and at least two transit kinds with a reported mission each. It does not need nine unique transit missions for a ten-mission commission: selection prefers an unvisited mission of the required kind, but can reuse one when that kind's pool is exhausted. Direct `--mission` launches can use an authored default party or an explicit `--party`, regardless of commission data.
+Each fork offers two different kinds. In tiered play both roads must be in
+the current slot's tier, and the onward clue names a kind in the next road
+tier. Exactly one option at the next fork matches that clue. At the last fork
+both reports point to the named destination instead. A commission catalog
+needs at least three destinations and at least two road kinds with eligible
+missions: in every road tier for tiered catalogs, across the whole pool for
+legacy catalogs. Tiered selection prefers unvisited base missions but may
+repeat one; it never relaxes the tier or the promised kind.
+
+**Authoring a road variant:** Give it a new mission ID and a report keyed by
+that ID. Use a separate `encounter` ID when changing the layout or placements.
+Set optional `base_mission_id` to the original mission to group it for repeat
+checks. Use optional `enemy_max_hp` on the mission to set positive whole
+maximum HP by enemy placement ID, without changing shared character definitions
+or the original standalone opening. Register stock variants in the default
+manifest, not the practice manifest.
+
+Make each alternate description accurate for that variant's enemies and
+layout. State the objective, any unusual loss or timing condition, and the
+tactical fact that could change the player's choice. Keep kind clues general
+enough to fit any variant they might promise. For stock reports, exact-ID art
+wins; base art is a fallback only when the variant uses the same encounter ID.
+Changed or new encounters without exact art may be text-only. Custom reports
+still do not use stock report art. Direct `--mission` launches can use an authored
+default party or an explicit `--party`, regardless of route eligibility.
 
 **Migrating an external catalog:** Replace `commission_settings.roster_adventure`
 with `recruitment_roster`, an ordered array of the old roster's hero IDs, and

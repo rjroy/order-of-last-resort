@@ -13,6 +13,7 @@ var profile_path := "user://commission_finale_profile_%d.json" % OS.get_process_
 func _run() -> void:
 	var catalog = load("res://content/catalog.gd")
 	var defs: Dictionary = catalog.read_default().duplicate(true)
+	defs.commission_settings.tiered = false
 	var mission: Dictionary = defs.missions.shield_wall.duplicate(true)
 	mission.encounter = "finale_test_encounter"
 	defs.encounters.finale_test_encounter = {

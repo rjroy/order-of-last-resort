@@ -32,6 +32,9 @@ func _initialize() -> void:
 						_test_route(fixture, seed_value, length_index, branch)
 			_test_branch_promises(fixture)
 			_test_authored_opening()
+			_test_tiered_routes()
+			_test_exhausted_kind_avoids_last_base()
+			_test_stock_tiered_catalog()
 	if failures.is_empty():
 		print("PASS: commission routes")
 	else:
@@ -264,3 +267,301 @@ func _test_authored_opening() -> void:
 	var run: Dictionary = adventure.call("start_commission", defs, offers[0], PARTY, 42)
 	_check(run.get("phase") == "route" and run.get("reports", []).size() == 2,
 		"Authored catalog supports a commission opening and route pair")
+
+
+func _tiered_fixture() -> Dictionary:
+	var defs := _fixture()
+	var combat: Dictionary = defs.missions.shield_wall.duplicate(true)
+	defs.mission_reports = {}
+	defs.mission_kinds = {}
+	defs.commission_settings.tiered = true
+	# Neighboring tiers have disjoint kinds. T5 deliberately has one base per
+	# kind, so its second slot must repeat a base, even though variants exist.
+	for tier in range(1, 6):
+		for kind_index in range(2):
+			var kind := "tier_%d_kind_%d" % [tier, kind_index]
+			defs.mission_kinds[kind] = {"label": kind, "descriptors": ["hint " + kind]}
+			var base_count := 1 if tier == 5 else 2
+			for base_index in range(base_count):
+				var base := "tier_%d_kind_%d_base_%d" % [tier, kind_index, base_index]
+				defs.missions[base] = combat.duplicate(true)
+				defs.missions[base].title = base
+				defs.mission_reports[base] = {
+					"kind": kind, "road_tier": tier, "descriptors": ["report " + base]}
+				if base_index == 0:
+					var variant := base + "_variant"
+					defs.missions[variant] = combat.duplicate(true)
+					defs.missions[variant].title = variant
+					defs.missions[variant].base_mission_id = base
+					defs.mission_reports[variant] = {
+						"kind": kind, "road_tier": tier, "descriptors": ["report " + variant]}
+	for index in range(3):
+		var id := "tier_destination_%d" % index
+		defs.missions[id] = combat.duplicate(true)
+		defs.missions[id].title = id
+		defs.mission_reports[id] = {"kind": "tier_1_kind_0",
+			"descriptors": ["report " + id], "destination_descriptors": ["destination " + id]}
+	return defs
+
+
+func _base_id(defs: Dictionary, id: String) -> String:
+	return str(defs.missions.get(id, {}).get("base_mission_id", id))
+
+
+func _test_tiered_routes() -> void:
+	var defs := _tiered_fixture()
+	var seen := {"fresh": 0, "repeat": 0, "variant": 0}
+	for seed_value in [11, 9182]:
+		var board: Array = commissions.call("board", defs, seed_value)
+		_check(board.size() == 3, "tiered fixture: valid catalog supplies a board")
+		if board.size() != 3:
+			continue
+		for length_index in [0, 2]:
+			for branch in [0, 1]:
+				_test_tiered_route(defs, board[length_index], branch, seen)
+	_check(seen.fresh > 0, "tiered routes exercise fresh base preference")
+	_check(seen.repeat > 0, "tiered routes exercise unavoidable tier-local repeats")
+	_check(seen.variant > 0, "tiered routes offer a variant with a shared base")
+
+
+func _test_tiered_route(defs: Dictionary, offer: Dictionary, branch: int, seen: Dictionary) -> void:
+	var label := "tiered seed %s length %s branch %d" % [offer.seed, offer.length, branch]
+	var run: Dictionary = adventure.call("start_commission", defs, offer, PARTY, 444)
+	var other: Dictionary = adventure.call("start_commission", defs, offer, PARTY, 999)
+	_check(run.get("phase") == "route" and other.get("phase") == "route",
+		label + ": valid tiered commission starts")
+	if run.get("phase") != "route" or other.get("phase") != "route":
+		return
+	var tiers := [1, 1, 2, 2] if offer.length == 5 else [1, 1, 2, 2, 3, 4, 4, 5, 5]
+	var visited: Array = []
+	var promised := ""
+	for step in range(tiers.size()):
+		var reports: Array = run.get("reports", [])
+		_check(run.get("phase") == "route" and reports.size() == 2,
+			label + ": slot %d has two reports" % (step + 1))
+		_check(reports == other.get("reports", []),
+			label + ": route is independent of reward seed, choice and party wounds")
+		if reports.size() != 2 or other.get("reports", []).size() != 2:
+			return
+		var kinds: Array = []
+		for report in reports:
+			var id := str(report.get("mission_id", ""))
+			var info: Dictionary = defs.mission_reports.get(id, {})
+			var kind := str(info.get("kind", ""))
+			kinds.append(kind)
+			_check(info.get("road_tier") == tiers[step],
+				label + ": slot %d offers tier %d, got %s" % [step + 1, tiers[step], id])
+			var base := _base_id(defs, id)
+			if id != base:
+				seen.variant += 1
+			var visited_bases: Array = visited.map(func(old_id): return _base_id(defs, old_id))
+			var fresh_available := false
+			for candidate in defs.mission_reports:
+				var entry: Dictionary = defs.mission_reports[candidate]
+				if entry.get("road_tier") != tiers[step] or entry.get("kind") != kind:
+					continue
+				var candidate_base := _base_id(defs, candidate)
+				if candidate_base not in visited_bases:
+					fresh_available = true
+			if base in visited_bases:
+				seen.repeat += 1
+				_check(not fresh_available, label + ": repeat only after eligible kind exhausts fresh bases")
+			elif fresh_available:
+				seen.fresh += 1
+			if step + 1 < tiers.size():
+				var hint := str(report.get("hint_kind", ""))
+				_check(hint.begins_with("tier_%d_kind_" % tiers[step + 1]),
+					label + ": slot %d promises a kind in the next tier" % (step + 1))
+			else:
+				_check(report.get("hint_kind") == defs.mission_reports[offer.destination_id].kind
+					and str(report.get("hint_text", "")).contains(defs.missions[offer.destination_id].title),
+					label + ": last road points to selected destination")
+		_check(not kinds[0].is_empty() and kinds[0] != kinds[1],
+			label + ": fork has two distinct kinds")
+		if not promised.is_empty():
+			_check(kinds.count(promised) == 1, label + ": previous promise appears exactly once")
+		var selected: Dictionary = reports[branch]
+		var id := str(selected.mission_id)
+		promised = str(selected.get("hint_kind", ""))
+		visited.append(id)
+		run = adventure.call("choose_route", run, id)
+		other = adventure.call("choose_route", other, id)
+		var deployed: Dictionary = adventure.call("begin_mission", run)
+		var other_deployed: Dictionary = adventure.call("begin_mission", other)
+		_check(deployed.get("mission", {}).get("mission_id") == id,
+			label + ": exact selected base or variant deploys")
+		if deployed.get("phase") != "mission" or other_deployed.get("phase") != "mission":
+			return
+		run = _victory(deployed, label)
+		other = _victory(other_deployed, label + " alternate")
+		if run.get("phase") != "reward" or other.get("phase") != "reward":
+			_check(false, label + ": road victory offers rewards")
+			return
+		# Change carried wounds independently of rewards before preparing the fork.
+		var wounded: Dictionary = other.carry_by_id.duplicate(true)
+		for hero in wounded:
+			wounded[hero].hp = 1
+		other.carry_by_id = wounded
+		var reward: Dictionary = run.reward_offers[0]
+		var alternate: Dictionary = other.reward_offers.back()
+		run = adventure.call("choose_reward", run, reward.hero_id, reward.upgrade_id)
+		other = adventure.call("choose_reward", other, alternate.hero_id, alternate.upgrade_id)
+	_check(run.get("phase") == "ready" and other.get("phase") == "ready",
+		label + ": destination follows the last road")
+	if run.get("phase") != "ready" or other.get("phase") != "ready":
+		return
+	var finale: Dictionary = adventure.call("begin_mission", run)
+	_check(finale.get("mission", {}).get("mission_id") == offer.destination_id,
+		label + ": selected destination is deployed as finale")
+	if finale.get("phase") == "mission":
+		var finished := _victory(finale, label + " finale")
+		_check(finished.get("phase") == "finished" and finished.get("outcome") == "victory",
+			label + ": finale victory finishes commission")
+
+
+func _test_exhausted_kind_avoids_last_base() -> void:
+	var defs := _tiered_fixture()
+	var kind := "tier_2_kind_0"
+	for id in defs.mission_reports.keys():
+		if defs.mission_reports[id].get("road_tier") == 2 and defs.mission_reports[id].get("kind") == kind:
+			defs.mission_reports.erase(id)
+	var first := "tier_1_kind_0_base_0"
+	var second := "tier_1_kind_0_base_1"
+	# All eligible bases were visited in T1, and the first base was just played
+	# in T2. An unplayed variant of that last base is not a fresh base.
+	for entry in [["repeat_a", first], ["repeat_a_unplayed", first], ["repeat_b", second]]:
+		var id: String = entry[0]
+		defs.missions[id] = defs.missions[entry[1]].duplicate(true)
+		defs.missions[id].title = id
+		defs.missions[id].base_mission_id = entry[1]
+		defs.mission_reports[id] = {"kind": kind, "road_tier": 2, "descriptors": ["report " + id]}
+	_check(Catalog.validate(defs).is_empty(), "repeat fixture is a valid tiered catalog")
+	var traversed := [first, second, "repeat_a"]
+	for seed_value in range(16):
+		var state: int = commissions.call("starting_rng_state", seed_value)
+		var draw: Dictionary = commissions.call("draw_reports", defs, "tier_destination_0",
+			true, traversed, kind, state, 3)
+		var reports: Array = draw.get("reports", [])
+		_check(reports.size() == 2, "exhausted promised kind still yields a fork")
+		if reports.size() != 2:
+			continue
+		var matching: Array = reports.filter(func(report):
+			return defs.mission_reports[report.mission_id].kind == kind)
+		_check(matching.size() == 1, "exhausted promised kind appears exactly once")
+		if matching.size() == 1:
+			_check(matching[0].mission_id == "repeat_b",
+				"exhausted promised kind avoids the last base even when another variant is unplayed")
+
+
+func _test_stock_tiered_catalog() -> void:
+	var defs: Dictionary = Catalog.read_default()
+	_check(defs.get("commission_settings", {}).get("tiered") == true,
+		"stock catalog opts into tiered commissions")
+	# Preserve the shipped roads and their base identities without pinning tuning.
+	var roster := {
+		"bridge_patrol": "bridge_patrol",
+		"goblin_mob": "goblin_mob",
+		"light_hook_pair": "harpoon_squad",
+		"harpoon_squad": "harpoon_squad",
+		"explosive_situation": "explosive_situation",
+		"duelists": "duelists",
+		"cowardly_captain": "cowardly_captain",
+		"shield_wall": "shield_wall",
+		"last_one_standing": "last_one_standing",
+		"veteran_shield_wall": "shield_wall",
+		"veteran_explosive_situation": "explosive_situation",
+		"unfortunate_healer": "unfortunate_healer",
+		"odd_couple": "odd_couple",
+		"mirror_company": "mirror_company",
+		"veteran_mirror_company": "mirror_company",
+		"veteran_unfortunate_healer": "unfortunate_healer",
+		"veteran_odd_couple": "odd_couple",
+		"crossfire_blast_lane": "crossfire_blast_lane",
+	}
+	for id in roster:
+		var report: Dictionary = defs.get("mission_reports", {}).get(id, {})
+		_check(defs.get("missions", {}).has(id) and not report.is_empty()
+			and not report.has("destination_descriptors") and _base_id(defs, id) == roster[id],
+			"stock road %s remains reportable with its base identity" % id)
+
+	# Every destination is provisionally eligible for both finale positions.
+	for id in defs.get("mission_reports", {}):
+		var report: Dictionary = defs.mission_reports[id]
+		if not report.has("destination_descriptors"):
+			continue
+		for length in [5, 10]:
+			var offer := {"destination_id": id, "description": report.destination_descriptors[0],
+				"length": length, "seed": 123}
+			_check(commissions.call("valid_offer", defs, offer),
+				"stock destination %s is eligible for the T%d finale" % [id, 3 if length == 5 else 6])
+
+	for seed_value in [11, 9182]:
+		var board: Array = commissions.call("board", defs, seed_value)
+		_check(board.size() == 3, "stock tiered board is valid")
+		if board.size() != 3:
+			continue
+		for index in [0, 2]:
+			for branch in [0, 1]:
+				_test_stock_path(defs, board[index], branch)
+
+
+func _test_stock_path(defs: Dictionary, offer: Dictionary, branch: int) -> void:
+	var label := "stock seed %s length %s branch %d" % [offer.seed, offer.length, branch]
+	var run: Dictionary = adventure.call("start_commission", defs, offer, PARTY, 444)
+	_check(run.get("phase") == "route", label + ": commission starts")
+	if run.get("phase") != "route":
+		return
+	var tiers := [1, 1, 2, 2] if offer.length == 5 else [1, 1, 2, 2, 3, 4, 4, 5, 5]
+	var visited_bases: Array = []
+	var promised := ""
+	for step in range(tiers.size()):
+		var reports: Array = run.get("reports", [])
+		_check(run.get("phase") == "route" and reports.size() == 2,
+			label + ": slot %d offers a fork" % (step + 1))
+		if reports.size() != 2:
+			return
+		var kinds: Array = []
+		var fresh := false
+		for report in reports:
+			var id := str(report.get("mission_id", ""))
+			var info: Dictionary = defs.mission_reports.get(id, {})
+			kinds.append(str(info.get("kind", "")))
+			_check(info.get("road_tier") == tiers[step] and not info.has("destination_descriptors"),
+				label + ": slot %d offers tier %d road %s" % [step + 1, tiers[step], id])
+			if _base_id(defs, id) not in visited_bases:
+				fresh = true
+			if step == tiers.size() - 1:
+				_check(report.get("hint_kind") == defs.mission_reports[offer.destination_id].kind
+					and str(report.get("hint_text", "")).contains(defs.missions[offer.destination_id].title),
+					label + ": both last-road clues name the selected finale")
+		_check(not kinds[0].is_empty() and kinds[0] != kinds[1],
+			label + ": slot %d offers different kinds" % (step + 1))
+		_check(fresh, label + ": slot %d offers at least one fresh base" % (step + 1))
+		if not promised.is_empty():
+			_check(kinds.count(promised) == 1,
+				label + ": prior clue matches exactly one next option")
+		var selected: Dictionary = reports[branch]
+		var selected_id := str(selected.mission_id)
+		promised = str(selected.get("hint_kind", ""))
+		visited_bases.append(_base_id(defs, selected_id))
+		run = adventure.call("choose_route", run, selected_id)
+		var deployed: Dictionary = adventure.call("begin_mission", run)
+		_check(deployed.get("mission", {}).get("mission_id") == selected_id,
+			label + ": selected road deploys by exact mission ID")
+		if deployed.get("phase") != "mission":
+			return
+		run = _victory(deployed, label)
+		if run.get("phase") == "reward":
+			var rewards: Array = run.get("reward_offers", [])
+			if rewards.is_empty():
+				_check(false, label + ": reward phase has a choice")
+				return
+			run = adventure.call("choose_reward", run, rewards[0].hero_id, rewards[0].upgrade_id)
+	_check(run.get("phase") == "ready", label + ": selected destination follows the final road")
+	if run.get("phase") != "ready":
+		return
+	var finale: Dictionary = adventure.call("begin_mission", run)
+	_check(finale.get("phase") == "mission"
+		and finale.get("mission", {}).get("mission_id") == offer.destination_id
+		and run.get("mission_index") == offer.length - 1,
+		label + ": selected destination deploys at the T%d finale" % [3 if offer.length == 5 else 6])

@@ -9,12 +9,21 @@ import sys
 import tempfile
 import textwrap
 import unittest
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 GAME = Path(__file__).resolve().parents[1]
 REPO = GAME.parents[1]
 KINDS = ("classes", "destinations", "reports", "upgrades")
+# These original report illustrations are accepted assets, not optional art
+# for later additions to the catalog.
+ORIGINAL_REPORTS = frozenset({
+    "bridge_is_out", "bridge_patrol", "company_rescue", "cowardly_captain",
+    "dont_wake_the_giant", "duelists", "explosive_situation", "goblin_mob",
+    "great_sheep_escape", "harpoon_squad", "hold_the_line", "last_one_standing",
+    "last_wagon", "mirror_company", "odd_couple", "shield_wall",
+    "unfortunate_healer", "unfortunate_ritual", "unwelcome_guest", "wrong_side_of_the_door",
+})
 
 
 @dataclass(frozen=True)
@@ -22,6 +31,9 @@ class Entry:
     id: str
     name: str
     hero: str = ""
+    fallback: str = ""
+    required: bool = True
+    image_id: str = ""
 
 
 def inventory(content_dir: Path, mapping_path: Path) -> dict[str, list[Entry]]:
@@ -45,10 +57,18 @@ def inventory(content_dir: Path, mapping_path: Path) -> dict[str, list[Entry]]:
     # They remain reviewable even though those missions are no longer finales.
     destinations.update({"cowardly_captain", "mirror_company", "odd_couple"} & tables["missions"].keys())
     missions = tables["missions"]
+    report_entries = []
+    for key in sorted(reports):
+        mission = missions[key]
+        base = mission.get("base_mission_id", "")
+        encounter = mission.get("encounter", "")
+        fallback = base if encounter and encounter == missions.get(base, {}).get("encounter") else ""
+        report_entries.append(Entry(key, mission["title"], fallback=fallback,
+                                    required=key in ORIGINAL_REPORTS))
     return {
         "classes": [Entry(key, value) for key, value in sorted(labels.items())],
         "destinations": [Entry(key, missions[key]["title"]) for key in sorted(destinations)],
-        "reports": [Entry(key, missions[key]["title"]) for key in sorted(reports)],
+        "reports": report_entries,
         "upgrades": [
             Entry(key, value["label"], value["hero_id"])
             for key, value in sorted(tables["upgrades"].items())
@@ -58,8 +78,22 @@ def inventory(content_dir: Path, mapping_path: Path) -> dict[str, list[Entry]]:
 
 def coverage(entries: list[Entry], art_dir: Path) -> tuple[list[str], list[str]]:
     expected = {entry.id for entry in entries}
+    required = {entry.id for entry in entries if entry.required}
     actual = {path.stem for path in art_dir.glob("*.png")}
-    return sorted(expected - actual), sorted(actual - expected)
+    return sorted(required - actual), sorted(actual - expected)
+
+
+def available_images(entries: list[Entry], art_dir: Path) -> tuple[list[Entry], list[str]]:
+    actual = {path.stem for path in art_dir.glob("*.png")}
+    present = []
+    text_only = []
+    for entry in entries:
+        image_id = entry.id if entry.id in actual else entry.fallback
+        if image_id in actual:
+            present.append(replace(entry, image_id=image_id))
+        elif not entry.required:
+            text_only.append(entry.id)
+    return present, text_only
 
 
 def checked_output(raw: str, repo: Path = REPO, temp: Path | None = None) -> Path:
@@ -99,7 +133,7 @@ def render(entries: list[Entry], art: Path, output: Path, columns: int = 4) -> N
                "-background", "#f3ead8", "-fill", "#241b16"]
     for entry in entries:
         command.extend(["-label", caption(entry),
-                        str(art / f"{entry.id}.png")])
+                        str(art / f"{entry.image_id or entry.id}.png")])
     command.extend(["-geometry", "280x210+8+8", "-tile", f"{columns}x", str(output)])
     subprocess.run(command, check=True)
 
@@ -115,9 +149,9 @@ def write_review(output: Path, art_root: Path, items: dict[str, list[Entry]], ov
         art = art_root / kind
         missing, extra = coverage(entries, art)
         complete &= not missing and not extra
-        present = [entry for entry in entries if entry.id not in missing]
+        present, text_only = available_images(entries, art)
         lines += [f"## {kind.title()}", "",
-                  f"{len(present)} of {len(entries)} expected images present; "
+                  f"{len(present)} of {len(entries)} entries illustrated; "
                   f"{len(extra)} unexpected PNGs.", ""]
         groups: dict[str, list[Entry]] = {}
         for entry in present:
@@ -129,6 +163,12 @@ def write_review(output: Path, art_root: Path, items: dict[str, list[Entry]], ov
             lines.append(f"- [{group.title()} ({len(group_entries)})]({filename})")
         if missing:
             lines.append("- Missing: " + ", ".join(f"`{key}`" for key in missing))
+        if text_only:
+            lines.append("- Text only: " + ", ".join(f"`{key}`" for key in text_only))
+        inherited = [f"`{entry.id}` from `{entry.image_id}`" for entry in present
+                     if entry.image_id != entry.id]
+        if inherited:
+            lines.append("- Shared sketches: " + ", ".join(inherited))
         if extra:
             lines.append("- Unexpected: " + ", ".join(f"`{key}`" for key in extra))
         lines.append("")
@@ -137,7 +177,7 @@ def write_review(output: Path, art_root: Path, items: dict[str, list[Entry]], ov
                    "-background", "#f3ead8", "-fill", "#241b16"]
         for entry, art in overview_entries:
             command += ["-label", caption(entry, art.name + "/"),
-                        str(art / f"{entry.id}.png")]
+                         str(art / f"{entry.image_id or entry.id}.png")]
         command += ["-geometry", "240x180+6+6", "-tile", "6x", str(output / "overview.png")]
         subprocess.run(command, check=True)
         lines[3:3] = ["[Overview sheet](overview.png)", ""]
@@ -187,7 +227,6 @@ class ToolTests(unittest.TestCase):
             (root / "occupied/file").touch()
             with self.assertRaises(ValueError):
                 checked_output(str(root / "occupied"), repo, root)
-
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)

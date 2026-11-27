@@ -2,6 +2,13 @@ extends SceneTree
 
 # Run: godot --headless --path games/company-of-unlikely-heroes --script res://tests/presentation/guild_book_art_test.gd
 const ART_SCRIPT := "res://presentation/book/guild_book_art.gd"
+const ILLUSTRATED_REPORTS := [
+	"bridge_is_out", "bridge_patrol", "company_rescue", "cowardly_captain",
+	"dont_wake_the_giant", "duelists", "explosive_situation", "goblin_mob",
+	"great_sheep_escape", "harpoon_squad", "hold_the_line", "last_one_standing",
+	"last_wagon", "mirror_company", "odd_couple", "shield_wall",
+	"unfortunate_healer", "unfortunate_ritual", "unwelcome_guest", "wrong_side_of_the_door",
+]
 var failures: Array[String] = []
 
 
@@ -26,6 +33,8 @@ func _initialize() -> void:
 			for id in defs.mission_reports:
 				if defs.mission_reports[id].has("destination_descriptors"):
 					destinations[id] = true
+			for id in ILLUSTRATED_REPORTS:
+				_check(defs.mission_reports.has(id), "Illustrated original %s remains reportable" % id)
 				_check_texture(art.call("report", id), "reports", id)
 			for id in destinations:
 				_check_texture(art.call("destination", id), "destinations", id)

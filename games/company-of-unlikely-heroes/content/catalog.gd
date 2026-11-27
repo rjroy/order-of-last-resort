@@ -273,8 +273,9 @@ static func build(defs: Dictionary, mission_id: String, chosen_ids: Array = [], 
 		var instance := {"id": placement.id, "position": Objectives.position(placement.at), "statuses": {}}
 		if placement.has("character"):
 			var unit_profile := profile(defs, placement.character)
+			var maximum := int(mission.get("enemy_max_hp", {}).get(placement.id, unit_profile.max_hp))
 			instance.merge({"character_id": placement.character,
-				"hp": int(placement.get("hp", unit_profile.max_hp)), "max_hp": int(unit_profile.max_hp)})
+				"hp": int(placement.get("hp", maximum)), "max_hp": maximum})
 			if placement.id in reserve_ids:
 				reserves.append(instance)
 				continue
@@ -1146,6 +1147,13 @@ class Validator:
 		var terrain := _terrain_index(board)
 		var occupied: Dictionary = {}
 		var ids: Dictionary = {}
+		var callers: Array[Dictionary] = []
+		var encounter_id := path.trim_prefix("encounters.")
+		for mission_id in _defs.missions:
+			var mission: Dictionary = _defs.missions[mission_id]
+			var mission_encounter: Variant = mission.get("encounter")
+			if mission_encounter is String and mission_encounter == encounter_id:
+				callers.append({"id": mission_id, "overrides": mission.get("enemy_max_hp")})
 		for i in placements.size():
 			var place_path := "%s.placements[%d]" % [path, i]
 			var placement := _dictionary(placements[i], place_path)
@@ -1165,8 +1173,16 @@ class Validator:
 					maximum = _defs.objects[placement.object].get("max_hp")
 			if placement.has("hp"):
 				_integer(placement.hp, place_path + ".hp")
-				if _is_integer(placement.hp) and _is_integer(maximum, 1) and placement.hp > maximum:
-					_error(place_path + ".hp", "cannot exceed maximum health")
+				if _is_integer(placement.hp):
+					if callers.is_empty():
+						_check_starting_hp(placement.hp, maximum, place_path + ".hp")
+					for caller in callers:
+						var effective: Variant = maximum
+						var overrides: Variant = caller.overrides
+						if overrides is Dictionary and overrides.has(id):
+							effective = overrides[id]
+						_check_starting_hp(placement.hp, effective,
+							place_path + ".hp (missions.%s)" % caller.id)
 			var at: Variant = _board_position(placement.get("at"), board, place_path + ".at")
 			if at != null:
 				if occupied.has(at):
@@ -1185,13 +1201,27 @@ class Validator:
 					_error(slot_path, "slot is on impassable terrain")
 				occupied[at] = "party slot"
 
+	func _check_starting_hp(hp: Variant, maximum: Variant, path: String) -> void:
+		if _is_integer(maximum, 1) and hp > maximum:
+			_error(path, "cannot exceed maximum health")
+
 	func _check_mission(mission: Dictionary, path: String) -> void:
 		_text(mission.get("title"), path + ".title")
 		if mission.has("tier"):
 			_integer(mission.tier, path + ".tier", 1)
+		if mission.has("base_mission_id"):
+			var base: Variant = mission.base_mission_id
+			var base_path := path + ".base_mission_id"
+			if _ref(base, "missions", base_path):
+				if base == path.trim_prefix("missions."):
+					_error(base_path, "mission cannot be its own base")
+				elif _defs.missions[base].has("base_mission_id"):
+					_error(base_path, "base mission must not itself reference a base")
 		var encounter: Dictionary = {}
 		if _ref(mission.get("encounter"), "encounters", path + ".encounter"):
 			encounter = _defs.encounters[mission.encounter]
+		if mission.has("enemy_max_hp"):
+			_check_enemy_max_hp(mission.enemy_max_hp, encounter, path + ".enemy_max_hp")
 		if mission.has("default_party"):
 			_check_default_party(mission.default_party, encounter, path + ".default_party")
 		var objective_path := path + ".objective"
@@ -1203,6 +1233,29 @@ class Validator:
 		for field in ["text", "victory_text", "defeat_text", "victory_event"]:
 			_text(objective.get(field), objective_path + "." + field)
 		_check_mission_failures(mission.get("failures"), encounter, objective_handler, path + ".failures")
+
+	func _check_enemy_max_hp(value: Variant, encounter: Dictionary, path: String) -> void:
+		var overrides := _dictionary(value, path)
+		var placements: Variant = encounter.get("placements", [])
+		for id in overrides:
+			var item_path := path + "." + str(id)
+			_integer(overrides[id], item_path, 1)
+			if not _text(id, item_path):
+				continue
+			var found: Dictionary = {}
+			if placements is Array:
+				for placement in placements:
+					if placement is Dictionary and is_same(placement.get("id"), id):
+						found = placement
+						break
+			var character: Variant = found.get("character")
+			if not character is String or not _defs.characters.has(character) \
+					or not is_same(_effective_profile(_defs.characters[character]).get("team"), "enemies"):
+				_error(item_path, "expected an enemy placement ID in the mission encounter")
+				continue
+			var hp: Variant = found.get("hp")
+			if found.has("hp") and _is_integer(hp) and _is_integer(overrides[id], 1) and hp > overrides[id]:
+				_error(item_path, "cannot be lower than the placement's starting health")
 
 	func _check_objective_fields(objective: Dictionary, encounter: Dictionary, path: String) -> void:
 		var board: Dictionary = _defs.boards.get(encounter.get("board"), {})
@@ -1444,6 +1497,8 @@ class Validator:
 			_check_descriptors(kind.get("descriptors"), path + ".descriptors")
 
 		var transit_kinds: Dictionary = {}
+		var tiered: bool = is_same(settings.get("tiered"), true)
+		var tier_kinds := {1: {}, 2: {}, 3: {}, 4: {}, 5: {}}
 		var destination_count := 0
 		for id in reports:
 			var path := "mission_reports." + str(id)
@@ -1452,11 +1507,20 @@ class Validator:
 				_error(path, "expected a dictionary")
 				continue
 			var report: Dictionary = reports[id]
-			_check_commission_fields(report, ["kind", "descriptors", "destination_descriptors"], path)
+			_check_commission_fields(report, ["kind", "descriptors", "destination_descriptors", "road_tier"], path)
 			var kind: Variant = report.get("kind")
 			if _text(kind, path + ".kind") and not kinds.has(kind):
 				_error(path + ".kind", "unknown mission_kinds ID '%s'" % kind)
 			_check_descriptors(report.get("descriptors"), path + ".descriptors")
+			if report.has("destination_descriptors") or not tiered:
+				if report.has("road_tier"):
+					_error(path + ".road_tier", "road tiers require a tiered catalog and a road report")
+			else:
+				var road_tier: Variant = report.get("road_tier")
+				if not _is_integer(road_tier, 1) or road_tier > 5:
+					_error(path + ".road_tier", "expected a whole number from 1 to 5")
+				elif kind is String and kinds.has(kind):
+					tier_kinds[int(road_tier)][kind] = true
 			if report.has("destination_descriptors"):
 				_check_descriptors(report.destination_descriptors, path + ".destination_descriptors")
 				destination_count += 1
@@ -1474,9 +1538,15 @@ class Validator:
 		# Repeat visits are allowed whenever the unplayed pool cannot supply a fork.
 		if transit_kinds.size() < 2:
 			_error("mission_reports", "requires transit missions from at least two different kinds")
+		if tiered:
+			for tier in range(1, 6):
+				if tier_kinds[tier].size() < 2:
+					_error("mission_reports", "road tier %d requires at least two different kinds" % tier)
 
 	func _check_commission_settings(settings: Dictionary) -> Array:
-		_check_commission_fields(settings, ["recruitment_roster"], "commission_settings")
+		_check_commission_fields(settings, ["recruitment_roster", "tiered"], "commission_settings")
+		if settings.has("tiered"):
+			_boolean(settings.tiered, "commission_settings.tiered")
 		var path := "commission_settings.recruitment_roster"
 		var roster := _id_list(settings.get("recruitment_roster"), path, "characters")
 		for id in roster:

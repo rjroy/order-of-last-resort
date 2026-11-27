@@ -33,6 +33,7 @@
     "missions/dont_wake_the_giant.json",
     "missions/unfortunate_ritual.json",
     "missions/last_wagon.json",
+    "missions/commission_tier_variants.json",
     "expedition/commissions.json"
   ]
 }

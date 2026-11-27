@@ -1,0 +1,132 @@
+{
+  "missions": {
+    "light_hook_pair": {
+      "title": "The Hook Pair",
+      "base_mission_id": "harpoon_squad",
+      "encounter": "village_hook_pair",
+      "default_party": ["healer", "knight", "bard"],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat the Hookhand and Harpooner. Watch where the Hookhand pulls your heroes.",
+        "victory_text": "The hook pair breaks.",
+        "defeat_text": "The company falls to the hook pair.",
+        "victory_event": "The last member of the pair falls."
+      },
+      "failures": [{"handler": "party_wiped", "event": "The company has fallen."}],
+      "tier": 1
+    },
+    "veteran_shield_wall": {
+      "title": "The Veteran Shield Wall",
+      "base_mission_id": "shield_wall",
+      "encounter": "frontier_shield_wall",
+      "default_party": ["knight", "healer", "wizard"],
+      "enemy_max_hp": {"shieldbearer_1": 5, "shieldbearer_2": 5},
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. An adjacent Shieldbearer reduces damage to the Archer by 1 per Shieldbearer. Separate them or defeat the guards.",
+        "victory_text": "The company breaks the veteran shield wall.",
+        "defeat_text": "The company falls to the veteran shield wall.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [{"handler": "party_wiped", "event": "The company has fallen."}],
+      "tier": 2
+    },
+    "veteran_explosive_situation": {
+      "title": "The Veteran Explosive Situation",
+      "base_mission_id": "explosive_situation",
+      "encounter": "frontier_explosive_situation",
+      "default_party": ["knight", "healer", "wizard"],
+      "enemy_max_hp": {"bomber_1": 3, "bomber_2": 3},
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. When a Bomber dies, it deals 2 damage to every adjacent living character, friend or foe. Bombers can set each other off.",
+        "victory_text": "The company survives the veteran explosive situation.",
+        "defeat_text": "The company falls in the veteran explosive situation.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [{"handler": "party_wiped", "event": "The company has fallen."}],
+      "tier": 2
+    },
+    "veteran_mirror_company": {
+      "title": "The Veteran Mirror Company",
+      "base_mission_id": "mirror_company",
+      "encounter": "frontier_mirror_company",
+      "default_party": ["knight", "healer", "wizard"],
+      "enemy_max_hp": {"rival_wizard_2": 5},
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. The rival Knight pushes and follows taunts, the rival Wizard blasts the nearest character, and the rival Healer restores wounded allies within 2 tiles twice.",
+        "victory_text": "The company defeats its veteran rivals.",
+        "defeat_text": "The company falls to its veteran rivals.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [{"handler": "party_wiped", "event": "The company has fallen."}],
+      "tier": 2
+    },
+    "veteran_unfortunate_healer": {
+      "title": "The Veteran Unfortunate Healer",
+      "base_mission_id": "unfortunate_healer",
+      "encounter": "frontier_unfortunate_healer",
+      "default_party": ["knight", "healer", "wizard"],
+      "enemy_max_hp": {"enemy_healer_3": 5},
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. The Healer can restore 2 HP to a wounded ally within 2 tiles twice per battle. Stop the healing or defeat the Bruisers first.",
+        "victory_text": "The company defeats the veteran Healer's party.",
+        "defeat_text": "The company falls to the veteran Healer's party.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [{"handler": "party_wiped", "event": "The company has fallen."}],
+      "tier": 2
+    },
+    "veteran_odd_couple": {
+      "title": "The Veteran Odd Couple",
+      "base_mission_id": "odd_couple",
+      "encounter": "frontier_odd_couple",
+      "default_party": ["knight", "healer", "wizard"],
+      "enemy_max_hp": {"ogre_1": 8},
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. The Trickster can swap places with the Ogre once per battle. The Ogre is slow but hits hard.",
+        "victory_text": "The company defeats the veteran odd couple.",
+        "defeat_text": "The company falls to the veteran odd couple.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [{"handler": "party_wiped", "event": "The company has fallen."}],
+      "tier": 2
+    },
+    "crossfire_blast_lane": {
+      "title": "Crossfire at the Fuse Line",
+      "encounter": "road_crossfire_blast_lane",
+      "default_party": ["knight", "healer", "wizard"],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. The Hookhand can pull a hero toward the Bomber. When the Bomber falls, its blast deals 2 damage to every adjacent living character, friend or foe. Watch the Harpooner too.",
+        "victory_text": "The company clears the fuse line.",
+        "defeat_text": "The company falls at the fuse line.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [{"handler": "party_wiped", "event": "The company has fallen."}],
+      "tier": 2
+    }
+  },
+  "encounters": {
+    "village_hook_pair": {
+      "board": "village_lane",
+      "party_slots": [[1, 2], [1, 3], [0, 0]],
+      "placements": [
+        {"id": "hookhand", "character": "hookhand", "at": [3, 2]},
+        {"id": "harpooner", "character": "harpooner", "at": [4, 1]}
+      ]
+    },
+    "road_crossfire_blast_lane": {
+      "board": "road",
+      "party_slots": [[1, 1], [1, 2], [1, 3]],
+      "placements": [
+        {"id": "crossfire_hookhand", "character": "hookhand", "at": [3, 2]},
+        {"id": "crossfire_bomber", "character": "bomber", "at": [3, 1]},
+        {"id": "crossfire_harpooner", "character": "harpooner", "at": [5, 3]}
+      ]
+    }
+  }
+}

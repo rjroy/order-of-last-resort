@@ -1056,7 +1056,18 @@ func _destination_plate(mission_id: String) -> Texture2D:
 
 
 func _report_plate(immediate_id: String) -> Texture2D:
-	return GuildBookArt.report(immediate_id) if _uses_builtin_catalog else null
+	if not _uses_builtin_catalog:
+		return null
+	var image: Texture2D = GuildBookArt.report(immediate_id)
+	if image != null:
+		return image
+	var missions: Dictionary = _definitions.get("missions", {})
+	var mission: Dictionary = missions.get(immediate_id, {})
+	var base := str(mission.get("base_mission_id", ""))
+	var encounter := str(mission.get("encounter", ""))
+	if base.is_empty() or encounter.is_empty() or encounter != missions.get(base, {}).get("encounter", ""):
+		return null
+	return GuildBookArt.report(base)
 
 
 func _portrait_identity(character_id: String) -> String:

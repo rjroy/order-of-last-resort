@@ -37,7 +37,7 @@
     "petitions": {
       "recruit_blacksmith": {
         "label": "Recruit the Hobby Smith",
-        "description": "Recruit with Hammer Time, Try This, Pursue and Hold.",
+        "description": "Recruit with Hammer Time, Try This, and the Try This and Hold standing orders.",
         "cost": 5,
         "grant": {
           "kind": "recruit",
@@ -75,7 +75,7 @@
       },
       "recruit_bard": {
         "label": "Recruit the Bad Bard",
-        "description": "Recruit with Hold and both musical orders.",
+        "description": "Recruit with both songs and the Inspiring Melody and Hold standing orders.",
         "cost": 4,
         "grant": {
           "kind": "recruit",
@@ -84,7 +84,7 @@
       },
       "recruit_rogue": {
         "label": "Recruit the Daft Dodger",
-        "description": "Recruit with Retreat and Pass the Blame.",
+        "description": "Recruit with Wasn't Me, Confusing Dodge, and the Confusing Dodge and Retreat standing orders.",
         "cost": 4,
         "grant": {
           "kind": "recruit",
@@ -93,7 +93,7 @@
       },
       "recruit_necromancer": {
         "label": "Recruit the Friendly Crypter",
-        "description": "Recruit with Hold and Make a Friend.",
+        "description": "Recruit with Summon Skeleton, Raise Dead, and the Make a Friend and Hold standing orders.",
         "cost": 6,
         "grant": {
           "kind": "recruit",
@@ -102,7 +102,7 @@
       },
       "recruit_alchemist": {
         "label": "Recruit the Mixologist",
-        "description": "Recruit with both bottles, Follow, Make Rounds and Hold. Throw Samples is separate training.",
+        "description": "Recruit with both bottles and the Make Rounds and Follow standing orders.",
         "cost": 5,
         "grant": {
           "kind": "recruit",
@@ -363,6 +363,24 @@
           "ability_id": "alchemist_etching_paste"
         }
       },
+      "order_knight_advance": {"label":"Advance and Push", "description":"Pursue and Push the nearest opponent.", "cost":3, "grant":{"kind":"order","hero_id":"knight","order_id":"order_advance","behavior_id":"advance"}},
+      "order_healer_aggressive": {"label":"Pursue and Bonk", "description":"Pursue and Bonk the nearest opponent.", "cost":3, "grant":{"kind":"order","hero_id":"healer","order_id":"order_aggressive","behavior_id":"aggressive"}},
+      "order_wizard_pull_petition": {"label":"Pull the Nearest", "description":"Pull the nearest legal character, even a friend, and suffer recoil.", "cost":3, "grant":{"kind":"order","hero_id":"wizard","order_id":"order_wizard_pull","behavior_id":"guild_wizard_pull"}},
+      "order_rogue_blame": {"label":"Pass the Blame", "description":"Delegate Wasn't Me.", "cost":3, "grant":{"kind":"order","hero_id":"rogue","order_id":"order_pass_the_blame","behavior_id":"guild_pass_blame"}},
+      "order_necro_raise": {"label":"Raise Dead", "description":"Raise the nearest legal corpse, with ties in encounter order.", "cost":3, "grant":{"kind":"order","hero_id":"necromancer","order_id":"order_raise_dead","behavior_id":"guild_raise_dead"}},
+      "order_bard_sonnet": {"label":"Healing Sonnet", "description":"Sing Sonnet to a random eligible opponent.", "cost":3, "grant":{"kind":"order","hero_id":"bard","order_id":"order_healing_sonnet","behavior_id":"sing_sonnet"}},
+      "order_smith_pursue": {"label":"Pursue with Hammer Time", "description":"Pursue and use equipped Hammer Time.", "cost":3, "grant":{"kind":"order","hero_id":"blacksmith","order_id":"order_pursue","behavior_id":"guild_smith_hammer"}},
+      "order_knight_rescue_petition": {"label":"Rescue on Standing Orders", "description":"Use equipped Rescue Line on the nearest legal ally.", "cost":3, "prerequisites":["knight_rescue_line"], "grant":{"kind":"order","hero_id":"knight","order_id":"order_knight_rescue","behavior_id":"guild_knight_rescue"}},
+      "order_knight_bonk_petition": {"label":"Knight's Bonk", "description":"Use equipped Bonk on the nearest legal opponent.", "cost":3, "prerequisites":["knight_learn_bonk"], "grant":{"kind":"order","hero_id":"knight","order_id":"order_knight_bonk","behavior_id":"guild_knight_bonk"}},
+      "order_wizard_sparks_petition": {"label":"Ring on Standing Orders", "description":"Use equipped Ring of Sparks, even beside friends.", "cost":3, "prerequisites":["wizard_ring_sparks"], "grant":{"kind":"order","hero_id":"wizard","order_id":"order_wizard_sparks","behavior_id":"guild_wizard_sparks"}},
+      "order_wizard_dodge_petition": {"label":"Caster's Confusing Dodge", "description":"Delegate equipped Confusing Dodge.", "cost":3, "prerequisites":["wizard_learn_dodge"], "grant":{"kind":"order","hero_id":"wizard","order_id":"order_wizard_dodge","behavior_id":"guild_wizard_dodge"}},
+      "order_rogue_potion_petition": {"label":"Dodger's Potion", "description":"Give equipped potion to the most injured legal patient.", "cost":3, "prerequisites":["rogue_learn_potion"], "grant":{"kind":"order","hero_id":"rogue","order_id":"order_rogue_potion","behavior_id":"guild_rogue_potion"}},
+      "order_necro_melody_petition": {"label":"Crypter's Melody", "description":"Delegate equipped Inspiring Melody.", "cost":3, "prerequisites":["necro_learn_melody"], "grant":{"kind":"order","hero_id":"necromancer","order_id":"order_necro_melody","behavior_id":"guild_necro_melody"}},
+      "order_bard_push_petition": {"label":"Bard's Push", "description":"Push the nearest legal opponent.", "cost":3, "prerequisites":["bard_learn_push"], "grant":{"kind":"order","hero_id":"bard","order_id":"order_bard_push","behavior_id":"guild_bard_push"}},
+      "order_alchemist_paste_petition": {"label":"Paste on Standing Orders", "description":"Use equipped Etching Paste on the nearest legal opponent.", "cost":3, "prerequisites":["alchemist_etching_paste"], "grant":{"kind":"order","hero_id":"alchemist","order_id":"order_alchemist_paste","behavior_id":"guild_alchemist_paste"}},
+      "order_alchemist_pull_petition": {"label":"Mixologist's Pull", "description":"Pull the nearest legal character, even a friend, and suffer recoil.", "cost":3, "prerequisites":["alchemist_learn_pull"], "grant":{"kind":"order","hero_id":"alchemist","order_id":"order_alchemist_pull","behavior_id":"guild_alchemist_pull"}},
+      "order_smith_bonk_petition": {"label":"Smith's Bonk", "description":"Use equipped Bonk on the nearest legal opponent.", "cost":3, "prerequisites":["blacksmith_learn_bonk"], "grant":{"kind":"order","hero_id":"blacksmith","order_id":"order_smith_bonk","behavior_id":"guild_smith_bonk"}},
+      "order_smith_acid_petition": {"label":"Smith's Acid", "description":"Use equipped Acid on the nearest legal opponent.", "cost":3, "prerequisites":["blacksmith_learn_acid"], "grant":{"kind":"order","hero_id":"blacksmith","order_id":"order_smith_acid","behavior_id":"guild_smith_acid"}},
       "alchemist_learn_pull": {
         "label": "Learn Pull and recoil",
         "description": "Equip the Caster’s Pull with its full recoil and knockdown.",
@@ -376,19 +394,24 @@
       }
     },
     "starting_habits": {
-      "rogue": {
-        "order_retreat": "retreat",
-        "order_pass_the_blame": "guild_pass_blame"
-      },
-      "necromancer": {
-        "order_hold": "hold",
-        "order_make_a_friend": "guild_make_friend"
-      },
-      "alchemist": {
-        "order_follow_ally": "alchemist_follow",
-        "order_make_rounds": "alchemist_make_rounds",
-        "order_hold": "hold"
-      }
+      "knight": {"order_guard":"guard", "order_knight_advance_move":"guild_knight_advance_move"},
+      "healer": {"order_support":"support", "order_hold":"hold"},
+      "wizard": {"order_blast":"blast", "order_cautious":"hold"},
+      "rogue": {"order_confusing_dodge":"guild_dodger_escape", "order_retreat":"retreat"},
+      "necromancer": {"order_make_a_friend":"guild_make_friend", "order_hold":"hold"},
+      "bard": {"order_inspiring_melody":"sing_melody", "order_hold":"hold"},
+      "alchemist": {"order_make_rounds":"alchemist_make_rounds", "order_follow_ally":"alchemist_follow"},
+      "blacksmith": {"order_try_this":"blacksmith_fit_nearest", "order_hold":"hold"}
+    },
+    "starting_defaults": {
+      "knight": "order_guard",
+      "healer": "order_support",
+      "wizard": "order_blast",
+      "rogue": "order_confusing_dodge",
+      "necromancer": "order_make_a_friend",
+      "bard": "order_inspiring_melody",
+      "alchemist": "order_make_rounds",
+      "blacksmith": "order_try_this"
     }
   }
 }

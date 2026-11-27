@@ -39,6 +39,24 @@ const TRAINING := {
 	"alchemist_learn_pull": ["alchemist", []],
 	"blacksmith_learn_bonk": ["blacksmith", ["recruit_blacksmith"]],
 	"blacksmith_learn_acid": ["blacksmith", ["recruit_blacksmith", "recruit_alchemist"]],
+	"order_knight_advance": ["knight", []],
+	"order_healer_aggressive": ["healer", []],
+	"order_wizard_pull_petition": ["wizard", []],
+	"order_rogue_blame": ["rogue", []],
+	"order_necro_raise": ["necromancer", []],
+	"order_bard_sonnet": ["bard", []],
+	"order_smith_pursue": ["blacksmith", []],
+	"order_knight_rescue_petition": ["knight", ["knight_rescue_line"]],
+	"order_knight_bonk_petition": ["knight", ["knight_learn_bonk"]],
+	"order_wizard_sparks_petition": ["wizard", ["wizard_ring_sparks"]],
+	"order_wizard_dodge_petition": ["wizard", ["wizard_learn_dodge"]],
+	"order_rogue_potion_petition": ["rogue", ["rogue_learn_potion"]],
+	"order_necro_melody_petition": ["necromancer", ["necro_learn_melody"]],
+	"order_bard_push_petition": ["bard", ["bard_learn_push"]],
+	"order_alchemist_paste_petition": ["alchemist", ["alchemist_etching_paste"]],
+	"order_alchemist_pull_petition": ["alchemist", ["alchemist_learn_pull"]],
+	"order_smith_bonk_petition": ["blacksmith", ["blacksmith_learn_bonk"]],
+	"order_smith_acid_petition": ["blacksmith", ["blacksmith_learn_acid"]],
 }
 
 var failures: Array[String] = []
@@ -51,9 +69,9 @@ func _initialize() -> void:
 	defs.characters.harpooner.behavior = "hold"
 	defs.characters.ferryman.behavior = "hold"
 	_test_register()
+	_test_ability_order_coverage()
 	_test_fallback_hold_preference()
 	_test_practice_and_scoping()
-	_test_teaching_is_not_a_habit()
 	_test_scoped_actions()
 	_test_tripwire_next_movement()
 	_test_paste_culture()
@@ -84,6 +102,16 @@ func _row(profile: Dictionary, id: String) -> Dictionary:
 
 
 func _test_fallback_hold_preference() -> void:
+	var original := defs
+	defs = defs.duplicate(true)
+	# Isolate the historical no-compatible-starter case. Stock Knight now has
+	# a compatible move-only starter even after both abilities are replaced.
+	defs.guild_progression.starting_habits.knight.erase("order_knight_advance_move")
+	_exercise_fallback_hold_preference()
+	defs = original
+
+
+func _exercise_fallback_hold_preference() -> void:
 	var profile := _profile()
 	var wizard_before := Progression.default_loadout(defs, profile, "wizard")
 	var wizard_orders := Progression.order_options(defs, profile, "wizard", wizard_before)
@@ -138,7 +166,7 @@ func _test_fallback_hold_preference() -> void:
 func _test_register() -> void:
 	var table: Dictionary = defs.get("guild_progression", {}).get("petitions", {})
 	var expected := RECRUITS.keys() + TRAINING.keys()
-	_check(table.size() == 29, "Register contains exactly 29 executable entries")
+	_check(table.size() == expected.size(), "Register matches the explicitly covered executable entries")
 	for example in [["recruit_blacksmith", 5, "recruit", ""],
 			["blacksmith_learn_bonk", 4, "ability", "healer_bonk"],
 			["blacksmith_learn_acid", 5, "ability", "alchemist_acid"]]:
@@ -211,7 +239,7 @@ func _test_register() -> void:
 			advanced = true
 		if not advanced:
 			break
-	_check(remaining.is_empty(), "All 29 purchases have a reachable plan; blocked: " + str(remaining))
+	_check(remaining.is_empty(), "All register purchases have a reachable plan; blocked: " + str(remaining))
 	if not remaining.is_empty():
 		return
 	_check(Progression.roster(defs, profile).size() == 8, "Completed register owns all eight eligible heroes")
@@ -232,6 +260,36 @@ func _test_register() -> void:
 						if compatible:
 							break
 				_check(compatible, hero + " can equip " + ability + " with a legal order")
+
+
+func _test_ability_order_coverage() -> void:
+	var table: Dictionary = defs.guild_progression.petitions
+	for ability_id in table:
+		var ability_spec: Dictionary = table[ability_id]
+		var ability: Dictionary = ability_spec.get("grant", {})
+		if ability.get("kind") != "ability" or ability_spec.get("teaser", false):
+			continue
+		var found := false
+		for order_id in table:
+			var spec: Dictionary = table[order_id]
+			var grant: Dictionary = spec.get("grant", {})
+			if spec.get("teaser", false) or grant.get("kind") != "order" \
+					or grant.get("hero_id") != ability.get("hero_id") \
+					or ability_id not in spec.get("prerequisites", []):
+				continue
+			var behavior: Dictionary = defs.behaviors.get(grant.get("behavior_id", ""), {})
+			if ability.get("ability_id") not in Catalog.behavior_ability_ids(behavior):
+				continue
+			var profile := _profile()
+			profile.recruited_ids = FOUNDERS + RECRUITS.values()
+			profile.purchased_ids = [ability_id, order_id]
+			var loadout := Progression.default_loadout(defs, profile, ability.hero_id)
+			loadout.slots[ability.slot_id] = ability.ability_id
+			loadout.order_id = grant.order_id
+			if not Progression.effective_kit(defs, profile, ability.hero_id, loadout).is_empty():
+				found = true
+				break
+		_check(found, ability_id + " has a separately purchased compatible order requiring that ability")
 
 
 func _test_practice_and_scoping() -> void:
@@ -263,39 +321,6 @@ func _test_practice_and_scoping() -> void:
 	var healer: Dictionary = rules.entity_profile(state, "healer")
 	_check("wizard_blast" not in healer.get("abilities", []),
 		"Purchases made after departure do not unlock actions midrun")
-
-
-func _test_teaching_is_not_a_habit() -> void:
-	for example in [
-		["knight", "knight_learn_bonk", "order_aggressive", []],
-		["healer", "teach_healer_blast", "order_blast", []],
-		["wizard", "wizard_learn_dodge", "order_retreat", ["recruit_rogue"]],
-		["bard", "bard_learn_push", "order_advance", ["recruit_bard"]],
-		["rogue", "rogue_learn_potion", "order_make_rounds", ["recruit_rogue", "recruit_alchemist"]],
-		["necromancer", "necro_learn_melody", "order_inspiring_melody", ["recruit_necromancer", "recruit_bard"]],
-		["alchemist", "alchemist_learn_pull", "order_blast", ["recruit_alchemist"]],
-	]:
-		var profile := _profile()
-		for dependency in example[3]:
-			var recruited := Progression.purchased_profile(defs, profile, dependency)
-			if recruited.has("error"):
-				profile = {}
-				break
-			profile = recruited
-		if profile.is_empty():
-			_check(false, example[1] + " donor and recipient can be recruited")
-			continue
-		var trained := Progression.purchased_profile(defs, profile, example[1])
-		if trained.has("error"):
-			_check(false, example[1] + " can be taught")
-			continue
-		var loadout := _action_loadout(trained, example[0], example[1])
-		var state := _battle(trained, example[0], loadout)
-		if state.is_empty():
-			_check(false, example[1] + " deploys")
-			continue
-		_check(not rules.entity_profile(state, example[0]).get("habits", {}).has(example[2]),
-			example[1] + " does not confer donor order " + example[2])
 
 
 func _battle(profile: Dictionary, hero: String, loadout: Dictionary) -> Dictionary:

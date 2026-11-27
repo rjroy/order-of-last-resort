@@ -148,10 +148,15 @@ func _test_progression() -> void:
 		and native.get("order_id") == "order_try_this", "Recruited Smith has native kit and standing Try This")
 	if not native.is_empty():
 		_test_pursue(disk, native, "blacksmith_try_this")
+		disk = Profile.purchase(path, disk, defs, "order_smith_pursue")
+		if disk.has("error"):
+			_check(false, "Purchase Smith's Hammer Pursue: " + str(disk))
+			return
 		var hammer := native.duplicate(true)
 		hammer.order_id = "order_pursue"
 		_test_pursue(disk, hammer, "blacksmith_hammer_time")
-	for entry in [[bonk, "healer_bonk", 4], [acid, "alchemist_acid", 5]]:
+	for entry in [[bonk, "healer_bonk", 4, "order_smith_bonk_petition", "order_smith_bonk"],
+			[acid, "alchemist_acid", 5, "order_smith_acid_petition", "order_smith_acid"]]:
 		var previous: int = disk.points
 		disk = Profile.purchase(path, disk, defs, entry[0])
 		if disk.has("error"):
@@ -167,8 +172,15 @@ func _test_progression() -> void:
 			continue
 		selected.slots.offense = entry[1]
 		selected.order_id = "order_pursue"
+		_check(Progression.effective_kit(defs, disk, "blacksmith", selected).is_empty(),
+			entry[0] + " cannot substitute its trained offense into Hammer Pursue")
+		disk = Profile.purchase(path, disk, defs, entry[3])
+		if disk.has("error"):
+			_check(false, "Purchase trained offense order " + entry[3] + ": " + str(disk))
+			return
+		selected.order_id = entry[4]
 		var kit: Dictionary = Progression.effective_kit(defs, disk, "blacksmith", selected)
-		_check(not kit.is_empty(), entry[0] + " supports Pursue with the equipped offense")
+		_check(not kit.is_empty(), entry[0] + " supports its separately trained order")
 		for donor_order in ["order_aggressive", "order_throw_samples", "order_support", "order_make_rounds"]:
 			_check(not kit.get("habits", {}).has(donor_order), entry[0] + " does not grant donor order " + donor_order)
 		var saved: Dictionary = Profile.save_loadouts(path, disk, defs, {"blacksmith": selected})
@@ -221,6 +233,8 @@ func _test_pursue(profile: Dictionary, selection: Dictionary, ability: String) -
 	state.orders.healer = "order_hold"
 	smith.position = Vector2i(1, 1)
 	enemy.position = Vector2i(3, 1)
+	if ability == "healer_bonk":
+		enemy.position = Vector2i(2, 1)
 	var before_hp: int = enemy.hp
 	var plan: Dictionary = rules.preview_round(state)
 	var result: Dictionary = plan.get("result", {})
@@ -234,9 +248,9 @@ func _test_pursue(profile: Dictionary, selection: Dictionary, ability: String) -
 		_check(after_smith.position == Vector2i(1, 1) and after_enemy.hp == before_hp \
 			and _unit(result, "knight").get("fitted_by") == "blacksmith",
 			"Default Try This fits the nearest hero without pursuing or attacking")
-	elif ability == "alchemist_acid":
+	elif ability in ["alchemist_acid", "healer_bonk"]:
 		_check(after_smith.position == Vector2i(1, 1) and after_enemy.hp < before_hp,
-			"Acid Pursue attacks at range two without stepping")
+			ability + " trained order attacks a legal enemy without stepping")
 	else:
 		_check(after_smith.position == Vector2i(2, 1) and after_enemy.hp == before_hp,
 			ability + " Pursue steps once into reach without attacking that activation")

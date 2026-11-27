@@ -118,6 +118,21 @@
     "order_rogue_tripwire": {
       "label": "Mind the Step"
     },
+    "order_knight_advance_move": {"label": "Advance"},
+    "order_confusing_dodge": {"label": "Confusing Dodge"},
+    "order_raise_dead": {"label": "Raise Dead"},
+    "order_wizard_pull": {"label": "Pull the Nearest"},
+    "order_knight_rescue": {"label": "Rescue Line"},
+    "order_knight_bonk": {"label": "Knight's Bonk"},
+    "order_wizard_sparks": {"label": "Ring of Sparks"},
+    "order_wizard_dodge": {"label": "Caster's Confusing Dodge"},
+    "order_rogue_potion": {"label": "Dodger's Potion"},
+    "order_necro_melody": {"label": "Crypter's Melody"},
+    "order_bard_push": {"label": "Bard's Push"},
+    "order_alchemist_paste": {"label": "Etching Paste"},
+    "order_alchemist_pull": {"label": "Mixologist's Pull"},
+    "order_smith_bonk": {"label": "Smith's Bonk"},
+    "order_smith_acid": {"label": "Smith's Acid"},
     "order_necro_bell": {
       "label": "Keep Your Distance"
     }
@@ -130,11 +145,27 @@
       }
     },
     "guild_make_friend": {
-      "handler": "make_friend",
+      "handler": "personality_summon_skeleton",
       "params": {
         "ability": "summon_skeleton"
       }
     },
+    "guild_knight_advance_move": {"handler": "advance_move", "params": {"move_ability": "move", "team": "enemies"}},
+    "guild_dodger_escape": {"handler": "personality_escape_swap", "params": {"ability": "rogue_confusing_dodge"}},
+    "guild_raise_dead": {"handler": "personality_raise_dead", "params": {"ability": "raise_dead"}},
+    "guild_wizard_pull": {"handler": "personality_targeted", "params": {"ability": "wizard_pull", "policy": "nearest_character"}},
+    "guild_knight_rescue": {"handler": "personality_targeted", "params": {"ability": "knight_rescue_line", "policy": "nearest_ally"}},
+    "guild_knight_bonk": {"handler": "personality_targeted", "params": {"ability": "healer_bonk", "policy": "nearest_enemy"}},
+    "guild_wizard_sparks": {"handler": "use_ability", "params": {"ability": "wizard_ring_sparks"}},
+    "guild_wizard_dodge": {"handler": "personality_escape_swap", "params": {"ability": "rogue_confusing_dodge"}},
+    "guild_rogue_potion": {"handler": "most_injured", "params": {"ability": "alchemist_potion"}},
+    "guild_necro_melody": {"handler": "use_ability", "params": {"ability": "inspiring_melody"}},
+    "guild_bard_push": {"handler": "personality_targeted", "params": {"ability": "knight_push", "policy": "nearest_enemy"}},
+    "guild_alchemist_paste": {"handler": "personality_targeted", "params": {"ability": "alchemist_etching_paste", "policy": "nearest_enemy"}},
+    "guild_alchemist_pull": {"handler": "personality_targeted", "params": {"ability": "wizard_pull", "policy": "nearest_character"}},
+    "guild_smith_bonk": {"handler": "personality_targeted", "params": {"ability": "healer_bonk", "policy": "nearest_enemy"}},
+    "guild_smith_acid": {"handler": "personality_targeted", "params": {"ability": "alchemist_acid", "policy": "nearest_enemy"}},
+    "guild_smith_hammer": {"handler": "pursue", "params": {"ability": "blacksmith_hammer_time", "move_ability": "move", "team": "enemies"}},
     "guild_knight_escort": {
       "handler": "follow_ally",
       "params": {

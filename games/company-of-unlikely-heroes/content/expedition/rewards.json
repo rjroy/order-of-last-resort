@@ -318,6 +318,7 @@
       "cap": 1,
       "effect": "exit_strategy",
       "amount": 1,
+      "requires_order": "order_retreat",
       "requires_abilities": [
         "move"
       ],

@@ -22,7 +22,8 @@ func _initialize() -> void:
 	var profile := {"guild_id": "inspiration-test", "board_seed": 147258,
 		"board_generation": 0, "points": 100000, "purchased_ids": [],
 		"preferred_loadouts": {}, "recruited_ids": ["knight", "healer", "wizard"]}
-	for id in ["recruit_bard", "recruit_necromancer", "recruit_blacksmith", "song_weaving", "necro_learn_melody"]:
+	for id in ["recruit_bard", "recruit_necromancer", "recruit_blacksmith", "song_weaving",
+			"order_bard_sonnet", "necro_learn_melody"]:
 		profile = Progression.purchased_profile(defs, profile, id)
 		if profile.has("error"):
 			_check(false, "Purchases " + id + ": " + str(profile))

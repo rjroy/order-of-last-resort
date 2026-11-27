@@ -369,6 +369,15 @@ static func targets(state: Dictionary, actor: Dictionary, ability_id: String, di
 	return _legal_choices(state, actor, ability, ability_id)
 
 
+## Escape needs legal partners before ranking them; the legacy automatic swap still ranks first.
+static func escape_swap_partners(state: Dictionary, actor: Dictionary, id: String) -> Array:
+	var ability := owned_ability(state, actor, id)
+	if ability.get("handler") != "swap_furthest" or not Shield.available(actor, id):
+		return []
+	return _legal_choices(state, actor, ability, id).filter(func(choice: Dictionary) -> bool:
+		return _swap_cells_open(state, actor, choice))
+
+
 ## Check a target against the form the actor will actually use, not against both forms.
 static func selection(state: Dictionary, actor: Dictionary, id: String, target_id: String,
 		automatic_target_id := "", form: Dictionary = {}) -> Dictionary:

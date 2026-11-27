@@ -258,7 +258,8 @@ func _test_retreat_and_hybrid() -> void:
 		"Hybrid offers the nearby opponent as a Dodge partner")
 	var chosen: Dictionary = rules.choose_manual(state, "rogue", "rogue_confusing_dodge", "near")
 	_check(chosen.get("overrides", {}).get("rogue", {}) == {
-		"ability_id": "rogue_confusing_dodge", "target_id": "near"},
+		"ability_id": "rogue_confusing_dodge", "target_id": "near",
+		"intended_form_id": "rogue_confusing_dodge"},
 		"Hybrid reserves Rogue's Dodge on the nearby opponent")
 	var chosen_before := chosen.duplicate(true)
 	var forecast: Dictionary = rules.preview_round(chosen)

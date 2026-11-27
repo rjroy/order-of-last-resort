@@ -27,11 +27,13 @@ static func draw(defs: Dictionary, party: Array, upgrades_by_id: Dictionary, rng
 	ids.sort()
 	for hero_id in party:
 		var owned: Dictionary = upgrades_by_id.get(hero_id, {})
-		var abilities: Variant = _equipped_with_grants(upgrades, hero_id, owned, kits.get(hero_id, {}))
+		var kit: Dictionary = kits.get(hero_id, {})
+		var abilities: Variant = _equipped_with_grants(upgrades, hero_id, owned, kit)
+		var habits := _available_habits(defs, hero_id, kit)
 		var eligible: Dictionary = {}
 		for id in ids:
 			var upgrade: Dictionary = upgrades[id]
-			if not _eligible(upgrade, hero_id, int(owned.get(id, 0)), abilities):
+			if not _eligible(upgrade, hero_id, int(owned.get(id, 0)), abilities, habits):
 				continue
 			if not eligible.has(upgrade.rarity):
 				eligible[upgrade.rarity] = []
@@ -49,11 +51,14 @@ static func eligible(defs: Dictionary, hero_id: String, upgrade_id: String, owne
 		kit: Dictionary = {}) -> bool:
 	var upgrades: Dictionary = defs.get("upgrades", {})
 	return _eligible(upgrades.get(upgrade_id, {}), hero_id, int(owned.get(upgrade_id, 0)),
-		_equipped_with_grants(upgrades, hero_id, owned, kit))
+		_equipped_with_grants(upgrades, hero_id, owned, kit), _available_habits(defs, hero_id, kit))
 
 
-static func _eligible(upgrade: Dictionary, hero_id: String, count: int, abilities: Variant) -> bool:
+static func _eligible(upgrade: Dictionary, hero_id: String, count: int, abilities: Variant,
+		habits: Dictionary) -> bool:
 	if upgrade.get("hero_id") != hero_id or count >= int(upgrade.get("cap", 0)):
+		return false
+	if upgrade.has("requires_order") and not habits.has(upgrade.requires_order):
 		return false
 	if abilities == null:
 		return true
@@ -64,10 +69,18 @@ static func _eligible(upgrade: Dictionary, hero_id: String, count: int, abilitie
 	return alternatives.is_empty() or alternatives.any(func(id: String) -> bool: return id in abilities)
 
 
+static func _available_habits(defs: Dictionary, hero_id: String, kit: Dictionary) -> Dictionary:
+	if not kit.is_empty():
+		return kit.get("habits", {}) # Frozen kits include all compatible orders, not just the selected one.
+	var hero: Dictionary = defs.get("characters", {}).get(hero_id, {})
+	var defaults: Dictionary = defs.get("classes", {}).get(hero.get("class", ""), {})
+	return hero.get("habits", defaults.get("habits", {}))
+
+
 static func _equipped_with_grants(upgrades: Dictionary, hero_id: String, owned: Dictionary,
 		kit: Dictionary) -> Variant:
 	if kit.is_empty():
-		return null # Unscoped outings keep their original reward eligibility.
+		return null # Unscoped outings keep their original ability eligibility.
 	var abilities: Array = kit.abilities.duplicate()
 	for id in owned:
 		var grant: Dictionary = upgrades.get(id, {})

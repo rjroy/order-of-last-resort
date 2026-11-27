@@ -48,6 +48,13 @@ func _run() -> void:
 		{"name": "explicit ordered party and repeated loadouts", "args": ["--mission=bridge_patrol",
 			"--party=wizard,knight,healer", "--loadout=knight:offense=healer_bonk,utility=knight_rescue_line,order=order_knight_escort",
 			"--loadout=healer:offense=wizard_blast"], "mode": "party"},
+		{"name": "standalone Smith native Pursue", "args": ["--mission=bridge_patrol",
+			"--party=blacksmith,knight,healer", "--loadout=blacksmith:order=order_pursue"], "mode": "smith_plain"},
+		{"name": "standalone Smith Bonk Pursue", "args": ["--mission=bridge_patrol",
+			"--party=blacksmith,knight,healer",
+			"--loadout=blacksmith:offense=healer_bonk,order=order_pursue"], "mode": "smith_bonk"},
+		{"name": "standalone Knight fallback Hold", "args": ["--mission=wrong_side_of_the_door",
+			"--loadout=knight:offense=healer_bonk,utility=knight_rescue_line,order=order_hold"], "mode": "knight_hold"},
 		{"name": "party without mission", "args": ["--party=knight,healer,wizard"],
 			"error": ["mission", "--party"]},
 		{"name": "loadout without mission", "args": ["--loadout=knight:utility=knight_rescue_line"],
@@ -84,6 +91,10 @@ func _run() -> void:
 		{"name": "custom hero without base default order", "args": ["--content=" + fixture_paths.no_default_order,
 			"--mission=wrong_side_of_the_door",
 			"--loadout=knight:utility=knight_rescue_line,order=order_knight_escort"], "mode": "authored"},
+		{"name": "custom hero without native orders uses Hold", "args": ["--content=" + fixture_paths.no_native_orders,
+			"--mission=wrong_side_of_the_door", "--loadout=knight:order=order_hold"], "mode": "custom_hold"},
+		{"name": "custom Caster order keeps authored behavior", "args": ["--content=" + fixture_paths.custom_caster_order,
+			"--mission=wrong_side_of_the_door", "--loadout=wizard:order=order_blast"], "mode": "custom_caster_order"},
 		{"name": "custom hero with no available orders", "args": ["--content=" + fixture_paths.no_orders,
 			"--mission=wrong_side_of_the_door", "--loadout=knight:order=order_advance"],
 			"error": ["no standing orders", "no orders", "none available", "no available",
@@ -171,8 +182,9 @@ func _child() -> void:
 	var state: Dictionary = scene.battle_snapshot()
 	var defs: Dictionary = Catalog.read_default()
 	var rules := Rules.new()
-	var party: Array = ["wizard", "knight", "healer"] if mode in ["party", "custom"] else ["knight", "healer", "wizard"]
-	var mission := "bridge_patrol" if mode in ["party", "custom"] else "wrong_side_of_the_door"
+	var party: Array = ["wizard", "knight", "healer"] if mode in ["party", "custom"] \
+		else (["blacksmith", "knight", "healer"] if mode in ["smith_plain", "smith_bonk"] else ["knight", "healer", "wizard"])
+	var mission := "bridge_patrol" if mode in ["party", "custom", "smith_plain", "smith_bonk"] else "wrong_side_of_the_door"
 	var slots: Array = defs.encounters[defs.missions[mission].encounter].party_slots
 	_check(state.get("party", []) == party, "Party order is preserved")
 	for index in party.size():
@@ -189,6 +201,31 @@ func _child() -> void:
 		for hero in party:
 			_check(rules.entity_profile(state, hero).abilities == rules.entity_profile(expected, hero).abilities,
 				hero + " retains authored abilities without loadout flags")
+	elif mode in ["smith_plain", "smith_bonk"]:
+		_check_smith_pursue(state, rules, "healer_bonk" if mode == "smith_bonk" else "blacksmith_hammer_time")
+	elif mode == "knight_hold":
+		var knight: Dictionary = rules.entity_profile(state, "knight")
+		_check("healer_bonk" in knight.get("abilities", []) and "knight_rescue_line" in knight.get("abilities", []) \
+			and "knight_push" not in knight.get("abilities", []) and "knight_aura" not in knight.get("abilities", []),
+			"Knight fallback fixture equips Bonk and Rescue Line")
+		_check(state.get("orders", {}).get("knight") == "order_hold" \
+			and knight.get("habits", {}).has("order_hold") and knight.get("habits", {}).has("order_knight_escort"),
+			"Explicit fallback Hold remains available alongside learned Stay Close")
+	elif mode == "custom_hold":
+		var knight: Dictionary = rules.entity_profile(state, "knight")
+		_check(state.get("orders", {}).get("knight") == "order_hold" \
+			and knight.get("habits", {}).has("order_hold") and knight.get("habits", {}).has("order_knight_escort"),
+			"Custom Knight without native orders equips Hold alongside learned Stay Close")
+	elif mode == "custom_caster_order":
+		var caster: Dictionary = rules.entity_profile(state, "wizard")
+		_check(state.get("orders", {}).get("wizard") == "order_blast" \
+			and caster.get("habits", {}).get("order_blast") == "hold",
+			"Explicit Caster order preserves the custom Hold behavior, not raw Blast")
+		var plan: Dictionary = rules.preview_round(state)
+		_check(plan.get("valid", false) and not plan.get("events", []).any(func(event: Dictionary) -> bool:
+			return event.get("resolved_action", {}).get("unit_id") == "wizard" \
+				and event.get("resolved_action", {}).get("ability_id") == "wizard_blast"),
+			"Custom Caster order does not secretly perform Blast")
 	else:
 		var knight: Dictionary = rules.entity_profile(state, "knight")
 		_check("knight_rescue_line" in knight.get("abilities", [])
@@ -217,6 +254,44 @@ func _child() -> void:
 	if failures.is_empty():
 		print("PASS: child")
 	_finish()
+
+
+func _check_smith_pursue(deployed: Dictionary, rules: Variant, ability: String) -> void:
+	var state := deployed.duplicate(true)
+	var smith := {}
+	var enemy := {}
+	for unit in state.units:
+		if unit.id == "blacksmith":
+			smith = unit
+		elif enemy.is_empty() and rules.entity_profile(state, unit.id).get("team") == "enemies":
+			enemy = unit
+	_check(not smith.is_empty() and not enemy.is_empty(), "Standalone Pursue fixture has Smith and an opponent")
+	if smith.is_empty() or enemy.is_empty():
+		return
+	_check(state.get("orders", {}).get("blacksmith") == "order_pursue" \
+		and ability in rules.entity_profile(state, "blacksmith").get("abilities", []),
+		"Standalone Smith equips Pursue and " + ability)
+	smith.position = Vector2i(1, 1)
+	enemy.position = Vector2i(2, 1)
+	enemy.hp = 20
+	enemy.max_hp = 20
+	state.width = 12
+	state.height = 12
+	state.default_tile = "stone"
+	state.terrain = []
+	state.obstacles = []
+	state.units = [smith, enemy]
+	state.party = ["blacksmith"]
+	state.overrides = {}
+	var before := state.duplicate(true)
+	var plan: Dictionary = rules.preview_round(state)
+	_check(plan.get("valid", false) and state == before and plan.get("events", []).any(func(event: Dictionary) -> bool:
+		return event.get("resolved_action", {}).get("unit_id") == "blacksmith" \
+			and event.get("resolved_action", {}).get("ability_id") == ability),
+		"Standalone Pursue delegates equipped " + ability + " in the forecast")
+	if plan.get("valid", false):
+		_check(rules.commit_round(state, plan) == plan.get("result"),
+			"Standalone " + ability + " Pursue commits its forecast")
 
 
 func _check(condition: bool, message: String) -> void:
@@ -265,15 +340,27 @@ func _write_custom_fixtures(directory: String) -> Dictionary:
 	malformed_hero_kit.guild_progression.kits.knight = []
 	var no_default_order := stock.duplicate(true)
 	no_default_order.classes.knight.erase("default_order")
+	var no_native_orders := no_default_order.duplicate(true)
+	no_native_orders.classes.knight.habits = {}
+	no_native_orders.guild_progression.starting_habits.erase("knight")
+	no_native_orders.guild_progression.starting_defaults.erase("knight")
+	var custom_caster_order := stock.duplicate(true)
+	custom_caster_order.guild_progression.starting_habits.wizard.order_blast = "hold"
 	# Rename Hold everywhere so other heroes remain valid without providing the
 	# hard-coded fallback ID; the Knight has neither native nor learned orders.
 	var no_orders: Dictionary = JSON.parse_string(JSON.stringify(stock).replace('"order_hold"', '"order_fixture_hold"'))
 	no_orders.classes.knight.erase("default_order")
 	no_orders.classes.knight.habits = {}
-	no_orders.guild_progression.petitions.erase("knight_escort_order")
+	no_orders.guild_progression.starting_habits.erase("knight")
+	no_orders.guild_progression.starting_defaults.erase("knight")
+	for id in no_orders.guild_progression.petitions.keys():
+		var grant: Dictionary = no_orders.guild_progression.petitions[id].get("grant", {})
+		if grant.get("hero_id") == "knight" and grant.get("kind") == "order":
+			no_orders.guild_progression.petitions.erase(id)
 	var fixtures := {"route": route, "progression": malformed_progression,
 		"kits": malformed_kits, "hero_kit": malformed_hero_kit, "no_default_order": no_default_order,
-		"no_orders": no_orders}
+		"no_native_orders": no_native_orders, "no_orders": no_orders,
+		"custom_caster_order": custom_caster_order}
 	var paths := {}
 	for id in fixtures:
 		var data: Dictionary = fixtures[id]
@@ -283,10 +370,10 @@ func _write_custom_fixtures(directory: String) -> Dictionary:
 			return {}
 		if id != "route":
 			var guild_errors := Catalog.validate_guild_progression(data)
-			if id in ["no_default_order", "no_orders"] and not guild_errors.is_empty():
+			if id in ["no_default_order", "no_native_orders", "no_orders", "custom_caster_order"] and not guild_errors.is_empty():
 				_check(false, id + " fixture must pass guild progression validation: " + "\n".join(guild_errors))
 				return {}
-			if id not in ["no_default_order", "no_orders"] and guild_errors.is_empty():
+			if id not in ["no_default_order", "no_native_orders", "no_orders", "custom_caster_order"] and guild_errors.is_empty():
 				_check(false, id + " fixture must fail guild progression validation")
 				return {}
 		var path := directory.path_join(id + ".json")

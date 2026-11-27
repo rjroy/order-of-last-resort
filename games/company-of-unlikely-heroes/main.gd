@@ -213,7 +213,7 @@ func _standalone_setup(mission_id: String, party: Array, overrides: Dictionary) 
 		if not errors.is_empty():
 			return {"error": "Cannot use --loadout with this content: " + "; ".join(errors)}
 		for id in overrides:
-			var result := Progression.playtest_kit(_definitions, id, overrides[id])
+			var result := Progression.playtest_kit(_definitions, id, overrides[id], _uses_builtin_catalog)
 			if result.has("error"):
 				return result
 			kits[id] = result.kit

@@ -23,11 +23,11 @@ func _run() -> void:
 	_viewport.size = FULL
 	root.add_child(_viewport)
 	await _check_petition("recruit_blacksmith", "Recruit the Hobby Smith", "Hobby Smith", [
-		"Recruit with Hammer Time, Try This, Pursue and Hold.",
+		"Recruit with Hammer Time, Try This and the Try This standing order.",
 		"Choose this hero for one of your three party places.",
 	])
 	await _check_petition("recruit_bard", "The Bad Bard", "Bad Bard", [
-		"Starts with Inspiring Melody and Healing Sonnet.",
+		"Recruit with both songs and the Inspiring Melody standing order.",
 		"Choose him for one of your three party places.",
 	])
 	await _check_offers([_smith_offer()])

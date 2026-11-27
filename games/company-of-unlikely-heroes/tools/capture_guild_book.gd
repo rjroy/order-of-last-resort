@@ -253,9 +253,9 @@ func _capture_recruitment_states() -> String:
 	if profile.has("error"):
 		fixture.free()
 		return str(profile.error)
-	# Settle four controlled road wins so the real teaching petition can be bought.
+	# Settle seven controlled road wins to fund the ability and its alternate order.
 	var defs: Dictionary = load("res://content/catalog.gd").read_default()
-	var run: Dictionary = fixture._run_commission(defs, profile, 4, 0)
+	var run: Dictionary = fixture._run_commission(defs, profile, 7, 2)
 	fixture.free()
 	if run.is_empty():
 		return "Could not earn points for the loadout fixture."
@@ -263,6 +263,9 @@ func _capture_recruitment_states() -> String:
 	if profile.has("error"):
 		return str(profile.error)
 	profile = store.purchase(path, profile, defs, "teach_healer_blast")
+	if profile.has("error"):
+		return str(profile.error)
+	profile = store.purchase(path, profile, defs, "order_healer_aggressive")
 	if profile.has("error"):
 		return str(profile.error)
 	scene = load("res://main.tscn").instantiate()

@@ -21,6 +21,28 @@ func _run() -> void:
 		return
 	file.store_string('{"version":1,"name":"Scene Test","board_seed":"147258"}')
 	file.close()
+	var store = load("res://guild/guild_profile.gd")
+	var catalog: Dictionary = load("res://content/catalog.gd").read_default()
+	var migrated: Dictionary = store.load_profile(profile_path)
+	_check(not migrated.has("error") and migrated.get("name") == "Scene Test" \
+		and migrated.get("board_seed") == 147258 and "bard" in migrated.get("recruited_ids", []) \
+		and "rogue" in migrated.get("recruited_ids", []),
+		"Legacy v1 profile migrates its identity, seed and earlier roster")
+	if migrated.has("error"):
+		_finish()
+		return
+	# Fund only this migrated fixture, then exercise real permanent purchases.
+	migrated.points = int(catalog.guild_progression.petitions.order_bard_sonnet.cost)
+	migrated = store._write_profile(profile_path, migrated)
+	for id in ["order_bard_sonnet"]:
+		if migrated.has("error"):
+			break
+		migrated = store.purchase(profile_path, migrated, catalog, id)
+		_check(not migrated.has("error") and id in migrated.get("purchased_ids", []),
+			"Purchase journey fixture order " + id)
+	if migrated.has("error"):
+		_finish()
+		return
 	scene = load("res://main.tscn").instantiate()
 	scene.configure_launch(PackedStringArray())
 	scene.configure_profile_path(profile_path)
@@ -96,17 +118,18 @@ func _run() -> void:
 	var plan: Dictionary = scene.get("_plan")
 	var first_events: Array[String] = []
 	for event in plan.get("events", []):
-		var actor := str(event.get("unit_id", ""))
+		var action: Dictionary = event.get("resolved_action", {})
+		var actor := str(action.get("unit_id", ""))
+		if actor.is_empty() and event.get("type") in ["recover", "wait"]:
+			actor = str(event.get("unit_id", ""))
 		if actor in picks and actor not in first_events:
 			first_events.append(actor)
-	_check(first_events == picks, "Opening forecast executes heroes in the selected order")
+	_check(plan.get("valid", false) and first_events == picks,
+		"Opening forecast resolves each hero's action or skipped turn in deployment order: " + str(first_events))
 	await _capture("capture-battle")
-	var order_id := ""
-	for choice: Dictionary in driver.rules.options(battle, "knight"):
-		if choice.kind == "order" and choice.id != battle.get("orders", {}).get("knight"):
-			order_id = choice.id
-			break
-	_check(not order_id.is_empty() and await driver.order("knight", order_id), "Knight has an editable standing order")
+	var order_id := "order_knight_advance_move"
+	_check(battle.get("orders", {}).get("knight") == "order_guard" \
+		and await driver.order("knight", order_id), "Knight can switch from Guard to move-only advance")
 	_check(scene.battle_snapshot().get("orders", {}).get("knight") == order_id,
 		"Standing order changes the selected hero's order")
 	var round_before: Dictionary = scene.battle_snapshot()
@@ -126,10 +149,11 @@ func _run() -> void:
 		if scene.current_screen() == "battle":
 			_check(scene.battle_snapshot().get("round", 0) > round_before.get("round", 0),
 				"Commit advances the round")
-			if await _choose_first_ability("knight"):
+			# The Caster's Blast can knock the Knight down again before his turn.
+			if await _choose_first_ability("healer"):
 				summary = scene.get("_storybook_page").get("_summary") as Label
 				_check(summary != null and summary.is_visible_in_tree()
-					and driver.rules.display_name(scene.battle_snapshot(), "knight") in summary.text,
+					and driver.rules.display_name(scene.battle_snapshot(), "healer") in summary.text,
 					"A different hero can be commanded next round")
 	await _exercise_bard_guild()
 	_finish()

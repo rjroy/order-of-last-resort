@@ -51,6 +51,17 @@ static func decide(state: Dictionary, actor: Dictionary, behavior_id: String) ->
 				var ability := Actions.owned_ability(state, actor, ability_id)
 				var reach := int(ability.get("targeting", {}).get("range", 1))
 				return _move(state, actor, params.move_ability, enemy.position, reach)
+		"advance_move":
+			if actor.has("shield_position"):
+				if Shield.can_retrieve(actor):
+					return {"ability_id": params.move_ability, "retrieve_shield": true}
+				return _move(state, actor, params.move_ability, actor.shield_position, 1)
+			var opponents := Board.occupants(state, {"teams": [params.team]}).filter(func(unit: Dictionary) -> bool:
+				return Board.opponents(state, actor, unit))
+			var enemy := Board.nearest(actor, opponents)
+			if not enemy.is_empty():
+				return _move(state, actor, params.move_ability, enemy.position, 1)
+			return {"wait": "hold"}
 		"greet":
 			return _greet(state, actor, params)
 		"hook_and_seek":
@@ -71,11 +82,24 @@ static func decide(state: Dictionary, actor: Dictionary, behavior_id: String) ->
 			if not alternate.is_empty():
 				return alternate
 			return _pass_blame(state, actor, params.ability)
-		"make_friend":
+		"make_friend", "personality_summon_skeleton":
 			var alternate := Actions.standing_alternate(state, actor, params.ability, "make_friend")
 			if not alternate.is_empty():
 				return alternate
 			return _make_friend(state, actor, params.ability)
+		"personality_escape_swap":
+			var alternate := Actions.standing_alternate(state, actor, params.ability)
+			if not alternate.is_empty():
+				return alternate
+			return _escape_swap(state, actor, params.ability)
+		"personality_raise_dead":
+			var alternate := Actions.standing_alternate(state, actor, params.ability)
+			if not alternate.is_empty():
+				return alternate
+			var corpse := Board.nearest(actor, Actions.targets(state, actor, params.ability))
+			return _action(params.ability, corpse.id) if not corpse.is_empty() else {"wait": "hold"}
+		"personality_targeted":
+			return _personality_targeted(state, actor, params.ability, params.policy)
 		"nearest_target":
 			var alternate := Actions.standing_alternate(state, actor, params.ability, "nearest_target")
 			if not alternate.is_empty():
@@ -277,6 +301,54 @@ static func _make_friend(state: Dictionary, actor: Dictionary, id: String) -> Di
 			cell = choice.id
 			best_distance = distance
 	return _action(id, cell)
+
+
+static func _escape_swap(state: Dictionary, actor: Dictionary, id: String) -> Dictionary:
+	var opponents := Board.occupants(state, {}).filter(func(unit: Dictionary) -> bool:
+		return Board.opponents(state, actor, unit))
+	if opponents.is_empty():
+		return {"wait": "hold"}
+	var origin: Vector2i = actor.position
+	var danger := _nearest_foe_distance(origin, opponents)
+	var partner_id := ""
+	var longest := -1
+	for choice: Dictionary in Actions.escape_swap_partners(state, actor, id):
+		var reach := Board.distance(origin, choice.position)
+		if reach < longest or (reach == longest and choice.id >= partner_id):
+			continue
+		# A swapped enemy threatens from the Dodger's old cell, not its current cell.
+		if _nearest_foe_distance(choice.position, opponents, choice.id, origin) > danger:
+			partner_id = choice.id
+			longest = reach
+	if partner_id.is_empty():
+		return {"wait": "hold"}
+	return {"ability_id": id, "automatic_target_id": partner_id}
+
+
+static func _nearest_foe_distance(position: Vector2i, opponents: Array,
+		swapped_id := "", displaced_to := Vector2i.ZERO) -> int:
+	var nearest := 2147483647
+	for opponent: Dictionary in opponents:
+		var foe_position: Vector2i = displaced_to if opponent.id == swapped_id else opponent.position
+		nearest = mini(nearest, Board.distance(position, foe_position))
+	return nearest
+
+
+static func _personality_targeted(state: Dictionary, actor: Dictionary, id: String, policy: String) -> Dictionary:
+	# A fitting can invert a move's purpose. Its own candidates, not the base
+	# order's allegiance filter, govern the fitted move.
+	var alternate := Actions.standing_alternate(state, actor, id, "nearest_target")
+	if not alternate.is_empty():
+		return alternate
+	var choices := Actions.targets(state, actor, id).filter(func(choice: Dictionary) -> bool:
+		var unit := Board.entity(state, choice.id)
+		if policy == "nearest_ally":
+			return Board.allied(state, actor, unit)
+		if policy == "nearest_enemy":
+			return Board.opponents(state, actor, unit)
+		return policy == "nearest_character" and unit.has("character_id"))
+	var target := Board.nearest(actor, choices, true)
+	return _action(id, target.id) if not target.is_empty() else {"wait": "hold"}
 
 
 static func _greet(state: Dictionary, actor: Dictionary, params: Dictionary) -> Dictionary:

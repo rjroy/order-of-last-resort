@@ -73,7 +73,7 @@
       "label": "Guard"
     },
     "order_advance": {
-      "label": "Advance"
+      "label": "Advance and Push"
     }
   },
   "behaviors": {

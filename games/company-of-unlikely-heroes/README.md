@@ -112,7 +112,7 @@ Additional orders are unlocked separately, including orders for the other base a
 
 - The **Bad Bard** starts with Inspiring Melody as his standing order; Healing Sonnet is directly commandable, and its order can be unlocked separately. His separate **Song Weaving** petition costs 5 points. Play Melody, then Sonnet on the next round: Sonnet plays first and Melody echoes. Repeat Sonnet and no echo plays. A skipped performance breaks the chain, echoes never start another echo, and laughter immunity still applies.
 - **Teach the Healer: Blast** adds an offense option. It does not replace Bonk until you equip Blast during recruitment. Heal and Support remain available. Pursue and Bonk requires both its order unlock and Bonk equipped. A direct Blast lets you choose a legal character or obstacle, including an eligible ally; its separately unlocked standing order seeks the nearest target. The Caster keeps his spell. **Triage** costs 6 points and orders the equipped Heal to treat the legal patient missing the most HP, including the Healer; it waits if nobody in range is wounded.
-- A Knight equipped with **Rescue Line** can directly pull an ally toward him instead of guarding. A new Mixologist can throw Acid directly from her first mission; **Throw Samples** teaches her to do it while you command someone else.
+- A Knight equipped with **Rescue Line** can directly pull an ally toward him instead of using Push. He keeps Aura and can still use Guard, but **Advance and Push** requires Push equipped. A new Mixologist can throw Acid directly from her first mission; **Throw Samples** teaches her to do it while you command someone else.
 
 **Bring the Hobby Smith:** Buy **Recruit the Hobby Smith** in **Guild petitions**, then choose a commission and recruit the Smith with two other heroes. Use **Earlier** to put the Smith first and leave his starting order on **Try This** to give a later hero a chance to use the fitting in the same round. Hammer Time and Try This are both available as direct commands; **Pursue**, the standing order for Hammer Time, is separately unlocked. **Learn Bonk and Taunt** costs 4 points; **Learn Acid** costs 5 and also requires the Mixologist to be recruited. Equip either in **Edit loadout** to replace Hammer Time without losing Try This. Acid needs its own separately unlocked order to be used on standing orders.
 
@@ -175,9 +175,9 @@ godot --path games/company-of-unlikely-heroes -- --mission=wrong_side_of_the_doo
 # An ordered party for a mission without a default party
 godot --path games/company-of-unlikely-heroes -- --mission=bridge_patrol --party=bard,healer,knight
 # An authored default party with a partial kit and learned order
-godot --path games/company-of-unlikely-heroes -- --mission=wrong_side_of_the_door --loadout=knight:utility=knight_rescue_line,order=order_knight_escort
+godot --path games/company-of-unlikely-heroes -- --mission=wrong_side_of_the_door --loadout=knight:offense=knight_rescue_line,order=order_knight_escort
 # Combine a custom party with an explicit loadout
-godot --path games/company-of-unlikely-heroes -- --mission=bridge_patrol --party=wizard,knight,healer --loadout=knight:utility=knight_rescue_line,order=order_knight_escort
+godot --path games/company-of-unlikely-heroes -- --mission=bridge_patrol --party=wizard,knight,healer --loadout=knight:offense=knight_rescue_line,order=order_knight_escort
 ```
 
 From the repository root:

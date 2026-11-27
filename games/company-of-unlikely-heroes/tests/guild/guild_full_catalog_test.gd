@@ -4,6 +4,7 @@ extends SceneTree
 # The register is an integration contract; only specifically requested prices are pinned.
 const Catalog = preload("res://content/catalog.gd")
 const Progression = preload("res://guild/guild_progression.gd")
+const Profile = preload("res://guild/guild_profile.gd")
 const Adventure = preload("res://expedition/adventure.gd")
 const Commissions = preload("res://expedition/commissions.gd")
 const Rules = preload("res://rules/rules.gd")
@@ -68,6 +69,8 @@ func _initialize() -> void:
 	defs.characters.harpooner.behavior = "hold"
 	defs.characters.ferryman.behavior = "hold"
 	_test_requested_healer_caster_contract()
+	_test_knight_rescue_slot_and_legacy()
+	_test_legacy_knight_rescue_bonk_hold()
 	_test_register()
 	_test_ability_order_coverage()
 	_test_fallback_hold_preference()
@@ -242,8 +245,155 @@ func _test_fallback_hold_preference() -> void:
 	# Isolate the historical no-compatible-starter case. Stock Knight now has
 	# a compatible move-only starter even after both abilities are replaced.
 	defs.guild_progression.starting_habits.knight.erase("order_knight_advance_move")
+	defs.guild_progression.petitions.knight_rescue_line.grant.slot_id = "utility"
 	_exercise_fallback_hold_preference()
 	defs = original
+
+
+func _test_knight_rescue_slot_and_legacy() -> void:
+	var profile := _profile()
+	profile.purchased_ids = ["knight_rescue_line", "knight_learn_bonk",
+		"order_knight_advance", "order_knight_rescue_petition", "order_knight_bonk_petition"]
+	var choices := Progression.slot_options(defs, profile, "knight")
+	_check("knight_rescue_line" in choices.get("offense", [])
+		and "knight_rescue_line" not in choices.get("utility", []),
+		"Purchased Rescue Line is an offense choice, not utility")
+	var rescue := {"slots": {"offense": "knight_rescue_line", "utility": "knight_aura"},
+		"order_id": "order_guard"}
+	var kit := Progression.effective_kit(defs, profile, "knight", rescue)
+	_check("knight_rescue_line" in kit.get("abilities", [])
+		and "knight_aura" in kit.get("abilities", [])
+		and "knight_push" not in kit.get("abilities", [])
+		and kit.get("habits", {}).has("order_guard")
+		and kit.get("habits", {}).has("order_knight_rescue")
+		and not kit.get("habits", {}).has("order_advance"),
+		"Rescue replaces Push, retains Aura and Guard, and enables only its compatible learned order")
+	var push := rescue.duplicate(true)
+	push.slots.offense = "knight_push"
+	push.order_id = "order_advance"
+	var push_kit := Progression.effective_kit(defs, profile, "knight", push)
+	_check(push_kit.get("habits", {}).has("order_advance")
+		and not push_kit.get("habits", {}).has("order_knight_rescue"),
+		"Advance and Push requires Push, while Rescue order requires Rescue Line")
+
+	for example in [
+			["knight_push", "order_knight_rescue", "knight_rescue_line"],
+			["healer_bonk", "order_knight_rescue", "knight_rescue_line"],
+			["healer_bonk", "order_knight_bonk", "healer_bonk"]]:
+		var legacy := profile.duplicate(true)
+		legacy.preferred_loadouts.knight = {"slots": {"offense": example[0],
+			"utility": "knight_rescue_line"}, "order_id": example[1]}
+		var before := legacy.duplicate(true)
+		var restored := Progression.default_loadout(defs, legacy, "knight")
+		_check(restored.get("slots", {}).get("offense") == example[2]
+			and restored.get("slots", {}).get("utility") == "knight_aura"
+			and restored.get("order_id") == example[1]
+			and not Progression.effective_kit(defs, legacy, "knight", restored).is_empty(),
+			"Legacy %s / Rescue with %s preserves the order and chosen compatible offense" % [example[0], example[1]])
+		_check(legacy == before, "Resolving a legacy loadout preserves saved preferences and purchases")
+
+	var custom := defs.duplicate(true)
+	custom.guild_progression.petitions.knight_rescue_line.grant.slot_id = "utility"
+	var legacy := profile.duplicate(true)
+	legacy.preferred_loadouts.knight = {"slots": {"offense": "knight_push",
+		"utility": "knight_rescue_line"}, "order_id": "order_knight_rescue"}
+	_check(Progression.default_loadout(custom, legacy, "knight") == legacy.preferred_loadouts.knight,
+		"Custom catalog retaining utility Rescue Line keeps its own valid preference")
+
+	# Write an old-format preference to a unique disposable profile, then exercise
+	# the same reload and save boundaries used by recruitment.
+	var path := "user://rescue_legacy_%d_%d.json" % [OS.get_process_id(), Time.get_ticks_usec()]
+	var created := Profile.create(path, "Legacy Rescue Fixture", 147258)
+	if created.has("error"):
+		_check(false, "Create legacy Rescue profile: " + str(created))
+		return
+	var stored: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if not stored is Dictionary:
+		_check(false, "Created profile contains a persisted JSON object")
+		_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(path)) == OK,
+			"Remove disposable Rescue fixture " + path)
+		return
+	stored["purchased_ids"] = profile.purchased_ids.duplicate()
+	stored["preferred_loadouts"] = legacy.preferred_loadouts.duplicate(true)
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		_check(false, "Write legacy Rescue profile")
+	else:
+		file.store_string(JSON.stringify(stored))
+		file.close()
+		var loaded := Profile.load_profile(path)
+		_check(not loaded.has("error") and not loaded.is_empty(),
+			"Legacy persisted profile loads successfully: " + str(loaded.get("error", "")))
+		if not loaded.has("error") and not loaded.is_empty():
+			_check(loaded.get("preferred_loadouts", {}) == legacy.preferred_loadouts
+				and loaded.get("purchased_ids") == profile.purchased_ids,
+				"Reload preserves the old slots and purchases before resolving the loadout")
+			var restored := Profile.default_loadout(defs, loaded, "knight")
+			_check(restored.get("slots", {}) == {"offense": "knight_rescue_line", "utility": "knight_aura"}
+				and restored.get("order_id") == "order_knight_rescue",
+				"Reloaded legacy Push / Rescue preference resolves to Rescue / Aura with its saved order")
+			var saved := Profile.save_loadouts(path, loaded, defs, {"knight": restored})
+			var reloaded := Profile.load_profile(path)
+			_check(not saved.has("error") and reloaded.get("preferred_loadouts", {}).get("knight") == restored
+				and reloaded.get("purchased_ids") == profile.purchased_ids,
+				"Saving the recovered kit persists it without losing purchases")
+	for owned in [path, path + ".backup"]:
+		if FileAccess.file_exists(owned):
+			_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(owned)) == OK,
+				"Remove disposable Rescue fixture " + owned)
+
+
+func _test_legacy_knight_rescue_bonk_hold() -> void:
+	var path := "user://rescue_bonk_hold_%d_%d.json" % [OS.get_process_id(), Time.get_ticks_usec()]
+	var created := Profile.create(path, "Legacy Hold Fixture", 147258)
+	if created.has("error"):
+		_check(false, "Create legacy Hold profile: " + str(created))
+		return
+	var persisted: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if not persisted is Dictionary:
+		_check(false, "Created Hold profile contains a persisted JSON object")
+	else:
+		var purchases := ["knight_rescue_line", "knight_learn_bonk"]
+		var old_loadout := {"slots": {"offense": "healer_bonk", "utility": "knight_rescue_line"},
+			"order_id": "order_hold"}
+		persisted["purchased_ids"] = purchases
+		persisted["preferred_loadouts"] = {"knight": old_loadout}
+		var file := FileAccess.open(path, FileAccess.WRITE)
+		if file == null:
+			_check(false, "Write legacy Bonk / Rescue / Hold profile")
+		else:
+			file.store_string(JSON.stringify(persisted))
+			file.close()
+			var loaded := Profile.load_profile(path)
+			_check(not loaded.has("error") and loaded.get("preferred_loadouts", {}).get("knight") == old_loadout
+				and loaded.get("purchased_ids") == purchases,
+				"Legacy Bonk / Rescue / Hold profile reloads with both purchases")
+			if not loaded.has("error") and not loaded.is_empty():
+				var restored := Profile.default_loadout(defs, loaded, "knight")
+				var expected := {"slots": {"offense": "healer_bonk", "utility": "knight_aura"},
+					"order_id": "order_hold"}
+				_check(restored == expected,
+					"Legacy fallback Hold remains selected after recovering Bonk and Aura")
+				var kit := Progression.effective_kit(defs, loaded, "knight", restored)
+				_check(kit.get("default_order") == "order_hold"
+					and kit.get("habits", {}).has("order_hold"),
+					"Recovered legacy fallback Hold produces an effective kit")
+				var hold_offered := false
+				for row in Progression.order_options(defs, loaded, "knight", restored):
+					if row.get("id") == "order_hold" and row.get("compatible", false):
+						hold_offered = true
+				_check(hold_offered, "Recovered legacy fallback Hold is a compatible order option")
+				var saved := Profile.save_loadouts(path, loaded, defs, {"knight": restored})
+				var reloaded := Profile.load_profile(path)
+				_check(not saved.has("error") and not reloaded.has("error")
+					and reloaded.get("preferred_loadouts", {}).get("knight") == expected
+					and reloaded.get("purchased_ids") == purchases
+					and Profile.default_loadout(defs, reloaded, "knight") == expected,
+					"Recovered Bonk / Aura / Hold survives save and reload without losing purchases")
+	for owned in [path, path + ".backup"]:
+		if FileAccess.file_exists(owned):
+			_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(owned)) == OK,
+				"Remove disposable Hold fixture " + owned)
 
 
 func _exercise_fallback_hold_preference() -> void:

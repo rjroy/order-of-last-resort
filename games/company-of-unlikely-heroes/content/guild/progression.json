@@ -116,7 +116,7 @@
         "grant": {
           "kind": "ability",
           "hero_id": "knight",
-          "slot_id": "utility",
+          "slot_id": "offense",
           "ability_id": "knight_rescue_line"
         }
       },

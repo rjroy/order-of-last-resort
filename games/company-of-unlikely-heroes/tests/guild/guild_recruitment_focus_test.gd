@@ -6,7 +6,7 @@ const Catalog = preload("res://content/catalog.gd")
 const Profile = preload("res://guild/guild_profile.gd")
 const PETITIONS := ["recruit_bard", "recruit_rogue", "recruit_necromancer", "recruit_alchemist",
 	"teach_healer_blast", "healer_blast_order", "healer_triage_order",
-	"knight_rescue_line", "order_knight_advance", "order_healer_aggressive"]
+	"knight_rescue_line", "order_knight_advance", "order_healer_aggressive", "wizard_learn_dodge"]
 
 
 func _run() -> void:
@@ -123,43 +123,44 @@ func _check_loadout_focus() -> void:
 		and _saved_loadout("healer").get("order_id") == "order_healer_triage",
 		"Choosing Triage saves it with base Heal")
 
+	# A second utility choice makes the Caster's already-equipped Pull selectable.
+	if not await _tab_to("EditHero_wizard"):
+		return
+	await _key(KEY_ENTER)
+	if not await _tab_to("Utility_wizard_pull"):
+		return
+	var pull := _node("Utility_wizard_pull") as Button
+	var wizard_scroll := _node("LoadoutScroll") as ScrollContainer
+	if wizard_scroll == null or pull == null:
+		return
+	wizard_scroll.scroll_vertical = 43
+	await process_frame
+	await process_frame
+	_check(_reachable(pull) and pull.has_focus(),
+		"The equipped Pull starts in view at the test reading position")
+	var previous := wizard_scroll.scroll_vertical
+	await _key(KEY_ENTER)
+	_check_loadout_target("Utility_wizard_pull", "Equipped", "Reactivating visible Pull")
+	wizard_scroll = _node("LoadoutScroll") as ScrollContainer
+	_check(wizard_scroll != null and previous > 0 and wizard_scroll.scroll_vertical == previous,
+		"Reactivating an already-visible loadout control does not jump back to the top")
+
 	if not await _tab_to("EditHero_knight"):
 		return
 	await _key(KEY_ENTER)
 	var scroll := _node("LoadoutScroll") as ScrollContainer
 	_check(scroll != null and scroll.scroll_vertical == 0, "Switching to the Knight opens a fresh loadout at the top")
-	if not await _tab_to("Utility_knight_rescue_line"):
+	if not await _tab_to("Offense_knight_rescue_line"):
 		return
 	await _key(KEY_ENTER)
-	_check_loadout_target("Order_order_knight_advance_move", "Select", "Equipping Rescue Line")
+	_check_loadout_target("Order_order_guard", "Selected", "Equipping Rescue Line")
 	var guard := _node("Order_order_guard") as Button
 	depart = _node("StartAdventure") as Button
-	_check(guard != null and guard.disabled and depart != null and depart.disabled
-		and _saved_loadout("knight").get("slots", {}).get("utility") != "knight_rescue_line",
-		"Rescue Line disables Guard and blocks departure and save until a compatible order is chosen")
+	_check(guard != null and not guard.disabled and depart != null and not depart.disabled
+		and _saved_loadout("knight").get("slots", {}).get("offense") == "knight_rescue_line"
+		and _saved_loadout("knight").get("slots", {}).get("utility") == "knight_aura",
+		"Rescue Line keeps Guard and Aura and saves without blocking departure")
 	await _capture("05-rescue-line-focused")
-	await _key(KEY_ENTER)
-	_check(_saved_loadout("knight").get("slots", {}).get("utility") == "knight_rescue_line"
-		and _saved_loadout("knight").get("order_id") == "order_knight_advance_move",
-		"Choosing the focused compatible order saves Rescue Line")
-	if not await _tab_to("Utility_knight_rescue_line"):
-		return
-	var rescue := _node("Utility_knight_rescue_line") as Button
-	scroll = _node("LoadoutScroll") as ScrollContainer
-	if scroll == null or rescue == null:
-		return
-	# Keep the equipped option visible at a nonzero reading position.
-	scroll.scroll_vertical = 43
-	await process_frame
-	await process_frame
-	_check(_reachable(rescue) and rescue.has_focus(),
-		"The equipped Rescue Line starts in view at the test reading position")
-	var previous := scroll.scroll_vertical
-	await _key(KEY_ENTER)
-	_check_loadout_target("Utility_knight_rescue_line", "Equipped", "Reactivating visible Rescue Line")
-	scroll = _node("LoadoutScroll") as ScrollContainer
-	_check(scroll != null and previous > 0 and scroll.scroll_vertical == previous,
-		"Reactivating an already-visible loadout control does not jump back to the top")
 
 
 func _saved_loadout(hero: String) -> Dictionary:

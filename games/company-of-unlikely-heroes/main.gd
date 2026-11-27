@@ -76,20 +76,17 @@ var _storybook_inspected_cell: Variant = null
 var _storybook_focus_cell: Variant = null
 var _opening_state: Dictionary
 var _state: Dictionary
-# The editor only becomes a command after the rules reserve it for the preview.
+# The one staged command lives in _planned_state, independently of selection and aim.
 var _planned_state: Dictionary
 var _plan: Dictionary
-var _editor_actor: Dictionary
-var _editor_action: Dictionary
-var _editor_can_act := false
-var _editor_knocked_down := false
-var _editor_skip_label := ""
+var _draft_summary := ""
+var _draft_target_cell: Variant = null
+var _editor_actions: Dictionary = {}
+var _editor_unavailable_reason := ""
 var _last_events: Array = []
-var _unpreviewed_edit := false
 var _actor_id := ""
-var _ability_id := ""
-var _target_id := ""
-var _targets: Array = []
+var _aimed_ability_id := ""
+var _occupant_cell: Variant = null
 var _painted_cells: Dictionary = {}
 var _tile_labels: Dictionary = {}
 var _safe_cells: Dictionary = {}
@@ -1319,9 +1316,11 @@ func _show_storybook_battle() -> void:
 	_board.gui_input.connect(_storybook_board_input)
 	_board.focus_entered.connect(_storybook_board_focused)
 	_board.focus_exited.connect(_storybook_board_unfocused)
+	_storybook_page.hero_selected.connect(_storybook_select_hero)
 	_storybook_page.action_selected.connect(_storybook_action)
 	_storybook_page.order_selected.connect(_storybook_order)
 	_storybook_page.target_selected.connect(_storybook_target)
+	_storybook_page.cancel_targeting_requested.connect(_cancel_targeting)
 	_storybook_page.clear_requested.connect(_clear_command)
 	_storybook_page.commit_requested.connect(_commit)
 	_storybook_page.restart_requested.connect(_restart_fixed)
@@ -1345,7 +1344,7 @@ func _show_storybook_battle() -> void:
 func _practice_forecast_visibility_changed(opened: bool) -> void:
 	if _practice == null:
 		return
-	_practice.forecast_visibility_changed(opened, _plan, _unpreviewed_edit)
+	_practice.forecast_visibility_changed(opened, _plan, _is_aiming())
 	_render_storybook()
 
 
@@ -1406,9 +1405,18 @@ func _set_always_show_health_bar(shown: bool) -> void:
 
 
 func _storybook_board_focused() -> void:
-	var selected := _find(_actor_id)
-	_storybook_focus_cell = selected.get("position") if not selected.is_empty() else null
+	_anchor_board_cursor()
 	_refresh_board()
+
+
+func _anchor_board_cursor() -> void:
+	var selected := _find(_actor_id)
+	_storybook_focus_cell = selected.get("position")
+	if _storybook_focus_cell == null:
+		for unit: Dictionary in _roster():
+			if unit.hp > 0:
+				_storybook_focus_cell = unit.position
+				break
 
 
 func _storybook_board_unfocused() -> void:
@@ -1417,7 +1425,7 @@ func _storybook_board_unfocused() -> void:
 
 
 func _storybook_board_input(event: InputEvent) -> void:
-	if _forfeit_confirmation_open():
+	if _battle_controls_blocked():
 		return
 	if not event is InputEventKey or not event.pressed:
 		return
@@ -1446,59 +1454,30 @@ func _storybook_board_input(event: InputEvent) -> void:
 
 
 func _storybook_action(ability: String) -> void:
-	# The footer buttons are the sole `action_selected` origin and carry only
-	# automatic or non-targeted abilities; targeted actions and Move stage
-	# target-first from the board. See the page's `_refresh_action_buttons`.
-	if _forfeit_confirmation_open() or not _ongoing() or _actor_id.is_empty() \
-			or not _practice_allows_action(ability):
+	if _battle_controls_blocked() or not _ongoing():
 		return
-	var context := _editor_context()
-	var available := _rules.options(context, _actor_id).any(
-		func(choice: Dictionary) -> bool: return choice.kind == "action" and choice.id == ability)
-	if not available:
+	var action: Dictionary = _editor_actions.get(ability, {})
+	if not action.get("enabled", false):
 		return
-	var definition := _action_definition(ability, _actor_id, context)
-	if not _rules.can_act(context, _actor_id) or definition.get("command_blocked", false):
-		return
-	_storybook_ambiguous.clear()
-	_ability_id = ability
-	_target_id = ""
-	_unpreviewed_edit = true
-	_sync_targets()
-	if _editor_can_act:
-		_stage_command()
+	if _is_selectable(action.kind):
+		_aimed_ability_id = ability
+		_occupant_cell = null
+		_refresh_targeting()
+		_board.grab_focus()
 	else:
-		_refresh()
+		_stage_command(ability)
 
 
 func _storybook_target(target: String) -> void:
-	# Only the floating contextual choices reach here, and they always name
-	# both the action and its target as a composite "action::target" id. See
-	# the page's `_emit_target_choice`, the sole `target_selected` origin.
-	if _forfeit_confirmation_open() or not target.contains("::"):
+	# The floating choice selects an occupant of the pending tile, not an ability.
+	if _battle_controls_blocked() or not _ongoing() or _occupant_cell == null:
 		return
-	var parts := target.split("::", true, 1)
-	var ability: String = parts[0]
-	var actual_target: String = parts[1] if parts.size() > 1 else ""
-	var context := _editor_context()
-	var definition := _action_definition(ability, _actor_id, context)
-	var kind: String = definition.get("targeting", {}).get("kind", "")
-	# Automatic abilities pick their own target when the round resolves and
-	# reject a stored one, so only selectable kinds may carry a target here.
-	if not _ongoing() or _actor_id.is_empty() or not _is_selectable(kind) \
-			or not _practice_allows_action(ability) \
-			or not _rules.targets(context, _actor_id, ability).any(
-				func(choice: Dictionary) -> bool: return choice.id == actual_target):
-		return
-	_storybook_ambiguous.clear()
-	_ability_id = ability
-	_target_id = actual_target
-	_sync_targets()
-	_stage_command()
+	if _aimed_targets_at(_occupant_cell).any(func(choice: Dictionary) -> bool: return choice.id == target):
+		_stage_command(_aimed_ability_id, target)
 
 
 func _storybook_order(hero: String, order: String) -> void:
-	if _forfeit_confirmation_open() or not _can_change_battle_order(hero):
+	if _battle_controls_blocked() or not _can_change_battle_order(hero):
 		return
 	if not _rules.options(_state, hero).any(
 			func(choice: Dictionary) -> bool: return choice.kind == "order" and choice.id == order):
@@ -1512,92 +1491,56 @@ func _storybook_order(hero: String, order: String) -> void:
 
 
 func _storybook_select_board(cell: Vector2i) -> void:
-	# Clicking the currently selected hero clears the selection only when no
-	# legal self-target pair exists on that cell; a legal self potion, for
-	# example, follows normal unique/ambiguous targeted-action staging.
-	# Escape always clears the selection.
-	var own_cell := false
-	for unit in _roster():
-		if unit.position == cell and unit.hp > 0 and unit.id == _actor_id:
-			own_cell = true
-			break
-	if own_cell and _targeted_actions_at(cell).is_empty():
-		_actor_id = ""
-		_cancel_transient_edit()
-		return
-	# Other targeted actions for the selected hero take priority over ordinary
-	# hero switching and implicit movement.
-	if not _actor_id.is_empty() and _ongoing() and _editor_can_act:
-		var offered := _targeted_actions_at(cell)
-		if offered.size() == 1:
-			_storybook_target(offered[0].id)
-			return
-		if offered.size() > 1:
-			_storybook_ambiguous = offered
+	if _is_aiming():
+		var targets := _aimed_targets_at(cell)
+		if targets.size() == 1:
+			_stage_command(_aimed_ability_id, targets[0].id)
+		elif targets.size() > 1 or _occupant_cell != null:
+			_occupant_cell = cell if targets.size() > 1 else null
 			_render_storybook()
+		return
+	var hero := _living_hero_at(cell)
+	if not hero.is_empty():
+		_storybook_select_hero(hero)
+		return
+	# Normal destination clicks are only Move, using the board at the hero's turn.
+	var move: Dictionary = _editor_actions.get("move", {})
+	for target: Dictionary in move.get("targets", []):
+		if target.position == cell:
+			_stage_command("move", target.id)
 			return
-	for unit in _roster():
-		if unit.position == cell and unit.hp > 0:
-			_actor_id = unit.id
-			_unpreviewed_edit = false
-			_storybook_ambiguous.clear()
-			_sync_command()
-			_refresh()
-			return
-	# The click has staged, offered a choice, kept an aim or switched by now.
-	# An unrelated cell dismisses an open contextual choice; dismissal never
-	# discards an already staged command.
-	if not _storybook_ambiguous.is_empty():
-		_storybook_ambiguous.clear()
-		_render_storybook()
 
 
-var _storybook_ambiguous: Array = []
+func _storybook_select_hero(hero: String) -> void:
+	if _battle_controls_blocked() or not _ongoing() or _find(hero).get("hp", 0) <= 0 \
+			or not _rules.has_capability(_state, hero, "commandable"):
+		return
+	_actor_id = hero
+	_reset_targeting()
+	if _board.has_focus():
+		_anchor_board_cursor()
+	_refresh_selection()
 
 
 func _render_storybook() -> void:
 	var mission: Dictionary = _rules.mission_definition(_state)
 	var objective: Dictionary = mission.objective
 	var progress: Dictionary = _rules.objective_progress(_state)
-	var actions: Array = []
-	var context := _editor_context()
-	for choice in _rules.options(context, _actor_id):
-		if choice.kind == "action" and _practice_allows_action(choice.id):
-			var definition := _action_definition(choice.id, _actor_id, context)
-			var kind: String = definition.get("targeting", {}).get("kind", "")
-			var enabled: bool = _ongoing() and _editor_can_act and not definition.get("command_blocked", false)
-			var label: String = definition.get("label", choice.label)
-			if enabled and _is_selectable(kind):
-				enabled = not _rules.targets(context, _actor_id, choice.id).is_empty()
-				if not enabled:
-					var empty_batch: bool = definition.get("handler") == "repeat_batch" \
-						and _rules.dose_forecast(context, _actor_id, choice.id).is_empty()
-					label += " (empty bottle)" if empty_batch else " (no legal target)"
-			actions.append({"id": choice.id, "label": label,
-				"kind": kind, "enabled": enabled, "help": definition.get("help", "")})
+	var heroes: Array = []
 	var orders: Array = []
+	var commanded := _commanded_hero()
 	for unit in _roster():
+		var hero_label := _name_for(unit.id)
+		if unit.hp > 0:
+			heroes.append({"id": unit.id, "label": hero_label})
 		var choices: Array = []
 		for choice in _rules.options(_state, unit.id):
 			if choice.kind == "order":
 				choices.append({"id": choice.id, "label": choice.label})
-		orders.append({"hero_id": unit.id, "hero_label": _name_for(unit.id),
+		orders.append({"hero_id": unit.id, "hero_label": hero_label,
 			"order_id": _state.orders.get(unit.id, ""), "choices": choices,
-			"enabled": _can_change_battle_order(unit.id), "overridden": _ongoing() and unit.id == _commanded_hero(),
+			"enabled": _can_change_battle_order(unit.id), "overridden": _ongoing() and unit.id == commanded,
 			"hp": "%d/%d HP" % [unit.hp, unit.max_hp]})
-	var summary := "Standing orders only"
-	var commanded := _commanded_hero()
-	if _ongoing() and not commanded.is_empty():
-		var draft: Dictionary = _planned_state.overrides[commanded]
-		var before := context if commanded == _actor_id else _rules.state_before_action(_planned_state, commanded)
-		var action := _action_definition(draft.ability_id, commanded, before)
-		var target := _target_description(before, commanded, draft.ability_id, draft.target_id, action)
-		var wording := "moves" + target if draft.ability_id == "move" else \
-			"uses %s%s" % [action.get("label", draft.ability_id), target]
-		var order_id: String = _planned_state.orders.get(commanded, "")
-		var order: Dictionary = _definitions.orders.get(order_id, {})
-		var replaced := " instead of " + str(order.get("label", order_id)) if not order_id.is_empty() else ""
-		summary = "Preview · %s %s%s this round" % [_name_for(commanded), wording, replaced]
 	var events: PackedStringArray = []
 	if _ongoing():
 		var objective_forecast := _objective_forecast_text()
@@ -1606,8 +1549,8 @@ func _render_storybook() -> void:
 	for event in (_plan.get("events", []) if _ongoing() else _last_events):
 		events.append(str(event.text))
 	var target_choices: Array = []
-	for target in _storybook_ambiguous:
-		target_choices.append({"id": target.id, "label": target.label, "position": target.position})
+	if _occupant_cell != null:
+		target_choices = _aimed_targets_at(_occupant_cell)
 	# The floating choice control anchors beside the clicked cell and must
 	# also avoid covering the selected hero.
 	var selected_cell: Variant = null
@@ -1615,10 +1558,6 @@ func _render_storybook() -> void:
 	if not selected_unit.is_empty():
 		selected_cell = selected_unit.position
 	var text_key: String = "text" if _ongoing() else _state.outcome + "_text"
-	if not _ongoing():
-		summary = "Victory" if _state.outcome == "victory" else "Defeat"
-		actions.clear()
-		target_choices.clear()
 	var values := _objective_format_values(progress)
 	var details := str(objective.text).format(values)
 	var headline := str(objective.get(text_key, objective.text)).format(values)
@@ -1631,27 +1570,8 @@ func _render_storybook() -> void:
 		if first_sentence >= 0:
 			headline = headline.substr(0, first_sentence + 1)
 	var inspection := _storybook_inspection
-	if _ongoing() and not _editor_can_act and not _actor_id.is_empty():
-		var reason := _unavailable_hero_reason()
-		inspection = reason if inspection.is_empty() else reason + " · " + inspection
-	# The locked dose follows the selection, never an aim: the current
-	# rules-provided forecast for each of the selected hero's dose abilities,
-	# shown before any target is chosen. Once the hero has a staged command,
-	# the note yields to the normal command summary, which names the staged
-	# action and target. Forecasting draws without consuming the hero's dose
-	# stream, so nothing rerolls.
-	var locked_dose := ""
-	if _ongoing() and not _actor_id.is_empty() and _editor_can_act \
-			and not _planned_state.overrides.has(_actor_id):
-		var doses: PackedStringArray = []
-		for choice in _rules.options(context, _actor_id):
-			if choice.kind != "action" or not _practice_allows_action(choice.id):
-				continue
-			var dose := _rules.dose_forecast(context, _actor_id, choice.id)
-			if not dose.is_empty():
-				doses.append("Locked dose · %s · %s" % [dose.category.capitalize(), dose.description])
-		if not doses.is_empty():
-			locked_dose = "  ·  ".join(doses)
+	if not _editor_unavailable_reason.is_empty():
+		inspection = _editor_unavailable_reason if inspection.is_empty() else _editor_unavailable_reason + " · " + inspection
 	var upgrades: PackedStringArray = []
 	for unit in _roster():
 		var owned: Dictionary = _run.get("upgrades_by_id", {}).get(unit.id, {})
@@ -1670,21 +1590,56 @@ func _render_storybook() -> void:
 	_storybook_page.render({"title": mission.title, "round": _state.round, "round_label": round_label,
 		"objective": headline, "objective_details": details,
 		"objective_status": status,
-		"selected_hero": _name_for(_actor_id) if not _actor_id.is_empty() else "",
-		"selected_action_id": _ability_id, "actions": actions, "orders": orders,
+		"heroes": heroes, "selected_hero_id": _actor_id, "aimed_action_id": _aimed_ability_id,
+		"actions": _editor_actions.values(), "orders": orders, "aim_prompt": _aim_prompt(),
 		"targets": target_choices, "selected_cell": selected_cell,
-		"command_summary": summary, "inspection": inspection,
-		"locked_dose": locked_dose,
-		"forecast": "\n".join(events), "can_clear": _ongoing() and (not commanded.is_empty() or _unpreviewed_edit or not _actor_id.is_empty()),
-		"clear_label": "Clear command", "can_commit": _can_commit(), "outcome": _state.outcome,
+		"command_summary": _draft_summary, "inspection": inspection,
+		"locked_dose": _locked_dose_text(),
+		"forecast": "\n".join(events), "can_clear": not commanded.is_empty() or not _actor_id.is_empty(),
+		"clear_label": "Clear selection" if commanded.is_empty() else "Clear command",
+		"can_commit": _can_commit(), "outcome": _state.outcome,
 		"can_restart": not _fixed_mission.is_empty(), "upgrades_text": "\n".join(upgrades)})
 	if _practice != null:
-		_practice_instructions.render(_practice.step(_state, _plan, _unpreviewed_edit),
+		_practice_instructions.render(_practice.step(_state, _plan, _is_aiming()),
 			_practice.forecast_open, _practice.can_commit(), _actor_id == PracticeLesson.CASTER)
 
 
+func _aim_prompt() -> String:
+	if not _ongoing():
+		return ""
+	if _actor_id.is_empty():
+		return "Choose a hero on the board or in the Direct Order selector."
+	if not _is_aiming():
+		var instruction := "Click a marked destination to Move, or choose an ability."
+		if _board_targets().is_empty():
+			instruction = "Choose an ability or select another hero."
+		return instruction if _commanded_hero().is_empty() else instruction + " A new command replaces this preview."
+	var aimed: Dictionary = _editor_actions.get(_aimed_ability_id, {})
+	if aimed.is_empty():
+		return "This ability is no longer available. Cancel targeting or choose another ability."
+	var instruction := "Choose a marked tile." if _commanded_hero().is_empty() else "Choose a tile to replace this preview."
+	if not _is_selectable(aimed.kind):
+		instruction = "This form has no aimed target. Select the ability again to use it."
+	elif aimed.targets.is_empty():
+		instruction = "No legal targets. Cancel targeting or choose another ability."
+	elif _occupant_cell != null:
+		instruction = "Choose an occupant at %s." % BridgeArt.coordinate(_occupant_cell)
+	return "Aiming: %s · %s" % [aimed.label, instruction]
+
+
+func _locked_dose_text() -> String:
+	var notes: PackedStringArray = []
+	for action: Dictionary in _editor_actions.values():
+		if _is_aiming() and action.id != _aimed_ability_id:
+			continue
+		var dose: Dictionary = action.dose
+		if not dose.is_empty():
+			notes.append("%s: %s · %s" % [action.label, dose.category.capitalize(), dose.description])
+	return "" if notes.is_empty() else "Locked dose · " + "  /  ".join(notes)
+
+
 func _restart_fixed() -> void:
-	if _forfeit_confirmation_open() or _fixed_mission.is_empty():
+	if _battle_controls_blocked() or _fixed_mission.is_empty():
 		return
 	_state = _opening_state.duplicate(true)
 	_begin_attempt()
@@ -1694,12 +1649,12 @@ func _begin_attempt() -> void:
 	_board.clear_action_playback()
 	_planned_state = _state
 	_last_events.clear()
-	_unpreviewed_edit = false
 	_actor_id = ""
-	_storybook_ambiguous.clear()
+	_reset_targeting()
 	_storybook_inspected_cell = null
 	_sync_actors()
-	_sync_command()
+	if _board.has_focus():
+		_anchor_board_cursor()
 	_refresh()
 
 
@@ -1713,96 +1668,101 @@ func _sync_actors() -> void:
 				break
 
 
-func _sync_command() -> void:
-	var draft: Dictionary = _planned_state.overrides.get(_actor_id, {})
-	_ability_id = draft.get("ability_id", "")
-	_target_id = draft.get("target_id", "")
-
-
 func _editor_context() -> Dictionary:
 	# A preview for the editor's hero replaces any queued override.
 	var editor_plan := _planned_state if _planned_state.overrides.has(_actor_id) else _state
 	return _rules.state_before_action(editor_plan, _actor_id)
 
 
-func _sync_targets() -> void:
+func _refresh_selection() -> void:
 	var context := _editor_context()
-	_editor_actor = _find(_actor_id, context)
-	_editor_can_act = _rules.can_act(context, _actor_id)
-	_editor_knocked_down = _rules.knocked_down(context, _actor_id)
-	_editor_skip_label = ", ".join(_rules.status_labels(context, _actor_id, "skip_action"))
-	_editor_action = _action_definition(_ability_id, _actor_id, context)
-	var selectable := _is_selectable(_target_kind())
-	_targets = _rules.targets(context, _actor_id, _ability_id) if selectable and _editor_can_act else []
-	# Contextual choices carry composite "action::target" ids, which never
-	# appear in the aimed ability's target list. Revalidate them against the
-	# same model that produced them so a choice survives unrelated refreshes
-	# and closes only when it is no longer offered.
-	_storybook_ambiguous = _storybook_ambiguous.filter(func(ambiguous: Dictionary) -> bool:
-		if not ambiguous.has("position"):
-			return false
-		return _targeted_actions_at(ambiguous.position).any(
-			func(choice: Dictionary) -> bool: return choice.id == ambiguous.id))
-	if not _targets.any(func(choice: Dictionary) -> bool: return choice.id == _target_id):
-		_target_id = ""
+	_editor_unavailable_reason = ""
+	_editor_actions.clear()
+	if _ongoing() and not _actor_id.is_empty():
+		if not _rules.can_act(context, _actor_id):
+			_editor_unavailable_reason = _unavailable_hero_reason(context)
+		for choice: Dictionary in _rules.options(context, _actor_id):
+			if choice.kind == "action":
+				_editor_actions[choice.id] = _command_option(context, choice)
+	# Changing a standing order can invalidate the aimed form. Keep the
+	# attempt pending until the player explicitly stages, cancels, or switches.
+	if _occupant_cell != null and _aimed_targets_at(_occupant_cell).size() < 2:
+		_occupant_cell = null
+	_refresh_targeting()
 
 
-func _stage_command() -> void:
-	if not _can_stage_command():
-		_refresh()
+func _command_option(context: Dictionary, choice: Dictionary) -> Dictionary:
+	var definition := _rules.command_ability(context, _actor_id, choice.id)
+	var kind: String = definition.get("targeting", {}).get("kind", "")
+	var targets: Array = []
+	var reason := ""
+	if not _practice_allows_action(choice.id):
+		reason = "Not available in this part of practice."
+	elif not _editor_unavailable_reason.is_empty():
+		reason = _editor_unavailable_reason
+	elif definition.get("command_blocked", false):
+		reason = "Cannot use this ability when this hero acts."
+	elif _is_selectable(kind):
+		targets = _rules.targets(context, _actor_id, choice.id)
+		if targets.is_empty():
+			if definition.get("handler") == "repeat_batch" and _rules.dose_forecast(context, _actor_id, choice.id).is_empty():
+				reason = "Empty bottle. Use a dose that causes a reaction first."
+			else:
+				reason = "No legal target when this hero acts."
+	var dose := _rules.dose_forecast(context, _actor_id, choice.id) if reason.is_empty() else {}
+	return {"id": choice.id, "label": definition.get("label", choice.label), "kind": kind,
+		"enabled": reason.is_empty(), "reason": reason, "help": definition.get("help", ""),
+		"targets": targets, "dose": dose}
+
+
+func _stage_command(ability: String, target := "") -> void:
+	var previous: Dictionary = _planned_state.overrides.get(_actor_id, {})
+	var candidate := _rules.choose_manual(_rules.clear_manual(_planned_state), _actor_id, ability, target)
+	var staged: Dictionary = candidate.overrides.get(_actor_id, {})
+	if staged.is_empty():
 		return
-	var previous: Dictionary = _planned_state.overrides.get(_actor_id, {}).duplicate()
-	_planned_state = _rules.choose_manual(_rules.clear_manual(_planned_state), _actor_id, _ability_id, _target_id)
-	var staged: Dictionary = _planned_state.overrides.get(_actor_id, {})
-	if _ability_id == "move" and not staged.is_empty() and staged != previous:
+	_planned_state = candidate
+	if ability == "move" and staged != previous:
 		_sound_effects.planning(_actor_id)
-	_unpreviewed_edit = false
+	_reset_targeting()
 	_refresh()
+	_board.grab_focus()
 
 
 func _clear_command() -> void:
-	if _forfeit_confirmation_open():
+	if _battle_controls_blocked() or not _ongoing():
 		return
 	_planned_state = _rules.clear_manual(_planned_state)
 	_actor_id = ""
-	_cancel_transient_edit()
-
-
-## Dismiss the transient target-first editing state — the open contextual
-## choice, any unpreviewed edit and any aim — without discarding a staged
-## command or mutating the committed board.
-func _cancel_transient_edit() -> void:
-	_storybook_ambiguous.clear()
-	_unpreviewed_edit = false
-	_sync_command()
+	_reset_targeting()
+	_anchor_board_cursor()
 	_refresh()
+	_board.grab_focus()
 
 
-func _ready_to_command() -> bool:
-	return not _actor_id.is_empty() and not _ability_id.is_empty() \
-		and (not _is_selectable(_target_kind()) or not _target_id.is_empty())
+func _reset_targeting() -> void:
+	_aimed_ability_id = ""
+	_occupant_cell = null
 
 
-func _target_kind() -> String:
-	return _editor_action.get("targeting", {}).get("kind", "")
+func _cancel_targeting() -> void:
+	if _battle_controls_blocked() or not _is_aiming():
+		return
+	_reset_targeting()
+	_refresh_targeting()
+	_board.grab_focus()
 
 
-func _action_definition(ability: String, actor_id: String, context: Dictionary) -> Dictionary:
-	if ability.is_empty():
-		return {}
-	return _rules.command_ability(context, actor_id, ability)
+func _is_aiming() -> bool:
+	return not _aimed_ability_id.is_empty()
 
 
 func _is_selectable(target_kind: String) -> bool:
 	return target_kind == "cell" or target_kind == "entity"
 
 
-func _can_stage_command() -> bool:
-	return _ongoing() and _ready_to_command() and _editor_can_act and _practice_allows_action(_ability_id)
-
-
 func _commit() -> void:
-	if _forfeit_confirmation_open() or not _can_commit():
+	if _battle_controls_blocked() or not _can_commit():
 		return
 	var round_number: int = _state.round
 	var committed := _rules.commit_round(_planned_state, _plan)
@@ -1821,8 +1781,7 @@ func _commit() -> void:
 	_board.prepare_committed_presentation(cues, handoff_corpses)
 	_state = committed
 	_planned_state = _state
-	_unpreviewed_edit = false
-	_storybook_ambiguous.clear()
+	_reset_targeting()
 	_storybook_inspected_cell = null
 	_set_inspection("")
 	if not _ongoing() and _fixed_mission.is_empty() and _practice == null:
@@ -1834,8 +1793,8 @@ func _commit() -> void:
 				_show_terminal_replay(replay)
 			return
 	_sync_actors()
-	_sync_command()
 	if _board.has_focus():
+		_anchor_board_cursor()
 		_storybook_inspected_cell = _storybook_focus_cell
 	_refresh()
 	_board.play_committed_actions(cues)
@@ -1856,8 +1815,7 @@ func _forfeit() -> void:
 	_state = _rules.forfeit(_state)
 	_planned_state = _state
 	_last_events.clear()
-	_unpreviewed_edit = false
-	_storybook_ambiguous.clear()
+	_reset_targeting()
 	_storybook_inspected_cell = null
 	_board.clear_action_playback()
 	if _fixed_mission.is_empty():
@@ -1865,12 +1823,11 @@ func _forfeit() -> void:
 		if _run.phase == "finished":
 			_show_settled_mission()
 			return
-	_sync_command()
 	_refresh()
 
 
-func _forfeit_confirmation_open() -> bool:
-	return is_instance_valid(_storybook_page) and _storybook_page.is_forfeit_confirmation_open()
+func _battle_controls_blocked() -> bool:
+	return is_instance_valid(_storybook_page) and _storybook_page.battle_controls_blocked()
 
 
 func _show_settled_mission() -> void:
@@ -1969,29 +1926,23 @@ func _input(event: InputEvent) -> void:
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if _screen != "battle" or _forfeit_confirmation_open() or not event.is_pressed() or event.is_echo():
+	if _screen != "battle" or _battle_controls_blocked() or not event.is_pressed() or event.is_echo():
 		return
 	if event.keycode != KEY_ESCAPE:
 		# Other unhandled keys stay available to every further consumer.
 		return
-	if not _storybook_ambiguous.is_empty():
-		# Dismissing the contextual choice cancels the pending edit and any
-		# aim that opened it, without discarding a staged command.
-		_cancel_transient_edit()
-		get_viewport().set_input_as_handled()
-		return
-	if not _actor_id.is_empty():
+	if _occupant_cell != null:
+		_occupant_cell = null
+		_refresh_targeting()
+		_board.grab_focus()
+	elif _is_aiming():
+		_cancel_targeting()
+	elif not _actor_id.is_empty():
 		_actor_id = ""
-		_cancel_transient_edit()
-		get_viewport().set_input_as_handled()
-		return
-	if _unpreviewed_edit:
-		_cancel_transient_edit()
-		get_viewport().set_input_as_handled()
-		return
-	# Once selection is already cleared, Escape must not silently discard an
-	# already staged command; Clear command remains the explicit discard
-	# action. The Escape key itself is still consumed.
+		_anchor_board_cursor()
+		_refresh_selection()
+		_board.grab_focus()
+	# Escape never discards the draft; Clear command is the explicit discard.
 	get_viewport().set_input_as_handled()
 
 
@@ -2010,24 +1961,31 @@ func _refresh() -> void:
 	_plan = _rules.preview_round(_planned_state)
 	if _practice != null:
 		_practice.preview_changed(_plan)
-	_sync_targets()
+	_update_draft_display()
+	_refresh_selection()
+
+
+func _refresh_targeting() -> void:
 	_refresh_board()
 	_sync_inspection()
 	_render_storybook()
 
 
-func _unavailable_hero_reason() -> String:
-	if _editor_actor.get("hp", 0) <= 0:
+func _unavailable_hero_reason(context: Dictionary) -> String:
+	if _find(_actor_id, context).get("hp", 0) <= 0:
 		return "This hero falls before acting. Change an earlier order or choose another hero."
-	if _editor_knocked_down:
+	if _rules.knocked_down(context, _actor_id):
 		if _rules.knocked_down(_state, _actor_id):
 			return "This hero is down and spends this turn getting up. Choose another hero."
 		return "This hero will be knocked down before acting. Change an earlier order or choose another hero."
-	return "%s. Change an earlier order or choose another hero." % _editor_skip_label
+	var labels := ", ".join(_rules.status_labels(context, _actor_id, "skip_action"))
+	if labels.is_empty():
+		labels = "This hero cannot act"
+	return "%s. Change an earlier order or choose another hero." % labels
 
 
 func _can_commit() -> bool:
-	return _ongoing() and not _unpreviewed_edit and _plan.get("valid", false) \
+	return _ongoing() and not _is_aiming() and _plan.get("valid", false) \
 		and (_practice == null or _practice.can_commit())
 
 
@@ -2084,26 +2042,52 @@ func _objective_forecast_text() -> String:
 			var now := _objective_progress_text(_state, _rules.objective_progress(_state))
 			if not next.is_empty() and next != now:
 				text = "After this round: " + next
-		if not text.is_empty() and _unpreviewed_edit:
-			text += " (Edit not previewed.)"
+		if not text.is_empty() and _is_aiming():
+			text += " (Pending target not included.)"
 	return text
 
 
-func _target_description(context: Dictionary, hero: String, ability: String, target: String,
+func _update_draft_display() -> void:
+	_draft_target_cell = null
+	if not _ongoing():
+		_draft_summary = "Victory" if _state.outcome == "victory" else "Defeat"
+		return
+	var hero := _commanded_hero()
+	if hero.is_empty():
+		_draft_summary = "Standing orders only · One Direct Order per round."
+		return
+	var draft: Dictionary = _planned_state.overrides[hero]
+	var before := _rules.state_before_action(_planned_state, hero)
+	var action := _rules.command_ability(before, hero, draft.ability_id)
+	var target: Dictionary = {}
+	if not draft.target_id.is_empty():
+		for choice: Dictionary in _rules.targets(before, hero, draft.ability_id):
+			if choice.id == draft.target_id:
+				target = choice
+				_draft_target_cell = target.position
+				break
+	var destination := _target_description(hero, draft, target, action)
+	var order_id: String = _planned_state.orders.get(hero, "")
+	var order: Dictionary = _rules.definitions(_state).orders.get(order_id, {})
+	var replaced := " instead of " + str(order.get("label", order_id)) if not order_id.is_empty() else ""
+	_draft_summary = "Preview · %s: %s%s%s this round" % [
+		_name_for(hero), action.get("label", draft.ability_id), destination, replaced]
+
+
+func _target_description(hero: String, draft: Dictionary, target: Dictionary,
 		definition: Dictionary) -> String:
-	if target.is_empty():
+	if draft.target_id.is_empty():
 		if definition.get("handler") == "perform":
 			for event in _plan.events:
-				if event.get("unit_id") == hero and event.get("ability_id") == ability:
+				if event.get("unit_id") == hero and event.get("ability_id") == draft.ability_id:
 					return " → %s" % event.target_label if event.has("target_label") else " (no eligible listener)"
 		return ""
-	for choice in _rules.targets(context, hero, ability):
-		if choice.id == target:
-			var location := BridgeArt.coordinate(choice.position)
-			if definition.get("targeting", {}).get("kind") == "cell":
-				return (" at " if definition.get("handler") == "summon" else " to ") + location
-			return " → %s at %s" % [choice.label, location]
-	return " (target no longer legal)"
+	if target.is_empty():
+		return " → %s (no longer legal)" % _name_for(draft.target_id)
+	var location := BridgeArt.coordinate(target.position)
+	if definition.get("targeting", {}).get("kind") == "cell":
+		return " → " + location
+	return " → %s at %s" % [target.label, location]
 
 
 func _corpse_figure(id: String, cell: Vector2i) -> Dictionary:
@@ -2219,24 +2203,14 @@ func _refresh_board() -> void:
 		var commanded := _find(_commanded_hero())
 		if not commanded.is_empty():
 			overlay["commanded"] = commanded.position
-			if _planned_state.overrides[commanded.id].ability_id == "move":
+			if not _is_aiming() and _planned_state.overrides[commanded.id].ability_id == "move":
 				overlay["quiet_manual_move"] = true
-		if not _actor_id.is_empty():
-			var selected := _find(_actor_id)
-			overlay["selected"] = selected.position
-			var offered := _board_targets()
-			if not offered.is_empty():
-				var positions: Array = []
-				for target in offered:
-					positions.append(target.position)
-				overlay["targets"] = positions
-			# The chosen-target ring must survive the position dedup: the
-			# staged target may be any of the action-target pairs sharing its
-			# cell, not only the pair retained for the marks.
-			for pair: Dictionary in _selected_action_pairs():
-				if _target_id == pair.target_id:
-					overlay["chosen_target"] = pair.position
-					break
+		var positions := {}
+		for target: Dictionary in _board_targets():
+			positions[target.position] = true
+		overlay["targets"] = positions.keys()
+		if not _is_aiming() and _draft_target_cell is Vector2i:
+			overlay["chosen_target"] = _draft_target_cell
 		var hits: Array = []
 		var paths: Array = []
 		var displaced: Dictionary = {}
@@ -2256,7 +2230,6 @@ func _refresh_board() -> void:
 		paths.append_array(_ordered_displacement_paths(displaced))
 		overlay["impact"] = hits
 		overlay["paths"] = paths
-	overlay.erase("selected")
 	_board.set_render_state(_painted_cells, units, overlay)
 	if _board_cues != null:
 		_board_cues.update_markers(_objective_markers, native_exit)
@@ -2385,12 +2358,12 @@ func _highlight_safe_bank(eligible: Dictionary, destination: Vector2i) -> void:
 
 
 func _select_board(cell: Vector2i) -> void:
-	if not _forfeit_confirmation_open() and _ongoing():
+	if not _battle_controls_blocked() and _ongoing():
 		_storybook_select_board(cell)
 
 
 func _inspect_board(cell: Vector2i) -> void:
-	if _forfeit_confirmation_open():
+	if _battle_controls_blocked():
 		return
 	_storybook_inspected_cell = cell
 	_sync_inspection()
@@ -2407,20 +2380,8 @@ func _sync_inspection() -> void:
 		"%s  ·  %s" % [BridgeArt.coordinate(cell), marker.label]
 	var shield_note := _shield_tile_note(cell)
 	var target_note := ""
-	# The legality note comes from the selected hero's own action-target pairs
-	# at this cell, not from a selected or aimed ability.
-	var matching := _selected_action_pairs().filter(
-		func(pair: Dictionary) -> bool: return pair.position == cell)
-	if not matching.is_empty():
-		if matching.size() == 1:
-			var pair: Dictionary = matching[0]
-			if str(pair.get("action_kind", "")) == "cell":
-				target_note = "Summon destination" if str(pair.get("handler", "")) == "summon" \
-					else "Move destination"
-			else:
-				target_note = "Legal target"
-		else:
-			target_note = "Legal target"
+	if _board_targets().any(func(target: Dictionary) -> bool: return target.position == cell):
+		target_note = "Legal target" if _is_aiming() else "Move destination"
 		target_note = "  ·  %s when %s acts" % [target_note, _name_for(_actor_id)]
 	for unit in _state.units:
 		if unit.position == cell and unit.hp > 0:
@@ -2483,63 +2444,27 @@ func _shield_tile_note(cell: Vector2i) -> String:
 	return "" if notes.is_empty() else "  ·  " + "  ·  ".join(notes)
 
 
-## Every legal (action, target) pair for the selected hero across all its
-## available targeted actions, including Move. Board marks, inspection and
-## the contextual choices all derive from this one model, so they follow the
-## selection rather than the aimed ability.
-func _selected_action_pairs() -> Array:
-	var result: Array = []
-	if _actor_id.is_empty() or not _ongoing() or not _editor_can_act:
-		return result
-	var context := _editor_context()
-	for choice: Dictionary in _rules.options(context, _actor_id):
-		if choice.kind != "action" or not _practice_allows_action(choice.id):
-			continue
-		var definition := _action_definition(choice.id, _actor_id, context)
-		var kind: String = definition.get("targeting", {}).get("kind", "")
-		# Automatic abilities resolve their own target at execution and reject a
-		# stored one, so only selectable targeted actions are offered on the board.
-		if not _is_selectable(kind) or definition.get("command_blocked", false):
-			continue
-		var action_label: String = definition.get("label", choice.label)
-		for target: Dictionary in _rules.targets(context, _actor_id, choice.id):
-			result.append({"id": "%s::%s" % [choice.id, target.id],
-				"action": choice.id, "target_id": target.id,
-				"label": action_label, "target_label": str(target.get("label", target.id)),
-				"action_kind": kind, "handler": definition.get("handler", ""),
-				"position": target.position})
-	return result
-
-
 func _board_targets() -> Array:
-	# Marks follow the selection, never the aimed ability: one entry per cell
-	# that any available targeted action can use, without duplicate positions.
-	var cells := {}
-	for pair: Dictionary in _selected_action_pairs():
-		if not cells.has(pair.position):
-			cells[pair.position] = pair
-	return cells.values()
+	if _is_aiming():
+		return _editor_actions.get(_aimed_ability_id, {}).get("targets", [])
+	var moves: Array = _editor_actions.get("move", {}).get("targets", [])
+	return moves.filter(func(target: Dictionary) -> bool: return _living_hero_at(target.position).is_empty())
 
 
-func _targeted_actions_at(cell: Vector2i) -> Array:
-	var matched: Array = _selected_action_pairs().filter(
-		func(pair: Dictionary) -> bool: return pair.position == cell)
-	# When one action has several targets on the clicked cell, name each
-	# target so the contextual choice stays distinguishable.
-	var counts := {}
-	for pair: Dictionary in matched:
-		counts[pair.action] = int(counts.get(pair.action, 0)) + 1
-	var result: Array = []
-	for pair: Dictionary in matched:
-		var label: String = pair.label
-		if int(counts[pair.action]) > 1:
-			label = "%s · %s" % [pair.label, pair.target_label]
-		result.append({"id": pair.id, "label": label, "position": cell})
-	return result
+func _aimed_targets_at(cell: Vector2i) -> Array:
+	var targets: Array = _editor_actions.get(_aimed_ability_id, {}).get("targets", [])
+	return targets.filter(func(target: Dictionary) -> bool: return target.position == cell)
+
+
+func _living_hero_at(cell: Vector2i) -> String:
+	for unit: Dictionary in _roster():
+		if unit.position == cell and unit.hp > 0:
+			return unit.id
+	return ""
 
 
 func _clear_inspection() -> void:
-	if _forfeit_confirmation_open():
+	if _battle_controls_blocked():
 		return
 	_storybook_inspected_cell = null
 	_set_inspection("")

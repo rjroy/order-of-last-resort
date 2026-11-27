@@ -119,86 +119,101 @@ func _ambiguous_target_after_commit() -> void:
 		extra.position = Vector2i(3, 3)
 		state.units.append(extra)
 	scene.set("_state", state)
-	scene.set("_planned_state", state.duplicate(true))
-	scene.call("_sync_actors")
-	scene.call("_sync_command")
-	scene.call("_refresh")
+	scene.call("_begin_attempt")
 	await process_frame
 	var driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
 	if not await driver.command("necromancer", "raise_dead", "fallen_raider"):
 		_check(false, "Single corpse can be staged: " + driver.error)
 		return
 	var board := _node("BridgeBoard") as Control
+	if board == null:
+		_check(false, "Battle board is available for corpse targeting")
+		return
 	var cell := Vector2i(3, 3)
-	await driver._click(board.get_global_transform_with_canvas() * board.cell_center(cell))
-	_check(_matches_floating_choices(identities),
-		"Clicking the shared tile offers both distinct floating corpse choices")
+	var original_draft: Dictionary = scene.get("_planned_state").duplicate(true)
+	if (await _open_corpse_choices(driver, board, cell, identities)).is_empty():
+		return
 	await _press_escape()
-	_check((scene.get("_storybook_ambiguous") as Array).is_empty(),
-		"Escape dismisses the open floating choice")
-	_check(scene.get("_planned_state").get("overrides", {}).get("necromancer", {}).get("ability_id") == "raise_dead",
-		"Dismissing the choice retains the staged Raise Dead")
+	_check(_floating_choices().is_empty() and _target_rows().is_empty(),
+		"Escape dismisses the open occupant choice")
+	_check(scene.get_viewport().gui_get_focus_owner() == board, "Dismissing the choice returns focus to the board")
+	_check(scene.get("_planned_state") == original_draft, "Dismissing the choice retains the exact Raise Dead draft")
 	if not await driver.select_actor("necromancer"):
 		_check(false, "Necromancer can be reselected after dismissal: " + driver.error)
 		return
-	await driver._click(board.get_global_transform_with_canvas() * board.cell_center(cell))
-	_check(_matches_floating_choices(identities),
-		"Legal floating choices can be opened again before committing")
 	for id in identities:
-		if not await driver.target(id, "raise_dead"):
-			_check(false, "Cannot stage the named corpse " + id + ": " + driver.error)
+		var choices := await _open_corpse_choices(driver, board, cell, identities)
+		if choices.is_empty():
 			return
+		var button: Button = choices[id]
+		await driver._click(button.get_global_rect().get_center())
 		var drafted: Dictionary = scene.get("_planned_state").overrides.get("necromancer", {})
 		_check(drafted.get("ability_id") == "raise_dead" and drafted.get("target_id") == id,
 			"Choosing the floating entry stages precisely " + id)
-	if not await driver.target("fallen_raider"):
+		_check(scene.get_viewport().gui_get_focus_owner() == board,
+			"Staging corpse " + id + " returns focus to the board")
+	if not await driver.action("raise_dead") or not await driver.target("fallen_raider"):
 		_check(false, "Can restore the original staged Raise Dead: " + driver.error)
 		return
-	await driver._click(board.get_global_transform_with_canvas() * board.cell_center(cell))
-	_check(_matches_floating_choices(identities), "Both choices remain available before Commit")
+	if (await _open_corpse_choices(driver, board, cell, identities)).is_empty():
+		return
 	var plan: Dictionary = scene.get("_plan").duplicate(true)
 	_check(plan.get("valid", false) and _has_summon(plan, "necromancer_zombie", Vector2i(4, 3), 3),
 		"Ambiguous re-aiming retains the previously staged valid Raise Dead")
+	var commit := _node("Commit") as BaseButton
+	_check(commit != null and commit.disabled, "Unfinished occupant choice disables Commit")
+	if commit != null and commit.is_visible_in_tree():
+		await driver._click(commit.get_global_rect().get_center())
+	_check(scene.battle_snapshot() == state and scene.get("_planned_state") == original_draft,
+		"Clicking disabled Commit cannot resolve or replace the staged Raise Dead")
+	if not await _press("CancelTargeting"):
+		return
+	_check(scene.get("_plan") == plan and scene.get("_planned_state") == original_draft,
+		"Cancel targeting restores commitment without changing the Raise Dead draft")
 	if not await _commit_matches(plan):
 		return
-	_check(_floating_choices().is_empty() and (scene.get("_storybook_ambiguous") as Array).is_empty(),
-		"Committing dismisses the previous round's floating choices")
+	_check(_floating_choices().is_empty() and _target_rows().is_empty()
+		and scene.get("_aimed_ability_id") == "", "No previous-round occupant or aim survives commitment")
+
+
+func _open_corpse_choices(driver: Variant, board: Control, cell: Vector2i, expected_ids: Array) -> Dictionary:
+	if not await driver.action("raise_dead"):
+		_check(false, "Raise Dead can aim at stacked corpses: " + driver.error)
+		return {}
+	await driver._click(board.get_global_transform_with_canvas() * board.cell_center(cell))
+	var choices := _floating_choices()
+	var rows := _target_rows()
+	var ids := rows.map(func(row: Dictionary) -> String: return str(row.get("id", "")))
+	var match_ids := ids.size() == expected_ids.size() and choices.size() == expected_ids.size()
+	var labels := {}
+	var state: Dictionary = scene.battle_snapshot()
+	for id in expected_ids:
+		match_ids = match_ids and id in ids and choices.has(id)
+		if choices.has(id):
+			var button: Button = choices[id]
+			var name: String = driver.rules.display_name(state, id)
+			if not name.is_empty() and name in button.text and name in button.accessibility_name:
+				labels[button.text] = true
+	var valid := match_ids and labels.size() == expected_ids.size()
+	_check(valid, "Aimed shared tile offers exactly the two named corpse identities")
+	if not valid:
+		return {}
+	_check(scene.get_viewport().gui_get_focus_owner() in choices.values(),
+		"Opening the occupant choice gives keyboard focus to a corpse")
+	return choices
+
+
+func _target_rows() -> Array:
+	return scene.get("_storybook_page").get("_target_rows")
 
 
 func _floating_choices() -> Dictionary:
 	var choices := {}
-	var rows: Array = scene.get("_storybook_page").get("_target_rows")
-	for row: Dictionary in rows:
-		var button := _visible_button(str(row.get("label", "")))
-		if button != null:
-			choices[str(row.get("id"))] = button
+	for node in scene.find_children("*", "Button", true, false):
+		var button := node as Button
+		if button.is_visible_in_tree() and not button.disabled and button.has_meta("target_id"):
+			choices[str(button.get_meta("target_id"))] = button
 	return choices
-
-
-func _matches_floating_choices(expected_ids: Array) -> bool:
-	var choices := _floating_choices()
-	var labels := {}
-	for id in expected_ids:
-		var composite := "raise_dead::" + str(id)
-		if not choices.has(composite):
-			return false
-		labels[str((choices[composite] as Button).text)] = true
-	return labels.size() == expected_ids.size()
-
-
-func _visible_button(label: String) -> Button:
-	return _visible_button_search(scene, label)
-
-
-func _visible_button_search(node: Node, label: String) -> Button:
-	if node is Button and (node as Button).is_visible_in_tree():
-		if str((node as Button).text) == label or str((node as Button).accessibility_name) == label:
-			return node as Button
-	for child in node.get_children():
-		var found := _visible_button_search(child, label)
-		if found != null:
-			return found
-	return null
 
 
 func _press_escape() -> void:

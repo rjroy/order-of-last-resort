@@ -206,7 +206,7 @@ To explore the Village Troubles standalone openings, leave standing orders at th
 
 - **The Goblin Mob:** Select Friendly Crypter → **Summon Skeleton** → **C3**, then preview and commit. The skeleton joins the fight next round; its Wave can hit allies as well as goblins.
 - **The Harpoon Squad:** Read the opening forecast: Hookhand pulls the Unimpressed Healer from **B3** to **C3**, setting up the Bruiser's strike. Preview Anxious Knight → **Push** → Bruiser at **C4**. The push moves the Bruiser to **D4** and removes that follow-up from the forecast. Compare before committing.
-- **The Unwelcome Guest:** Preview Anxious Knight → **Push** → Village Troll at **C3**. The push takes the living troll out of the square for a victory. Alternatively, preview Anxious Knight → **Move one tile** → **E3** to see the troll's intended step in the forecast. Read the forecast and adjust damaging orders before committing.
+- **The Unwelcome Guest:** Preview Anxious Knight → **Push** → Village Troll at **C3**. The push takes the living troll out of the square for a victory. Alternatively, select the Anxious Knight and click **E3** to preview a Move and see the troll's intended step in the forecast. Read the forecast and adjust damaging orders before committing.
 
 These examples use the standalone missions' authored parties and fresh opening positions. A guild party and its carried wounds or orders can change the forecast.
 
@@ -214,7 +214,9 @@ These examples use the standalone missions' authored parties and fresh opening p
 
 Your deployment order stays fixed for the commission. In Trouble on the Road, the patrol has no round limit. In The Last Ferryman, get the ferryman to the marked landing before the bridge fails. Clearing the bridge of enemies does not by itself win the rescue.
 
-Give each hero a standing order. Each round you may replace **one** hero's order. Click the hero, then click a legal target to preview a move or targeted action; a unique action stages immediately. A cell with several legal actions shows target-adjacent choices. Automatic abilities are visible footer buttons. Marked cells show legal targets. Open **Forecast** to see everyone's actions in order. Nothing moves until you commit; use **Clear command** to discard or **Escape** to clear choice and selection while retaining a staged preview. Everyone else keeps their standing order.
+Give each hero a standing order. Each round you may replace **one** hero's order with a direct command. Select a hero to see their named equipped abilities, including unavailable abilities and their reasons. For a quick Move, click a legal destination without choosing an ability. To use a targeted ability, choose its button, then click a marked legal target; if several valid occupants share a cell, choose the intended occupant. Other abilities, such as the Caster's automatic Blast, stage immediately.
+
+Outside targeting, clicking a hero selects or retains that hero rather than using an ability. You can also switch heroes while targeting; switching or choosing **Cancel targeting** preserves any staged command. **Escape** backs out of the current step without discarding that command. With no command staged, **Clear selection** returns to neutral; with a command staged, **Clear command** discards it and returns to neutral. Open **Forecast** to see everyone's actions in order. Complete or cancel targeting before committing: only **Commit** resolves the round. Everyone else keeps their standing order.
 
 After a victory with another mission ahead, inspect the debrief before continuing. Survivors carry their current HP and standing orders forward. Fallen heroes rejoin at **1 HP**; mission statuses clear. A defeat or final victory ends the run.
 
@@ -255,7 +257,7 @@ From the repository root, try this stock opening without a guild purchase:
 godot --path games/company-of-unlikely-heroes -- --mission=hold_the_line --party=blacksmith,knight,healer
 ```
 
-Leave the default orders alone. Select the Anxious Knight, open **Actions**, choose **Push → Pull**, and target the Bruiser at **G3**. The forecast shows the Smith fitting the Knight first, then the Knight pulling the Bruiser one tile closer to **F3**. Before committing, clear the command and compare: the Knight's standing **Guard** now becomes **Clear the Floor**, which shoves nearby allies as well as enemies instead of shielding them.
+Leave the default orders alone. Select the Anxious Knight, choose the visible **Push → Pull** ability, and target the Bruiser at **G3**. The forecast shows the Smith fitting the Knight first, then the Knight pulling the Bruiser one tile closer to **F3**. Before committing, clear the command and compare: the Knight's standing **Guard** now becomes **Clear the Floor**, which shoves nearby allies as well as enemies instead of shielding them.
 
 The game collects no playtest telemetry. The question to take away: **Did you enjoy trusting two of these people while you took charge of the third?**
 
@@ -277,7 +279,7 @@ Use **Forfeit** during an ongoing battle to concede without playing the next rou
 
 After a victory with another mission ahead, the debrief shows **one offer per eligible deployed hero**. Each entry describes what changes, its rarity, and how many times you can take it during this outing. Choose **one reward total** using its **Take reward** button, or use Tab and Enter. The claimed reward stays on the debrief while you review the party and continue. Passing on an offer does not count against its cap. If there are no eligible offers, you can continue without choosing.
 
-Rewards start in the next mission. Extra maximum HP comes with the same amount of current HP, but does not erase existing wounds. In combat, open **Outing upgrades** above the round controls to review what each hero gained. New actions and orders appear in the same pickers as the base kit. For example, **Shield Throw** shows an outlined shield where it will land in the forecast, then a filled marker while it is on the board. Point at the tile to inspect it; **Advance** heads toward it so the Anxious Knight can recover it. **Say Hello to That One** names the summons' directed target in the forecast and on tile inspection.
+Rewards start in the next mission. Extra maximum HP comes with the same amount of current HP, but does not erase existing wounds. In combat, open **Outing upgrades** above the round controls to review what each hero gained. New abilities and orders appear alongside those from the base kit. For example, **Shield Throw** shows an outlined shield where it will land in the forecast, then a filled marker while it is on the board. Point at the tile to inspect it; **Advance** heads toward it so the Anxious Knight can recover it. **Say Hello to That One** names the summons' directed target in the forecast and on tile inspection.
 
 The Mixologist’s seven rewards include **Plain Tonic**, a heal without a random reaction, and **Keep the Culture**, which lets you repeat the last recipe and its exact reaction on a different recipient. The bottle is spent on use and is empty at the start of a new mission.
 

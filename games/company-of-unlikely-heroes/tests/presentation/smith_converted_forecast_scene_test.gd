@@ -81,34 +81,37 @@ func _buffer() -> void:
 	if not await driver.select_actor("alchemist"):
 		_check(false, "Select Mixologist: " + driver.error)
 		return
-	var buffer_label := _command_label(state, "alchemist", "alchemist_acid")
+	var buffer_label := _direct_order_label("alchemist_acid")
 	_check(buffer_label.to_lower().contains("buffer"),
-		"The command label identifies the converted Buffer form: " + buffer_label)
+		"The enabled Acid-slot button identifies the converted Buffer form: " + buffer_label)
+	if not await driver.action("alchemist_acid"):
+		_check(false, "Aim the converted Buffer: " + driver.error)
+		return
 	_check(_marks_contain(state, "healer") and _marks_contain(state, "alchemist")
-		and not _marks_contain(state, "test_raider"),
-		"Selection marks the friendly Buffer recipients, not the Acid foe")
-	var locked := "Locked dose · %s · %s" % [str(expected.category).capitalize(), str(expected.description)]
-	_check(_visible_text_contains(locked), "Visible locked-dose metadata shows exact Buffer reaction: " + locked)
+		and not _marks_contain(state, "test_raider") and scene.get("_aimed_ability_id") == "alchemist_acid",
+		"Aimed Buffer marks the friendly recipients, not the Acid foe")
+	var locked := "%s · %s" % [str(expected.category).capitalize(), str(expected.description)]
+	var disclosure := _node("LockedDose") as Label
+	_check(disclosure != null and disclosure.is_visible_in_tree() and locked in disclosure.text,
+		"Visible locked dose shows the exact Buffer reaction before targeting: " + locked)
 	_check(scene.battle_snapshot() == state and sounds.is_empty(),
-		"Selecting and reading the Buffer dose are silent and leave battle and RNG unchanged")
-	# The wounded ally sits on a cell shared by the potion and the converted
-	# Buffer; the floating choices must name the converted form per target.
+		"Aiming and reading the Buffer dose are silent and leave battle and RNG unchanged")
+	_check(scene.get("_planned_state").overrides.is_empty(), "Aiming Buffer does not stage an action")
+	# Potion could also target this ally, but aiming Buffer removes the need
+	# for any ability choice on the board.
 	var board := _node("BridgeBoard") as Control
+	if board == null:
+		_check(false, "The board is available for the Buffer target")
+		return
 	var healer_cell: Vector2i = _unit(state, "healer").position
 	await driver._click(board.get_global_transform_with_canvas() * board.cell_center(healer_cell))
 	var choice_rows: Array = scene.get("_storybook_page").get("_target_rows")
-	var offered_buffer := ""
-	for row: Dictionary in choice_rows:
-		if str(row.get("id")) == "alchemist_acid::healer":
-			offered_buffer = str(row.get("label", ""))
-	_check(choice_rows.size() == 2 and offered_buffer.to_lower().contains("buffer"),
-		"The floating choices name the converted Buffer recipient: " + offered_buffer)
-	if offered_buffer.is_empty() or not await driver._press_choice_button("alchemist_acid", "healer"):
-		_check(false, "Select the Buffer recipient: " + driver.error)
-		return
+	_check(choice_rows.is_empty() and scene.get("_aimed_ability_id") == "",
+		"The single eligible occupant completes Buffer without a floating choice")
 	var staged_buffer: Dictionary = scene.get("_planned_state").get("overrides", {}).get("alchemist", {})
-	_check(staged_buffer.get("ability_id") == "alchemist_acid" and staged_buffer.get("target_id") == "healer",
-		"Choosing the Buffer button stages the converted Acid on the recipient")
+	if staged_buffer.get("ability_id") != "alchemist_acid" or staged_buffer.get("target_id") != "healer":
+		_check(false, "Clicking the recipient while aiming Buffer stages the Acid slot on Healer")
+		return
 	var plan: Dictionary = (scene.get("_plan") as Dictionary).duplicate(true)
 	_check(_fitted_before_action(plan, "alchemist"), "Earlier standing Smith fits Mixologist before Buffer")
 	var reactions: Array = plan.get("events", []).filter(func(e: Dictionary):
@@ -143,14 +146,20 @@ func _recall() -> void:
 	if not await driver.select_actor("necromancer"):
 		_check(false, "Full-cap Crypter can be selected: " + driver.error)
 		return
-	var recall_label := _command_label(state, "necromancer", "summon_skeleton")
+	var recall_label := _direct_order_label("summon_skeleton")
 	_check(recall_label.to_lower().contains("recall"),
-		"The command label identifies the converted Recall form: " + recall_label)
+		"The enabled Summon-slot button identifies the converted Recall form: " + recall_label)
+	if not await driver.action("summon_skeleton"):
+		_check(false, "Full-cap Crypter can aim the enabled Recall: " + driver.error)
+		return
 	_check(Vector2i(3, 1) in _marked_cells(),
 		"Recall marks an open neighboring landing despite the full slot")
-	if not await driver.command("necromancer", "summon_skeleton", "3,1"):
-		_check(false, "Full-cap Crypter stages enabled Recall from the board: " + driver.error)
+	if not await driver.target("3,1"):
+		_check(false, "Clicking the marked landing stages Recall: " + driver.error)
 		return
+	var draft: Dictionary = scene.get("_planned_state").overrides.get("necromancer", {})
+	_check(draft.get("ability_id") == "summon_skeleton" and draft.get("target_id") == "3,1",
+		"Recall retains the Summon slot and chosen landing in the staged command")
 	var plan: Dictionary = (scene.get("_plan") as Dictionary).duplicate(true)
 	_check(_fitted_before_action(plan, "necromancer"), "Earlier standing Smith fits Crypter before Recall")
 	_check(_unit(plan.get("result", {}), id).get("position") == Vector2i(3, 1),
@@ -168,12 +177,15 @@ func _ordinary_blast() -> void:
 	if not await driver.select_actor("wizard"):
 		_check(false, "Caster can be selected: " + driver.error)
 		return
-	var blast_label := _footer_label("wizard_blast")
+	var blast_label := _direct_order_label("wizard_blast")
 	_check(blast_label.to_lower().contains("blast") and blast_label.to_lower().contains("ordinary"),
-		"The automatic footer button names the ordinary Blast fallback: " + blast_label)
-	if not await driver.command("wizard", "wizard_blast", ""):
-		_check(false, "No-patient footer button stages the ordinary Blast fallback: " + driver.error)
+		"The enabled Direct Order button names the ordinary Blast fallback: " + blast_label)
+	if not await driver.action("wizard_blast"):
+		_check(false, "No-patient Blast button stages the ordinary fallback: " + driver.error)
 		return
+	var draft: Dictionary = scene.get("_planned_state").overrides.get("wizard", {})
+	_check(draft.get("ability_id") == "wizard_blast" and draft.get("target_id") == ""
+		and scene.get("_aimed_ability_id") == "", "Ordinary Blast stages without aiming or choosing a target")
 	var plan: Dictionary = (scene.get("_plan") as Dictionary).duplicate(true)
 	_check(_fitted_before_action(plan, "wizard"), "Earlier standing Smith fits Caster before Blast fallback")
 	_check(plan.get("events", []).any(func(e: Dictionary):
@@ -194,20 +206,12 @@ func _ordinary_blast() -> void:
 	_check(scene.battle_snapshot() == plan.get("result"), "Fallback commit equals forecast")
 
 
-## The label the real controls derive their text from: the form the actor
-## will actually use as their own turn starts.
-func _command_label(state: Dictionary, actor: String, ability: String) -> String:
-	var context: Dictionary = rules.state_before_action(state, actor)
-	return str(rules.command_ability(context, actor, ability).get("label", ""))
-
-
-## The automatic footer button's actual label from the rendered rows.
-func _footer_label(ability: String) -> String:
-	var rows: Array = scene.get("_storybook_page").get("_automatic_action_rows")
-	for row: Dictionary in rows:
-		if str(row.get("id")) == ability:
-			return str(row.get("label", ""))
-	return ""
+func _direct_order_label(ability: String) -> String:
+	var button := _node("DirectOrder_" + ability) as Button
+	if button == null or not button.is_visible_in_tree() or button.disabled \
+			or str(button.get_meta("ability_id", "")) != ability:
+		return ""
+	return button.text
 
 
 func _marked_cells() -> Array:

@@ -1,10 +1,8 @@
 extends SceneTree
 
 # Run: godot --headless --path games/company-of-unlikely-heroes --script res://tests/presentation/storybook_gate_scene_test.gd
-# Board, keyboard, footer and leaf controls use viewport input. Automatic
-# abilities are named footer buttons; targeted abilities are exercised
-# target-first on the board, and Escape clears selection while retaining
-# staged commands.
+# Board, keyboard, ability and leaf controls use viewport input. Automatic
+# abilities stage immediately; targeted abilities aim, then take a board click.
 var rules = preload("res://rules/rules.gd").new()
 var failures: Array[String] = []
 var scene: Node
@@ -79,12 +77,14 @@ func _run() -> void:
 	_check(not (board.get("_overlay") as Dictionary).get("quiet_manual_move", false),
 		"Clearing Move disables quiet markers")
 	_check(cleared.get("overrides", {}).is_empty(), "Clear removes the direct command")
+	_check(scene.get("_actor_id") == "", "Clear command returns to neutral")
 	_check(cleared.get("orders", {}).get("knight") == "order_guard", "Clearing restores Knight's default Guard")
 	_check(scene.battle_snapshot() == before, "Clearing a move leaves actual state unchanged")
 	_check_other_orders(before)
 	var guard_plan: Dictionary = rules.preview_round(cleared)
 	_check(scene.get("_plan") == guard_plan, "Cleared forecast uses standing orders including Guard")
 
+	await _click_cell(board, knight.position)
 	await _click_cell(board, targets[0].position)
 	_check_move(targets[0], "Move can be staged again after clearing")
 	var committed_plan: Dictionary = scene.get("_plan").duplicate(true)
@@ -135,33 +135,20 @@ func _full_hero_actions(board: Control, before: Dictionary) -> void:
 		return
 	await _click_cell(board, wizard.position)
 	_check(scene.get("_actor_id") == "wizard", "Clicking Wizard selects Wizard")
-	# Selecting a hero marks the union of legal targets across all its
-	# targeted actions, not only an aimed ability or Move.
-	var selection_marks := _highlighted_cells(board)
-	_check(Vector2i(0, 2) in selection_marks and Vector2i(0, 1) in selection_marks,
-		"Wizard selection marks every legal Pull target")
-	_check(Vector2i(1, 3) in selection_marks,
-		"Wizard selection also marks Move destinations, not only an aimed ability")
-	# Approved phase-2 controls: the old Actions menu is gone and every
-	# automatic ability is a named footer button; targeted abilities are not.
 	_check(scene.find_child("Actions", true, false) == null, "The old Actions menu is removed")
-	var blast := _visible_button_containing("Blast nearest")
-	_check(blast != null, "Selecting Wizard shows a named footer button for the automatic Blast")
-	_check(_visible_button_containing("Pull and recoil") == null,
-		"The targeted Pull is not a footer action")
-	_check(_visible_button_containing("Move one tile") == null,
-		"The targeted Move is not a footer action")
-	if blast == null:
+	_check_ability("wizard_blast", "Blast nearest", true)
+	_check_ability("wizard_pull", "Pull and recoil", true)
+	_check_ability("move", "Move one tile", true)
+	if not await _click_button("DirectOrder_wizard_blast"):
 		return
-	await _click(blast.get_global_rect().get_center())
 	var planned: Dictionary = scene.get("_planned_state")
 	var command: Dictionary = planned.get("overrides", {}).get("wizard", {})
 	_check(command.get("ability_id") == "wizard_blast" and command.get("target_id", "") == "",
-		"Pressing the automatic footer button stages Blast without selecting a target")
-	_check((scene.get("_targets") as Array).is_empty(), "Automatic Blast does not offer aimed targets")
-	var target_menu := scene.find_child("Targets", true, false) as Control
-	_check(target_menu == null or not target_menu.is_visible_in_tree(),
-		"Automatic Blast does not display a target picker")
+		"Pressing the automatic Blast button stages it without selecting a target")
+	_check(scene.get("_aimed_ability_id") == "", "Automatic Blast does not enter aiming")
+	var page: Node = scene.get("_storybook_page")
+	_check((page.get("_target_rows") as Array).is_empty(),
+		"Automatic Blast does not display an occupant picker")
 	_check(scene.battle_snapshot() == before, "Blast forecast does not commit actual battle state")
 	var plan: Dictionary = scene.get("_plan")
 	var blast_target := ""
@@ -219,15 +206,22 @@ func _targeted_pull(board: Control, before: Dictionary) -> void:
 		_check(false, "Gate fixture has Healer at A3, Knight at A2, and a legal Wizard Move to B4")
 		return
 	await _click_cell(board, _unit(before, "wizard").position)
-	_check(scene.get("_actor_id") == "wizard", "Clicking Wizard selects Wizard for target-first Pull")
-	# Selecting a hero marks the union of legal targets across all its
-	# targeted actions, not only an aimed ability or Move.
+	_check(scene.get("_actor_id") == "wizard", "Clicking Wizard selects Wizard")
+	var selection_marks := _highlighted_cells(board)
+	_check(step in selection_marks and healer not in selection_marks and knight not in selection_marks,
+		"Wizard selection marks quick Move destinations, not unarmed Pull targets")
+	await _click_cell(board, healer)
+	_check(scene.get("_actor_id") == "healer"
+		and (scene.get("_planned_state") as Dictionary).get("overrides", {}).is_empty(),
+		"Clicking a legal Pull target outside aiming selects the ally instead")
+	await _click_cell(board, _unit(before, "wizard").position)
+	if not await _click_button("DirectOrder_wizard_pull"):
+		return
 	var marks := _highlighted_cells(board)
-	_check(healer in marks and knight in marks,
-		"Wizard selection marks every legal Pull target")
-	_check(step in marks,
-		"Wizard selection also marks Move destinations, not only an aimed ability")
-	_check(not (Vector2i(1, 1) in marks), "A cell outside every targeted action stays unmarked")
+	_check(scene.get("_aimed_ability_id") == "wizard_pull" and healer in marks and knight in marks,
+		"Aiming Pull marks both legal allies")
+	_check(step not in marks and Vector2i(1, 1) not in marks,
+		"Aiming Pull leaves the Move destination and an invalid cell unmarked")
 	await _hover(board.get_global_transform_with_canvas() * board.cell_center(healer))
 	var inspection: Label = scene.get("_storybook_page").get("_inspection")
 	var aim_note := "Legal target"
@@ -235,18 +229,20 @@ func _targeted_pull(board: Control, before: Dictionary) -> void:
 		"Hovering a marked ally advertises the legal Pull target in inspection and tooltip")
 	await _click_cell(board, healer)
 	_check_wizard_command("wizard_pull", "healer", "Clicking the marked healer stages Pull on her")
-	_check(healer in _highlighted_cells(board) and knight in _highlighted_cells(board),
-		"Staged Pull keeps the selection marks for retargeting")
-	# Escape dismisses transient editing state, then clears the selection,
-	# while the staged command is retained.
+	_check(scene.get("_aimed_ability_id") == "" and step in _highlighted_cells(board)
+		and healer not in _highlighted_cells(board) and knight not in _highlighted_cells(board),
+		"Staging Pull ends aiming and restores quick Move marks")
+	if not await _click_button("DirectOrder_wizard_pull"):
+		return
+	await _hover(board.get_global_transform_with_canvas() * board.cell_center(healer))
 	await _key(KEY_ESCAPE)
-	_check(scene.get("_actor_id") == "" and not (scene.get("_planned_state") as Dictionary).get("overrides", {}).is_empty(),
-		"Escape clears the selection and retains the staged Pull")
-	_check(_highlighted_cells(board).is_empty(),
-		"Clearing the selection removes the legal-target marks")
+	_check_wizard_command("wizard_pull", "healer", "Escape from aiming retains the staged Pull")
+	_check(scene.get("_aimed_ability_id") == "" and healer not in _highlighted_cells(board)
+		and knight not in _highlighted_cells(board), "Escape removes the aimed Pull marks")
 	_check(aim_note not in inspection.text and aim_note not in board.tooltip_text,
-		"Clearing the selection drops the stale legal-target text without mouse motion")
-	await _click_cell(board, _unit(before, "wizard").position)
+		"Canceling aim drops the stale legal-target text without mouse motion")
+	if not await _click_button("DirectOrder_wizard_pull"):
+		return
 	await _click_cell(board, knight)
 	_check_wizard_command("wizard_pull", "knight", "Clicking the marked knight retargets Pull")
 	await _click_cell(board, step)
@@ -271,19 +267,20 @@ func _check_wizard_command(ability: String, target: String, message: String) -> 
 
 
 func _unavailable_bonk(board: Control, before: Dictionary) -> void:
-	# Start unselected: a legal friendly target must not capture this click.
-	await _key(KEY_ESCAPE)
 	await _click_cell(board, _unit(before, "healer").position)
 	_check(scene.get("_actor_id") == "healer", "Clicking the Healer selects her")
 	var context: Dictionary = rules.state_before_action(scene.get("_planned_state"), "healer")
 	_check(rules.targets(context, "healer", "healer_bonk").is_empty(),
 		"Opening Healer Bonk has no legal targets")
-	# Automatic abilities are footer buttons; a targeted action with no legal
-	# targets offers no control and marks nothing on the board.
-	_check(_visible_button_containing("Heal self or nearest ally") != null,
-		"Selecting the Healer shows her automatic Heal as a footer button")
-	_check(_visible_button_containing("Bonk and taunt") == null,
-		"The unavailable targeted Bonk is not a footer action")
+	_check_ability("healer_heal", "Heal self or nearest ally", true)
+	var bonk := _check_ability("healer_bonk", "Bonk and taunt", false)
+	if bonk != null:
+		var explanation := "%s %s %s" % [bonk.text, bonk.accessibility_name, bonk.tooltip_text]
+		_check("no legal target" in explanation.to_lower(), "The disabled Bonk explains why it is unavailable")
+		await _click(bonk.get_global_rect().get_center())
+	_check(scene.get("_aimed_ability_id") == ""
+		and (scene.get("_planned_state") as Dictionary).get("overrides", {}).is_empty(),
+		"Using the unavailable Bonk neither aims nor stages it")
 	var commit := scene.find_child("Commit", true, false) as BaseButton
 	_check(commit != null and commit.is_visible_in_tree() and not commit.disabled
 		and (scene.get("_plan") as Dictionary).get("valid", false),
@@ -293,21 +290,12 @@ func _unavailable_bonk(board: Control, before: Dictionary) -> void:
 	_check(scene.get("_actor_id") == "", "Escape clears the Healer selection")
 
 
-func _visible_button_containing(needle: String) -> Button:
-	return _visible_button_recursive(scene, needle)
-
-
-func _visible_button_recursive(node: Node, needle: String) -> Button:
-	if node is Button and (node as Button).is_visible_in_tree():
-		var text := str((node as Button).text)
-		var accessible := str((node as Button).accessibility_name)
-		if needle in text or needle in accessible:
-			return node as Button
-	for child in node.get_children():
-		var found := _visible_button_recursive(child, needle)
-		if found != null:
-			return found
-	return null
+func _check_ability(id: String, label: String, enabled: bool) -> Button:
+	var button := scene.find_child("DirectOrder_" + id, true, false) as Button
+	_check(button != null and button.is_visible_in_tree() and str(button.get_meta("ability_id", "")) == id
+		and (label in button.text or label in button.accessibility_name) and button.disabled != enabled,
+		"Visible Direct Order %s has its label, identity and expected enabled state" % id)
+	return button
 
 
 func _choose_order(hero: String, id: String) -> bool:

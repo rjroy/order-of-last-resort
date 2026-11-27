@@ -97,10 +97,11 @@ func _run() -> void:
 	if not await _capture_leaf("StandingOrders", "13-standing-orders-open"):
 		_finish_capture(failure)
 		return
-	await _click(board.get_global_transform_with_canvas() * board.cell_center(knight.position))
 	driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
-	if scene.get("_actor_id") != "knight" or not await driver.action("move") \
-			or (scene.get("_targets") as Array).is_empty() or not await _save_capture("08-targeting"):
+	if not await driver.select_actor("knight") or not await driver.action("move") \
+			or scene.get("_aimed_ability_id") != "move" \
+			or (board.get("_overlay") as Dictionary).get("targets", []).is_empty() \
+			or not await _save_capture("08-targeting"):
 		_finish_capture(failure if not failure.is_empty() else "Knight move targeting was not offered.")
 		return
 	await _click(board.get_global_transform_with_canvas() * board.cell_center(targets[0].position))

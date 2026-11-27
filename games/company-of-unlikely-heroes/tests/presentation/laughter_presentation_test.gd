@@ -67,7 +67,6 @@ func _show_editor(state: Dictionary) -> void:
 	scene.set("_state", state.duplicate(true))
 	scene.set("_planned_state", state.duplicate(true))
 	scene.call("_sync_actors")
-	scene.call("_sync_command")
 	scene.call("_refresh")
 	await process_frame
 	var driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
@@ -78,21 +77,13 @@ func _show_editor(state: Dictionary) -> void:
 
 
 func _actions_unavailable() -> bool:
-	if not rules.can_act(scene.get("_planned_state"), "healer"):
-		var found_automatic := false
-		var any_enabled := false
-		for button in scene.find_children("*", "Button", true, false):
-			if button is Button and button.is_visible_in_tree() and ("Heal" in str(button.text) or "Sonnet" in str(button.text)):
-				found_automatic = true
-				if not (button as Button).disabled:
-					any_enabled = true
-		if found_automatic and any_enabled:
+	for id in ["move", "healer_bonk", "healer_heal"]:
+		var button := scene.find_child("DirectOrder_" + id, true, false) as Button
+		if button == null or not button.is_visible_in_tree() or not button.disabled \
+				or str(button.get_meta("ability_id", "")) != id:
 			return false
-		var marks: Array = scene.call("_board_targets")
-		if not marks.is_empty():
-			return false
-		return true
-	return false
+	var board := _node("BridgeBoard")
+	return board != null and (board.get("_overlay") as Dictionary).get("targets", []).is_empty()
 
 
 func _visible_text() -> String:

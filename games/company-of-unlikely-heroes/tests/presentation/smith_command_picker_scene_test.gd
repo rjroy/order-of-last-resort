@@ -5,6 +5,7 @@ const Catalog = preload("res://content/catalog.gd")
 const Rules = preload("res://rules/rules.gd")
 const SMITH := "blacksmith"
 const KNIGHT := "knight"
+const PUSH := "knight_push"
 const TARGET := "practice_raider"
 const TARGET_CELL := Vector2i(3, 1)
 
@@ -34,7 +35,9 @@ func _opening(defs: Dictionary, smith_first: bool) -> Dictionary:
 	habits["order_hold"] = "hold"
 	fixture.characters.healer.habits = habits
 	fixture.characters.healer.default_order = "order_hold"
-	var slots := [[0, 1], [1, 1], [5, 3]] if smith_first else [[1, 1], [0, 1], [5, 3]]
+	# Ordinary Push can also target allies. Put the later Smith out of
+	# Push range but keep Knight his nearest eligible recipient for Try This.
+	var slots := [[0, 1], [1, 1], [5, 3]] if smith_first else [[1, 1], [0, 0], [5, 3]]
 	fixture.encounters.smith_picker_fixture = {
 		"board": "road", "seed": 2, "party_slots": slots,
 		"placements": [{"id": TARGET, "character": TARGET, "at": [3, 1]}],
@@ -62,18 +65,25 @@ func _earlier_smith(defs: Dictionary) -> void:
 	if not await driver.select_actor(KNIGHT):
 		_check(false, "Select Knight after earlier Smith: " + driver.error)
 		return
-	var earlier_label := _push_label(opening)
-	_check(earlier_label.contains("Push → Pull"),
-		"Earlier Smith's actual command label names the Push → Pull conversion: " + earlier_label)
-	_check(TARGET_CELL in _marked_cells(),
-		"Knight's selection marks the distance-two Pull target before Push would reach")
-	_check(scene.battle_snapshot() == opening, "Selecting and marking do not apply the fitting or mutate battle state")
+	var push := _push_button()
+	_check(push != null and not push.disabled and "Push → Pull" in push.text,
+		"Earlier Smith enables the actual Push → Pull ability button")
+	if not await driver.action(PUSH):
+		_check(false, "Knight can aim the converted Pull: " + driver.error)
+		return
+	_check(scene.get("_aimed_ability_id") == PUSH and TARGET_CELL in _marked_cells(),
+		"Aiming the converted ability marks the distance-two Pull target beyond ordinary Push")
+	_check(scene.battle_snapshot() == opening and scene.get("_planned_state").overrides.is_empty(),
+		"Selecting and aiming do not apply the fitting, stage an action, or mutate battle state")
 	if not await driver.target(TARGET):
 		_check(false, "Knight can stage the ranged Pull target: " + driver.error)
 		return
 	var planned: Dictionary = scene.get("_planned_state")
 	var overrides: Dictionary = planned.get("overrides", {})
 	_check(overrides.size() == 1 and overrides.has(KNIGHT), "Pull uses the company's one command, leaving Smith on standing Try This")
+	var draft: Dictionary = overrides.get(KNIGHT, {})
+	_check(draft.get("ability_id") == PUSH and draft.get("target_id") == TARGET,
+		"The staged Pull retains the Push slot and the exact chosen raider")
 	var forecast: Dictionary = (scene.get("_plan") as Dictionary).duplicate(true)
 	_check(forecast.get("valid", false), "Pull produces a valid forecast")
 	_check(_unit(forecast.get("result", {}), TARGET).get("position") == Vector2i(2, 1),
@@ -84,7 +94,7 @@ func _earlier_smith(defs: Dictionary) -> void:
 		return
 	_check(scene.battle_snapshot() == opening and (scene.get("_planned_state") as Dictionary).get("overrides", {}).is_empty(),
 		"Clearing the command restores the same unmodified opening")
-	if not await driver.select_actor(KNIGHT) or not await driver.target(TARGET):
+	if not await driver.select_actor(KNIGHT) or not await driver.action(PUSH) or not await driver.target(TARGET):
 		_check(false, "Pull can be staged again after clearing: " + driver.error)
 		return
 	_check(scene.get("_plan") == forecast, "Restaging forecasts the same round without preview mutation")
@@ -99,32 +109,42 @@ func _later_smith(defs: Dictionary) -> void:
 	if not await driver.select_actor(KNIGHT):
 		_check(false, "Select earlier Knight: " + driver.error)
 		return
-	var later_label := _push_label(opening)
+	var push := _push_button()
+	var later_label := push.text if push != null else ""
 	_check(later_label.begins_with("Push") and not later_label.contains("Pull")
 		and not later_label.contains("→"),
 		"Later Smith leaves the current command labeled ordinary Push: " + later_label)
-	_check(TARGET_CELL not in _marked_cells(),
-		"A later Smith cannot offer ranged Pull at Knight's already-passed slot")
+	_check(push != null and push.disabled, "Ordinary Push is visibly disabled with no legal adjacent target")
+	if push != null:
+		await driver._click(push.get_global_rect().get_center())
+	_check(scene.get("_aimed_ability_id") == "" and TARGET_CELL not in _marked_cells(),
+		"Pressing disabled Push cannot aim at the distant raider before the later fitting")
 	_check((scene.get("_planned_state") as Dictionary).get("overrides", {}).is_empty(),
 		"An out-of-reach Pull leaves no direct command staged")
 	var forecast: Dictionary = (scene.get("_plan") as Dictionary).duplicate(true)
 	_check(_unit(forecast.get("result", {}), TARGET).get("position") == Vector2i(3, 1),
 		"Later standing Try This does not retroactively pull during Knight's turn")
+	_check(forecast.get("events", []).any(func(event: Dictionary) -> bool:
+		return event.get("type") == "fit" and event.get("unit_id") == SMITH and event.get("target_id") == KNIGHT),
+		"Later Smith still fits Knight from outside ordinary Push range")
 	_check(scene.battle_snapshot() == opening, "Later-Smith forecast does not mutate the opening")
 	await _press("Commit")
 	_check(scene.battle_snapshot() == forecast.get("result"), "Later-Smith commit matches its forecast")
 	if not await driver.select_actor(KNIGHT):
 		_check(false, "Later fitting makes Pull available on Knight's next activation: " + driver.error)
 		return
-	_check(TARGET_CELL in _marked_cells(),
-		"Fitting delivered after Knight's turn remains for next round's ranged Pull")
+	if not await driver.action(PUSH):
+		_check(false, "Next-round fitting enables the converted ability: " + driver.error)
+		return
+	_check(scene.get("_aimed_ability_id") == PUSH and TARGET_CELL in _marked_cells(),
+		"Aiming the fitted ability next round marks the ranged Pull target")
 
 
-## The label the controls derive their text from: the fitted or ordinary form
-## of the Knight's Push (`knight_push`) as the Knight's own turn starts.
-func _push_label(state: Dictionary) -> String:
-	var context: Dictionary = driver.rules.state_before_action(state, KNIGHT)
-	return str(driver.rules.command_ability(context, KNIGHT, "knight_push").get("label", ""))
+func _push_button() -> Button:
+	var button := scene.find_child("DirectOrder_" + PUSH, true, false) as Button
+	if button == null or not button.is_visible_in_tree() or str(button.get_meta("ability_id", "")) != PUSH:
+		return null
+	return button
 
 
 func _marked_cells() -> Array:

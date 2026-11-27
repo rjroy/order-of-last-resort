@@ -1,9 +1,11 @@
 extends Control
 ## A separate battle view, using the shared board and emitting only player intent.
 
+signal hero_selected(hero_id: String)
 signal action_selected(ability_id: String)
 signal order_selected(hero_id: String, order_id: String)
 signal target_selected(target_id: String)
+signal cancel_targeting_requested
 signal clear_requested
 signal commit_requested
 signal restart_requested
@@ -61,11 +63,18 @@ const PAPER := Color("#f3dbad")
 const PAPER_INK := Color("#362419")
 const PAPER_MUTED := Color("#614831")
 const LEAF_WIDTH := 416.0
-# At play size, leave room for the instructions and three complete order rows.
-# Shorter arenas still cap the sheet and let its body scroll.
-const LEAF_HEIGHT := 304.0
+const FORECAST_LEAF_HEIGHT := 304.0
 const LEAF_GAP := 15.0
+const LEAF_RAIL_GAP := 7.0
 const FORFEIT_LEAF_WIDTH := 480.0
+const ACTION_BAND_HEIGHT := 56.0
+const DRAFT_SLOT_HEIGHT := 55.0
+const DOSE_SLOT_HEIGHT := 72.0
+const NOTE_SLOT_HEIGHT := 47.0
+const PREVIEW_BAND_HEIGHT := DOSE_SLOT_HEIGHT + NOTE_SLOT_HEIGHT
+const ROUND_BAND_HEIGHT := 47.0
+const FOOTER_GAP := 5.0
+const FOOTER_HEIGHT := ACTION_BAND_HEIGHT + PREVIEW_BAND_HEIGHT + ROUND_BAND_HEIGHT + 2.0 * FOOTER_GAP
 
 
 class BattleSurface extends Control:
@@ -114,14 +123,19 @@ var _forfeit_cancel: Button
 var _forfeit_confirm: Button
 var _upgrade_dialog: AcceptDialog
 var _upgrade_text: Label
+var _draft_scroll: ScrollContainer
 var _summary: Label
+var _aim_prompt: Label
 var _inspection: Label
+var _unavailable_note: Label
+var _dose_scroll: ScrollContainer
 var _locked_dose: Label
 var _orders: Button
 var _forecast: Button
 var _clear: Button
 var _commit: Button
 var _leaf: PanelContainer
+var _leaf_sheet: VBoxContainer
 var _leaf_heading: Label
 var _order_instructions: Label
 var _orders_scroll: ScrollContainer
@@ -136,21 +150,27 @@ var _surround_behind_foreground := false
 var _props: Dictionary = {}
 var _header: Control
 var _footer: VBoxContainer
-var _rail_controls: HBoxContainer
 var _book: Control
 var _rail_top := 0.0
-var _automatic_action_rows: Array = []
-var _automatic_action_buttons: Array = []
-var _automatic_action_box: HBoxContainer
+var _hero_picker: OptionButton
+var _hero_rows: Array = []
+var _selected_hero_index := 0
+var _cancel_targeting: Button
+var _action_rows: Array = []
+var _action_buttons: Dictionary = {}
+var _action_box: HBoxContainer
+var _action_scroll: ScrollContainer
+var _displayed_aim := ""
 var _target_rows: Array = []
 var _target_choice_buttons: Array = []
 var _target_choice_box: HBoxContainer
+var _target_choice_scroll: ScrollContainer
 var _choice_selected_cell: Variant = null
 var _order_rows: Array = []
 var _order_widgets: Dictionary = {}
 var _expanded := ""
 var _popup_epoch := 0
-var _dismissed_order_pickers: Array[OptionButton] = []
+var _dismissed_pickers: Array[OptionButton] = []
 var _display: SystemFont
 var _built := false
 var _show_hints := true
@@ -199,7 +219,7 @@ func mount_board(board: Control, trusted_board_id: String, board_dimensions := V
 	_board_host.add_child(board)
 	board.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	board.accessibility_name = "Battle board"
-	board.accessibility_description = "Use arrow keys to inspect a cell. Enter selects a hero or target."
+	board.accessibility_description = "Use arrow keys to inspect a tile. Enter selects a hero, moves to a marked destination, or targets the ability you are aiming."
 	_ink = Ink.new()
 	_ink.name = "StorybookInk"
 	board.add_child(_ink)
@@ -233,11 +253,19 @@ func render(view: Dictionary) -> void:
 		_objective.text += ("   ·   " if not objective.is_empty() else "") + status
 	_objective.tooltip_text = view.get("objective_details", _objective.text) if active else _objective.text
 	var command: String = view.get("command_summary", "")
-	_summary.size_flags_stretch_ratio = 0.75 if command == "Standing orders only" else 1.45
-	_summary.text = command if not command.is_empty() else (
-		"Standing orders only" if active else _victory_summary() if outcome == "victory" else "Mission failed")
-	_summary.tooltip_text = _summary.text
-	_summary.accessibility_live = AccessibilityServer.LIVE_POLITE if outcome == "defeat" else AccessibilityServer.LIVE_OFF
+	if command.is_empty():
+		command = "Standing orders only" if active else _victory_summary() if outcome == "victory" else "Mission failed"
+	if command != _summary.text:
+		_draft_scroll.scroll_vertical = 0
+		_summary.text = command
+	var draft_rule := "One Direct Order per round. A new command replaces the current draft."
+	_summary.tooltip_text = _summary.text + ("\n" + draft_rule if active else "")
+	_summary.accessibility_description = draft_rule if active else ""
+	_summary.accessibility_live = AccessibilityServer.LIVE_POLITE
+	var aimed: String = view.get("aimed_action_id", "")
+	_aim_prompt.text = view.get("aim_prompt", "")
+	_aim_prompt.tooltip_text = _aim_prompt.text
+	_aim_prompt.accessibility_live = AccessibilityServer.LIVE_POLITE if not aimed.is_empty() else AccessibilityServer.LIVE_OFF
 	var rows: Array = view.get("orders", [])
 	_inspection.text = view.get("inspection", "")
 	if _inspection.text.is_empty() and active:
@@ -262,12 +290,19 @@ func render(view: Dictionary) -> void:
 		objective_details = objective_details.trim_prefix(objective).strip_edges()
 	_field_notes.visible = active and not objective_details.is_empty() and objective_details != objective
 	_field_notes.text = "Mission notes: " + objective_details if _field_notes.visible else ""
-	_refresh_action_buttons(view.get("actions", []), active)
+	_refresh_hero_picker(view.get("heroes", []), view.get("selected_hero_id", ""), active)
+	_refresh_action_buttons(view.get("actions", []), aimed)
+	_cancel_targeting.visible = active and not aimed.is_empty()
 	_refresh_targets(view.get("targets", []), active, view.get("selected_cell", null))
 	_refresh_orders(rows)
 	_clear.disabled = not active or not view.get("can_clear", false)
 	_clear.text = view.get("clear_label", "Clear command")
+	_clear.accessibility_description = "Discard the draft and clear the hero selection." \
+		if _clear.text == "Clear command" else "Return to the board without a selected hero."
 	_commit.disabled = not active or not view.get("can_commit", false)
+	_commit.accessibility_description = "Finish targeting or cancel before committing." if not aimed.is_empty() else \
+		"Resolve this round using the current preview."
+	_commit.tooltip_text = _commit.accessibility_description if active else ""
 	_commit.text = "Commit round %d" % int(view.get("round", 1)) if active else (
 		"Mission complete" if outcome == "victory" else "Mission failed")
 
@@ -278,6 +313,10 @@ func _victory_summary() -> String:
 
 func is_forfeit_confirmation_open() -> bool:
 	return is_instance_valid(_forfeit_modal) and _forfeit_modal.is_visible_in_tree()
+
+
+func battle_controls_blocked() -> bool:
+	return _help_covered or is_forfeit_confirmation_open() or _upgrade_dialog.visible or _sound_volume_dialog.visible
 
 
 func set_display_options(grid_shown: bool, nameplates_shown: bool, grid_labels_shown: bool,
@@ -296,12 +335,15 @@ func render_ink(cues: Dictionary) -> void:
 
 
 func _render_locked_dose(text: String) -> void:
-	var show_note := not text.is_empty()
+	if _locked_dose.text != text:
+		_dose_scroll.scroll_vertical = 0
 	_locked_dose.text = text
 	_locked_dose.accessibility_name = text
-	_locked_dose.visible = show_note
-	_summary.visible = not show_note
-	_inspection.visible = not show_note
+	_locked_dose.tooltip_text = text
+	_locked_dose.visible = not text.is_empty()
+	_dose_scroll.visible = _locked_dose.visible
+	_inspection.offset_top = DOSE_SLOT_HEIGHT if _dose_scroll.visible else 0.0
+	_unavailable_note.offset_top = _inspection.offset_top
 
 
 ## Scenery uses full-page coordinates with transparent space for the live grid.
@@ -414,7 +456,7 @@ func _build_header() -> void:
 	_restart = _button("Restart", "Restart mission")
 	_restart.custom_minimum_size.x = 141.0
 	_header.add_child(_restart)
-	_restart.pressed.connect(_request_battle_action.bind(restart_requested))
+	_restart.pressed.connect(_request_battle_action.bind(restart_requested, _restart))
 	_upgrades = _button("ShowLoadout", "Outing upgrades")
 	_upgrades.custom_minimum_size.x = 150.0
 	_header.add_child(_upgrades)
@@ -573,7 +615,7 @@ func _open_forfeit_confirmation() -> void:
 	_forfeit_modal.accessibility_description = _forfeit_copy.text
 	_forfeit_cancel.accessibility_description = _forfeit_copy.text
 	_popup_epoch += 1
-	_dismissed_order_pickers.clear()
+	_dismissed_pickers.clear()
 	_forfeit_modal.show()
 	_surface_root.set_inert(true)
 	_dismiss_battle_popups()
@@ -589,7 +631,7 @@ func _cancel_forfeit() -> void:
 	if _help_covered or not is_forfeit_confirmation_open():
 		return
 	_close_forfeit_confirmation()
-	_reexpose_dismissed_order_pickers()
+	_reexpose_dismissed_pickers()
 	if _forfeit.is_visible_in_tree():
 		_forfeit.grab_focus()
 
@@ -604,8 +646,8 @@ func _confirm_forfeit() -> void:
 		_restart.grab_focus()
 
 
-func _request_battle_action(intent: Signal) -> void:
-	if not _help_covered and not is_forfeit_confirmation_open():
+func _request_battle_action(intent: Signal, source: BaseButton) -> void:
+	if not battle_controls_blocked() and source.is_visible_in_tree() and not source.disabled:
 		intent.emit()
 
 
@@ -699,25 +741,31 @@ func _restore_options_focus() -> void:
 func _dismiss_battle_popups() -> void:
 	_upgrade_dialog.hide()
 	_options.get_popup().hide()
+	var hero_popup := _hero_picker.get_popup()
+	if hero_popup.visible:
+		_dismissed_pickers.append(_hero_picker)
+		hero_popup.hide()
 	for widgets: Dictionary in _order_widgets.values():
 		var picker: OptionButton = widgets.picker
 		var popup := picker.get_popup()
 		if popup.visible:
-			_dismissed_order_pickers.append(picker)
+			_dismissed_pickers.append(picker)
 			popup.hide()
 
 
-func _reexpose_dismissed_order_pickers() -> void:
-	for picker in _dismissed_order_pickers:
+func _reexpose_dismissed_pickers() -> void:
+	for picker in _dismissed_pickers:
 		if not is_instance_valid(picker) or not picker.is_visible_in_tree():
 			continue
 		# Closing an open popup under the inert surface can leave its picker
 		# defunct to AT-SPI. Re-enter the tree to publish fresh accessibility
 		# elements without changing the picker, popup epoch, or standing order.
 		var row := picker.get_parent()
+		var index := picker.get_index()
 		row.remove_child(picker)
 		row.add_child(picker)
-	_dismissed_order_pickers.clear()
+		row.move_child(picker, index)
+	_dismissed_pickers.clear()
 
 
 func _battle_popup_visibility_changed(popup: PopupMenu) -> void:
@@ -726,10 +774,14 @@ func _battle_popup_visibility_changed(popup: PopupMenu) -> void:
 	if popup == _options.get_popup():
 		popup.position.x = maxi(0, int(get_viewport_rect().size.x) - popup.size.x - 12)
 	var source: Control
-	for widgets: Dictionary in _order_widgets.values():
-		if widgets.picker.get_popup() == popup:
-			source = widgets.picker
-			break
+	if popup == _hero_picker.get_popup():
+		source = _hero_picker
+		popup.position.x = clampi(popup.position.x, 0, maxi(0, int(get_viewport_rect().size.x) - popup.size.x))
+	else:
+		for widgets: Dictionary in _order_widgets.values():
+			if widgets.picker.get_popup() == popup:
+				source = widgets.picker
+				break
 	if is_instance_valid(source):
 		var launcher := source.get_global_rect()
 		var popup_rect := Rect2(Vector2(popup.position), Vector2(popup.size))
@@ -739,9 +791,9 @@ func _battle_popup_visibility_changed(popup: PopupMenu) -> void:
 			popup.position.y = int(above if above >= 0.0 else below)
 	# A native menu can still receive an assistive click queued before the
 	# background was hidden from accessibility.
-	if is_forfeit_confirmation_open():
+	if battle_controls_blocked():
 		popup.hide()
-		if get_viewport().gui_get_focus_owner() not in [_forfeit_cancel, _forfeit_confirm]:
+		if is_forfeit_confirmation_open() and get_viewport().gui_get_focus_owner() not in [_forfeit_cancel, _forfeit_confirm]:
 			_forfeit_cancel.grab_focus()
 	else:
 		popup.set_meta(&"_battle_popup_epoch", _popup_epoch)
@@ -750,56 +802,165 @@ func _battle_popup_visibility_changed(popup: PopupMenu) -> void:
 func _battle_popup_accepts_selection(popup: PopupMenu) -> bool:
 	# Godot hides the popup before signaling a valid selection. Keep accepting
 	# its callbacks until Forfeit invalidates them, and rearm only on reopening.
-	return not _help_covered and not is_forfeit_confirmation_open() and popup.get_meta(&"_battle_popup_epoch", 0) == _popup_epoch
+	return not battle_controls_blocked() and popup.get_meta(&"_battle_popup_epoch", 0) == _popup_epoch
 
 
 func _build_footer() -> void:
 	_footer = VBoxContainer.new()
 	_footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_footer.add_theme_constant_override("separation", 5)
-	_footer.minimum_size_changed.connect(_layout_page, CONNECT_DEFERRED)
+	_footer.add_theme_constant_override("separation", int(FOOTER_GAP))
 	_surface_root.add_child(_footer)
-	var line := HBoxContainer.new()
-	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	line.add_theme_constant_override("separation", 16)
-	_footer.add_child(line)
+	_build_action_band()
+	_build_preview_band()
+	_build_round_band()
+
+
+func _build_action_band() -> void:
+	var toolbar := HBoxContainer.new()
+	toolbar.custom_minimum_size.y = ACTION_BAND_HEIGHT
+	toolbar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	toolbar.add_theme_constant_override("separation", 8)
+	_footer.add_child(toolbar)
+	_hero_picker = OptionButton.new()
+	_hero_picker.name = "DirectOrderHero"
+	_hero_picker.fit_to_longest_item = false
+	_hero_picker.clip_text = true
+	_hero_picker.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_hero_picker.accessibility_name = "Direct Order hero"
+	_hero_picker.accessibility_description = "Switch heroes without discarding the current draft. Switching cancels targeting."
+	_style_rail_button(_hero_picker)
+	_hero_picker.custom_minimum_size.x = 188
+	_hero_picker.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	toolbar.add_child(_hero_picker)
+	var popup := _hero_picker.get_popup()
+	popup.visibility_changed.connect(_battle_popup_visibility_changed.bind(popup))
+	popup.window_input.connect(_popup_help_input.bind(_hero_picker, popup))
+	_hero_picker.item_selected.connect(_select_hero_item)
+	_action_scroll = _horizontal_button_scroll()
+	_action_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_action_scroll.accessibility_name = "Direct Order abilities"
+	toolbar.add_child(_action_scroll)
+	_action_box = HBoxContainer.new()
+	_action_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_action_box.add_theme_constant_override("separation", 6)
+	_action_scroll.add_child(_action_box)
+	var cancel_slot := Control.new()
+	cancel_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cancel_slot.custom_minimum_size = Vector2(146.0, 44.0)
+	cancel_slot.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	toolbar.add_child(cancel_slot)
+	_cancel_targeting = _button("CancelTargeting", "Cancel targeting")
+	_style_rail_button(_cancel_targeting)
+	_cancel_targeting.accessibility_description = "Stop aiming without discarding the current draft. You can also press Escape."
+	_cancel_targeting.tooltip_text = _cancel_targeting.accessibility_description
+	cancel_slot.add_child(_cancel_targeting)
+	_cancel_targeting.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_cancel_targeting.pressed.connect(_request_battle_action.bind(cancel_targeting_requested, _cancel_targeting))
+	_cancel_targeting.hide()
+
+
+func _build_preview_band() -> void:
+	# Fixed slots size the board, not the text inside them. Keep the dose in
+	# its own column so a long inspection cannot steal any of its measure.
+	var preview := HBoxContainer.new()
+	preview.custom_minimum_size.y = PREVIEW_BAND_HEIGHT
+	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview.add_theme_constant_override("separation", 18)
+	_footer.add_child(preview)
+	var plan_notes := _preview_column(preview, 1.0)
+	var field_notes := _preview_column(preview, 1.27)
 	_summary = _label("", 18, PARCHMENT, true)
-	_summary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_summary.size_flags_stretch_ratio = 1.45
-	line.add_child(_summary)
-	_inspection = _label("", 15, MUTED)
-	_inspection.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_inspection.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	line.add_child(_inspection)
-	# While a recipient is undecided, give the recipe the whole margin rather
-	# than competing with the command summary and cell inspection for one line.
-	_locked_dose = _label("", 16, PARCHMENT)
+	_draft_scroll = _preview_reader(plan_notes, "DraftSummary", "Draft summary", DRAFT_SLOT_HEIGHT, _summary)
+	_aim_prompt = _preview_label(plan_notes, 15, GOLD, DRAFT_SLOT_HEIGHT, PREVIEW_BAND_HEIGHT)
+	_aim_prompt.name = "AimPrompt"
+	_inspection = _preview_label(field_notes, 15, MUTED, DOSE_SLOT_HEIGHT, PREVIEW_BAND_HEIGHT)
+	_unavailable_note = _preview_label(field_notes, 15, GOLD, DOSE_SLOT_HEIGHT, PREVIEW_BAND_HEIGHT)
+	_unavailable_note.hide()
+	_build_dose_note(field_notes)
+
+
+func _build_dose_note(parent: Control) -> void:
+	_locked_dose = _label("", 15, PARCHMENT)
 	_locked_dose.name = "LockedDose"
-	_locked_dose.focus_mode = Control.FOCUS_ALL
-	_locked_dose.mouse_filter = Control.MOUSE_FILTER_PASS
-	_locked_dose.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_locked_dose.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_locked_dose.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
-	var note_style := _surface(Color("#30241d"), Color("#ab8967"), 12, 3)
-	var note_focus := _surface(Color("#30241d"), GOLD, 12, 3, 2)
-	_locked_dose.add_theme_stylebox_override("normal", note_style)
-	_locked_dose.focus_entered.connect(func() -> void:
-		_locked_dose.add_theme_stylebox_override("normal", note_focus))
-	_locked_dose.focus_exited.connect(func() -> void:
-		_locked_dose.add_theme_stylebox_override("normal", note_style))
-	line.add_child(_locked_dose)
+	_dose_scroll = _preview_reader(parent, "DoseNote", "Locked dose", DOSE_SLOT_HEIGHT, _locked_dose)
+	_dose_scroll.add_theme_stylebox_override("panel", _surface(Color("#30241d"), Color("#ab8967"), 8, 0))
 	_locked_dose.hide()
+	_dose_scroll.hide()
+
+
+func _preview_reader(parent: Control, node_name: String, title: String, height: float, text: Label) -> ScrollContainer:
+	var scroll := ScrollContainer.new()
+	scroll.name = node_name
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.mouse_force_pass_scroll_events = false
+	scroll.focus_mode = Control.FOCUS_ALL
+	scroll.draw_focus_border = true
+	scroll.accessibility_name = title
+	scroll.accessibility_description = "If the text does not fit, use Up and Down to read it."
+	scroll.add_theme_stylebox_override("focus", _focus_outline(GOLD))
+	parent.add_child(scroll)
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	scroll.offset_bottom = height
+	scroll.gui_input.connect(_preview_reader_input.bind(scroll, text))
+	text.mouse_filter = Control.MOUSE_FILTER_PASS
+	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	text.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	text.add_theme_constant_override("line_spacing", 1)
+	scroll.add_child(text)
+	return scroll
+
+
+func _preview_reader_input(event: InputEvent, scroll: ScrollContainer, text: Label) -> void:
+	if battle_controls_blocked() or not scroll.get_v_scroll_bar().visible:
+		return
+	var step := text.get_line_height() + text.get_theme_constant("line_spacing")
+	if event.is_action_pressed("ui_up", true):
+		scroll.scroll_vertical -= step
+	elif event.is_action_pressed("ui_down", true):
+		scroll.scroll_vertical += step
+	else:
+		return
+	scroll.accept_event()
+
+
+func _preview_column(parent: Container, weight: float) -> Control:
+	var column := Control.new()
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.clip_contents = true
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.size_flags_stretch_ratio = weight
+	parent.add_child(column)
+	return column
+
+
+func _preview_label(parent: Control, pixels: int, tint: Color, top: float, bottom: float) -> Label:
+	var label := _label("", pixels, tint)
+	label.mouse_filter = Control.MOUSE_FILTER_PASS
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.max_lines_visible = 2
+	label.add_theme_constant_override("line_spacing", 1)
+	parent.add_child(label)
+	label.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	label.offset_top = top
+	label.offset_bottom = bottom
+	return label
+
+
+func _horizontal_button_scroll() -> ScrollContainer:
+	var scroll := ScrollContainer.new()
+	scroll.follow_focus = true
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.mouse_force_pass_scroll_events = false
+	return scroll
+
+
+func _build_round_band() -> void:
 	var controls := HBoxContainer.new()
-	_rail_controls = controls
+	controls.custom_minimum_size.y = ROUND_BAND_HEIGHT
 	controls.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	controls.add_theme_constant_override("separation", 8)
 	_footer.add_child(controls)
-	# The Direct Order footer carries every automatic ability as its own
-	# named button; targeted abilities and Move stay on the board.
-	_automatic_action_box = HBoxContainer.new()
-	_automatic_action_box.add_theme_constant_override("separation", 6)
-	_automatic_action_box.visible = false
-	controls.add_child(_automatic_action_box)
 	_orders = _button("StandingOrders", "Standing orders")
 	_orders.toggle_mode = true
 	_style_rail_button(_orders, true)
@@ -817,14 +978,16 @@ func _build_footer() -> void:
 	_clear = _button("ClearCommand", "Clear command")
 	_style_rail_button(_clear)
 	controls.add_child(_clear)
-	_clear.pressed.connect(_request_battle_action.bind(clear_requested))
+	_clear.pressed.connect(_request_battle_action.bind(clear_requested, _clear))
 	_commit = _button("Commit", "Commit round 1")
 	_style_rail_button(_commit, false, true)
-	_commit.custom_minimum_size.x = 211
 	_commit.add_theme_font_override("font", _display)
 	_commit.add_theme_font_size_override("font_size", 21)
 	controls.add_child(_commit)
-	_commit.pressed.connect(_request_battle_action.bind(commit_requested))
+	_commit.pressed.connect(_request_battle_action.bind(commit_requested, _commit))
+	for button: Button in [_orders, _forecast, _clear, _commit]:
+		button.clip_text = true
+		button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 
 
 func _build_leaf() -> void:
@@ -839,23 +1002,26 @@ func _build_leaf() -> void:
 	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.clip_contents = true
 	_leaf.add_child(body)
-	var sheet := VBoxContainer.new()
-	sheet.add_theme_constant_override("separation", 5)
-	body.add_child(sheet)
-	sheet.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_leaf_sheet = VBoxContainer.new()
+	_leaf_sheet.add_theme_constant_override("separation", 5)
+	body.add_child(_leaf_sheet)
+	_leaf_sheet.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_leaf_heading = _label("Standing orders", 23, PAPER_INK)
 	_leaf_heading.add_theme_font_override("font", _display)
-	sheet.add_child(_leaf_heading)
+	_leaf_sheet.add_child(_leaf_heading)
 	_order_instructions = _label("An order stays in place when a direct command takes its turn.", 14, PAPER_MUTED)
 	_order_instructions.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_order_instructions.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
-	sheet.add_child(_order_instructions)
-	_orders_scroll = _leaf_scroll(sheet)
+	_leaf_sheet.add_child(_order_instructions)
+	_orders_scroll = _leaf_scroll(_leaf_sheet)
 	_order_entries = VBoxContainer.new()
 	_order_entries.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_order_entries.add_theme_constant_override("separation", 4)
 	_orders_scroll.add_child(_order_entries)
-	_forecast_scroll = _leaf_scroll(sheet)
+	# An initial layout can precede wrapping the instructions at the new width.
+	_leaf_sheet.minimum_size_changed.connect(_relayout_orders, CONNECT_DEFERRED)
+	_order_entries.minimum_size_changed.connect(_relayout_orders, CONNECT_DEFERRED)
+	_forecast_scroll = _leaf_scroll(_leaf_sheet)
 	_forecast_scroll.focus_mode = Control.FOCUS_ALL
 	_forecast_scroll.draw_focus_border = true
 	_forecast_scroll.accessibility_name = "Round forecast in execution order"
@@ -877,6 +1043,11 @@ func _build_leaf() -> void:
 	_leaf.hide()
 
 
+func _relayout_orders() -> void:
+	if _expanded == "orders":
+		_layout_page()
+
+
 func _leaf_scroll(sheet: VBoxContainer) -> ScrollContainer:
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -892,7 +1063,7 @@ func _leaf_scroll(sheet: VBoxContainer) -> ScrollContainer:
 
 func _toggle_leaf(section: String) -> void:
 	# Assistive activation can bypass GUI input and toggle a button directly.
-	if _help_covered:
+	if _help_covered or _upgrade_dialog.visible or _sound_volume_dialog.visible:
 		return
 	var was_forecast := _expanded == "forecast"
 	if not is_forfeit_confirmation_open():
@@ -940,14 +1111,15 @@ func _input(event: InputEvent) -> void:
 	if is_forfeit_confirmation_open():
 		_forfeit_input(event)
 		return
-	var options_popup := _options.get_popup()
-	if options_popup.visible:
+	for popup: PopupMenu in [_options.get_popup(), _hero_picker.get_popup()]:
+		if not popup.visible:
+			continue
 		# The menu gets its own input. Dismiss events reaching the board must
 		# not select a cell or fall through to Escape's clear-command shortcut.
 		if event.is_action_pressed("ui_cancel") or (event is InputEventMouseButton and event.pressed
 				and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]):
 			get_viewport().set_input_as_handled()
-			options_popup.hide()
+			popup.hide()
 			return
 	if not _expanded.is_empty() and event.is_action_pressed("ui_cancel"):
 		var source := _orders if _expanded == "orders" else _forecast
@@ -980,113 +1152,189 @@ func _forfeit_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
-func _refresh_action_buttons(rows: Array, active: bool) -> void:
-	# Every automatic or non-targeted action becomes its own visible footer
-	# button; targeted abilities and Move stay on the board instead. This
-	# filter is the sole origin of `action_selected`, so the signal carries
-	# only automatic/none abilities by contract.
-	var automatic: Array = []
-	for row: Dictionary in rows:
-		if str(row.get("kind", "")) in ["automatic", "none"]:
-			automatic.append(row)
-	if is_instance_valid(_automatic_action_box):
-		_automatic_action_box.visible = active and not automatic.is_empty()
-	if automatic == _automatic_action_rows and _automatic_action_buttons.size() == automatic.size():
+func _refresh_hero_picker(rows: Array, selected_hero: String, active: bool) -> void:
+	var selected := rows.find_custom(func(row: Dictionary) -> bool: return row.id == selected_hero) + 1
+	if rows != _hero_rows or _hero_picker.item_count == 0:
+		_hero_rows = rows.duplicate(true)
+		_hero_picker.clear()
+		_hero_picker.add_item("Choose a hero")
+		_hero_picker.set_item_disabled(0, true)
+		for row: Dictionary in rows:
+			_hero_picker.add_item(row.label)
+			_hero_picker.set_item_metadata(_hero_picker.item_count - 1, row.id)
+	if selected != _selected_hero_index:
+		_action_scroll.scroll_horizontal = 0
+	_selected_hero_index = selected
+	_hero_picker.select(selected)
+	_hero_picker.disabled = not active or rows.is_empty()
+	_hero_picker.tooltip_text = _hero_picker.text + "\n" + _hero_picker.accessibility_description
+
+
+func _select_hero_item(index: int) -> void:
+	if index <= 0 or index >= _hero_picker.item_count or _hero_picker.disabled \
+			or not _battle_popup_accepts_selection(_hero_picker.get_popup()):
+		_hero_picker.select(_selected_hero_index)
 		return
-	_automatic_action_rows = automatic.duplicate(true)
-	for button in _automatic_action_buttons:
-		if is_instance_valid(button):
-			button.queue_free()
-	_automatic_action_buttons.clear()
-	if is_instance_valid(_automatic_action_box):
-		for index in _automatic_action_rows.size():
-			var row: Dictionary = _automatic_action_rows[index]
-			var button := Button.new()
-			button.text = str(row.get("label", ""))
-			button.accessibility_name = str(row.get("label", ""))
-			button.tooltip_text = _action_button_tooltip(row)
-			button.disabled = not row.get("enabled", true)
-			_style_rail_button(button)
-			button.pressed.connect(action_selected.emit.bind(str(row.get("id", ""))))
-			_automatic_action_box.add_child(button)
-			_automatic_action_buttons.append(button)
+	hero_selected.emit(str(_hero_picker.get_item_metadata(index)))
 
 
-func _action_button_tooltip(row: Dictionary) -> String:
-	# Disabled buttons always explain themselves; otherwise follow the hint
-	# preference, as the former menu tooltips did.
-	if _show_hints or not row.get("enabled", true):
-		return str(row.get("help", ""))
-	return ""
+func _refresh_action_buttons(rows: Array, aimed: String) -> void:
+	if rows == _action_rows and aimed == _displayed_aim:
+		return
+	_action_rows = rows.duplicate(true)
+	_displayed_aim = aimed
+	var incoming := rows.map(func(row: Dictionary) -> String: return row.id)
+	for id: String in _action_buttons.keys():
+		if id not in incoming:
+			var old: Button = _action_buttons[id]
+			_action_box.remove_child(old)
+			old.queue_free()
+			_action_buttons.erase(id)
+	for index in rows.size():
+		var row: Dictionary = rows[index]
+		var id: String = row.id
+		if not _action_buttons.has(id):
+			var control := _button(("DirectOrder_" + id).validate_node_name(), "")
+			control.set_meta(&"ability_id", id)
+			control.clip_text = true
+			control.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			_style_rail_button(control, true)
+			_action_box.add_child(control)
+			control.pressed.connect(_select_action_button.bind(id, control))
+			control.focus_entered.connect(_show_unavailable_note.bind(control))
+			control.mouse_entered.connect(_show_unavailable_note.bind(control))
+			control.focus_exited.connect(_refresh_unavailable_note, CONNECT_DEFERRED)
+			control.mouse_exited.connect(_refresh_unavailable_note, CONNECT_DEFERRED)
+			_action_buttons[id] = control
+		var button: Button = _action_buttons[id]
+		_action_box.move_child(button, index)
+		_set_button_label(button, str(row.label))
+		button.disabled = not row.enabled
+		if button.toggle_mode:
+			button.set_pressed_no_signal(false)
+		button.toggle_mode = row.kind in ["cell", "entity"]
+		if button.toggle_mode:
+			button.set_pressed_no_signal(aimed == id)
+		var effect := "Choose a marked target." if button.toggle_mode else "Stage this Direct Order immediately."
+		if button.disabled:
+			effect = str(row.reason)
+		button.accessibility_description = effect + (" " + str(row.help) if not str(row.help).is_empty() else "")
+	_update_action_tooltips()
+	_refresh_unavailable_note()
+
+
+func _select_action_button(id: String, source: Button) -> void:
+	# Clicking the already-aimed action restarts its aim, rather than toggling it off.
+	if source.toggle_mode:
+		source.set_pressed_no_signal(_displayed_aim == id)
+	if not battle_controls_blocked() and source.is_visible_in_tree() and not source.disabled:
+		action_selected.emit(id)
+
+
+func _set_button_label(button: Button, label: String) -> void:
+	button.text = label
+	button.accessibility_name = label
+	button.custom_minimum_size.x = clampf(_button_label_width(button, label), 69.0, 264.0)
+
+
+func _button_label_width(button: Button, label: String) -> float:
+	var width := button.get_theme_font("font").get_string_size(
+		label, HORIZONTAL_ALIGNMENT_LEFT, -1, button.get_theme_font_size("font_size")).x
+	var padding := button.get_theme_stylebox("normal").get_minimum_size().x
+	return ceilf(width + padding + 4.0)
 
 
 func _update_action_tooltips() -> void:
-	for index in _automatic_action_buttons.size():
-		if is_instance_valid(_automatic_action_buttons[index]) and index < _automatic_action_rows.size():
-			(_automatic_action_buttons[index] as Button).tooltip_text = \
-				_action_button_tooltip(_automatic_action_rows[index])
+	for row: Dictionary in _action_rows:
+		var button: Button = _action_buttons[row.id]
+		var lines: PackedStringArray = [str(row.label)]
+		if button.disabled:
+			lines.append(str(row.reason))
+		if _show_hints and not str(row.help).is_empty():
+			lines.append(str(row.help))
+		button.tooltip_text = "\n".join(lines)
+
+
+func _unavailable_reason(source: Control) -> String:
+	if not source is Button or not source.disabled or not source.is_visible_in_tree() or battle_controls_blocked():
+		return ""
+	var id: String = source.get_meta(&"ability_id", "")
+	for row: Dictionary in _action_rows:
+		if row.id == id:
+			return "%s — %s" % [row.label, row.reason]
+	return ""
+
+
+func _show_unavailable_note(source: Control) -> void:
+	# Disabled native Buttons still receive tab focus; present the same
+	# reason in the notebook for both focus and pointer hover.
+	var reason := _unavailable_reason(source)
+	if not reason.is_empty():
+		_render_unavailable_note(reason)
+
+
+func _refresh_unavailable_note() -> void:
+	if not is_inside_tree():
+		return
+	var reason := _unavailable_reason(get_viewport().gui_get_focus_owner())
+	if reason.is_empty():
+		reason = _unavailable_reason(get_viewport().gui_get_hovered_control())
+	_render_unavailable_note(reason)
+
+
+func _render_unavailable_note(reason: String) -> void:
+	_unavailable_note.text = reason
+	_unavailable_note.tooltip_text = reason
+	_unavailable_note.visible = not reason.is_empty()
+	_inspection.visible = reason.is_empty()
 
 
 func _refresh_targets(rows: Array, active: bool, selected_cell: Variant = null) -> void:
 	_choice_selected_cell = selected_cell
-	# A choice that transitions from closed to open takes keyboard focus so
-	# Enter can stage it directly; re-renders of an open choice do not yank
-	# focus away from whatever the user is doing.
-	var newly_opened: bool = not rows.is_empty() and _target_choice_buttons.is_empty()
-	_update_target_choice_visibility()
-	# Rebuild the floating choice buttons only when the rows actually change.
+	if not active:
+		rows = []
 	if rows == _target_rows and _target_choice_buttons.size() == rows.size():
 		_place_target_choices()
 		return
-	# A focused choice being consumed or closed hands focus back to the
-	# board so keyboard play continues; unrelated focus is never stolen.
-	var focus_was_choice := false
-	if is_instance_valid(get_viewport()):
-		var focus_owner := get_viewport().gui_get_focus_owner()
-		focus_was_choice = focus_owner != null and _target_choice_buttons.has(focus_owner)
+	var newly_opened := not rows.is_empty() and _target_rows.is_empty()
+	var focus_was_choice := _target_choice_buttons.has(get_viewport().gui_get_focus_owner())
 	_target_rows = rows.duplicate(true)
-	for button in _target_choice_buttons:
-		if is_instance_valid(button):
-			button.queue_free()
+	for button: Button in _target_choice_buttons:
+		_target_choice_box.remove_child(button)
+		button.queue_free()
 	_target_choice_buttons.clear()
-	if is_instance_valid(_target_choice_box):
-		for index in rows.size():
-			var button := Button.new()
-			button.text = str(rows[index].label)
-			button.accessibility_name = str(rows[index].label)
-			_style_rail_button(button)
-			button.pressed.connect(_emit_target_choice.bind(index))
-			_target_choice_box.add_child(button)
-			_target_choice_buttons.append(button)
+	for target: Dictionary in rows:
+		var button := _button("OccupantChoice", "")
+		button.set_meta(&"target_id", target.id)
+		button.clip_text = true
+		button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		_style_rail_button(button)
+		_target_choice_box.add_child(button, true)
+		_set_button_label(button, str(target.label))
+		button.tooltip_text = button.text
+		button.accessibility_description = "Choose this occupant at %s." % BridgeArt.coordinate(target.position)
+		button.pressed.connect(_emit_target_choice.bind(str(target.id), button))
+		_target_choice_buttons.append(button)
 	_update_target_choice_visibility()
 	_place_target_choices()
-	if focus_was_choice and is_instance_valid(_board):
-		# The board's focus handler restarts the cursor on the selected hero.
-		_board.grab_focus()
-	if newly_opened and not _target_choice_buttons.is_empty() \
-			and is_instance_valid(_target_choice_box) and _target_choice_box.visible:
+	if battle_controls_blocked():
+		return
+	if _target_choice_scroll.visible and (newly_opened or focus_was_choice):
 		(_target_choice_buttons[0] as Button).grab_focus()
-
-
-func _choice_panel_open() -> bool:
-	return not _target_rows.is_empty() and _target_choice_buttons.size() == _target_rows.size()
+	elif focus_was_choice and is_instance_valid(_board):
+		_board.grab_focus()
 
 
 func _update_target_choice_visibility() -> void:
-	if not is_instance_valid(_target_choice_box):
-		return
 	# An open Forecast or Standing orders leaf must not be covered or
 	# intercepted by the floating choice. The choice itself stays valid and
 	# returns when the leaf closes.
-	_target_choice_box.visible = _expanded.is_empty() and _choice_panel_open()
+	_target_choice_scroll.visible = _expanded.is_empty() and not _target_rows.is_empty()
 
 
-func _emit_target_choice(index: int) -> void:
-	# The sole origin of `target_selected`: contextual choices always carry
-	# composite "action::target" ids built by main's target-first model.
-	if index < 0 or index >= _target_rows.size():
-		return
-	target_selected.emit(str(_target_rows[index].id))
+func _emit_target_choice(id: String, source: Button) -> void:
+	if not battle_controls_blocked() and source.is_visible_in_tree():
+		target_selected.emit(id)
 
 
 ## The contextual choice floats above the board, anchored beside the clicked
@@ -1101,20 +1349,23 @@ func _build_target_choices() -> void:
 	# before the leaf and forfeit overlays so those stay on top when opened.
 	# The z layer matches the interactive chrome: above the book and footer
 	# frames on surround boards, below the forfeit confirmation modal.
+	_target_choice_scroll = _horizontal_button_scroll()
+	_target_choice_scroll.accessibility_name = "Choose an occupant"
+	_target_choice_scroll.z_index = 6
+	_target_choice_scroll.hide()
+	_surface_root.add_child(_target_choice_scroll)
 	_target_choice_box = HBoxContainer.new()
 	_target_choice_box.add_theme_constant_override("separation", 6)
-	_target_choice_box.z_index = 6
-	_target_choice_box.visible = false
-	_surface_root.add_child(_target_choice_box)
+	_target_choice_scroll.add_child(_target_choice_box)
 
 
 func _place_target_choices() -> void:
-	if not is_instance_valid(_target_choice_box) or _target_choice_buttons.is_empty():
+	if not is_instance_valid(_board) or _target_rows.is_empty():
 		return
-	if not is_instance_valid(_board) or _target_rows.is_empty() or not _target_rows[0].has("position"):
-		return
-	var box := _target_choice_box
-	box.size = box.get_combined_minimum_size()
+	var box := _target_choice_scroll
+	var available := _choice_available_rect()
+	var ideal := _target_choice_box.get_combined_minimum_size()
+	box.size = Vector2(minf(ideal.x, available.size.x), ideal.y if ideal.x <= available.size.x else ACTION_BAND_HEIGHT)
 	# Board geometry and the covered-hero rect are identical for every
 	# candidate, so compute them once and share the results.
 	var transform := _board.get_global_transform_with_canvas()
@@ -1125,7 +1376,6 @@ func _place_target_choices() -> void:
 	if _choice_selected_cell is Vector2i:
 		var selected_center: Vector2 = transform * _board.cell_center(_choice_selected_cell)
 		selected_rect = Rect2(selected_center - cell_size * 0.5, cell_size)
-	var available := _choice_available_rect()
 	var box_size := box.size
 	var candidates := [
 		Vector2(center.x - box_size.x * 0.5, cell_rect.end.y + CHOICE_GAP),
@@ -1135,8 +1385,9 @@ func _place_target_choices() -> void:
 	]
 	var chosen: Variant = null
 	for candidate in candidates:
-		if _choice_placement_ok(Rect2(candidate, box_size), cell_rect, selected_rect, available):
-			chosen = candidate
+		var clamped := _clamp_into_area(candidate, box_size, available)
+		if _choice_placement_ok(Rect2(clamped, box_size), cell_rect, selected_rect, available):
+			chosen = clamped
 			break
 	if chosen == null:
 		# Degenerate layout: keep the first candidate inside the available area.
@@ -1159,6 +1410,10 @@ func _choice_available_rect() -> Rect2:
 		var top: float = _footer.get_global_rect().position.y
 		if top > area.position.y:
 			area.size.y = minf(area.size.y, top)
+	var header_end := _header.get_global_rect().end.y
+	if header_end < area.end.y:
+		area.size.y -= header_end
+		area.position.y = header_end
 	return area
 
 
@@ -1270,10 +1525,9 @@ func _layout_page() -> void:
 	var width := size.x - EDGE * 2.0
 	if minf(width, size.y - EDGE * 2.0) <= 0.0:
 		return
-	var margin := CONTENT_MARGIN
+	var margin := clampf(size.x * 0.034, 22.0, CONTENT_MARGIN)
 	var content_width := maxf(0.0, size.x - margin * 2.0)
-	var footer_height := maxf(72.0, _footer.get_combined_minimum_size().y)
-	var footer_top := size.y - EDGE - 11.0 - footer_height
+	var footer_top := size.y - EDGE - 11.0 - FOOTER_HEIGHT
 	_rail_top = footer_top - 9.0
 	var board_top := EDGE + 65.0
 	if is_instance_valid(_practice_controls) and _practice_controls.visible:
@@ -1287,12 +1541,15 @@ func _layout_page() -> void:
 	var board_extent := Vector2(_dimensions) * BridgeArt.TILE + BridgeArt.GUTTER * 2.0
 	var region := arena
 	if not _expanded.is_empty():
-		var leaf_size := Vector2(minf(content_width, LEAF_WIDTH), minf(LEAF_HEIGHT, arena.size.y * 0.56))
-		_leaf.size = leaf_size
-		_leaf.position = Vector2(size.x - margin - _leaf.size.x, _rail_top - 7.0 - _leaf.size.y)
-		# Pick the larger fit, not a fixed grid aspect or a presumed spare corner.
-		var beside := Rect2(arena.position, Vector2(maxf(0.0, _leaf.position.x - LEAF_GAP - arena.position.x),
+		var leaf_width := minf(content_width, LEAF_WIDTH)
+		var leaf_x := size.x - margin - leaf_width
+		var beside := Rect2(arena.position, Vector2(maxf(0.0, leaf_x - LEAF_GAP - arena.position.x),
 			arena.size.y))
+		var leaf_height := _orders_leaf_height(arena, beside, board_extent) if _expanded == "orders" else \
+			minf(FORECAST_LEAF_HEIGHT, arena.size.y * 0.56)
+		_leaf.size = Vector2(leaf_width, leaf_height)
+		_leaf.position = Vector2(leaf_x, _rail_top - LEAF_RAIL_GAP - _leaf.size.y)
+		# Pick the larger fit, not a fixed grid aspect or a presumed spare corner.
 		var above := Rect2(arena.position, Vector2(arena.size.x,
 			maxf(0.0, _leaf.position.y - LEAF_GAP - arena.position.y)))
 		region = beside if _board_scale(beside, board_extent) >= _board_scale(above, board_extent) else above
@@ -1314,11 +1571,32 @@ func _layout_page() -> void:
 	_header.position = Vector2(margin, EDGE + 5.0)
 	_header.size = Vector2(content_width, 57.0)
 	_layout_header()
+	var compact := content_width < 660.0
+	var clear_width := maxf(_button_label_width(_clear, "Clear command"), _button_label_width(_clear, "Clear selection"))
+	var scale := clampf((content_width - 32.0) / (383.0 + clear_width), 0.0, 1.0)
+	_hero_picker.custom_minimum_size.x = (162.0 if compact else 188.0) * scale
+	_orders.custom_minimum_size.x = (140.0 if compact else 152.0) * scale
+	_forecast.custom_minimum_size.x = (88.0 if compact else 113.0) * scale
+	_clear.custom_minimum_size.x = clear_width * scale
+	_commit.custom_minimum_size.x = (155.0 if compact else 211.0) * scale
 	_footer.position = Vector2(margin, footer_top)
-	_footer.size = Vector2(content_width, footer_height)
+	_footer.size = Vector2(content_width, FOOTER_HEIGHT)
 	_forfeit_panel.custom_minimum_size.x = minf(FORFEIT_LEAF_WIDTH, content_width)
 	_place_target_choices()
 	_book.queue_redraw()
+
+
+func _orders_leaf_height(arena: Rect2, beside: Rect2, board_extent: Vector2) -> float:
+	var room := _rail_top - LEAF_RAIL_GAP - arena.position.y
+	# A board that fits beside the leaf does not consume its vertical space.
+	# Otherwise keep at least half the original board scale above the leaf.
+	var minimum_scale := _board_scale(arena, board_extent) * 0.5
+	if _board_scale(beside, board_extent) < minimum_scale:
+		room -= LEAF_GAP + board_extent.y * minimum_scale
+	var paper_padding := _leaf.get_theme_stylebox("panel").get_minimum_size().y
+	var desired := paper_padding + _leaf_sheet.get_combined_minimum_size().y \
+		+ _order_entries.get_combined_minimum_size().y
+	return minf(ceilf(desired), maxf(0.0, room))
 
 
 func _board_scale(region: Rect2, extent: Vector2) -> float:

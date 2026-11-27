@@ -45,7 +45,7 @@ func _run() -> void:
 	await _launch_external(FIXTURE_MISSION)
 	await _exercise_battle("external", true)
 	await _exercise_external_gate(Vector2i(9, 6), LONG_KNIGHT)
-	await _exercise_external_gate(Vector2i(18, 5), LONG_KNIGHT + ", Keeper of the Autumn Road and Seven Bridges", true)
+	await _exercise_external_gate(Vector2i(18, 5), LONG_KNIGHT + ", Keeper of the Autumn Road and Seven Bridges")
 
 	# A retired flag may be rejected or treated as an alias, but it must never
 	# lead to the old command desk. Inspect options before launch because an
@@ -123,20 +123,19 @@ func _exercise_battle(label: String, external: bool) -> void:
 	if targets.is_empty():
 		_check(false, label + ": Knight has an opening move")
 		return
-	# Clear any auto-selection, then deterministic click selection.
-	await _key(KEY_ESCAPE)
 	await _click(board.get_global_transform_with_canvas() * board.cell_center(knight.position))
-	_check(scene.get("_actor_id") == "knight", label + ": board selects Knight")
+	_check(scene.get("_actor_id") == "knight" and scene.get("_planned_state").overrides.is_empty(),
+		label + ": the first board click selects or retains Knight without staging")
 	await _click(board.get_global_transform_with_canvas() * board.cell_center(targets[0].position))
 	var planned: Dictionary = scene.get("_planned_state")
 	var command: Dictionary = planned.get("overrides", {}).get("knight", {})
 	_check(command.get("ability_id") == "move" and command.get("target_id") == targets[0].id,
-		label + ": board destination stages a move")
+		label + ": the second board click stages Move without pressing an ability")
 	_check(scene.battle_snapshot() == before, label + ": staging leaves battle uncommitted")
 	await _commit_forecast(before, label)
 
 
-func _exercise_external_gate(dimensions: Vector2i, hero_label: String, test_targets := false) -> void:
+func _exercise_external_gate(dimensions: Vector2i, hero_label: String) -> void:
 	var plate := dimensions - Vector2i.ONE
 	var fixture := RulesCatalog.definitions()
 	fixture.characters.knight.label = hero_label
@@ -170,11 +169,21 @@ func _exercise_external_gate(dimensions: Vector2i, hero_label: String, test_targ
 		"External pressure gate maps the full authored board")
 	var before: Dictionary = scene.battle_snapshot().duplicate(true)
 	_check(scene.find_child("Actions", true, false) == null and scene.find_child("Targets", true, false) == null,
-		"Custom Gate uses the current automatic and contextual controls instead of legacy menus")
-	for control in scene.find_children("*", "Button", true, false):
-		if control is BaseButton and control.is_visible_in_tree():
-			_check(root.get_visible_rect().encloses((control as BaseButton).get_global_rect()),
-				"Custom Gate leaves the entire automatic footer button or Commit on screen at 1280x820")
+		"Custom Gate uses the Direct Order strip instead of legacy menus")
+	var picker := scene.find_child("DirectOrderHero", true, false) as OptionButton
+	_check(picker != null and picker.is_visible_in_tree() and picker.selected >= 0
+		and str(picker.get_item_metadata(picker.selected)) == "knight"
+		and picker.get_item_text(picker.selected) == hero_label,
+		"Custom Gate hero selector names the long-name Knight and exposes his ID")
+	var move := scene.find_child("DirectOrder_move", true, false) as Button
+	_check(move != null and move.is_visible_in_tree() and not move.disabled
+		and str(move.get_meta("ability_id", "")) == "move",
+		"Custom Gate shows the explicit Move control as well as quick Move")
+	for node in scene.find_children("*", "BaseButton", true, false):
+		var button := node as BaseButton
+		if button.is_visible_in_tree():
+			_check(root.get_visible_rect().encloses(button.get_global_rect()),
+				"Custom Gate leaves %s fully on screen at 1280x820" % button.name)
 	board.grab_focus()
 	await process_frame
 	await _key(KEY_RIGHT)
@@ -194,13 +203,11 @@ func _exercise_external_gate(dimensions: Vector2i, hero_label: String, test_targ
 	var clear := scene.find_child("ClearCommand", true, false) as BaseButton
 	if clear != null and clear.is_visible_in_tree() and not clear.disabled:
 		await _click(clear.get_global_rect().get_center())
-	_check((scene.get("_planned_state") as Dictionary).get("overrides", {}).is_empty(),
-		"Clear command discards the staged keyboard preview")
-	# Establish the intended staged plan for the following edge-plate
-	# assertions using the current direct-order controls.
-	await _key(KEY_ESCAPE)
+	_check(scene.get("_actor_id") == "" and scene.get("_planned_state").overrides.is_empty(),
+		"Clear command discards the staged keyboard preview and returns to neutral")
+	# Select Knight but leave the plan empty until the edge click with Forecast
+	# open. An already staged move would hide a blocked board click.
 	await _click(board.get_global_transform_with_canvas() * board.cell_center(Vector2i(plate.x - 1, plate.y)))
-	await _click(board.get_global_transform_with_canvas() * board.cell_center(plate))
 	var forecast := scene.find_child("ForecastDetails", true, false) as BaseButton
 	var leaf := scene.find_child("ExtraDetails", true, false) as Control
 	if forecast == null or leaf == null:
@@ -209,9 +216,13 @@ func _exercise_external_gate(dimensions: Vector2i, hero_label: String, test_targ
 	await _click(forecast.get_global_rect().get_center())
 	_check(leaf.is_visible_in_tree() and not leaf.get_global_rect().intersects(board.get_global_rect()),
 		"Forecast leaves the entire external %s board unobscured" % dimensions)
+	_check(scene.get("_actor_id") == "knight" and scene.get("_planned_state").overrides.is_empty(),
+		"External Gate selects Knight without staging a Move before the edge click")
 	await _click(board.get_global_transform_with_canvas() * board.cell_center(plate))
 	plan = scene.get("_plan")
+	var command: Dictionary = scene.get("_planned_state").overrides.get("knight", {})
 	_check(leaf.is_visible_in_tree() and scene.battle_snapshot() == before
+		and command.get("ability_id") == "move" and command.get("target_id") == "%d,%d" % [plate.x, plate.y]
 		and plan.get("valid", false) and rules.tile_definition(plan.result, gate).passable,
 		"Real click reaches the external %s edge plate while Forecast is open" % dimensions)
 	await _commit_forecast(before, "external pressure gate %s" % dimensions)

@@ -62,8 +62,30 @@ func _test_aim() -> void:
 		return
 	var dose: Dictionary = rules.dose_forecast(opening, ACTOR, POTION)
 	_check(str(dose.description).length() > 90, "Fixture uses an extended reaction with an expiry clause")
+	if not await driver.select_actor(OTHER):
+		_check(false, driver.error)
+		return
+	var disclosure := scene.find_child("LockedDose", true, false) as Label
+	if not _check(disclosure != null and not disclosure.is_visible_in_tree(),
+			"A hero without a dose hides the dose disclosure"):
+		return
+	var geometry := board.get_global_rect()
 	if not await _aim(opening):
 		return
+	_check(disclosure.is_visible_in_tree() and str(dose.description) in disclosure.text
+		and board.get_global_rect().is_equal_approx(geometry),
+		"Aiming Potion shows the exact locked dose without moving or resizing the board")
+	var cancel := scene.find_child("CancelTargeting", true, false) as Button
+	if not _check(cancel != null and cancel.is_visible_in_tree() and not cancel.disabled,
+			"Potion offers a visible Cancel targeting action"):
+		return
+	await driver._click(cancel.get_global_rect().get_center())
+	_check(scene.get("_aimed_ability_id") == "" and board.get_global_rect().is_equal_approx(geometry),
+		"Canceling Potion aim does not move the board")
+	if not await _aim(opening):
+		return
+	_check(disclosure.is_visible_in_tree() and str(dose.description) in disclosure.text,
+		"Re-aiming Potion reveals the same rules-provided dose")
 	# Also fill the board inspection line, as when a player points at a legal recipient.
 	var recipient := _cell_center(_unit(opening, RECIPIENT).position)
 	_move_pointer(recipient)
@@ -168,13 +190,12 @@ func _isolate_reaction_ink() -> void:
 func _aim(opening: Dictionary) -> bool:
 	if not await driver.select_actor(ACTOR) or not await driver.action(POTION):
 		return _check(false, driver.error)
-	# Target-first: selecting the Mixologist marks every legal potion
-	# recipient; nothing is staged until a recipient cell is clicked.
 	var marks: Array = (board.get("_overlay") as Dictionary).get("targets", [])
-	return _check(_unit(opening, RECIPIENT).position in marks and _unit(opening, OTHER).position in marks
+	return _check(scene.get("_aimed_ability_id") == POTION
+		and _unit(opening, RECIPIENT).position in marks and _unit(opening, OTHER).position in marks
 		and (scene.get("_planned_state") as Dictionary).get("overrides", {}).is_empty()
 		and scene.battle_snapshot() == opening,
-		"Selected potion marks at least two recipients while no command is staged")
+		"Aimed Potion marks at least two recipients while no command is staged")
 
 
 func _stage_cosmetic(opening: Dictionary) -> bool:
@@ -182,10 +203,8 @@ func _stage_cosmetic(opening: Dictionary) -> bool:
 		return false
 	if not await driver.target(RECIPIENT):
 		return _check(false, driver.error)
-	# Clear the selection without discarding the stage, so the rings for
-	# legal targets cannot masquerade as a difference between forecast and
-	# actual. Escape retains the staged command.
-	await driver._press_escape()
+	# Escape returns to neutral but keeps the staged dose.
+	await _press_escape()
 	var planned: Dictionary = scene.get("_planned_state")
 	var plan: Dictionary = scene.get("_plan")
 	var target_cell: Vector2i = _unit(opening, RECIPIENT).position
@@ -195,9 +214,17 @@ func _stage_cosmetic(opening: Dictionary) -> bool:
 	var commit := scene.find_child("Commit", true, false) as BaseButton
 	if commit != null:
 		commit.grab_focus()
+	var overlay: Dictionary = board.get("_overlay")
+	# The draft's chosen-target ring persists even at neutral. Exclude only
+	# that unrelated ink so it cannot satisfy the forecast reaction pixel check.
+	if overlay.has("chosen_target"):
+		var isolated := overlay.duplicate(true)
+		isolated.erase("chosen_target")
+		board.set_render_state(board.get("_cells"), board.get("_units"), isolated)
+	var draft: Dictionary = planned.get("overrides", {}).get(ACTOR, {})
 	return _check(scene.battle_snapshot() == opening and plan.get("valid", false)
-		and planned.get("overrides", {}).get(ACTOR, {}).get("target_id") == RECIPIENT
-		and not target_cell in (board.get("_overlay") as Dictionary).get("targets", [])
+		and draft.get("ability_id") == POTION and draft.get("target_id") == RECIPIENT
+		and scene.get("_actor_id") == "" and overlay.get("targets", []).is_empty()
 		and reactions.size() == 1 and reactions[0].get("reaction_id") == COSMETIC
 		and reactions[0].get("category") == "cosmetic" and reactions[0].get("target_id") == RECIPIENT
 		and reactions[0].get("position") == target_cell,
@@ -343,6 +370,15 @@ func _move_pointer(point: Vector2) -> void:
 	event.position = point
 	event.global_position = point
 	viewport.push_input(event, true)
+
+
+func _press_escape() -> void:
+	for pressed in [true, false]:
+		var event := InputEventKey.new()
+		event.keycode = KEY_ESCAPE
+		event.pressed = pressed
+		viewport.push_input(event, true)
+		await process_frame
 
 
 func _unit(state: Dictionary, id: String) -> Dictionary:

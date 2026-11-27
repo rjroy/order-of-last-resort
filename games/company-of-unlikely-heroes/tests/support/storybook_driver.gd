@@ -1,9 +1,7 @@
 extends RefCounted
 
-## Shared driver for the target-first Direct Order controls: automatic
-## abilities stage from named footer buttons, targeted abilities stage from
-## real board clicks, and ambiguous cells pick from the floating choice
-## buttons. No menu access and no bare action/target signal emissions.
+## Shared driver for visible Direct Order abilities and real board input.
+## Buttons and hero choices are identified by their stable IDs, not labels.
 
 var tree: SceneTree
 var scene: Node
@@ -17,11 +15,8 @@ func _init(owner: SceneTree, game: Node) -> void:
 	scene = game
 
 
-## Selection follows the target-first rules: an already-selected hero needs
-## no click, and any other selection is cleared with Escape first so
-## friendly-target priority, the own-cell clear and the self-target
-## exception cannot capture the click. Escape never discards a staged
-## command.
+## Use the hero selector while aiming so a board click cannot become a target.
+## Otherwise select directly on the board.
 func select_actor(id: String) -> bool:
 	var board := scene.find_child("BridgeBoard", true, false) as Control
 	if board == null:
@@ -31,11 +26,22 @@ func select_actor(id: String) -> bool:
 		if unit.get("id") == id and unit.get("hp", 0) > 0:
 			if str(scene.get("_actor_id")) == id:
 				return true
-			var guard := 0
-			while not str(scene.get("_actor_id")).is_empty() and guard < 3:
-				await _press_escape()
-				guard += 1
+			var picker := scene.find_child("DirectOrderHero", true, false) as OptionButton
+			if picker != null and picker.is_visible_in_tree() and not picker.disabled:
+				for index in picker.item_count:
+					if str(picker.get_item_metadata(index)) == id and not picker.is_item_disabled(index):
+						picker.select(index)
+						picker.item_selected.emit(index)
+						await tree.process_frame
+						_pending_ability = ""
+						if str(scene.get("_actor_id")) == id:
+							return true
+						error = "Hero selector did not select " + id
+						return false
+			if not await _cancel_aim():
+				return false
 			await _click(board.get_global_transform_with_canvas() * board.cell_center(unit.position))
+			_pending_ability = ""
 			if str(scene.get("_actor_id")) == id:
 				return true
 			break
@@ -43,13 +49,7 @@ func select_actor(id: String) -> bool:
 	return false
 
 
-## Automatic and non-targeted abilities stage by pressing their named footer
-## button. Targeted abilities stage target-first from the board; `action`
-## only records which action a following `target` click must pick when
-## several share the clicked cell. Offer, form kind and usability come from
-## the same rules context the real controls render their rows from, so a
-## fitted conversion (Raise Dead → Play Dead) is non-targeted and stages
-## through the footer, while an unoffered or disabled action fails.
+## Operate the visible equipped ability, including its effective fitted form.
 func action(id: String) -> bool:
 	var form: Dictionary = _current_action(id)
 	if form.is_empty():
@@ -57,36 +57,64 @@ func action(id: String) -> bool:
 	if not form.enabled:
 		error = "%s is not currently usable" % id
 		return false
-	if not _is_selectable_kind(str(form.kind)):
-		_pending_ability = ""
-		return await _press_footer_button(id)
-	_pending_ability = id
+	if not await _press_ability_button(id):
+		return false
+	_pending_ability = id if _is_selectable_kind(str(form.kind)) else ""
+	if _pending_ability.is_empty():
+		var actor := str(scene.get("_actor_id"))
+		var override: Dictionary = scene.get("_planned_state").get("overrides", {}).get(actor, {})
+		if str(override.get("ability_id", "")) != id:
+			error = "Automatic ability did not stage: " + id
+			return false
 	return true
 
 
-## Stages a targeted action by clicking its target cell on the board; when
-## several actions or occupants share the cell, the named floating choice
-## button picks the wanted one, preserving per-target identity.
+## Click a legal target and resolve a same-ability occupant choice if needed.
 func target(id: String, ability := "") -> bool:
 	var board := scene.find_child("BridgeBoard", true, false) as Control
 	var wanted: String = ability if not ability.is_empty() else _pending_ability
-	_pending_ability = ""
+	if wanted.is_empty():
+		wanted = "move"
 	if board == null:
 		error = "Battle board unavailable"
 		return false
-	var position: Variant = _position_of(id)
-	if position == null:
-		error = "Cannot locate target " + id
+	var actor := str(scene.get("_actor_id"))
+	var form := _current_action(wanted)
+	if form.is_empty() or not form.enabled or not _is_selectable_kind(str(form.kind)):
+		error = "Targeted ability is unavailable: " + wanted
 		return false
+	var legal := false
+	var position: Variant = null
+	for choice: Dictionary in rules.targets(_action_context(actor), actor, wanted):
+		if str(choice.get("id", "")) == id:
+			legal = true
+			position = choice.get("position")
+			break
+	if not legal:
+		error = "Target %s is not legal for %s" % [id, wanted]
+		return false
+	if not position is Vector2i:
+		error = "Target %s has no valid board position" % id
+		return false
+	if wanted != "move" and str(scene.get("_aimed_ability_id")) != wanted:
+		if not await action(wanted):
+			return false
+	if wanted == "move" and not str(scene.get("_aimed_ability_id")).is_empty() \
+			and str(scene.get("_aimed_ability_id")) != "move":
+		if not await _cancel_aim():
+			return false
+	if wanted == "move" and str(scene.get("_aimed_ability_id")) != "move" \
+			and _living_commandable_at(id):
+		if not await action("move"):
+			return false
 	await _click(board.get_global_transform_with_canvas() * board.cell_center(position))
-	if not (scene.get("_storybook_ambiguous") as Array).is_empty():
-		if wanted.is_empty():
-			error = "Several actions share %s; pass the wanted ability" % id
-			return false
-		if not await _press_choice_button(wanted, id):
-			return false
+	var choice_button := _visible_button_with_metadata(&"target_id", id)
+	if choice_button != null:
+		choice_button.pressed.emit()
+		await tree.process_frame
+	_pending_ability = ""
 	var planned: Dictionary = scene.get("_planned_state")
-	var override: Dictionary = planned.get("overrides", {}).get(str(scene.get("_actor_id")), {})
+	var override: Dictionary = planned.get("overrides", {}).get(actor, {})
 	if str(override.get("target_id", "")) != id:
 		error = "Cannot stage target " + id
 		return false
@@ -122,10 +150,8 @@ func order(hero: String, id: String) -> bool:
 	return false
 
 
-## Stages one command through the public controls: safe selection, then the
-## automatic footer button for offered non-targeted forms, or the target
-## cell (plus the named floating choice when the cell is ambiguous) for
-## offered targeted forms. Unoffered or disabled actions fail.
+## Move normally uses the two-click board path. An occupied hero cell needs
+## explicit Move because an ordinary click selects that hero instead.
 func command(actor: String, ability: String, target_id := "") -> bool:
 	_pending_ability = ""
 	if not await select_actor(actor):
@@ -140,11 +166,18 @@ func command(actor: String, ability: String, target_id := "") -> bool:
 		if not target_id.is_empty():
 			error = "Automatic ability %s stages without a stored target" % ability
 			return false
-		if not await _press_footer_button(ability):
+		if not await action(ability):
 			return false
 	else:
 		if target_id.is_empty():
 			error = "Targeted ability %s needs a board target" % ability
+			return false
+		if ability == "move":
+			if not await _cancel_aim():
+				return false
+			if _living_commandable_at(target_id) and not await action(ability):
+				return false
+		elif not await action(ability):
 			return false
 		if not await target(target_id, ability):
 			return false
@@ -167,10 +200,7 @@ func _current_action(ability: String) -> Dictionary:
 	if actor.is_empty():
 		error = "No hero is selected for " + ability
 		return {}
-	var snapshot: Dictionary = scene.get("_state")
-	var planned: Dictionary = scene.get("_planned_state")
-	var context: Dictionary = rules.state_before_action(
-		planned if planned.get("overrides", {}).has(actor) else snapshot, actor)
+	var context := _action_context(actor)
 	var offered := false
 	for choice: Dictionary in rules.options(context, actor):
 		if choice.kind == "action" and choice.id == ability:
@@ -195,6 +225,13 @@ func _is_selectable_kind(kind: String) -> bool:
 	return kind == "cell" or kind == "entity"
 
 
+func _action_context(actor: String) -> Dictionary:
+	var snapshot: Dictionary = scene.get("_state")
+	var planned: Dictionary = scene.get("_planned_state")
+	return rules.state_before_action(
+		planned if planned.get("overrides", {}).has(actor) else snapshot, actor)
+
+
 func clear() -> bool:
 	var button := scene.find_child("ClearCommand", true, false) as BaseButton
 	if button == null or button.disabled or not button.is_visible_in_tree():
@@ -202,52 +239,58 @@ func clear() -> bool:
 		return false
 	button.pressed.emit()
 	await tree.process_frame
+	_pending_ability = ""
 	return true
 
 
-func _press_footer_button(ability: String) -> bool:
-	var rows: Array = scene.get("_storybook_page").get("_automatic_action_rows")
-	for row: Dictionary in rows:
-		if str(row.get("id")) == ability:
-			var button := _visible_button_with_text(str(row.get("label", "")))
-			if button == null:
-				error = "Footer button for %s is unavailable" % ability
-				return false
-			button.pressed.emit()
-			await tree.process_frame
-			return true
-	error = "No footer button for %s" % ability
-	return false
+func _press_ability_button(ability: String) -> bool:
+	var button := _visible_button_with_metadata(&"ability_id", ability)
+	if button == null:
+		error = "Visible ability button unavailable: " + ability
+		return false
+	button.pressed.emit()
+	await tree.process_frame
+	return true
 
 
-func _press_choice_button(ability: String, target_id: String) -> bool:
-	var rows: Array = scene.get("_storybook_page").get("_target_rows")
-	for row: Dictionary in rows:
-		if str(row.get("id")) == "%s::%s" % [ability, target_id]:
-			var button := _visible_button_with_text(str(row.get("label", "")))
-			if button == null:
-				error = "Floating choice for %s is unavailable" % str(row.get("label"))
-				return false
-			button.pressed.emit()
-			await tree.process_frame
-			return true
-	error = "Floating choice does not offer %s::%s" % [ability, target_id]
-	return false
+func _visible_button_with_metadata(key: StringName, id: String) -> Button:
+	return _visible_button_search(scene, key, id)
 
 
-func _visible_button_with_text(label: String) -> Button:
-	return _visible_button_search(scene, label)
-
-
-func _visible_button_search(node: Node, label: String) -> Button:
+func _visible_button_search(node: Node, key: StringName, id: String) -> Button:
 	if node is Button and (node as Button).is_visible_in_tree() and not (node as Button).disabled:
-		if str((node as Button).text) == label or str((node as Button).accessibility_name) == label:
+		if str(node.get_meta(key, "")) == id:
 			return node as Button
 	for child in node.get_children():
-		var found := _visible_button_search(child, label)
+		var found := _visible_button_search(child, key, id)
 		if found != null:
 			return found
 	return null
+
+
+func _cancel_aim() -> bool:
+	if str(scene.get("_aimed_ability_id")).is_empty():
+		return true
+	var cancel := scene.find_child("CancelTargeting", true, false) as BaseButton
+	if cancel == null or not cancel.is_visible_in_tree() or cancel.disabled:
+		error = "Cannot cancel active targeting"
+		return false
+	cancel.pressed.emit()
+	await tree.process_frame
+	_pending_ability = ""
+	return true
+
+
+func _living_commandable_at(id: String) -> bool:
+	var position: Variant = _position_of(id)
+	if position == null:
+		return false
+	var snapshot: Dictionary = scene.battle_snapshot()
+	for unit: Dictionary in snapshot.get("units", []):
+		if unit.get("hp", 0) > 0 and unit.get("position") == position \
+				and rules.has_capability(snapshot, str(unit.get("id", "")), "commandable"):
+			return true
+	return false
 
 
 func _position_of(id: String) -> Variant:
@@ -258,16 +301,6 @@ func _position_of(id: String) -> Variant:
 	if parts.size() == 2 and parts[0].is_valid_int() and parts[1].is_valid_int():
 		return Vector2i(int(parts[0]), int(parts[1]))
 	return null
-
-
-func _press_escape() -> void:
-	for pressed in [true, false]:
-		var event := InputEventKey.new()
-		event.keycode = KEY_ESCAPE
-		event.pressed = pressed
-		event.echo = false
-		scene.get_viewport().push_input(event, true)
-		await tree.process_frame
 
 
 func _click(point: Vector2) -> void:

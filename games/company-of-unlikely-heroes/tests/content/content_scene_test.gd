@@ -43,16 +43,19 @@ func _run() -> void:
 		"Escort objective displays the authored subject, position and relocated exit")
 	_check((board.get("_overlay") as Dictionary).get("exit") == Vector2i(6, 4),
 		"Board marks the relocated escort destination")
-	await _key(KEY_ESCAPE)
-	await _cell(Vector2i(2, 2))
-	_check(_has_action("Push") and not _has_action("Blast nearest"),
+	var driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
+	_check(await driver.select_actor("knight"), "Original knight is selectable: " + driver.error)
+	_check(_has_action("knight_push", "Push") and not _has_action("wizard_blast", "Blast nearest"),
 		"Original knight offers Push but not the other knight's Blast")
-	if await _action("Push"):
-		for target in [
-			{"cell": Vector2i(3, 2), "id": "crate", "name": "Supply crate"},
-			{"cell": Vector2i(2, 3), "id": "second_crate", "name": "Relic chest"},
-		]:
-			await _cell(target.cell)
+	for target in [
+		{"id": "crate", "name": "Supply crate"},
+		{"id": "second_crate", "name": "Relic chest"},
+	]:
+		var aimed: bool = await driver.action("knight_push")
+		_check(aimed, "Push is selectable for " + target.name + ": " + driver.error)
+		if aimed:
+			var selected: bool = await driver.target(target.id, "knight_push")
+			_check(selected, "Board accepts authored target " + target.name + ": " + driver.error)
 			var command: Dictionary = scene.get("_planned_state").get("overrides", {}).get("knight", {})
 			_check(command.get("ability_id") == "knight_push" and command.get("target_id") == target.id,
 				"Board selects authored target " + target.name)
@@ -62,11 +65,12 @@ func _run() -> void:
 	var clear := scene.find_child("ClearCommand", true, false) as BaseButton
 	if clear != null and clear.is_visible_in_tree() and not clear.disabled:
 		await _click(clear.get_global_rect().get_center())
-	await _key(KEY_ESCAPE)
-	await _cell(Vector2i(5, 3))
-	_check(_has_action("Blast nearest") and not _has_action("Push"),
+	_check(await driver.select_actor("second_knight"), "Second knight is selectable: " + driver.error)
+	_check(_has_action("wizard_blast", "Blast nearest") and not _has_action("knight_push", "Push"),
 		"Second knight offers authored Blast but not Push")
-	if await _action("Blast nearest"):
+	var blasted: bool = await driver.action("wizard_blast")
+	_check(blasted, "Blast is selectable: " + driver.error)
+	if blasted:
 		_check(scene.get("_planned_state").get("overrides", {}).get("second_knight", {}).get("ability_id") == "wizard_blast",
 			"Selecting Blast stages the second knight's authored ability")
 	if clear != null and not clear.disabled:
@@ -138,41 +142,10 @@ func _run_child() -> void:
 	_finish()
 
 
-func _cell(cell: Vector2i) -> void:
-	await _click(board.get_global_transform_with_canvas() * board.cell_center(cell))
-
-
-func _has_action(label: String) -> bool:
-	var pairs: Array = scene.call("_selected_action_pairs")
-	for pair in pairs:
-		var action_label: String = str(pair.get("label", ""))
-		if action_label.begins_with(label):
-			return true
-	var page: Control = scene.get("_storybook_page")
-	if is_instance_valid(page):
-		var rows: Array = page.get("_automatic_action_rows")
-		for row in rows:
-			if str(row.get("label", "")).begins_with(label) and bool(row.get("enabled", true)):
-				return true
-	return false
-
-
-func _action(label: String) -> bool:
-	if not _has_action(label):
-		_check(false, "Action is selectable: " + label)
-		return false
-	var button := _automatic_button(label)
-	if button != null and not button.disabled:
-		button.pressed.emit()
-		await process_frame
-	return true
-
-
-func _automatic_button(label: String) -> Button:
-	for candidate in scene.find_children("*", "Button", true, false):
-		if candidate is Button and str(candidate.text).begins_with(label):
-			return candidate as Button
-	return null
+func _has_action(id: String, label: String) -> bool:
+	var button := scene.find_child("DirectOrder_" + id, true, false) as Button
+	return button != null and button.is_visible_in_tree() and not button.disabled \
+		and str(button.get_meta("ability_id", "")) == id and button.text.begins_with(label)
 
 
 func _has_option(picker: OptionButton, label: String) -> bool:
@@ -192,15 +165,6 @@ func _select_option(picker: OptionButton, label: String) -> bool:
 				return true
 	_check(false, "Order is selectable: " + label)
 	return false
-
-
-func _key(code: Key) -> void:
-	for pressed in [true, false]:
-		var event := InputEventKey.new()
-		event.keycode = code
-		event.pressed = pressed
-		root.push_input(event, true)
-		await process_frame
 
 
 func _click(point: Vector2) -> void:

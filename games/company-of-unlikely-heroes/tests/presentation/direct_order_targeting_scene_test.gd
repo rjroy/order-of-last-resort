@@ -1,16 +1,7 @@
 extends SceneTree
 
 # Run: godot --headless --path games/company-of-unlikely-heroes --script res://tests/presentation/direct_order_targeting_scene_test.gd
-# Regression for the approved target-first Direct Order interaction: board
-# clicks stage targeted abilities immediately, ambiguous cells present a
-# target-anchored contextual choice with per-target identity that never
-# draws above an open leaf and takes keyboard focus directly, automatic
-# abilities are named footer buttons, selection marks the union of legal
-# targets, legal self targets stage instead of clearing, the locked dose
-# shows on selection, keyboard focus returns to the board after a choice,
-# the legacy Actions/Targets menus are gone, and clearing selection never
-# discards a staged command.
-# Every scenario launches a fresh main scene with its own fixture state.
+# Regression for explicit ability selection, independent drafts and real board input.
 var failures: Array[String] = []
 var scene: Node
 var rules
@@ -29,20 +20,15 @@ func _run() -> void:
 	# Instance methods (state_before_action, targets) need a rules instance;
 	# only static helpers such as open_mission work on the loaded script.
 	rules = load("res://rules/rules.gd").new()
-	await _scenario_unique_target_stages()
-	await _scenario_friendly_pull_priority()
-	await _scenario_non_targetable_switching()
-	await _scenario_clearing_retains_command()
-	await _scenario_unambiguous_move()
-	await _scenario_choice_and_edge_placement()
-	await _scenario_occupant_choice_identity()
-	await _scenario_leaf_hides_choice()
-	await _scenario_keyboard_choice_focus()
-	await _scenario_automatic_footer_action()
-	await _scenario_selection_marks_union()
-	await _scenario_choice_without_legacy_menus()
-	await _scenario_self_potion_priority()
-	await _scenario_locked_dose_on_selection()
+	await _scenario_selection_and_pull()
+	await _scenario_invalid_target()
+	await _scenario_move_and_cell_ability()
+	await _scenario_draft_and_cancel()
+	await _scenario_occupant_choice()
+	await _scenario_occupant_dismissal()
+	await _scenario_leaf_hides_occupant_choice()
+	await _scenario_alchemy()
+	await _scenario_empty_repeat_batch()
 	_finish()
 
 
@@ -63,445 +49,315 @@ func _launch(opening: Dictionary) -> bool:
 	return scene.current_screen() == "battle"
 
 
-# ---------------------------------------------------------------------
-# A unique legal target stages immediately without mutating committed state.
-# ---------------------------------------------------------------------
-func _scenario_unique_target_stages() -> void:
-	var opening := necromancer_state()
+# Each scenario starts with a fresh scene. Board clicks travel through the viewport.
+func _scenario_selection_and_pull() -> void:
+	var opening := wizard_state()
 	if not await _launch(opening):
-		_check(false, "The necromancer fixture launches into battle")
+		_check(false, "Wizard fixture launches")
 		return
-	await _click_cell(Vector2i(2, 2))
-	_check(scene.get("_actor_id") == "necromancer", "Clicking the necromancer selects it")
-	await _click_cell(Vector2i(4, 3))
-	var staged: Dictionary = _staged_override("necromancer")
-	_check(staged.get("ability_id") == "raise_dead",
-		"A unique corpse target stages Raise Dead immediately")
-	_check(staged.get("target_id") == "fallen_raider",
-		"The staged target is the corpse")
-	_check(scene.battle_snapshot() == opening,
-		"Staging does not mutate the committed battle state")
-
-
-# ---------------------------------------------------------------------
-# A legal friendly target stages Wizard Pull and keeps the actor selected.
-# ---------------------------------------------------------------------
-func _scenario_friendly_pull_priority() -> void:
-	if not await _launch(wizard_state()):
-		_check(false, "The wizard fixture launches into battle")
-		return
-	_check(scene.get("_actor_id") == "wizard", "The wizard is selected after launch")
-	await _click_cell(Vector2i(2, 2))
-	var staged: Dictionary = _staged_override("wizard")
-	_check(staged.get("ability_id") == "wizard_pull",
-		"A legal friendly target stages Wizard Pull instead of switching heroes")
-	_check(staged.get("target_id") == "healer",
-		"The staged friendly target is the healer")
-	_check(scene.get("_actor_id") == "wizard",
-		"Staging a friendly targeted action keeps the acting hero selected")
-
-
-# ---------------------------------------------------------------------
-# A friendly hero that is not a legal target switches selection.
-# ---------------------------------------------------------------------
-func _scenario_non_targetable_switching() -> void:
-	if not await _launch(wizard_state()):
-		_check(false, "The wizard fixture launches into battle")
-		return
-	await _press_escape()
-	_check(scene.get("_actor_id") == "", "Escape clears the initial selection")
-	await _click_cell(Vector2i(2, 2))
-	_check(scene.get("_actor_id") == "healer", "Clicking the healer selects it")
 	await _click_cell(Vector2i(1, 1))
-	_check(scene.get("_actor_id") == "wizard",
-		"A non-targetable friendly hero switches selection")
-
-
-# ---------------------------------------------------------------------
-# Selected-hero and Escape clearing retain a genuinely staged command.
-# ---------------------------------------------------------------------
-func _scenario_clearing_retains_command() -> void:
-	if not await _launch(necromancer_state()):
-		_check(false, "The necromancer fixture launches into battle")
+	_check(scene.get("_actor_id") == "wizard" and _staged_override("wizard").is_empty(),
+		"Clicking the selected hero retains selection without staging")
+	await _click_cell(Vector2i(2, 2))
+	_check(scene.get("_actor_id") == "healer" and _staged_override("wizard").is_empty(),
+		"Clicking an ally switches selection without Pull")
+	await _click_cell(Vector2i(1, 1))
+	if not await _press_ability(opening, "wizard", "wizard_pull"):
 		return
+	var board := _node("BridgeBoard") as Control
+	if board != null:
+		var marks: Array = (board.get("_overlay") as Dictionary).get("targets", [])
+		var context: Dictionary = rules.state_before_action(opening, "wizard")
+		var expected: Array = []
+		for target in rules.targets(context, "wizard", "wizard_pull"):
+			if target.position not in expected:
+				expected.append(target.position)
+		_check(marks.size() == expected.size() and marks.all(func(cell): return cell in expected),
+			"Aiming marks only legal Pull targets")
 	await _click_cell(Vector2i(2, 2))
-	await _click_cell(Vector2i(4, 3))
-	_check(_staged_override("necromancer").get("ability_id") == "raise_dead",
-		"Raise Dead is staged before the clearing checks")
-	var retained: Dictionary = scene.get("_planned_state").duplicate(true)
-	await _click_cell(Vector2i(2, 2))
-	_check(scene.get("_actor_id") == "", "Clicking the selected hero clears selection")
-	_check(scene.get("_planned_state") == retained,
-		"Clearing selection retains the staged command")
-	await _click_cell(Vector2i(2, 2))
-	_check(scene.get("_actor_id") == "necromancer", "Clicking the hero again reselects it")
-	await _press_escape()
-	_check(scene.get("_actor_id") == "", "Escape clears the current hero selection")
-	_check(scene.get("_planned_state") == retained,
-		"Escape retains an already staged command")
+	var staged := _staged_override("wizard")
+	_check(staged.get("ability_id") == "wizard_pull" and staged.get("target_id") == "healer",
+		"Choosing Pull then clicking the ally stages Pull on that ally")
+	_check(scene.battle_snapshot() == opening, "Staging Pull leaves committed state unchanged")
 
 
-# ---------------------------------------------------------------------
-# An unambiguous empty destination stages Move directly.
-# ---------------------------------------------------------------------
-func _scenario_unambiguous_move() -> void:
-	if not await _launch(necromancer_state()):
-		_check(false, "The necromancer fixture launches into battle")
+func _scenario_invalid_target() -> void:
+	var opening := wizard_state()
+	if not await _launch(opening):
+		_check(false, "Wizard fixture launches")
 		return
-	_check(scene.get("_actor_id") == "healer", "The healer is selected after launch")
-	await _click_cell(Vector2i(0, 1))
-	var staged: Dictionary = _staged_override("healer")
-	_check(staged.get("ability_id") == "move",
-		"An unambiguous empty destination stages Move immediately")
-	_check(staged.get("target_id") == "0,1", "The staged Move uses cell 0,1")
+	if not await _press_ability(opening, "wizard", "wizard_pull"):
+		return
+	await _click_cell(Vector2i(4, 4))
+	_check(_staged_override("wizard").is_empty(), "An invalid aim click does not stage another action")
 
 
-# ---------------------------------------------------------------------
-# Move and Summon compete on one edge cell: nothing stages before the
-# choice, each choice button stages its own action, and the open choice
-# presents accessible target-anchored buttons (plan step 3 placement).
-# ---------------------------------------------------------------------
-func _scenario_choice_and_edge_placement() -> void:
+func _scenario_move_and_cell_ability() -> void:
 	var opening := edge_state()
 	if not await _launch(opening):
-		_check(false, "The edge fixture launches into battle")
+		_check(false, "Edge fixture launches")
 		return
-	_check(scene.get("_actor_id") == "necromancer", "The necromancer is selected after launch")
-	# Guard the fixture: this cell must stay a legal edge target for both actions.
 	var context: Dictionary = rules.state_before_action(opening, "necromancer")
-	var move_legal: bool = rules.targets(context, "necromancer", "move").any(
-		func(choice: Dictionary) -> bool: return choice.position == EDGE_CELL)
-	var summon_legal: bool = rules.targets(context, "necromancer", "summon_skeleton").any(
-		func(choice: Dictionary) -> bool: return choice.position == EDGE_CELL)
-	_check(move_legal and summon_legal,
-		"Cell 6,1 is a legal Move and Summon destination on the board edge")
+	var move_legal: bool = rules.targets(context, "necromancer", "move").any(func(t): return t.position == EDGE_CELL)
+	var summon_legal: bool = rules.targets(context, "necromancer", "summon_skeleton").any(func(t): return t.position == EDGE_CELL)
+	_check(move_legal and summon_legal, "Edge fixture offers both Move and Summon on the destination")
 	if not move_legal or not summon_legal:
 		return
 	await _click_cell(EDGE_CELL)
-	_check(not scene.get("_planned_state").get("overrides", {}).has("necromancer"),
-		"An ambiguous cell stages no command while the choice is open")
-	if _find_button_containing("Summon") == null:
-		_check(false, "The Summon choice button is offered")
-	else:
-		await _press_choice_containing("Summon")
-	var summon_staged: Dictionary = _staged_override("necromancer")
-	_check(summon_staged.get("ability_id") == "summon_skeleton",
-		"Choosing Summon Skeleton from the cell choice stages that ability")
-	_check(summon_staged.get("target_id") == "6,1",
-		"Summon Skeleton targets the clicked edge cell")
+	_check(_staged_override("necromancer").get("ability_id") == "move",
+		"A normal click on a shared legal destination stages Move")
+	_check(scene.battle_snapshot() == opening, "Move preview does not resolve the round")
+	if not await _press_ability(opening, "necromancer", "summon_skeleton"):
+		return
 	await _click_cell(EDGE_CELL)
-	if _find_button_containing("Move") == null:
-		_check(false, "The Move choice button is offered")
-	else:
-		await _press_choice_containing("Move")
-	var move_staged: Dictionary = _staged_override("necromancer")
-	_check(move_staged.get("ability_id") == "move",
-		"Choosing Move from the same cell stages Move")
-	_check(move_staged.get("target_id") == "6,1", "Move targets the clicked edge cell")
-	# Re-open the choice to exercise where the buttons are placed.
-	await _click_cell(EDGE_CELL)
-	_check(scene.get("_actor_id") == "necromancer",
-		"The open choice keeps the selected hero")
-	_check(_find_button_containing("Move") != null and _find_button_containing("Summon") != null,
-		"Target-adjacent choice buttons are offered at the edge target")
-	_check_placement_for_button("Move")
-	_check_placement_for_button("Summon")
+	var staged := _staged_override("necromancer")
+	_check(staged.get("ability_id") == "summon_skeleton" and staged.get("target_id") == "6,1",
+		"Choosing Summon then clicking the same cell stages Summon")
 
 
-# ---------------------------------------------------------------------
-# Two raisable corpses share one cell: each choice button must name its
-# target so the pair stays distinguishable.
-# ---------------------------------------------------------------------
-func _scenario_occupant_choice_identity() -> void:
+func _scenario_draft_and_cancel() -> void:
+	var opening := wizard_state()
+	if not await _launch(opening):
+		_check(false, "Wizard fixture launches")
+		return
+	if not await _press_ability(opening, "wizard", "wizard_blast"):
+		return
+	_check(_staged_override("wizard").get("ability_id") == "wizard_blast", "Automatic Blast stages immediately")
+	var draft: Dictionary = scene.get("_planned_state").duplicate(true)
+	await _click_cell(Vector2i(2, 2))
+	_check(scene.get("_actor_id") == "healer" and scene.get("_planned_state") == draft,
+		"Switching heroes retains the draft")
+	var summary := scene.get("_storybook_page").get("_summary") as Label
+	_check(summary != null and summary.is_visible_in_tree() and rules.display_name(opening, "wizard") in summary.text,
+		"Draft summary remains visible and names its hero while inspecting another")
+	var draft_control := _node("DraftSummary") as Control
+	_check(draft_control != null and draft_control.is_visible_in_tree()
+		and draft_control.focus_mode == Control.FOCUS_ALL and not draft_control.accessibility_name.is_empty(),
+		"DraftSummary is visible, keyboard-focusable and has an accessible name")
+	if draft_control != null and summary != null:
+		_check(draft_control == summary or draft_control.is_ancestor_of(summary),
+			"DraftSummary contains the complete existing summary text")
+		if draft_control.is_visible_in_tree() and draft_control.focus_mode == Control.FOCUS_ALL:
+			draft_control.grab_focus()
+			await process_frame
+			_check(scene.get_viewport().gui_get_focus_owner() == draft_control,
+				"DraftSummary can receive keyboard focus")
+	await _click_cell(Vector2i(1, 1))
+	if not await _press_ability(opening, "wizard", "wizard_pull"):
+		return
+	_check(scene.get("_planned_state") == draft, "Entering aim retains the old draft")
+	_check_commit_blocked(opening, "aiming")
+	var cancel := _node("CancelTargeting") as Button
+	_check(cancel != null and cancel.is_visible_in_tree() and not cancel.disabled,
+		"CancelTargeting is visible and enabled while aiming")
+	if cancel == null or not cancel.is_visible_in_tree() or cancel.disabled:
+		return
+	cancel.pressed.emit()
+	await process_frame
+	_check(scene.get("_planned_state") == draft, "Cancel targeting retains the draft")
+	if not await _press_ability(opening, "wizard", "wizard_pull"):
+		return
+	await _press_escape()
+	_check(scene.get("_planned_state") == draft, "Escape from aiming retains the draft")
+	var clear := _node("ClearCommand") as Button
+	_check(clear != null and clear.is_visible_in_tree() and not clear.disabled, "Clear command is available")
+	if clear == null or clear.disabled:
+		return
+	clear.pressed.emit()
+	await process_frame
+	_check(scene.get("_actor_id") == "" and _staged_override("wizard").is_empty(),
+		"Clear command discards the draft and returns to neutral")
+	var board := _node("BridgeBoard") as Control
+	_check(board != null and scene.get_viewport().gui_get_focus_owner() == board,
+		"Clearing returns keyboard focus to the board")
+	if board != null and scene.get_viewport().gui_get_focus_owner() == board:
+		await _press_key(KEY_ENTER)
+		_check(scene.get("_actor_id") != "", "The board can select a hero by keyboard from neutral")
+		var clear_selection := _node("ClearCommand") as Button
+		_check(clear_selection != null and not clear_selection.disabled, "Clear selection is available without a draft")
+		if clear_selection != null and not clear_selection.disabled:
+			clear_selection.pressed.emit()
+			await process_frame
+			_check(scene.get("_actor_id") == "" and scene.get_viewport().gui_get_focus_owner() == board,
+				"Clear selection returns to keyboard-usable neutral")
+
+
+func _scenario_occupant_choice() -> void:
 	var opening := occupant_state()
 	if not await _launch(opening):
-		_check(false, "The occupant fixture launches into battle")
+		_check(false, "Occupant fixture launches")
 		return
-	_check(scene.get("_actor_id") == "necromancer", "The necromancer is selected after launch")
+	var context: Dictionary = rules.state_before_action(opening, "necromancer")
+	var moves: Array = rules.targets(context, "necromancer", "move")
+	_check(not moves.is_empty(), "Occupant fixture has a legal move for an existing draft")
+	if moves.is_empty():
+		return
+	await _click_cell(moves[0].position)
+	var draft: Dictionary = scene.get("_planned_state").duplicate(true)
+	_check(_staged_override("necromancer").get("ability_id") == "move", "Move draft is staged before occupant choice")
+	if not await _press_ability(opening, "necromancer", "raise_dead"):
+		return
 	await _click_cell(Vector2i(4, 3))
 	var first_name: String = rules.display_name(opening, "fallen_raider")
 	var second_name: String = rules.display_name(opening, "sunken_raider")
-	var first_button := _find_button_containing(first_name)
-	var second_button := _find_button_containing(second_name)
-	_check(first_button != null, "The fallen raider choice names its corpse")
-	_check(second_button != null, "The sunken raider choice names its corpse")
-	if first_button == null or second_button == null:
+	var first := _visible_button_containing(first_name)
+	var second := _visible_button_containing(second_name)
+	_check(first != null and second != null and first != second, "Stacked corpses have distinct visible choices")
+	_check(scene.get("_planned_state") == draft, "Occupant choice retains the existing draft")
+	_check_commit_blocked(opening, "occupant choice")
+	if first == null or second == null or first == second:
 		return
-	_check(str(first_button.text) != str(second_button.text),
-		"Two corpses on one cell offer distinguishable choices")
-	_check(first_name in str(first_button.accessibility_name),
-		"The corpse choice accessible name carries the fallen raider identity")
-	_check(second_name in str(second_button.accessibility_name),
-		"The corpse choice accessible name carries the sunken raider identity")
-	first_button.pressed.emit()
-	await process_frame
-	var staged: Dictionary = _staged_override("necromancer")
-	_check(staged.get("ability_id") == "raise_dead" and staged.get("target_id") == "fallen_raider",
-		"Pressing a named corpse choice stages that corpse")
-	var board := scene.find_child("BridgeBoard", true, false) as Control
-	if board == null:
-		_check(false, "The bridge board is available for the chosen-target checks")
-		return
-	var overlay: Dictionary = board.get("_overlay")
-	_check(overlay.get("chosen_target") == Vector2i(4, 3),
-		"Staging the first corpse marks the shared cell as the chosen target")
-	# The position-deduplicated marks must not lose the chosen-target marker
-	# when the staged occupant is not the pair kept for the shared cell.
-	await _click_cell(Vector2i(4, 3))
-	var later_button := _find_button_containing(second_name)
-	if later_button == null:
-		_check(false, "The sunken raider choice is offered again for restaging")
-		return
-	later_button.pressed.emit()
-	await process_frame
-	var restaged: Dictionary = _staged_override("necromancer")
-	_check(restaged.get("ability_id") == "raise_dead" and restaged.get("target_id") == "sunken_raider",
-		"Pressing the other named corpse choice restages that corpse")
-	overlay = board.get("_overlay")
-	_check(overlay.get("chosen_target") == Vector2i(4, 3),
-		"Staging the non-first occupant keeps the shared cell marked as the chosen target")
-
-
-# ---------------------------------------------------------------------
-# The floating choice must not stay drawn above an open Forecast or
-# Standing orders leaf.
-# ---------------------------------------------------------------------
-func _scenario_leaf_hides_choice() -> void:
-	if not await _launch(edge_state()):
-		_check(false, "The edge fixture launches into battle")
-		return
-	await _click_cell(EDGE_CELL)
-	var summon := _find_button_containing("Summon")
-	_check(summon != null and summon.is_visible_in_tree(),
-		"The floating choice is visible before a leaf opens")
-	var forecast := _find_button_containing("Forecast")
-	if forecast == null:
-		_check(false, "The Forecast control is available")
-		return
-	forecast.pressed.emit()
-	await process_frame
-	summon = _find_button_containing("Summon")
-	_check(summon == null or not summon.is_visible_in_tree(),
-		"Opening the forecast leaf hides the floating choice")
-	forecast.pressed.emit()
-	await process_frame
-	var orders := _find_button_containing("Standing orders")
-	if orders == null:
-		_check(false, "The Standing orders control is available")
-		return
-	orders.pressed.emit()
-	await process_frame
-	summon = _find_button_containing("Summon")
-	_check(summon == null or not summon.is_visible_in_tree(),
-		"Opening the standing orders leaf hides the floating choice")
-	orders.pressed.emit()
-	await process_frame
-
-
-# ---------------------------------------------------------------------
-# Keyboard flow: Enter on an ambiguous cell opens the choice with focus
-# moved directly onto a choice button, so Enter can select without
-# tabbing through the footer.
-# ---------------------------------------------------------------------
-func _scenario_keyboard_choice_focus() -> void:
-	if not await _launch(edge_state()):
-		_check(false, "The edge fixture launches into battle")
-		return
-	_check(scene.get("_actor_id") == "necromancer", "The necromancer is selected after launch")
-	var board := scene.find_child("BridgeBoard", true, false) as Control
-	if board == null:
-		_check(false, "The bridge board is available for keyboard navigation")
-		return
-	board.grab_focus()
-	await process_frame
-	_check(scene.get_viewport().gui_get_focus_owner() == board,
-		"The battle board holds keyboard focus")
-	await _press_key(KEY_UP)
-	_check(scene.get("_storybook_focus_cell") == Vector2i(6, 1),
-		"Arrow keys move the board cursor to the choice cell")
-	await _press_key(KEY_ENTER)
-	_check(_find_button_containing("Move") != null and _find_button_containing("Summon") != null,
-		"Enter on the ambiguous cell opens the choice")
+	_check(first_name in first.accessibility_name and second_name in second.accessibility_name,
+		"Corpse choice accessible names identify their occupants")
+	var viewport_rect := Rect2(Vector2.ZERO, scene.get_viewport().get_visible_rect().size)
+	_check(viewport_rect.encloses(first.get_global_rect()) and viewport_rect.encloses(second.get_global_rect()),
+		"Occupant choices stay inside the viewport")
 	var focus := scene.get_viewport().gui_get_focus_owner()
-	var focused_text := ""
-	if focus is Button:
-		focused_text = str((focus as Button).text)
-	_check("Move" in focused_text or "Summon" in focused_text,
-		"Opening a choice through the keyboard moves focus directly to a choice button")
-	if focused_text.is_empty():
-		return
-	var expected: String = "summon_skeleton" if "Summon" in focused_text else "move"
-	await _press_key(KEY_ENTER)
-	var staged: Dictionary = _staged_override("necromancer")
-	_check(staged.get("ability_id") == expected,
-		"Enter selects the focused choice without tabbing through the footer")
-	# The choice closes; focus must return to the board so keyboard play
-	# continues without reaching for the pointer.
-	if scene.get_viewport().gui_get_focus_owner() != board:
-		_check(false, "Focus returns to the board after the choice stages")
-		return
-	_check(scene.get("_storybook_focus_cell") == EDGE_ACTOR_CELL,
-		"The board cursor restarts on the selected hero when focus returns")
-	await _press_key(KEY_UP)
-	_check(scene.get("_storybook_focus_cell") == EDGE_CELL,
-		"Arrow keys still move the board cursor after the choice closes")
-	await _press_key(KEY_DOWN)
-	await _press_key(KEY_ENTER)
-	_check(scene.get("_actor_id") == "",
-		"Enter on the selected hero clears the selection after a choice")
-
-
-# ---------------------------------------------------------------------
-# Automatic abilities are visible named footer buttons and stage directly;
-# targeted abilities are not footer actions and the old Actions menu is
-# removed.
-# ---------------------------------------------------------------------
-func _scenario_automatic_footer_action() -> void:
-	if not await _launch(wizard_state()):
-		_check(false, "The wizard fixture launches into battle")
-		return
-	_check(scene.get("_actor_id") == "wizard", "The wizard is selected after launch")
-	_check(_node("Actions") == null, "The old Actions menu is removed")
-	var blast := _visible_button_containing("Blast nearest")
-	_check(blast != null, "Selecting the Wizard shows a named footer button for the automatic Blast")
-	_check(_visible_button_containing("Pull and recoil") == null,
-		"The targeted Pull is not a footer action")
-	_check(_visible_button_containing("Move one tile") == null,
-		"The targeted Move is not a footer action")
-	if blast == null:
-		return
-	blast.pressed.emit()
+	_check(focus == first or focus == second, "Occupant choice receives keyboard focus")
+	second.pressed.emit()
 	await process_frame
-	var staged: Dictionary = _staged_override("wizard")
-	_check(staged.get("ability_id") == "wizard_blast" and staged.get("target_id", "") == "",
-		"The automatic footer button stages Blast directly without a target")
+	var staged := _staged_override("necromancer")
+	_check(staged.get("ability_id") == "raise_dead" and staged.get("target_id") == "sunken_raider",
+		"Choosing the second corpse stages its identity")
+	var board := _node("BridgeBoard") as Control
+	_check(board != null and (board.get("_overlay") as Dictionary).get("chosen_target") == Vector2i(4, 3),
+		"The shared cell remains marked for the chosen occupant")
+	_check(board != null and scene.get_viewport().gui_get_focus_owner() == board,
+		"Focus returns to the board after occupant choice")
 
 
-# ---------------------------------------------------------------------
-# Selecting a hero marks the union of legal targets across all targeted
-# actions; clearing the selection removes those marks.
-# ---------------------------------------------------------------------
-func _scenario_selection_marks_union() -> void:
-	if not await _launch(wizard_state()):
-		_check(false, "The wizard fixture launches into battle")
+func _scenario_occupant_dismissal() -> void:
+	var opening := occupant_state()
+	if not await _launch(opening):
+		_check(false, "Occupant fixture launches")
 		return
-	_check(scene.get("_actor_id") == "wizard", "The wizard is selected after launch")
-	var board := scene.find_child("BridgeBoard", true, false) as Control
-	if board == null:
-		_check(false, "The bridge board is available for mark checks")
+	if not await _press_ability(opening, "necromancer", "raise_dead"):
 		return
-	var marks: Array = (board.get("_overlay") as Dictionary).get("targets", [])
-	_check(Vector2i(2, 2) in marks, "Wizard selection marks the legal Pull target")
-	_check(Vector2i(0, 1) in marks, "Wizard selection also marks legal Move destinations")
-	_check(not (Vector2i(4, 4) in marks), "A cell outside every targeted action stays unmarked")
-	await _click_cell(Vector2i(1, 1))
-	_check(scene.get("_actor_id") == "", "Clicking the selected hero clears selection")
-	if Vector2i(2, 2) in marks:
-		var cleared_marks: Array = (board.get("_overlay") as Dictionary).get("targets", [])
-		_check(cleared_marks.is_empty(), "Clearing the selection removes the legal-target marks")
-
-
-# ---------------------------------------------------------------------
-# When a contextual choice opens, only the floating accessible choice
-# surface is offered: the legacy Actions and Targets menus are gone.
-# ---------------------------------------------------------------------
-func _scenario_choice_without_legacy_menus() -> void:
-	if not await _launch(edge_state()):
-		_check(false, "The edge fixture launches into battle")
+	await _click_cell(Vector2i(4, 3))
+	var first_name: String = rules.display_name(opening, "fallen_raider")
+	var choice := _visible_button_containing(first_name)
+	_check(choice != null, "Corpse choice appears before dismissal")
+	await _press_escape()
+	_check(_visible_button_containing(first_name) == null, "Escape dismisses the occupant choice")
+	_check(_staged_override("necromancer").is_empty(), "Dismissing the choice stages nothing")
+	var board := _node("BridgeBoard") as Control
+	_check(board != null and scene.get_viewport().gui_get_focus_owner() != null,
+		"Dismissing the choice leaves keyboard focus")
+	# Re-enter aiming rather than relying on whether Escape returned to aiming or selection.
+	if not await _press_ability(opening, "necromancer", "raise_dead"):
 		return
-	await _click_cell(EDGE_CELL)
-	_check(_find_button_containing("Move") != null and _find_button_containing("Summon") != null,
-		"The floating choice surface is offered")
-	_check(_node("Actions") == null, "The old Actions menu is removed")
-	var targets_menu := _node("Targets") as Control
-	_check(targets_menu == null or not targets_menu.is_visible_in_tree(),
-		"An open choice uses only the floating surface, not the legacy Targets menu")
-
-
-# ---------------------------------------------------------------------
-# Self-target priority: a fresh Alchemist's own cell is a legal potion
-# target, so clicking it stages the self potion instead of clearing the
-# selection. Heroes without a legal self target keep the own-cell clear.
-# ---------------------------------------------------------------------
-func _scenario_self_potion_priority() -> void:
-	if not await _launch(alchemist_state()):
-		_check(false, "The alchemist fixture launches into battle")
+	await _click_cell(Vector2i(4, 3))
+	choice = _visible_button_containing(first_name)
+	if choice == null:
+		_check(false, "First corpse can be chosen after dismissal")
 		return
-	_check(scene.get("_actor_id") == "alchemist", "The alchemist is selected after launch")
-	var board := scene.find_child("BridgeBoard", true, false) as Control
-	if board == null:
-		_check(false, "The bridge board is available for the self-potion checks")
+	choice.pressed.emit()
+	await process_frame
+	_check(_staged_override("necromancer").get("target_id") == "fallen_raider",
+		"Choosing the first corpse stages its own identity")
+
+
+func _scenario_leaf_hides_occupant_choice() -> void:
+	var opening := occupant_state()
+	if not await _launch(opening):
+		_check(false, "Occupant fixture launches")
 		return
-	var marks: Array = (board.get("_overlay") as Dictionary).get("targets", [])
-	_check(Vector2i(2, 2) in marks,
-		"The alchemist's own cell is marked as a legal potion target")
-	await _click_cell(Vector2i(2, 2))
-	var staged: Dictionary = _staged_override("alchemist")
-	_check(staged.get("ability_id") == "alchemist_potion",
-		"Clicking the selected hero's own cell stages its legal self potion")
-	_check(staged.get("target_id") == "alchemist",
-		"The self potion targets the Alchemist herself")
-	_check(scene.get("_actor_id") == "alchemist",
-		"Staging the self potion retains the Alchemist's selection")
+	if not await _press_ability(opening, "necromancer", "raise_dead"):
+		return
+	await _click_cell(Vector2i(4, 3))
+	var name: String = rules.display_name(opening, "fallen_raider")
+	_check(_visible_button_containing(name) != null, "Occupant choice is visible before opening a leaf")
+	var forecast := _visible_button_containing("Forecast")
+	if forecast == null:
+		_check(false, "Forecast control is available")
+		return
+	forecast.pressed.emit()
+	await process_frame
+	_check(_visible_button_containing(name) == null, "Opening Forecast hides occupant choices")
+	forecast.pressed.emit()
+	await process_frame
+	var orders := _visible_button_containing("Standing orders")
+	if orders == null:
+		_check(false, "Standing orders control is available")
+		return
+	orders.pressed.emit()
+	await process_frame
+	_check(_visible_button_containing(name) == null, "Opening Standing orders hides occupant choices")
 
 
-# ---------------------------------------------------------------------
-# Target-first locked dose: selecting a hero with a dose ability shows the
-# locked dose disclosure before any target is chosen; clearing the
-# selection hides it again.
-# ---------------------------------------------------------------------
-func _scenario_locked_dose_on_selection() -> void:
+func _scenario_alchemy() -> void:
 	var opening := alchemist_state()
 	if not await _launch(opening):
-		_check(false, "The alchemist fixture launches into battle")
+		_check(false, "Alchemist fixture launches")
 		return
-	_check(scene.get("_actor_id") == "alchemist", "The alchemist is selected after launch")
-	# The dose expectation comes from the rules on this exact fixture state,
-	# never from a hardcoded recipe or draw.
-	var context: Dictionary = rules.state_before_action(opening, "alchemist")
-	var dose_descriptions: Array = []
-	for choice in rules.options(opening, "alchemist"):
-		if choice.kind != "action":
-			continue
-		var dose: Dictionary = rules.dose_forecast(context, "alchemist", choice.id)
-		if not dose.is_empty():
-			dose_descriptions.append(str(dose.get("description", "")))
-	if dose_descriptions.is_empty():
-		_check(false, "The alchemist fixture has a legal dose ability")
-		return
+	var board := _node("BridgeBoard") as Control
 	var disclosure := _node("LockedDose") as Label
-	if disclosure == null:
-		_check(false, "The locked dose disclosure is available")
+	if board == null or disclosure == null:
+		_check(false, "Board and locked dose disclosure exist")
 		return
-	_check(disclosure.is_visible_in_tree(),
-		"Selecting the Alchemist shows the locked dose before a target is chosen")
-	if not disclosure.is_visible_in_tree():
-		return
-	var shown := false
-	for description in dose_descriptions:
-		if not str(description).is_empty() and str(description) in disclosure.text:
-			shown = true
-	_check(shown, "The locked dose shows the current rules-provided dose")
-	# Staging a targeted dose command must not leave the summary suppressed:
-	# the dose disclosure may hide or stay, but the normal command preview
-	# remains visible and describes the staged action and target.
+	var geometry := board.get_global_rect()
+	var context: Dictionary = rules.state_before_action(opening, "alchemist")
+	var dose: Dictionary = rules.dose_forecast(context, "alchemist", "alchemist_potion")
+	_check(not dose.is_empty() and disclosure.is_visible_in_tree() and str(dose.get("description", "")) in disclosure.text,
+		"Rules-provided dose is visible before choosing a recipient")
 	await _click_cell(Vector2i(2, 2))
-	var staged_dose: Dictionary = _staged_override("alchemist")
-	_check(staged_dose.get("ability_id") == "alchemist_potion" and staged_dose.get("target_id") == "alchemist",
-		"Staging the targeted self potion keeps a staged dose command")
-	var summary := scene.get("_storybook_page").get("_summary") as Label
-	if staged_dose.get("ability_id") != "alchemist_potion" or summary == null:
-		_check(false, "The command summary is available after a staged dose command")
+	_check(scene.get("_actor_id") == "alchemist" and _staged_override("alchemist").is_empty(),
+		"Clicking self outside aim retains selection and does not stage potion")
+	if not await _press_ability(opening, "alchemist", "alchemist_potion"):
 		return
-	_check(summary.is_visible_in_tree(),
-		"The command summary stays visible after staging a targeted dose command")
-	if summary.is_visible_in_tree():
-		var action_label: String = str(rules.command_ability(context, "alchemist", "alchemist_potion").get("label", ""))
-		_check(action_label in summary.text and rules.display_name(opening, "alchemist") in summary.text,
-			"The command summary describes the staged dose action and target")
-	await _press_escape()
-	_check(not disclosure.is_visible_in_tree(),
-		"Clearing the selection hides the locked dose disclosure")
+	await _click_cell(Vector2i(2, 2))
+	var staged := _staged_override("alchemist")
+	_check(staged.get("ability_id") == "alchemist_potion" and staged.get("target_id") == "alchemist",
+		"Choosing potion then clicking self stages a self potion")
+	_check(scene.battle_snapshot() == opening, "Potion preview leaves committed state unchanged")
+	var summary := scene.get("_storybook_page").get("_summary") as Label
+	var label: String = rules.command_ability(context, "alchemist", "alchemist_potion").get("label", "")
+	_check(summary != null and summary.is_visible_in_tree() and not label.is_empty() and label in summary.text
+		and rules.display_name(opening, "alchemist") in summary.text,
+		"Visible draft names the potion and recipient")
+	await _click_cell(Vector2i(1, 2))
+	_check(scene.get("_actor_id") == "healer" and not disclosure.is_visible_in_tree(), "Switching heroes hides the dose")
+	_check(summary != null and summary.is_visible_in_tree() and label in summary.text,
+		"Potion draft remains visible when dose hides")
+	_check(board.get_global_rect().is_equal_approx(geometry), "Hiding dose does not move or resize the board")
+	await _click_cell(Vector2i(2, 2))
+	_check(disclosure.is_visible_in_tree() and board.get_global_rect().is_equal_approx(geometry),
+		"Showing dose again does not move or resize the board")
+
+
+func _scenario_empty_repeat_batch() -> void:
+	var opening := alchemist_state()
+	for unit: Dictionary in opening.units:
+		if unit.id == "alchemist":
+			unit["upgrades"] = {"alchemist_keep_the_culture": 1}
+			break
+	if not await _launch(opening):
+		_check(false, "Upgraded alchemist fixture launches")
+		return
+	var button := _node("DirectOrder_alchemist_repeat_batch") as Button
+	_check(button != null and button.is_visible_in_tree() and button.disabled,
+		"Repeat Batch is visible and disabled with an empty bottle")
+	if button != null:
+		_check("empty bottle" in (button.tooltip_text + " " + button.accessibility_description).to_lower(),
+			"Repeat Batch explains the empty bottle")
+
+
+func _check_commit_blocked(opening: Dictionary, phase: String) -> void:
+	var commit := _node("Commit") as Button
+	_check(commit != null and commit.disabled, "Commit is disabled during " + phase)
+	_check(scene.battle_snapshot() == opening, "The round stays unresolved during " + phase)
+
+
+func _press_ability(opening: Dictionary, actor: String, ability: String) -> bool:
+	var context: Dictionary = rules.state_before_action(opening, actor)
+	var label: String = rules.command_ability(context, actor, ability).get("label", "")
+	var button := _visible_button_containing(label) if not label.is_empty() else null
+	_check(button != null and not button.disabled, "Visible enabled ability button: " + ability)
+	if button == null or button.disabled:
+		return false
+	button.pressed.emit()
+	await process_frame
+	return true
 
 
 func _visible_button_containing(needle: String) -> Button:
@@ -519,41 +375,6 @@ func _visible_button_recursive(node: Node, needle: String) -> Button:
 		if found != null:
 			return found
 	return null
-
-
-func _check_placement_for_button(needle: String) -> void:
-	var button := _find_button_containing(needle)
-	if button == null:
-		_check(false, "The %s choice button is offered at the edge target" % needle)
-		return
-	var board := scene.find_child("BridgeBoard", true, false) as Control
-	if board == null:
-		_check(false, "The bridge board is available for placement checks")
-		return
-	var accessible := str(button.accessibility_name)
-	_check(needle.to_lower() in accessible.to_lower(),
-		"The %s choice button has an accessible name" % needle)
-	var rect: Rect2 = button.get_global_rect()
-	var target_center: Vector2 = board.get_global_transform_with_canvas() * board.cell_center(EDGE_CELL)
-	var selected_center: Vector2 = board.get_global_transform_with_canvas() * board.cell_center(EDGE_ACTOR_CELL)
-	var viewport_rect := Rect2(Vector2.ZERO, scene.get_viewport().get_visible_rect().size)
-	_check(viewport_rect.encloses(rect), "The %s choice button stays inside the viewport" % needle)
-	_check(rect.position.y < _footer_top(),
-		"The %s choice button is beside the board, not in the footer" % needle)
-	var cell_span: float = board.cell_center(Vector2i(1, 0)).distance_to(board.cell_center(Vector2i(0, 0)))
-	_check(rect.get_center().distance_to(target_center) <= cell_span * 2.5,
-		"The %s choice button sits beside the clicked target" % needle)
-	_check(not rect.has_point(target_center),
-		"The %s choice button does not cover the target" % needle)
-	_check(not rect.has_point(selected_center),
-		"The %s choice button does not cover the selected hero" % needle)
-
-
-func _footer_top() -> float:
-	var clear := scene.find_child("ClearCommand", true, false) as Control
-	if clear == null:
-		return 10000.0
-	return clear.get_global_rect().position.y
 
 
 func _node(name: String) -> Node:
@@ -643,6 +464,7 @@ static func alchemist_state() -> Dictionary:
 	var defs := _catalog_defs()
 	defs.encounters.direct_order_alchemist_encounter = {"board": "road", "seed": 2, "placements": [
 		{"id": "alchemist", "character": "alchemist", "at": [2, 2]},
+		{"id": "healer", "character": "healer", "at": [1, 2]},
 		{"id": "practice_raider", "character": "practice_raider", "at": [3, 1]},
 	]}
 	defs.missions.direct_order_alchemist_mission = defs.missions.shield_wall.duplicate(true)
@@ -688,32 +510,6 @@ func _press_key(keycode: Key) -> void:
 
 func _press_escape() -> void:
 	await _press_key(KEY_ESCAPE)
-
-
-func _press_choice_containing(needle: String) -> void:
-	var button := _find_button_containing(needle)
-	if button == null:
-		_check(false, "The %s choice button is available" % needle)
-		return
-	button.pressed.emit()
-	await process_frame
-
-
-func _find_button_containing(needle: String) -> Button:
-	return _find_button_recursive(scene, needle)
-
-
-func _find_button_recursive(node: Node, needle: String) -> Button:
-	if node is Button:
-		var text := str((node as Button).text)
-		var accessible := str((node as Button).accessibility_name)
-		if needle.to_lower() in text.to_lower() or needle.to_lower() in accessible.to_lower():
-			return node as Button
-	for child in node.get_children():
-		var found := _find_button_recursive(child, needle)
-		if found != null:
-			return found
-	return null
 
 
 func _check(condition: bool, message: String) -> void:

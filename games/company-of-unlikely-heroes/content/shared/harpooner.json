@@ -15,7 +15,7 @@
       "help": "Attack an adjacent target.",
       "handler": "attack",
       "params": {
-        "damage": 3,
+        "damage": 2,
         "source_suffix": ""
       },
       "targeting": {
@@ -32,7 +32,7 @@
       "help": "Strike a target up to two tiles away.",
       "handler": "attack",
       "params": {
-        "damage": 3,
+        "damage": 2,
         "source_suffix": "'s harpoon"
       },
       "targeting": {

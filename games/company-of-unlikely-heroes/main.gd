@@ -2187,6 +2187,9 @@ func _refresh_board() -> void:
 			"prone": unit.hp <= 0 or _rules.knocked_down(_state, unit.id),
 			"guarded": _rules.has_status_handler(_state, unit.id, "reflect"),
 			"shield_away": shield_cell is Vector2i, "shield_cell": shield_cell}
+		var pursuit := _rules.pursuit_target(_state, unit.id)
+		if not pursuit.is_empty():
+			figure["pursuit_target"] = {"id": pursuit.id, "label": _rules.display_name(_state, pursuit.id)}
 		var tactics := {}
 		for status: String in BridgeArt.TACTICAL_STATUSES:
 			if unit.get("statuses", {}).has(status):

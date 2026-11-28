@@ -40,7 +40,7 @@
       "help": "Deals 3 damage to a hero or summon within 3 tiles.",
       "handler": "attack",
       "params": {
-        "damage": 3,
+        "damage": 2,
         "source_suffix": "'s arrow"
       },
       "targeting": {

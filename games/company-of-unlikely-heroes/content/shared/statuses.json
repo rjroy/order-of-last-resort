@@ -28,7 +28,7 @@
       "expiry": "actor_turn_start",
       "params": {
         "range": 1,
-        "max_reflect_damage_per_round": 4,
+        "max_reflect_damage_per_round": 2,
         "teams": [
           "enemies"
         ],

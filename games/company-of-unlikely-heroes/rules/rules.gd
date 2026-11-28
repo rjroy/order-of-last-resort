@@ -75,6 +75,12 @@ func nominated_target(state: Dictionary, unit_id: String) -> String:
 	return Summons.nominated_target(state, Board.entity(state, unit_id)).get("id", "")
 
 
+## The live grudge, not a prediction of the actor's next action.
+func pursuit_target(state: Dictionary, unit_id: String) -> Dictionary:
+	var actor := Board.entity(state, unit_id)
+	return Behaviors.last_damager(state, actor) if Board.alive(actor) else {}
+
+
 func mission_definition(state: Dictionary) -> Dictionary:
 	return definitions(state).missions[state.mission_id]
 

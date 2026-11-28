@@ -225,6 +225,7 @@ func set_pressure_gate_prop_installed(installed: bool) -> void:
 ## An absent cell is scenery only. The canvas emits input for supplied cells; it never authorizes moves.
 ## units: {id, art_key, cell, hp, max_hp, prone}; optional facing (-1 left, 1 right),
 ## cast_key, guarded, shield_away, shield_cell, tactical_statuses, objective, variant, label and color.
+## pursuit_target: {id: String, label: String}, supplied only for a living tracked target.
 ## overlay: selected/chosen_target/commanded (Vector2i), targets/impact/threat (arrays of Vector2i),
 ## paths (each an array of Vector2i), exit (Vector2i), safe (a set of Vector2i),
 ## objective_zone (array of [x, y] pairs or Vector2i), obstacles (id, art_key, position, hp, max_hp,
@@ -1971,7 +1972,10 @@ func _draw_unit_nameplate(unit: Dictionary) -> void:
 			label = label.left(8) + "…"
 		width = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
 	_at(_tile_origin(unit.cell))
-	_caption(label, Vector2(49.0 + width * 0.5, 78), Color.from_string(unit.get("color", ""), PARCHMENT), 13)
+	# Give the tactical caption the line nearest the figure when both are present.
+	var baseline := 89.0 if unit.has("pursuit_target") else 78.0
+	_caption(label, Vector2(49.0 + width * 0.5, baseline),
+		Color.from_string(unit.get("color", ""), PARCHMENT), 13)
 
 
 func _draw_unit_marker(unit: Dictionary) -> void:
@@ -1986,11 +1990,36 @@ func _draw_unit_marker(unit: Dictionary) -> void:
 			_caption("INSPIRED", Vector2(57, 23), MINT, 10)
 			if _capture_actual_draw:
 				_actual_draw.marks.append({"kind": "inspired", "target_id": unit.id, "cell": unit.cell})
+		_draw_pursuit_target(unit)
 	if _overlay.get("commanded") == unit.cell:
 		if _overlay.get("quiet_manual_move", false):
 			_ink_canvas.draw_circle(Vector2(85, 13), 3.0, AMBER, true, -1.0, true)
 		else:
 			_caption("CMD", Vector2(90, 17), AMBER, 11)
+
+
+func _draw_pursuit_target(unit: Dictionary) -> void:
+	var target: Dictionary = unit.get("pursuit_target", {})
+	if target.is_empty():
+		return
+	var caption := "After: %s" % target.label
+	var font := ThemeDB.fallback_font
+	var font_size := 14
+	var max_width := TILE.x - 10.0
+	var width := font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	while width > max_width and font_size > 12:
+		font_size -= 1
+		width = font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	if width > max_width:
+		var shortened := caption
+		while width > max_width:
+			shortened = shortened.left(-1)
+			caption = shortened + "…"
+			width = font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	_caption(caption, Vector2((TILE.x + width) * 0.5, 74), CORAL, font_size)
+	if _capture_actual_draw:
+		_actual_draw.marks.append({"kind": "pursuit_target", "unit_id": unit.id,
+			"target_id": target.id, "text": caption, "cell": unit.cell})
 
 
 func _draw_health(unit: Dictionary, prone: bool, character := true) -> void:

@@ -4,6 +4,10 @@ extends SceneTree
 var scene: Node
 var failures: Array[String] = []
 
+class RuntimeCatalog:
+	extends RefCounted
+	var defs: Dictionary
+
 
 func _initialize() -> void:
 	call_deferred("_run")
@@ -54,7 +58,59 @@ func _run() -> void:
 					str(cues.get("context_cell")), str(cues.get("context_text"))])
 		_test_moved_windup_impact(board)
 		_test_recalled_windup_impact(board)
+		_test_pursuit_projection(board)
 	_finish()
+
+
+func _test_pursuit_projection(board: Node) -> void:
+	var state: Dictionary = scene.get("_state").duplicate(true)
+	var catalog := RuntimeCatalog.new()
+	catalog.defs = state.catalog.defs.duplicate(true)
+	state.catalog = catalog
+	var hook: Dictionary = {}
+	for unit: Dictionary in state.units:
+		if unit.id == "hookhand":
+			hook = unit
+			break
+	_check(not hook.is_empty(), "projection fixture has hookhand")
+	if hook.is_empty():
+		return
+	catalog.defs.characters[hook.character_id].traits = [{"kind": "last_damager_pursuit"}]
+	var plan: Dictionary = scene.get("_plan").duplicate(true)
+	plan.result = state.duplicate(true)
+	for unit: Dictionary in plan.result.units:
+		if unit.id == "hookhand":
+			unit.last_damager_id = "healer"
+	scene.set("_state", state)
+	scene.set("_plan", plan)
+	scene.call("_refresh_board")
+	_check(board.get("_units_by_id").get("hookhand", {}).get("pursuit_target", {}).is_empty(),
+		"forecast hit does not create a committed board grudge")
+	hook.last_damager_id = "healer"
+	scene.call("_refresh_board")
+	var target: Dictionary = board.get("_units_by_id").get("hookhand", {}).get("pursuit_target", {})
+	_check(target == {"id": "healer", "label": scene.get("_rules").display_name(state, "healer")},
+		"board projects committed target and full display name")
+	var ally: Dictionary = hook.duplicate(true)
+	ally.id = "enemy_ally"
+	state.units.append(ally)
+	for unit: Dictionary in plan.result.units:
+		if unit.id == "hookhand":
+			unit.last_damager_id = "enemy_ally"
+	scene.call("_refresh_board")
+	_check(board.get("_units_by_id").get("hookhand", {}).get("pursuit_target", {}).get("id") == "healer",
+		"draft swap does not replace committed target")
+	hook.last_damager_id = "enemy_ally"
+	scene.call("_refresh_board")
+	_check(board.get("_units_by_id").get("hookhand", {}).get("pursuit_target", {}).get("id") == "enemy_ally",
+		"committed enemy ally replaces target")
+	hook.last_damager_id = "healer"
+	for unit: Dictionary in state.units:
+		if unit.id == "healer":
+			unit.hp = 0
+	scene.call("_refresh_board")
+	_check(board.get("_units_by_id").get("hookhand", {}).get("pursuit_target", {}).is_empty(),
+		"board removes grudge when committed target dies")
 
 
 func _test_moved_windup_impact(board: Node) -> void:

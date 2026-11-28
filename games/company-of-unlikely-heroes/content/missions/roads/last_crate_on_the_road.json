@@ -101,7 +101,7 @@
       "help": "Deals 3 damage within 5 tiles along a clear straight lane.",
       "handler": "attack",
       "params": {
-        "damage": 3,
+        "damage": 2,
         "source_suffix": "'s arrow"
       },
       "targeting": {

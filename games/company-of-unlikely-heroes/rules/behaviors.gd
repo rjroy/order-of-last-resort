@@ -464,15 +464,21 @@ static func _step_to_greet(state: Dictionary, actor: Dictionary, opponent: Dicti
 		return not _greeting_options(projected, walker, opponent, reach, greetings).is_empty())
 
 
+static func last_damager(state: Dictionary, actor: Dictionary) -> Dictionary:
+	if Frontier.traits(state, actor, "last_damager_pursuit").is_empty():
+		return {}
+	var damager := Board.entity(state, actor.get("last_damager_id", ""))
+	return damager if Board.alive(damager) and damager.id != actor.id else {}
+
+
 static func _threat(state: Dictionary, actor: Dictionary, params: Dictionary) -> Dictionary:
 	var heckler := Actions.heckler_target(state, actor, Actions.owned_ability(state, actor, params.ability))
 	if not heckler.is_empty():
 		return _action(params.ability, heckler.id)
 	var target := Statuses.retarget(state, actor, params.taunt_status)
-	if not Frontier.traits(state, actor, "last_damager_pursuit").is_empty():
-		var damager := Board.entity(state, actor.get("last_damager_id", ""))
-		if Board.alive(damager) and damager.id != actor.id:
-			target = damager
+	var damager := last_damager(state, actor)
+	if not damager.is_empty():
+		target = damager
 	var candidates := Board.occupants(state, {"teams": params.fallback_teams})
 	if state.objective.handler != "escort":
 		return _engage(state, actor, params, target, candidates)

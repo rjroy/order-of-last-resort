@@ -2,6 +2,7 @@ extends SceneTree
 
 # Run: godot --headless --path games/company-of-unlikely-heroes --script res://tests/battle/road_playtest_response_test.gd
 const Fixture = preload("res://tests/fixtures/rules_catalog.gd")
+const Combat = preload("res://rules/combat.gd")
 class RuntimeCatalog:
 	extends RefCounted
 	var defs: Dictionary
@@ -120,17 +121,34 @@ func _test_blocked_and_dead_damager() -> void:
 	var state := _state(true)
 	if state.is_empty():
 		return
+	_check(rules.pursuit_target(state, "hammer").is_empty(), "no hit has no grudge")
+	_entity(state, "hammer").last_damager_id = "missing"
+	_check(rules.pursuit_target(state, "hammer").is_empty(), "missing damager is ignored")
+	_entity(state, "hammer").last_damager_id = "hammer"
+	_check(rules.pursuit_target(state, "hammer").is_empty(), "self damager is ignored")
+	_entity(state, "hammer").erase("last_damager_id")
 	_entity(state, "hammer").statuses.padding = {"source_id": "hammer", "amount": 1}
 	var blocked := _shot(state)
 	if not blocked.is_empty():
 		_check(_entity(blocked, "hammer").hp == 10, "padding blocks the entire hit")
+		_check(rules.pursuit_target(blocked, "hammer").is_empty(), "blocked hit has no grudge")
 		var result := _round(blocked)
 		if not result.is_empty():
 			_check(_entity(result, "near").hp == 8,
 				"fully blocked hit does not redirect pursuit")
 	var struck := _shot(_state(true))
 	if not struck.is_empty():
+		_check(rules.pursuit_target(struck, "hammer").get("id") == "far", "hit records living attacker")
+		var ally := _unit("ally", "harpooner", Vector2i(3, 4))
+		struck.units.append(ally)
+		Combat.attack(struck, ally, _entity(struck, "hammer"), 0, {"source_name": "Ally"}, [])
+		_check(rules.pursuit_target(struck, "hammer").get("id") == "far", "zero damage preserves previous grudge")
+		Combat.attack(struck, ally, _entity(struck, "hammer"), 1, {"source_name": "Ally"}, [])
+		_check(rules.pursuit_target(struck, "hammer").get("id") == "ally", "enemy ally hit replaces grudge")
+		struck.units.erase(ally)
+		_entity(struck, "hammer").last_damager_id = "far"
 		_entity(struck, "far").hp = 0
+		_check(rules.pursuit_target(struck, "hammer").is_empty(), "dead damager has no grudge")
 		var result := _round(struck)
 		if not result.is_empty():
 			_check(_entity(result, "near").hp == 8,

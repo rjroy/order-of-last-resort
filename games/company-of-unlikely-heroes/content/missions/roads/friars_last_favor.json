@@ -2,6 +2,7 @@
   "missions": {
     "friars_last_favor": {
       "title": "The Friar's Last Favor",
+      "tier": 2,
       "encounter": "road_friar",
       "default_party": [
         "knight",

@@ -184,7 +184,7 @@
     },
     "mirror_company": {
       "kind": "rival_band",
-      "road_tier": 4,
+      "road_tier": 2,
       "descriptors": [
         "They brought a Knight who pushes, a Wizard who blasts the nearest character, and a Healer who patches up wounded allies.",
         "The rival Healer gets two heals. Their Wizard can hit their own side, and their Knight answers a taunt."

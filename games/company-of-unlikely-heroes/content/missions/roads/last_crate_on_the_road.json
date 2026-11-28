@@ -2,6 +2,7 @@
   "missions": {
     "last_crate_on_the_road": {
       "title": "The Last Crate on the Road",
+      "tier": 1,
       "encounter": "road_last_crate",
       "default_party": [
         "knight",
@@ -89,10 +90,10 @@
   "abilities": {
     "road_cover_shot": {
       "label": "Road Arrow",
-      "help": "Deals 2 damage within 5 tiles along a clear straight lane.",
+      "help": "Deals 3 damage within 5 tiles along a clear straight lane.",
       "handler": "attack",
       "params": {
-        "damage": 2,
+        "damage": 3,
         "source_suffix": "'s arrow"
       },
       "targeting": {

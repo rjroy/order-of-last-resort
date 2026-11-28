@@ -2,6 +2,7 @@
   "missions": {
     "empty_helmets": {
       "title": "Empty Helmets",
+      "tier": 2,
       "encounter": "road_empty_helmets",
       "default_party": [
         "knight",

@@ -1,6 +1,7 @@
 {
   "missions": {
     "wrong_twin": {
+      "tier": 1,
       "title": "The Wrong Twin",
       "encounter": "road_twins",
       "default_party": [

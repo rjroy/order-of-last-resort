@@ -10,7 +10,7 @@
         "wizard"
       ],
       "enemy_max_hp": {
-        "ogre_1": 8
+        "ogre_1": 18
       },
       "objective": {
         "handler": "defeat_all",

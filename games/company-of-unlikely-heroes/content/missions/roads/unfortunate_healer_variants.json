@@ -10,7 +10,9 @@
         "wizard"
       ],
       "enemy_max_hp": {
-        "enemy_healer_3": 5
+        "bruiser_1": 11,
+        "bruiser_2": 11,
+        "enemy_healer_3": 8
       },
       "objective": {
         "handler": "defeat_all",

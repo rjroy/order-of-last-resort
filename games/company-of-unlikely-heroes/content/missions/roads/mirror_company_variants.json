@@ -10,7 +10,9 @@
         "wizard"
       ],
       "enemy_max_hp": {
-        "rival_wizard_2": 5
+        "rival_knight_1": 16,
+        "rival_wizard_2": 12,
+        "rival_healer_3": 14
       },
       "objective": {
         "handler": "defeat_all",
@@ -25,7 +27,7 @@
           "event": "The company has fallen."
         }
       ],
-      "tier": 2
+      "tier": 4
     }
   }
 }

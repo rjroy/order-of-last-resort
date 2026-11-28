@@ -24,7 +24,7 @@
         "hit": "hit",
         "defeat": "defeat"
       },
-      "max_hp": 1,
+      "max_hp": 2,
       "abilities": [
         "move",
         "goblin_jab"

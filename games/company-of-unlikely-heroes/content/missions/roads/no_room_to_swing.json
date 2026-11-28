@@ -2,6 +2,7 @@
   "missions": {
     "no_room_to_swing": {
       "title": "No Room to Swing",
+      "tier": 2,
       "encounter": "road_swing",
       "default_party": [
         "knight",

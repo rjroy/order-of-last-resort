@@ -150,10 +150,10 @@
     },
     "trickster_strike": {
       "label": "Trickster Strike",
-      "help": "Deals 1 damage to a hero or summon within 1 tile.",
+      "help": "Deals 2 damage to a hero or summon within 1 tile.",
       "handler": "attack",
       "params": {
-        "damage": 1,
+        "damage": 2,
         "source_suffix": "'s trickster strike"
       },
       "targeting": {

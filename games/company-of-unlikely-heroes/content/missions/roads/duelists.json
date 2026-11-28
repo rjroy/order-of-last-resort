@@ -21,7 +21,7 @@
           "event": "The company has fallen."
         }
       ],
-      "tier": 2
+      "tier": 1
     }
   },
   "encounters": {
@@ -106,10 +106,10 @@
   "abilities": {
     "duelist_strike": {
       "label": "Duelist Strike",
-      "help": "Deals 2 damage to a hero or summon within 1 tile.",
+      "help": "Deals 4 damage to a hero or summon within 1 tile.",
       "handler": "attack",
       "params": {
-        "damage": 2,
+        "damage": 4,
         "source_suffix": "'s duelist strike"
       },
       "targeting": {

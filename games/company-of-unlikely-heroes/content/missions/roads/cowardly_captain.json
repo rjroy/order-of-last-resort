@@ -147,10 +147,10 @@
   "abilities": {
     "captain_strike": {
       "label": "Captain Strike",
-      "help": "Deals 1 damage to a hero or summon within 1 tile.",
+      "help": "Deals 3 damage to a hero or summon within 1 tile.",
       "handler": "attack",
       "params": {
-        "damage": 1,
+        "damage": 3,
         "source_suffix": "'s captain strike"
       },
       "targeting": {
@@ -163,10 +163,10 @@
     },
     "grunt_strike": {
       "label": "Grunt Strike",
-      "help": "Deals 2 damage to a hero or summon within 1 tile.",
+      "help": "Deals 3 damage to a hero or summon within 1 tile.",
       "handler": "attack",
       "params": {
-        "damage": 2,
+        "damage": 3,
         "source_suffix": "'s grunt strike"
       },
       "targeting": {

@@ -10,8 +10,8 @@
         "wizard"
       ],
       "enemy_max_hp": {
-        "shieldbearer_1": 5,
-        "shieldbearer_2": 5
+        "shieldbearer_1": 11,
+        "shieldbearer_2": 11
       },
       "objective": {
         "handler": "defeat_all",

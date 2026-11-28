@@ -2,6 +2,7 @@
   "missions": {
     "very_long_spear": {
       "title": "The Very Long Spear",
+      "tier": 2,
       "encounter": "road_very_long_spear",
       "default_party": [
         "knight",
@@ -81,10 +82,10 @@
   "abilities": {
     "road_long_spear_strike": {
       "label": "Very Long Spear",
-      "help": "Deals 2 damage to an adjacent target and follows through to the next tile in the same direction, including allies.",
+      "help": "Deals 3 damage to an adjacent target and follows through to the next tile in the same direction, including allies.",
       "handler": "attack",
       "params": {
-        "damage": 2,
+        "damage": 3,
         "source_suffix": "'s spear",
         "spear_followthrough": true
       },

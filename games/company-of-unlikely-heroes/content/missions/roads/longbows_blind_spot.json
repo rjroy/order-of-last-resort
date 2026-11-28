@@ -3,6 +3,7 @@
     "longbows_blind_spot": {
       "title": "The Longbow's Blind Spot",
       "encounter": "road_longbow",
+      "tier": 1,
       "default_party": [
         "knight",
         "healer",
@@ -81,10 +82,10 @@
   "abilities": {
     "road_longbow_shot": {
       "label": "Longbow Shot",
-      "help": "Deals 2 damage at range 2 to 5 along a clear straight lane. Cannot hit adjacent targets.",
+      "help": "Deals 4 damage at range 2 to 5 along a clear straight lane. Cannot hit adjacent targets.",
       "handler": "attack",
       "params": {
-        "damage": 2,
+        "damage": 4,
         "source_suffix": "'s longbow"
       },
       "targeting": {

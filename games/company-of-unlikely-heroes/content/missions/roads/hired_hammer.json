@@ -2,6 +2,7 @@
   "missions": {
     "hired_hammer": {
       "title": "The Hired Hammer",
+      "tier": 1,
       "encounter": "road_hired_hammer",
       "default_party": [
         "knight",

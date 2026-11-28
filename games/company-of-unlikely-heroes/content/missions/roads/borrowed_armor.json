@@ -1,6 +1,7 @@
 {
   "missions": {
     "borrowed_armor": {
+      "tier": 3,
       "title": "Borrowed Armor",
       "encounter": "road_borrowed_armor",
       "default_party": [

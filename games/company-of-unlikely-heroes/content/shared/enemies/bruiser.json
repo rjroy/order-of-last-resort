@@ -35,10 +35,10 @@
   "abilities": {
     "bruiser_strike": {
       "label": "Bruiser Strike",
-      "help": "Deals 3 damage to an adjacent hero or summon.",
+      "help": "Deals 4 damage to an adjacent hero or summon.",
       "handler": "attack",
       "params": {
-        "damage": 3,
+        "damage": 4,
         "source_suffix": "'s strike"
       },
       "targeting": {

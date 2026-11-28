@@ -1,5 +1,22 @@
 {
   "missions": {
+    "very_long_spear_crossed_spears": {
+      "title": "The Very Long Spear: Crossed Spears",
+      "tier": 5,
+      "base_mission_id": "very_long_spear",
+      "encounter": "road_crossed_spears",
+      "default_party": ["knight", "healer", "wizard"],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat both Spearmen and their crew. Each Spearman's adjacent strike continues one tile straight beyond its target, hitting whoever is there, including his own allies. Watch both approaches and leave room to step wide.",
+        "victory_text": "The company wins the fight.",
+        "defeat_text": "The company falls.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {"handler": "party_wiped", "event": "The company has fallen."}
+      ]
+    },
     "very_long_spear": {
       "title": "The Very Long Spear",
       "tier": 4,
@@ -25,6 +42,16 @@
     }
   },
   "encounters": {
+    "road_crossed_spears": {
+      "board": "frontier_field",
+      "party_slots": [[1, 1], [2, 2], [1, 3]],
+      "placements": [
+        {"id": "long_spearman", "character": "road_long_spearman", "at": [3, 1]},
+        {"id": "spear_crew", "character": "grunt", "at": [4, 0]},
+        {"id": "long_spearman_2", "character": "road_long_spearman", "at": [3, 3]},
+        {"id": "spear_crew_2", "character": "grunt", "at": [4, 3]}
+      ]
+    },
     "road_very_long_spear": {
       "board": "frontier_field",
       "party_slots": [

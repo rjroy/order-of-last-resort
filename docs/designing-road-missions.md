@@ -94,12 +94,52 @@ experiments verified behavior, not human enjoyment or difficulty.
     describes the encounter; distinguish what can be authored in data from what
     needs a new rule.
 
+## Road balance rubric
+
+Compare the exact mission or variant with its base or a shipped road that asks
+for similar attention. Hold the company, deployment order, standing orders,
+loadout, upgrades, and entry HP fixed to isolate the change. Then check
+plausible arrivals at the intended tier.
+
+| Check | Evidence to bring to review |
+|---|---|
+| **Tactical pressure** | Save a Forecast where the threat changes the best target, tile, or timing. Name what would happen if the company left its orders alone. Extra enemies count as pressure when their actions compete for attention, not just when there are more bodies to clear. |
+| **Usable counterplay** | Stage two legal responses and note what each gives up. Commit at least one and check what remains possible after a plausible mistake. Revise if both responses need the same specialist, or if a routine opening lets the company ignore the threat at no meaningful cost. |
+| **Command and HP cost** | Mark the round when the main threat stops mattering. Before and after that point, tally direct commands spent on progress versus avoiding damage or recovering. Record entry HP, next-leg HP before rewards, and falls by hero. Check whether a wounded company can still make progress without spending every command on survival. |
+| **Incremental tier change** | Name the smallest change that adds a decision or keeps a live threat in play for another consequential turn. For an HP change, show which hit sequence now leaves the enemy alive and what it gets to do. If the opening, best response, and danger are unchanged and only cleanup gets longer, don't count that as evidence for a higher tier. |
+
+The road rebalance (`d585c01`) and the stock Borrowed Armor pair give concrete
+comparisons to try. Use the authored changes to form testable hypotheses, not
+as proof that a road or its tier is balanced.
+
+- **The Friar's Last Favor:** The pass moved the Friar into line with his
+  crew and added a Grunt. Compare killing him before spreading damage with
+  saving him for last. What can the extra Grunt do while you wait, and who
+  actually benefits from the heal when the Friar falls?
+- **The Cowardly Captain:** The third Grunt starts beside the Captain. Compare
+  breaking that formation with cutting off the Captain's retreat. Check which
+  Grunts still get the adjacency bonus when they attack.
+- **Crossfire at the Fuse Line:** A second Hookhand and Harpooner add another
+  pull and another ranged threat. Check where each pull leaves a hero and who
+  would be beside the Bomber when it falls. Can one command manage both
+  threats, or must the company choose which risk to accept?
+- **The Unfortunate Healer and The Mirror Company:** Stock enemy heals no
+  longer run out. Compare spreading damage with finishing one target before
+  the next heal, separating a patient from support, or taking out the healer.
+  In Mirror Company, check what that focus fire gives up against the rival
+  Wizard's nearest-target blast.
+- **Borrowed Armor / Veteran Crew:** Use this stock HP-only pair as a
+  comparison. It shares placements and the armor rule. Check whether the
+  tougher Lender gets another round of protecting an ally, changing when to
+  focus on the Lender, or whether the extra HP mostly costs hits once the
+  company has already broken the formation.
+
 ## Design the field report image with the mission
 
-The image is part of the scout's report, not decoration. At a fork it should
-give players a quick visual reason to read one report differently from the
-other. Pick **one thing a child scout would notice** about the immediate
-encounter: two enormous shields hiding an archer, for example. Draw it in
+**A finished road report needs one truthful child-scout crayon sketch of the
+immediate encounter.** At a fork it should give players a quick visual reason
+to read one report differently from the other. Pick **one thing a child scout
+would notice**: two enormous shields hiding an archer, for example. Draw it in
 shaky pencil and uneven wax crayon on cream school paper. Exaggerate what
 caught the child's eye rather than drawing a precise map. The text still
 carries the exact objective, rules, and stakes. The drawing must be true of
@@ -107,17 +147,26 @@ every wording variant and must not reveal the onward mission or the other
 branch. See the [field report sketch map](../games/company-of-unlikely-heroes/assets-source/guild-book/reports/motifs.md)
 for the established style and examples.
 
-Plan the sketch when drafting the report and review it alongside the text at
-an actual fork. Reuse art only when it still tells the truth about the
-encounter. A text-only report is fine for a prototype when no honest sketch
-is available, but a blank is unfinished presentation, not a finished choice.
+Plan the sketch when drafting the report. Stock reports look up art by exact
+mission ID first and can fall back to base art only when the variant and base
+share the same encounter ID. Even then, reuse only if the motif is still true
+of the variant. A different encounter ID needs its own exact-ID sketch.
+The Light Hook Pair, for example, can't inherit the Harpoon Squad sketch:
+it shows a Bruiser the Pair doesn't have.
+
+Review the text and sketch together at a real fork in the running game. At
+the intended projection size and viewing distance, check that the motif is
+recognizable after cropping, the immediate text is readable, and neither
+suggests a threat or solution that isn't there. Check every wording variant
+against the same sketch. A text-only report is fine for a prototype, not a
+finished choice. This is an authoring and review requirement, not an engine
+validation rule.
 
 ## Review before adding a mission to the road pool
 
 - **Design:** Keep the tactical question, the two example rounds, the
-  win/loss checks, the command budget, and the draft report with its sketch
-  brief together. Name the existing mission used for comparison and what the
-  new one adds.
+  win/loss checks, the rubric comparison, and the draft report with its sketch
+  brief together.
 - **Rules:** Check a complete win, each distinct loss, and the meaningful edge
   cases, using controlled inputs for new behavior. Check that the forecast
   agrees with the committed round. For catalog integration, see the

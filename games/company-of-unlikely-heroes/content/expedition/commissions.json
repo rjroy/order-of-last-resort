@@ -243,6 +243,12 @@
         "Two Harpooners strike from two tiles away while the Bomber closes in. Check both Hookhands' pulls and the Bomber's blast before committing."
       ]
     },
+    "crossfire_split_fuse": {
+      "kind": "ambush",
+      "descriptors": [
+        "Defeat the whole crew. Two Hookhands pull from separate approaches, with two Harpooners and a Bomber nearby. The Bomber's death blast hurts everyone beside it, friend or foe."
+      ]
+    },
     "last_crate_on_the_road": {
       "kind": "skirmish",
       "descriptors": [
@@ -289,6 +295,12 @@
       "kind": "skirmish",
       "descriptors": [
         "Defeat the two Spearmen and their crew. Each adjacent strike continues one tile straight beyond its target, hitting anyone there, including an ally."
+      ]
+    },
+    "very_long_spear_crossed_spears": {
+      "kind": "skirmish",
+      "descriptors": [
+        "Defeat the two Spearmen and their crew. Their adjacent strikes continue one tile straight beyond the target, hitting anyone there, even their own crew. Watch both approaches."
       ]
     },
     "big_windup": {

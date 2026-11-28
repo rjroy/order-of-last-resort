@@ -35,6 +35,30 @@
     "crossfire_blast_lane-native.png": {
       "job": "exec-11427ac3-9690-48d5-8abb-bad5efeeec01",
       "sha256": "7d03436151e790c5be0373f984d5c86289eb1e1ff88da7da4fdac27193a0fc2f"
+    },
+    "crossfire_split_fuse-native.png": {
+      "job": "exec-9e5c2e74-b0c4-4ab8-a611-fa14b3cebcd3",
+      "sha256": "9351082ad8b1dc4956f627637db137672498c49fa5dd4aaa5de6c51d9131db40"
+    },
+    "very_long_spear_crossed_spears-native.png": {
+      "job": "exec-da5ad321-dfb4-4c26-bcdf-0382230e1300",
+      "sha256": "a37f095d068842de36ebf21f94cfc767f2c2e0adef005cbff5b25a5d846bff20"
+    },
+    "road-standalone-sheet-a.png": {
+      "job": "exec-ad43f08a-5feb-464d-801b-47b8ff64c564",
+      "sha256": "be08ca41546f8b52d84bc8258190459f32586cb97082a34ecf805d0f7b8372a7"
+    },
+    "road-standalone-sheet-b.png": {
+      "job": "exec-822b79a7-ba0d-49cb-88f1-93eb81853dbd",
+      "sha256": "1df9243731cdff5600646dea5cf0f50a3088646e44326960cde7001de45a75fb"
+    },
+    "road-standalone-sheet-c.png": {
+      "job": "exec-2fe22a3a-0ba5-4ab5-bfcd-17f1bdeff735",
+      "sha256": "a1c78f20c3ac21fa6360094807d0c71d88f3e8035a4b497fb017365e0507f592"
+    },
+    "road-standalone-sheet-d.png": {
+      "job": "exec-efadbf51-6bf8-40e2-92b0-e30733948032",
+      "sha256": "128b53a3a13628464c56ca8d2b4a0f074a7f2173d1ba2c1674fc9a79b3ce1fe0"
     }
   },
   "cuts": {
@@ -59,10 +83,40 @@
     "last_wagon": ["sheet-e.png", 768, 512, 768, 512],
     "bridge_is_out": ["../study/connected-study.png", 10, 518, 750, 497],
     "light_hook_pair": ["light_hook_pair-native.png", 0, 0, 1536, 1024],
-    "crossfire_blast_lane": ["crossfire_blast_lane-native.png", 0, 0, 1536, 1024]
+    "crossfire_blast_lane": ["crossfire_blast_lane-native.png", 0, 0, 1536, 1024],
+    "crossfire_split_fuse": ["crossfire_split_fuse-native.png", 0, 0, 1536, 1024],
+    "very_long_spear_crossed_spears": ["very_long_spear_crossed_spears-native.png", 0, 0, 1536, 1024],
+    "no_room_to_swing": ["road-standalone-sheet-a.png", 0, 0, 768, 512],
+    "last_crate_on_the_road": ["road-standalone-sheet-a.png", 768, 0, 768, 512],
+    "longbows_blind_spot": ["road-standalone-sheet-a.png", 0, 512, 768, 512],
+    "friars_last_favor": ["road-standalone-sheet-b.png", 0, 0, 768, 512],
+    "wrong_twin": ["road-standalone-sheet-b.png", 768, 0, 768, 512],
+    "hired_hammer": ["road-standalone-sheet-b.png", 0, 512, 768, 512],
+    "borrowed_armor": ["road-standalone-sheet-c.png", 0, 0, 768, 512],
+    "empty_helmets": ["road-standalone-sheet-c.png", 768, 0, 768, 512],
+    "very_long_spear": ["road-standalone-sheet-c.png", 0, 512, 768, 512],
+    "big_windup": ["road-standalone-sheet-d.png", 0, 0, 768, 512],
+    "big_windup_t3": ["road-standalone-sheet-d.png", 768, 0, 768, 512],
+    "big_windup_t4": ["road-standalone-sheet-d.png", 0, 512, 768, 512],
+    "big_windup_t5": ["road-standalone-sheet-d.png", 768, 512, 768, 512]
   },
   "finishes": {
     "light_hook_pair": {"size": [768, 512]},
-    "crossfire_blast_lane": {"size": [768, 512], "mirror_padding": [84, 56]}
+    "crossfire_blast_lane": {"size": [768, 512], "mirror_padding": [84, 56]},
+    "crossfire_split_fuse": {"size": [768, 512], "mirror_padding": [48, 32]},
+    "very_long_spear_crossed_spears": {"size": [768, 512]},
+    "no_room_to_swing": {"size": [768, 512], "mirror_padding": [60, 40], "paper_edge_period": 10},
+    "last_crate_on_the_road": {"size": [768, 512], "mirror_padding": [30, 20]},
+    "longbows_blind_spot": {"size": [768, 512], "mirror_padding": [45, 30], "paper_edge_period": 10},
+    "friars_last_favor": {"size": [768, 512], "mirror_padding": [30, 20]},
+    "wrong_twin": {"size": [768, 512], "mirror_padding": [30, 20]},
+    "hired_hammer": {"size": [768, 512], "mirror_padding": [60, 40], "paper_edge_period": 10},
+    "borrowed_armor": {"size": [768, 512], "mirror_padding": [45, 30], "paper_edge_period": 10},
+    "empty_helmets": {"size": [768, 512], "mirror_padding": [30, 20], "paper_edge_period": 10},
+    "very_long_spear": {"size": [768, 512], "mirror_padding": [45, 30], "paper_edge_period": 10},
+    "big_windup": {"size": [768, 512], "mirror_padding": [45, 30], "paper_edge_period": 10},
+    "big_windup_t3": {"size": [768, 512], "mirror_padding": [45, 30], "paper_edge_period": 10},
+    "big_windup_t4": {"size": [768, 512], "mirror_padding": [45, 30], "paper_edge_period": 10},
+    "big_windup_t5": {"size": [768, 512], "mirror_padding": [45, 30], "paper_edge_period": 10}
   }
 }

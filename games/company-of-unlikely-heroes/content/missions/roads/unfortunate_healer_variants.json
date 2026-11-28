@@ -16,7 +16,7 @@
       },
       "objective": {
         "handler": "defeat_all",
-        "text": "Defeat every opponent. The Healer can restore 2 HP to a wounded ally within 2 tiles twice per battle. Stop the healing or defeat the Bruisers first.",
+        "text": "Defeat every opponent. The Healer can restore 3 HP to a wounded ally within 2 tiles without a use limit. Stop the healing or defeat the Bruisers first.",
         "victory_text": "The company defeats the veteran Healer's party.",
         "defeat_text": "The company falls to the veteran Healer's party.",
         "victory_event": "The last opponent falls."

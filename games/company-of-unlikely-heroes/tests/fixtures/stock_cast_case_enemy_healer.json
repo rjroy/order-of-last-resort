@@ -40,7 +40,7 @@
         ],
         "triggers": [
           {
-            "ability": "frontier_heal",
+            "ability": "unfortunate_healer_heal",
             "actor_field": "unit_id",
             "clip": "field_dressing",
             "id": "field_dressing",

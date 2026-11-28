@@ -21,7 +21,7 @@
           "event": "The company has fallen."
         }
       ],
-      "tier": 2
+      "tier": 3
     }
   },
   "encounters": {
@@ -63,6 +63,14 @@
           "character": "captain",
           "at": [
             5,
+            2
+          ]
+        },
+        {
+          "id": "grunt_4",
+          "character": "grunt",
+          "at": [
+            4,
             2
           ]
         }

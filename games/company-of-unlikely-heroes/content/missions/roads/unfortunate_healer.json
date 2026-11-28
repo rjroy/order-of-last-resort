@@ -10,7 +10,7 @@
       ],
       "objective": {
         "handler": "defeat_all",
-        "text": "Defeat every opponent. The Healer can restore 2 HP to a wounded ally within 2 tiles twice per battle. Stop the healing or defeat the Bruisers first.",
+        "text": "Defeat every opponent. The Healer can restore 3 HP to a wounded ally within 2 tiles without a use limit. Stop the healing or defeat the Bruisers first.",
         "victory_text": "The company wins the fight.",
         "defeat_text": "The company falls.",
         "victory_event": "The last opponent falls."
@@ -21,7 +21,7 @@
           "event": "The company has fallen."
         }
       ],
-      "tier": 2
+      "tier": 3
     }
   },
   "encounters": {
@@ -79,9 +79,9 @@
       "abilities": [
         "move",
         "rival_bonk",
-        "frontier_heal"
+        "unfortunate_healer_heal"
       ],
-      "behavior": "frontier_medic",
+      "behavior": "unfortunate_healer_medic",
       "cast_key": "enemy_healer",
       "cast_art_key": "enemy",
       "cast_team": "enemies",
@@ -96,13 +96,39 @@
             "handler": "attack",
             "clip": "bonk"
           },
-          "frontier_heal": {
+          "unfortunate_healer_heal": {
             "handler": "enemy_heal",
             "clip": "field_dressing"
           }
         },
         "hit": "hit",
         "defeat": "defeat"
+      }
+    }
+  },
+  "abilities": {
+    "unfortunate_healer_heal": {
+      "label": "Field Dressing",
+      "help": "Restore 3 HP to a wounded living ally within 2 tiles, with no use limit.",
+      "handler": "enemy_heal",
+      "params": {
+        "amount": 3
+      },
+      "targeting": {
+        "kind": "automatic",
+        "range": 2,
+        "teams": ["enemies"]
+      }
+    }
+  },
+  "behaviors": {
+    "unfortunate_healer_medic": {
+      "handler": "finite_healer",
+      "params": {
+        "team": "enemies",
+        "move_ability": "move",
+        "heal_ability": "unfortunate_healer_heal",
+        "ability": "rival_bonk"
       }
     }
   }

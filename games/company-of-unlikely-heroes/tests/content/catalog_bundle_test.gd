@@ -16,8 +16,22 @@ func _initialize() -> void:
 			"knight", "healer", "wizard", "alchemist", "rogue", "necromancer", "bard", "blacksmith"],
 			"assembled commission eligibility retains all eight heroes in order")
 		_check(not defs.has("adventures"), "built-in catalog has no fixed routes")
-		var deployed := Catalog.build(defs, "bridge_patrol", ["knight", "healer", "alchemist"])
-		_check(deployed.units.size() == 5, "assembled party and enemies deploy")
+		var party := ["knight", "healer", "alchemist"]
+		var encounter: Dictionary = defs.encounters[defs.missions.bridge_patrol.encounter]
+		var expected_units := []
+		for i in party.size():
+			var slot: Array = encounter.party_slots[i]
+			expected_units.append({"id": party[i], "character_id": party[i], "position": Vector2i(int(slot[0]), int(slot[1]))})
+		for placement in encounter.placements:
+			if placement.has("character"):
+				var at: Array = placement.at
+				expected_units.append({"id": placement.id, "character_id": placement.character,
+					"position": Vector2i(int(at[0]), int(at[1]))})
+		var deployed := Catalog.build(defs, "bridge_patrol", party)
+		var actual_units := []
+		for unit in deployed.get("units", []):
+			actual_units.append({"id": unit.id, "character_id": unit.character_id, "position": unit.position})
+		_check(actual_units == expected_units, "assembled party and encounter characters deploy in order and at authored positions")
 		_check(deployed.objective.team == "enemies", "combat target team materializes its default")
 		_check(Catalog.build(defs, "bridge_patrol").is_empty(), "company mission rejects omitted party")
 		_check(Catalog.build(defs, "bridge_patrol", ["knight", "healer"]).is_empty(),

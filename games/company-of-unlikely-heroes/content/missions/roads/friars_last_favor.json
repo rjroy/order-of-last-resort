@@ -2,7 +2,7 @@
   "missions": {
     "friars_last_favor": {
       "title": "The Friar's Last Favor",
-      "tier": 2,
+      "tier": 3,
       "encounter": "road_friar",
       "default_party": [
         "knight",
@@ -62,8 +62,16 @@
           "id": "friar",
           "character": "road_friar",
           "at": [
-            4,
+            3,
             2
+          ]
+        },
+        {
+          "id": "friar_crew_2",
+          "character": "grunt",
+          "at": [
+            3,
+            0
           ]
         }
       ]

@@ -18,10 +18,12 @@ func _initialize() -> void:
 	_test_bombers()
 	_test_healer()
 	_test_heal_charges_with_use_ability()
+	_test_unlimited_heal()
 	_test_duelists()
 	_test_odd_couple()
 	_test_mirror()
 	_test_mirror_authored_healer_activation()
+	_test_authored_healer_limits()
 	_test_bandits()
 	_test_guard_whittled_down()
 	if failures.is_empty():
@@ -227,7 +229,14 @@ func _event_damage(events: Array, source: String, target: String) -> int:
 
 
 func _test_captain() -> void:
-	var state := _open("cowardly_captain", {"captain": 1, "grunt": 2})
+	var fixture := defs.duplicate(true)
+	var encounter_id: String = fixture.missions.cowardly_captain.encounter
+	fixture.encounters[encounter_id].placements = [
+		{"id": "test_grunt_1", "character": "grunt", "at": [4, 1]},
+		{"id": "test_grunt_2", "character": "grunt", "at": [4, 3]},
+		{"id": "test_captain", "character": "captain", "at": [5, 2]}
+	]
+	var state := _open("cowardly_captain", {"captain": 1, "grunt": 2}, PARTY, fixture)
 	if state.is_empty():
 		return
 	var captain := _one(state, "captain")
@@ -298,7 +307,9 @@ func _test_heal_charges_with_use_ability() -> void:
 	if not fixture.get("abilities", {}).has("frontier_heal"):
 		_check(false, "Finite-healing fixture needs frontier_heal")
 		return
-	fixture.abilities.frontier_heal.params.charges = 2
+	fixture.abilities.frontier_heal.params = {"amount": 2, "charges": 2}
+	fixture.characters.enemy_healer.abilities = ["move", "rival_bonk", "frontier_heal"]
+	fixture.characters.enemy_healer.erase("cast_presentation")
 	fixture.behaviors["test_standing_heal"] = {
 		"handler": "use_ability", "params": {"ability": "frontier_heal"}}
 	fixture.characters.enemy_healer.behavior = "test_standing_heal"
@@ -344,6 +355,50 @@ func _test_heal_charges_with_use_ability() -> void:
 				another_heal = true
 		_check(not another_heal and _entity(final_round.result, target_id).hp == _entity(state, target_id).hp,
 			"use_ability cannot heal on its third activation after charges are exhausted")
+
+
+func _test_unlimited_heal() -> void:
+	for behavior in ["frontier_medic", "test_standing_heal"]:
+		var fixture := defs.duplicate(true)
+		fixture.abilities.frontier_heal.params = {"amount": 3}
+		fixture.characters.enemy_healer.abilities = ["move", "rival_bonk", "frontier_heal"]
+		fixture.characters.enemy_healer.erase("cast_presentation")
+		fixture.behaviors["test_standing_heal"] = {
+			"handler": "use_ability", "params": {"ability": "frontier_heal"}}
+		fixture.characters.enemy_healer.behavior = behavior
+		fixture.characters.bruiser.behavior = "hold"
+		var state := _open("unfortunate_healer", {"enemy_healer": 1, "bruiser": 2}, PARTY, fixture)
+		if state.is_empty():
+			return
+		var medic := _one(state, "enemy_healer")
+		var bruisers := _units(state, "bruiser")
+		if medic.is_empty() or bruisers.size() != 2:
+			return
+		medic.position = Vector2i(4, 4)
+		bruisers[0].position = Vector2i(5, 4)
+		bruisers[0].hp = 10
+		bruisers[1].position = Vector2i(10, 0)
+		var medic_id: String = medic.id
+		var target_id: String = bruisers[0].id
+		for use in range(3):
+			var hp: int = _entity(state, target_id).hp
+			var direct := _plan(state, medic_id, "frontier_heal")
+			_check(direct.get("valid", false), "%s unlimited heal %d previews as legal" % [behavior, use + 1])
+			var round_plan := _round(state)
+			if not round_plan.get("valid", false):
+				break
+			var healed := false
+			for event in round_plan.events:
+				if event.get("type") == "heal" and event.get("unit_id") == medic_id \
+						and event.get("target_id") == target_id and event.get("ability_id") == "frontier_heal":
+					healed = true
+					_check(not event.has("remaining_uses") and not str(event.get("text", "")).contains("uses left"),
+						"%s unlimited heal does not display charges" % behavior)
+			_check(healed and _entity(round_plan.result, target_id).hp == hp + 3,
+				"%s unlimited heal %d restores exactly 3 HP" % [behavior, use + 1])
+			_check(not _entity(round_plan.result, medic_id).get("ability_uses", {}).has("frontier_heal"),
+				"%s unlimited heal does not consume charges" % behavior)
+			state = rules.commit_round(state, round_plan)
 
 
 func _test_duelists() -> void:
@@ -432,6 +487,43 @@ func _test_mirror_authored_healer_activation() -> void:
 			activated = true
 			break
 	_check(activated, "Rival Healer gets a live first activation on the untouched default opening")
+
+
+func _test_authored_healer_limits() -> void:
+	for mission in ["mirror_company", "veteran_mirror_company", "veteran_unfortunate_healer"]:
+		var veteran: bool = mission == "veteran_unfortunate_healer"
+		var composition := {"enemy_healer": 1, "bruiser": 2} if veteran \
+			else {"rival_knight": 1, "rival_wizard": 1, "rival_healer": 1}
+		var state := _open(mission, composition)
+		if state.is_empty():
+			continue
+		var medic := _one(state, "enemy_healer" if veteran else "rival_healer")
+		var patient := _one(state, "bruiser" if veteran else "rival_knight")
+		var other: Dictionary = _one(state, "rival_wizard") if not veteran else _units(state, "bruiser")[1]
+		medic.position = Vector2i(4, 4)
+		patient.position = Vector2i(6, 4)
+		patient.hp = 10
+		other.position = Vector2i(10, 0)
+		var medic_id: String = medic.id
+		var patient_id: String = patient.id
+		var ability := "unfortunate_healer_heal" if veteran else "frontier_heal"
+		var amount := 3 if veteran else 2
+		for use in range(3):
+			var plan := _plan(state, medic_id, ability)
+			_check(plan.get("valid", false), "%s: heal %d is available" % [mission, use + 1])
+			if not plan.get("valid", false):
+				break
+			_check(_entity(plan.result, patient_id).hp == 10 + amount * (use + 1),
+				"%s: heal %d restores its authored amount at range 2" % [mission, use + 1])
+			var healed := false
+			for event in plan.get("events", []):
+				if event.get("type") == "heal" and event.get("unit_id") == medic_id:
+					healed = true
+					_check(not event.has("remaining_uses"), mission + ": heal has no use counter")
+			_check(healed, mission + ": heal event emitted")
+			_check(not _entity(plan.result, medic_id).get("ability_uses", {}).has(ability),
+				mission + ": heal does not consume uses")
+			state = plan.result
 
 
 func _test_bandits() -> void:

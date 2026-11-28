@@ -18,11 +18,10 @@
     },
     "frontier_heal": {
       "label": "Field Dressing",
-      "help": "Restore 2 HP to a wounded living ally within 2 tiles. Each healer can use this twice per battle.",
+      "help": "Restore 2 HP to a wounded living ally within 2 tiles, with no use limit.",
       "handler": "enemy_heal",
       "params": {
-        "amount": 2,
-        "charges": 2
+        "amount": 2
       },
       "targeting": {
         "kind": "automatic",

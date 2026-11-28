@@ -16,7 +16,7 @@
           "event": "The company has fallen."
         }
       ],
-      "tier": 2
+      "tier": 3
     }
   },
   "encounters": {
@@ -51,6 +51,14 @@
           "at": [
             4,
             3
+          ]
+        },
+        {
+          "id": "raider_three",
+          "character": "harpooner",
+          "at": [
+            5,
+            2
           ]
         }
       ]

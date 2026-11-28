@@ -203,4 +203,4 @@ func _test_frontier_behaviors() -> void:
 		_invalid(bad_charges, "abilities.field_heal.params.charges", "invalid heal charges %s" % str(charges))
 	var missing_charges := defs.duplicate(true)
 	missing_charges.abilities.field_heal.params.erase("charges")
-	_invalid(missing_charges, "abilities.field_heal.params.charges", "missing heal charges")
+	_valid(missing_charges, "enemy heal without charges is unlimited")

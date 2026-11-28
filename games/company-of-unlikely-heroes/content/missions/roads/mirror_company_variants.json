@@ -16,7 +16,7 @@
       },
       "objective": {
         "handler": "defeat_all",
-        "text": "Defeat every opponent. The rival Knight pushes and follows taunts, the rival Wizard blasts the nearest character, and the rival Healer restores wounded allies within 2 tiles twice.",
+        "text": "Defeat every opponent. The rival Knight pushes and follows taunts, the rival Wizard blasts the nearest character, and the rival Healer repeatedly restores 2 HP to wounded allies within 2 tiles.",
         "victory_text": "The company defeats its veteran rivals.",
         "defeat_text": "The company falls to its veteran rivals.",
         "victory_event": "The last opponent falls."

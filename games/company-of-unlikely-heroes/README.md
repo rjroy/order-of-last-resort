@@ -163,7 +163,7 @@ The groupings below identify missions by their former practice outings; they are
 | **Fairground Fracas** (`fairground_fracas`) | The Duelists (`duelists`) | A surviving Duelist retaliates if the attacker is still adjacent after the hit. Use range or end the attack out of reach. |
 | | The Great Sheep Escape (`great_sheep_escape`) | Get all three living sheep into the east pen at once. Unpenned sheep flee nearby characters, including the opposing shepherd. |
 | | The Odd Couple (`odd_couple`) | The Trickster can swap with the hard-hitting Ogre once. Watch where that leaves exposed heroes. |
-| **Night Duty** (`night_duty`) | The Unfortunate Healer (`unfortunate_healer`) | The enemy Healer has two heals. Separate the Bruisers from their support or finish one before it can be healed. |
+| **Night Duty** (`night_duty`) | The Unfortunate Healer (`unfortunate_healer`) | The enemy Healer can repeatedly restore 3 HP to a wounded ally within 2 tiles. Separate the Bruisers from their support or finish one before it can be healed. |
 | | Don't Wake the Giant (`dont_wake_the_giant`) | Reach the treasure without exceeding 12 noise. Holding is silent; moves, other abilities, and songs cost 1, 2, and 3 respectively. |
 | | Hold the Line (`hold_the_line`) | Keep one hero standing through round 6. Enemies close in from both sides, but you do not have to defeat them. |
 | **Rival Claims** (`rival_claims`) | The Last One Standing (`last_one_standing`) | Kill order matters: surviving Bandits gain damage, movement, or damage reduction, depending on which Bandit remains. |

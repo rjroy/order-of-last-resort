@@ -687,7 +687,8 @@ class Validator:
 						_error(path + ".targeting." + field, "repeat_batch takes its targeting from the bottled recipe")
 			"enemy_heal":
 				_integer(params.get("amount"), param_path + "amount", 1)
-				_integer(params.get("charges"), param_path + "charges", 1)
+				if params.has("charges"):
+					_integer(params.charges, param_path + "charges", 1)
 				var teams: Variant = targeting.get("teams")
 				if not teams is Array or teams.size() != 1 or not is_same(teams[0], "enemies"):
 					_error(path + ".targeting.teams", "enemy_heal targets only the enemies team")

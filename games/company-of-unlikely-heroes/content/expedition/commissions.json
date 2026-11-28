@@ -120,8 +120,8 @@
     "bridge_patrol": {
       "kind": "skirmish",
       "descriptors": [
-        "Two Harpooners wait on opposite sides of the road. Each can hit from two tiles away, so check both before stepping between them.",
-        "These harpoons wound but don't pull. Stay more than two tiles from both raiders, or close on one without stepping into the other's reach."
+        "Three Harpooners wait across the road. Each can hit from two tiles away, so check their reach before stepping between them.",
+        "These three harpoons wound but don't pull. Stay more than two tiles from the raiders, or close on one without stepping into another's reach."
       ]
     },
     "goblin_mob": {
@@ -148,7 +148,7 @@
     "cowardly_captain": {
       "kind": "formation",
       "descriptors": [
-        "The Captain tries to back away when heroes get beside him, but the two Grunts hit harder at his side.",
+        "The Captain tries to back away when heroes get beside him, but the three Grunts hit harder at his side.",
         "The Grunts aren't stronger everywhere. It's standing next to the Captain that puts extra force behind their blows."
       ]
     },
@@ -162,8 +162,8 @@
     "unfortunate_healer": {
       "kind": "formation",
       "descriptors": [
-        "Two Bruisers have a Healer who can patch up a wounded ally within two tiles.",
-        "The enemy Healer has only two heals. A Bruiser out of reach gets neither."
+        "Two Bruisers have a Healer who can repeatedly restore 3 HP to a wounded ally within two tiles.",
+        "The enemy Healer can heal without a cast limit, restoring 3 HP to a wounded ally within two tiles. A Bruiser out of reach gets no healing."
       ]
     },
     "duelists": {
@@ -184,7 +184,7 @@
       "kind": "rival_band",
       "descriptors": [
         "They brought a Knight who pushes, a Wizard who blasts the nearest character, and a Healer who patches up wounded allies.",
-        "The rival Healer gets two heals. Their Wizard can hit their own side, and their Knight answers a taunt."
+        "The rival Healer can repeatedly restore 2 HP to wounded allies within two tiles. Their Wizard can hit their own side, and their Knight answers a taunt."
       ]
     },
     "last_one_standing": {
@@ -225,7 +225,7 @@
     "veteran_unfortunate_healer": {
       "kind": "formation",
       "descriptors": [
-        "A tougher enemy Healer supports two Bruisers. Removing the Healer takes more punishment than usual, and the Healer has two heals.",
+        "A tougher enemy Healer supports two Bruisers and can repeatedly restore 3 HP to a wounded ally within 2 tiles.",
         "The sturdier Healer can patch up wounded allies within two tiles. Separate a Bruiser from that support or focus on the Healer."
       ]
     },
@@ -239,8 +239,8 @@
     "crossfire_blast_lane": {
       "kind": "ambush",
       "descriptors": [
-        "A Hookhand can pull a hero toward the Bomber, which can strike up close before it falls. Its death blast hurts everyone beside it, friend or foe.",
-        "The Harpooner strikes from two tiles away while the Bomber closes in. Check the Hookhand's pull and the Bomber's blast before committing."
+        "Two Hookhands can pull heroes toward the Bomber, which can strike up close before it falls. Its death blast hurts everyone beside it, friend or foe.",
+        "Two Harpooners strike from two tiles away while the Bomber closes in. Check both Hookhands' pulls and the Bomber's blast before committing."
       ]
     },
     "last_crate_on_the_road": {
@@ -288,7 +288,7 @@
     "very_long_spear": {
       "kind": "skirmish",
       "descriptors": [
-        "Defeat the Spearman and his crew. His adjacent strike continues one tile straight beyond its target, hitting anyone there, including his ally."
+        "Defeat the two Spearmen and their crew. Each adjacent strike continues one tile straight beyond its target, hitting anyone there, including an ally."
       ]
     },
     "big_windup": {

@@ -10,7 +10,8 @@
         "wizard"
       ],
       "enemy_max_hp": {
-        "ogre_1": 18
+        "ogre_1": 18,
+        "trickster_2": 7
       },
       "objective": {
         "handler": "defeat_all",
@@ -25,7 +26,7 @@
           "event": "The company has fallen."
         }
       ],
-      "tier": 2
+      "tier": 4
     }
   }
 }

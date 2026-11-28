@@ -40,9 +40,9 @@ design does not set a target count for distinct finales.
 
 The minimum coverage gate is **at least two represented road kinds at each of
 T1, T2, T3, T4, and T5**. This keeps every fork and promise possible without
-requiring a repeat-free run. Stock has 32 road reports across T1–T5 in counts
-of 7, 18, 2, 3, and 2, plus nine finales. It meets the minimum gate but does
-not guarantee a repeat-free run. The historical
+requiring a repeat-free run. Stock has 32 road reports across T1–T5, plus nine
+finales. It meets the minimum gate but does not guarantee a repeat-free run. The
+historical
 [road audit](../.lore/work/games/company-of-unlikely-heroes/notes/commission-tier-road-audit.md)
 records a proposed pool, not proof that pressure rises at the intended pace.
 

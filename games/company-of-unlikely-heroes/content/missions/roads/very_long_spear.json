@@ -2,7 +2,7 @@
   "missions": {
     "very_long_spear": {
       "title": "The Very Long Spear",
-      "tier": 2,
+      "tier": 4,
       "encounter": "road_very_long_spear",
       "default_party": [
         "knight",
@@ -11,7 +11,7 @@
       ],
       "objective": {
         "handler": "defeat_all",
-        "text": "Defeat every opponent. The Spearman's adjacent strike continues one tile straight beyond its target, hitting whoever is there, including his own allies. Mind the line or draw his crew into it.",
+        "text": "Defeat every opponent. Each Spearman's adjacent strike continues one tile straight beyond its target, hitting whoever is there, including his own allies. Mind the line or draw their crew into it.",
         "victory_text": "The company wins the fight.",
         "defeat_text": "The company falls.",
         "victory_event": "The last opponent falls."
@@ -55,6 +55,22 @@
           "character": "grunt",
           "at": [
             3,
+            3
+          ]
+        },
+        {
+          "id": "long_spearman_2",
+          "character": "road_long_spearman",
+          "at": [
+            4,
+            2
+          ]
+        },
+        {
+          "id": "spear_crew_2",
+          "character": "grunt",
+          "at": [
+            4,
             3
           ]
         }

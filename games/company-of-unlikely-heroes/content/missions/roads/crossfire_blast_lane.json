@@ -10,7 +10,7 @@
       ],
       "objective": {
         "handler": "defeat_all",
-        "text": "Defeat every opponent. The Hookhand can pull a hero toward the Bomber. When the Bomber falls, its blast deals 2 damage to every adjacent living character, friend or foe. Watch the Harpooner too.",
+        "text": "Defeat every opponent. Two Hookhands can pull heroes toward the Bomber. When the Bomber falls, its blast deals 2 damage to every adjacent living character, friend or foe. Watch the two Harpooners too.",
         "victory_text": "The company clears the fuse line.",
         "defeat_text": "The company falls at the fuse line.",
         "victory_event": "The last opponent falls."
@@ -21,7 +21,7 @@
           "event": "The company has fallen."
         }
       ],
-      "tier": 2
+      "tier": 4
     }
   },
   "encounters": {
@@ -64,6 +64,22 @@
           "at": [
             5,
             3
+          ]
+        },
+        {
+          "id": "crossfire_hookhand_2",
+          "character": "hookhand",
+          "at": [
+            3,
+            3
+          ]
+        },
+        {
+          "id": "crossfire_harpooner_2",
+          "character": "harpooner",
+          "at": [
+            5,
+            1
           ]
         }
       ]

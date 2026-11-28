@@ -203,7 +203,7 @@ static func _use_limit(ability: Dictionary) -> int:
 		"swap_ally":
 			return 1
 		"enemy_heal":
-			return int(ability.params.charges)
+			return int(ability.params.get("charges", -1))
 	return -1
 
 

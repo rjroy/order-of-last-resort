@@ -310,8 +310,8 @@ func _test_controlled_carry_and_reset(reward_seed: int, force_hp := false) -> vo
 
 
 func _test_authored_patrol_route() -> void:
-	# Three historical recipes require the former Mixologist kit. Keep that kit
-	# test-owned; the founder recipe runs against the public standalone catalog.
+	# Three historical recipes require the former Mixologist kit and patrol.
+	# Keep both test-owned; the founder recipe uses the public standalone catalog.
 	var current_defs := defs
 	defs = defs.duplicate(true)
 	defs.characters.alchemist = {
@@ -325,6 +325,10 @@ func _test_authored_patrol_route() -> void:
 		"handler": "blast", "params": {"damage": 3, "status": "knockdown"},
 		"targeting": {"kind": "automatic", "objects": true, "capabilities": ["damageable"]}}
 	defs.behaviors.alchemist_blast = {"handler": "use_ability", "params": {"ability": "alchemist_splash"}}
+	defs.encounters.road_patrol.placements = [
+		{"id": "raider_one", "character": "harpooner", "at": [4, 1]},
+		{"id": "raider_two", "character": "harpooner", "at": [4, 3]}
+	]
 	for id in defs.get("upgrades", {}).keys():
 		if defs.upgrades[id].get("hero_id") == "alchemist":
 			defs.upgrades.erase(id)

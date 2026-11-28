@@ -41,17 +41,46 @@ static func attack(state: Dictionary, source: Dictionary, intended: Dictionary, 
 	if strike.has("surround_bonus"):
 		damage += _surround_bonus(state, source, target, strike.surround_bonus, events)
 	damage = Frontier.attack_damage(state, source, damage, events)
-	var reflection := Statuses.reflect_attack(state, target, events)
-	damage += int(reflection.bonus)
-	var primary_bonus := int(strike.get("primary_bonus", 0)) if target == reflection.target else 0
-	target = reflection.target
+	var reflection := Statuses.reflect_attack(state, target, damage, events)
+	var hit := {"target": target, "damage": damage}
+	if reflection.is_empty():
+		return _strike_hit(state, source, intended, hit, strike, events, retaliation)
+
+	var reflected := {"target": reflection.target, "damage": reflection.damage,
+		"reflect_origin": target.position}
+	if reflection.overflow == 0:
+		return _strike_hit(state, source, intended, reflected, strike, events, retaliation)
+
+	hit.damage = reflection.overflow
+	if reflection.target.is_empty():
+		return _strike_hit(state, source, intended, hit, strike, events, retaliation)
+	# A split hit's ward keeps the status and Blast/Throw effects. The other
+	# recipient resolves damage and falls immediately, but retaliation waits for both.
+	reflected["damage_only"] = true
+	var batch := retaliation if retaliation != null else RetaliationBatch.new()
+	var defeated_reflected := _strike_hit(state, source, intended, reflected, strike, events, batch)
+	var defeated_ward := _strike_hit(state, source, intended, hit, strike, events, batch)
+	if retaliation == null:
+		flush_retaliation(state, source, events, batch)
+	return defeated_reflected or defeated_ward
+
+
+static func _strike_hit(state: Dictionary, source: Dictionary, intended: Dictionary, hit: Dictionary,
+		strike: Dictionary, events: Array, retaliation: RetaliationBatch) -> bool:
+	var target: Dictionary = hit.target
+	var damage: int = hit.damage
+	var id: String = strike.get("ability_id", "")
+	var has_effects: bool = not hit.get("damage_only", false)
+	# Boosts from a fitting or Inspiration are not part of the aura's budget.
+	# They stay with the ward's hit, if any, rather than following reflection.
+	var primary_bonus := 0 if hit.has("reflect_origin") else int(strike.get("primary_bonus", 0))
 	var impact: Vector2i = strike.get("impact_position", intended.position)
 	if not target.is_empty() and (target.id != intended.id or not strike.has("impact_position")):
 		impact = target.position
 		if target.has("footprint_offsets"):
-			var origin: Vector2i = reflection.get("origin", source.position)
+			var origin: Vector2i = hit.get("reflect_origin", source.position)
 			impact = ShieldWall.attack_contact(origin, target).position
-	var status_id: String = strike.get("status", "")
+	var status_id: String = strike.get("status", "") if has_effects else ""
 	if id == "wizard_blast":
 		if target.has("object_id"):
 			damage += Upgrades.amount(state, source, "demolition_practice")
@@ -67,10 +96,10 @@ static func attack(state: Dictionary, source: Dictionary, intended: Dictionary, 
 	var amount := _hurt_and_chain(state, source, target, damage + primary_bonus, strike.source_name,
 		status_id, events, presentation, unimproved)
 	var defeated_intended: bool = amount > 0 and target.id == intended.id and not Board.alive(target)
-	if id == "knight_shield_throw":
+	if has_effects and id == "knight_shield_throw":
 		Shield.dropped(state, source, impact, events)
-	elif id == "wizard_blast" and amount >= 0:
-		_blast_aftereffects(state, source, target, impact, unimproved.get("amount", amount), events)
+	elif has_effects and id == "wizard_blast" and amount >= 0:
+		_blast_aftereffects(state, source, target, impact, unimproved.get("amount", amount), events, retaliation)
 	_after_damage(state, source, target, amount, events, retaliation)
 	return defeated_intended
 
@@ -92,7 +121,7 @@ static func _surround_bonus(state: Dictionary, actor: Dictionary, target: Dictio
 
 
 static func _blast_aftereffects(state: Dictionary, wizard: Dictionary, primary: Dictionary, impact: Vector2i,
-		damage: int, events: Array) -> void:
+		damage: int, events: Array, retaliation: RetaliationBatch) -> void:
 	if Upgrades.amount(state, wizard, "parting_gift") > 0 and Board.alive(primary) \
 			and not primary.has("footprint_offsets"):
 		var direction := toward(wizard.position, impact)
@@ -112,7 +141,8 @@ static func _blast_aftereffects(state: Dictionary, wizard: Dictionary, primary: 
 		var presentation := {}
 		if recipient.has("footprint_offsets"):
 			presentation = {"data": {"impact_position": ShieldWall.attack_contact(impact, recipient).position}, "copy": {}}
-		hurt(state, wizard, recipient, ceili(damage * 0.5), "Conductive Personality's bolt", "", events, presentation)
+		hurt(state, wizard, recipient, ceili(damage * 0.5), "Conductive Personality's bolt", "", events,
+			presentation, retaliation)
 
 
 ## Direct damage doesn't redirect. Non-attack damage (songs, recoil, Wave and
@@ -223,6 +253,7 @@ static func _apply_hit(state: Dictionary, source: Dictionary, target: Dictionary
 				if not unimproved.is_empty():
 					unimproved.amount = 0
 		amount = Statuses.alchemy_lethal_save(state, target, amount, events, unimproved)
+	var previous_hp: int = target.hp
 	target.hp = maxi(0, target.hp - amount)
 	if amount > 0 and source.get("id", "") != target.id and source.has("character_id") \
 			and not Frontier.traits(state, target, "last_damager_pursuit").is_empty():
@@ -238,6 +269,9 @@ static func _apply_hit(state: Dictionary, source: Dictionary, target: Dictionary
 	if not presentation.is_empty():
 		data.merge(presentation.data)
 		copy.merge(presentation.copy)
+	data["hp_lost"] = previous_hp - int(target.hp)
+	data["target_team"] = Board.team(state, target)
+	data["target_is_character"] = target.has("character_id")
 	if presentation.has("text"):
 		Board.event(events, "damage", Board.format_text(presentation.text, copy), data)
 	else:

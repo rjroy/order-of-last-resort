@@ -908,6 +908,8 @@ class Validator:
 		match handler:
 			"reflect":
 				_integer(params.get("range"), path + ".params.range")
+				if params.has("max_reflect_damage_per_round"):
+					_integer(params.max_reflect_damage_per_round, path + ".params.max_reflect_damage_per_round")
 				_check_target_filters(params, path + ".params")
 			"retarget":
 				if params.has("teams"):

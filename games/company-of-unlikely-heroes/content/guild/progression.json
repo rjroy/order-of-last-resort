@@ -225,7 +225,7 @@
       },
       "healer_triage_order": {
         "label": "Triage",
-        "description": "Use equipped Heal or Apply Padding on the patient missing the most HP within 3 tiles, including Marta. Wait if no legal patient is wounded.",
+        "description": "Use the equipped ability on the patient missing the most HP, including Marta. Heal reaches 2 tiles; Apply Padding reaches 3. Wait if no legal patient is wounded.",
         "cost": 6,
         "grant": {
           "kind": "order",

@@ -358,6 +358,7 @@
       "expiry": "actor_turn_start",
       "params": {
         "range": 1,
+        "max_reflect_damage_per_round": 4,
         "teams": [
           "enemies"
         ],
@@ -446,7 +447,7 @@
       "text": "'s collision"
     },
     "aura": {
-      "text": "{actor} raises an aura (range {range}) that redirects incoming damage and attack effects; movement and recoil are unaffected."
+      "text": "{actor} raises an aura (range {range}) that can redirect incoming attack damage; movement and recoil are unaffected."
     },
     "taunt": {
       "text": "{actor} taunts {target}."

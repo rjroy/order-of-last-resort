@@ -247,8 +247,8 @@ After a victory with another mission ahead, inspect the debrief before continuin
 
 | Hero | Offensive action | Utility |
 |---|---|---|
-| Anxious Knight | Push a neighboring unit or obstacle. The push hurts only on collision. | His shield covers everyone in range, even an enemy. An incoming attack reflects to the nearest enemy or obstacle. |
-| Unimpressed Healer | A staff bonk damages an adjacent enemy or obstacle and draws an enemy’s attention. | Heal restores 2 HP within 3 tiles. Direct Heal chooses self or an eligible ally. Support chooses self when wounded, otherwise the nearest eligible companion, even at full health. |
+| Anxious Knight | Push a neighboring unit or obstacle. The push hurts only on collision. | His aura covers everyone in range, even an enemy. It redirects up to 4 total attack damage per round to the nearest enemy or obstacle, or absorbs it if no target is available. Excess damage hits the original target. |
+| Unimpressed Healer | A staff bonk damages an adjacent enemy or obstacle and draws an enemy’s attention. | Heal restores 2 HP within 2 tiles. Direct Heal chooses self or an eligible ally. Support chooses self when wounded, otherwise the nearest eligible companion, even at full health. |
 | Enthusiastic Caster | Blast deals 3 damage within 4 tiles. Direct Blast targets a legal character or obstacle, including an eligible ally. Standing Blast seeks the nearest target. | Choose someone to pull. They land where the caster stood; the caster takes 1 damage and knockdown from recoil. |
 | Mixologist | **Acid:** Deal 1 damage to a chosen hostile character up to three tiles away, plus a forecast reaction. | **Healing Potion:** Heal yourself or a chosen adjacent friendly character for 1 HP, including civilians and summons, plus a forecast reaction. |
 | Daft Dodger | Wasn't Me marks an enemy beside another living character; its next attack is redirected to an adjacent character, including an ally. | Direct Confusing Dodge swaps with a chosen eligible character, friend or foe. The guild standing Dodge favors a long swap away from danger; legacy standalone Dodge chooses the furthest other living character. |

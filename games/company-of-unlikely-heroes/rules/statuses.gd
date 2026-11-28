@@ -321,38 +321,71 @@ static func guard_range(state: Dictionary, unit: Dictionary, status: Dictionary)
 	return int(status.params.range) + Upgrades.amount(state, unit, "wide_guard")
 
 
-static func reflect_attack(state: Dictionary, ward: Dictionary, events: Array) -> Dictionary:
+## The first covering aura that can intercept takes the packet; overflow cannot be intercepted again.
+static func reflect_attack(state: Dictionary, ward: Dictionary, damage: int, events: Array) -> Dictionary:
 	if not Board.capable(state, ward, "protectable"):
-		return {"target": ward, "bonus": 0}
+		return {}
 	for protector in state.units:
 		if not Board.alive(protector):
 			continue
 		for id in ids_with_handler(state, protector, "reflect"):
 			var spec := definition(state, id)
-			var params: Dictionary = spec.params
 			if Board.distance(protector.position, ward.position) > guard_range(state, protector, spec):
 				continue
-			var candidates := Board.occupants(state, params)
-			candidates = candidates.filter(func(candidate: Dictionary) -> bool:
-				return Board.capable(state, candidate, "damageable"))
-			var recipient := Board.nearest(ward, candidates)
-			var data := {"unit_id": protector.id, "ward_id": ward.id, "status_id": id,
-				"source_id": protector.statuses[id].source_id}
-			var name := Board.display_name(state, protector)
-			var ward_name := Board.display_name(state, ward)
-			if recipient.is_empty():
-				Board.authored_event(state, events, "reflect", "reflect_absorb",
-					{"protector": name, "ward": ward_name}, data)
-			else:
-				data["target_id"] = recipient.id
-				Board.authored_event(state, events, "reflect", "reflect_redirect",
-					{"protector": name, "ward": ward_name, "target": Board.display_name(state, recipient)}, data)
-			var bonus := Upgrades.amount(state, protector, "shield_damage") if not recipient.is_empty() else 0
-			if bonus > 0:
-				Board.event(events, "reflect", "The improved shield adds %d reflected damage." % bonus,
-					{"unit_id": protector.id, "target_id": recipient.id, "amount": bonus})
-			return {"target": recipient, "bonus": bonus, "origin": ward.position}
-	return {"target": ward, "bonus": 0}
+			var reflection := _intercept(state, protector, ward, id, spec.params, damage, events)
+			if not reflection.is_empty():
+				return reflection
+	return {}
+
+
+static func _intercept(state: Dictionary, protector: Dictionary, ward: Dictionary, id: String,
+		params: Dictionary, damage: int, events: Array) -> Dictionary:
+	var data := {"unit_id": protector.id, "ward_id": ward.id, "status_id": id,
+		"source_id": protector.statuses[id].source_id}
+	var name := Board.display_name(state, protector)
+	var ward_name := Board.display_name(state, ward)
+	var cap := int(params.get("max_reflect_damage_per_round", -1))
+	var amount := damage
+	if cap >= 0:
+		# Expiring, throwing or reapplying the aura does not reset round spending.
+		var spending: Dictionary = protector.get("reflect_spending", {})
+		var spent := int(spending.amount) if spending.get("round") == state.round else 0
+		var remaining := maxi(0, cap - spent)
+		if remaining == 0:
+			data.merge({"amount": 0, "remaining": 0})
+			Board.event(events, "reflect_exhausted",
+				"%s's aura is spent this round and cannot intercept the attack on %s." % [name, ward_name], data)
+			return {}
+		amount = mini(damage, remaining)
+		if amount > 0:
+			protector["reflect_spending"] = {"round": state.round, "amount": spent + amount}
+		data.merge({"amount": amount, "overflow": damage - amount, "remaining": remaining - amount})
+
+	var candidates := Board.occupants(state, params).filter(func(candidate: Dictionary) -> bool:
+		return Board.capable(state, candidate, "damageable"))
+	var recipient := Board.nearest(ward, candidates)
+	var target_name := ""
+	if not recipient.is_empty():
+		data["target_id"] = recipient.id
+		target_name = Board.display_name(state, recipient)
+	var overflow := damage - amount
+	if cap < 0:
+		var template := "reflect_absorb" if recipient.is_empty() else "reflect_redirect"
+		Board.authored_event(state, events, "reflect", template,
+			{"protector": name, "ward": ward_name, "target": target_name}, data)
+	else:
+		var text := "%s's aura absorbs %d incoming damage from the attack on %s (no redirect target)" % [
+			name, amount, ward_name] if recipient.is_empty() \
+			else "%s's aura redirects %d incoming damage from %s to %s" % [name, amount, ward_name, target_name]
+		if overflow > 0:
+			text += "; %d reaches %s before defenses" % [overflow, ward_name]
+		Board.event(events, "reflect", text + ".", data)
+
+	var bonus := Upgrades.amount(state, protector, "shield_damage") if not recipient.is_empty() else 0
+	if bonus > 0:
+		Board.event(events, "reflect", "The improved shield adds %d reflected damage." % bonus,
+			{"unit_id": protector.id, "target_id": recipient.id, "amount": bonus})
+	return {"target": recipient, "damage": amount + bonus, "overflow": overflow}
 
 
 static func double_recipient(state: Dictionary, target: Dictionary, events: Array) -> Dictionary:

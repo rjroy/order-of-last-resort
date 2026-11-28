@@ -27,6 +27,7 @@ func _initialize() -> void:
 		for id in REQUIRED + OPTIONAL:
 			if defs.missions.has(id):
 				_test_candidate(defs, id)
+		_test_big_windup_family(defs)
 	for failure in failures:
 		push_error("FAIL: " + failure)
 	if failures.is_empty():
@@ -63,6 +64,68 @@ func _test_bell_runtime_isolation() -> void:
 	if not state.is_empty():
 		_check(state.objective.corpse_bell == {"character": "harpooner"},
 			"authored bell runtime keys do not seed the battle snapshot")
+
+
+func _test_big_windup_family(defs: Dictionary) -> void:
+	var expected := {
+		"big_windup": [2, 1, 1],
+		"big_windup_t3": [3, 1, 2],
+		"big_windup_t4": [4, 2, 1],
+		"big_windup_t5": [5, 2, 2],
+	}
+	var family: Array = []
+	for id in defs.missions:
+		if id == "big_windup" or id.begins_with("big_windup_") \
+				or defs.missions[id].get("base_mission_id") == "big_windup":
+			family.append(id)
+	family.sort()
+	var expected_ids := expected.keys()
+	expected_ids.sort()
+	_check(family == expected_ids, "Big Windup family has exactly the four expected mission IDs")
+	var profile := Catalog.profile(defs, "road_windup_bruiser")
+	var strikes: Array = profile.get("traits", []).filter(
+		func(spec): return spec.get("kind") == "big_windup")
+	_check(int(profile.get("max_hp", 0)) > 0 and strikes.size() == 1 \
+		and int(strikes[0].get("damage", 0)) > 0,
+		"shared Windup Bruiser profile has positive HP and one damaging windup")
+	for id in expected:
+		_check(defs.missions.has(id), "Big Windup family contains " + id)
+		if not defs.missions.has(id):
+			continue
+		var mission: Dictionary = defs.missions[id]
+		_check(mission.get("tier") == expected[id][0], id + " has its assigned tier")
+		if id != "big_windup":
+			_check(mission.get("base_mission_id") == "big_windup",
+				id + " identifies big_windup as its base")
+		_check(not defs.get("mission_reports", {}).has(id),
+			id + " remains outside commission selection")
+		# The general candidate check verifies default launch and clean restart.
+		if id != "big_windup":
+			_test_candidate(defs, id)
+		var party: Array = mission.get("default_party", [])
+		if party.is_empty():
+			continue
+		var state := Catalog.build(defs, id, party)
+		if state.is_empty():
+			continue
+		var bruisers := 0
+		var grunts := 0
+		var other_enemies := 0
+		for unit in state.units:
+			var unit_profile := Catalog.profile(defs, unit.character_id)
+			if unit_profile.get("team") != "enemies":
+				continue
+			if unit.character_id == "road_windup_bruiser":
+				bruisers += 1
+				_check(unit_profile == profile, id + " uses the shared Windup Bruiser profile")
+				_check(unit.hp == profile.get("max_hp") and unit.max_hp == profile.get("max_hp"),
+					id + " uses the shared Bruiser HP without mission overrides")
+			elif unit.character_id == "grunt":
+				grunts += 1
+			else:
+				other_enemies += 1
+		_check(bruisers == expected[id][1] and grunts == expected[id][2] and other_enemies == 0,
+			id + " deploys exactly %d Windup Bruisers and %d grunts" % [expected[id][1], expected[id][2]])
 
 
 func _test_candidate(defs: Dictionary, id: String) -> void:

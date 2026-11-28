@@ -28,6 +28,8 @@ historical exceptions, and live versus archival commands.
 - For encounter balance, use [road mission design](docs/designing-road-missions.md)
   at commission forks and [finale design](docs/designing-commission-finales.md)
   at named destinations. The finale balance pass is tracked in `olr-yfl`.
+- For scripted road baselines and carryover scorecards, use the
+  [road-playtest skill](.agents/skills/road-playtest/SKILL.md).
 - Do not overwrite accepted originals or treat disposable captures as source.
   Record how to reproduce evidence and distinguish design proposals from work
   the user has approved.

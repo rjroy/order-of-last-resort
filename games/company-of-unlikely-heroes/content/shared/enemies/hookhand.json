@@ -1,0 +1,64 @@
+{
+  "characters": {
+    "hookhand": {
+      "class": "enemy",
+      "label": "Hookhand",
+      "art_key": "hookhand",
+      "art_variant": "default",
+      "max_hp": 5,
+      "abilities": [
+        "move",
+        "hook_pull"
+      ],
+      "behavior": "hookhand_pull_or_approach",
+      "cast_key": "hookhand",
+      "cast_art_key": "hookhand",
+      "cast_team": "enemies",
+      "cast_variant": "default",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "approach"
+          },
+          "hook_pull": {
+            "handler": "hook",
+            "clip": "hook_pull",
+            "impact_frame": 18
+          }
+        },
+        "hit": "flinch",
+        "defeat": "down",
+        "events": {
+          "recover": "recover"
+        }
+      }
+    }
+  },
+  "abilities": {
+    "hook_pull": {
+      "label": "Hook Pull",
+      "help": "Draws a target two tiles away one step closer if the landing tile is empty. The Hookhand does not move or deal damage.",
+      "handler": "hook",
+      "params": {},
+      "targeting": {
+        "kind": "entity",
+        "range": 2,
+        "teams": [
+          "heroes"
+        ]
+      }
+    }
+  },
+  "behaviors": {
+    "hookhand_pull_or_approach": {
+      "handler": "hook_and_seek",
+      "params": {
+        "team": "heroes",
+        "move_ability": "move",
+        "ability": "hook_pull",
+        "taunt_status": "taunt"
+      }
+    }
+  }
+}

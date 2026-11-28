@@ -1,0 +1,31 @@
+{
+  "missions": {
+    "veteran_mirror_company": {
+      "title": "The Veteran Mirror Company",
+      "base_mission_id": "mirror_company",
+      "encounter": "frontier_mirror_company",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "enemy_max_hp": {
+        "rival_wizard_2": 5
+      },
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. The rival Knight pushes and follows taunts, the rival Wizard blasts the nearest character, and the rival Healer restores wounded allies within 2 tiles twice.",
+        "victory_text": "The company defeats its veteran rivals.",
+        "defeat_text": "The company falls to its veteran rivals.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ],
+      "tier": 2
+    }
+  }
+}

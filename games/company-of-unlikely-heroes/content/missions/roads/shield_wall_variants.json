@@ -1,0 +1,32 @@
+{
+  "missions": {
+    "veteran_shield_wall": {
+      "title": "The Veteran Shield Wall",
+      "base_mission_id": "shield_wall",
+      "encounter": "frontier_shield_wall",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "enemy_max_hp": {
+        "shieldbearer_1": 5,
+        "shieldbearer_2": 5
+      },
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. An adjacent Shieldbearer reduces damage to the Archer by 1 per Shieldbearer. Separate them or defeat the guards.",
+        "victory_text": "The company breaks the veteran shield wall.",
+        "defeat_text": "The company falls to the veteran shield wall.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ],
+      "tier": 2
+    }
+  }
+}

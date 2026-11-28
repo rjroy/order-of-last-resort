@@ -1,0 +1,55 @@
+{
+  "statuses": {
+    "laughter": {
+      "label": "Laughing; skips next turn",
+      "handler": "skip_action",
+      "expiry": "consume_action",
+      "params": {
+        "immunity_rounds": 1,
+        "immune_label": "Immune to laughter this round",
+        "skip_event": "laugh_skip"
+      }
+    },
+    "held_in_place": {
+      "label": "Held in place",
+      "handler": "stop_move",
+      "expiry": "actor_turn_end",
+      "params": {}
+    },
+    "misdirected": {
+      "label": "Misled",
+      "handler": "misdirect",
+      "expiry": "consume_attack",
+      "params": {}
+    },
+    "aura": {
+      "label": "Reflecting aura",
+      "handler": "reflect",
+      "expiry": "actor_turn_start",
+      "params": {
+        "range": 1,
+        "max_reflect_damage_per_round": 4,
+        "teams": [
+          "enemies"
+        ],
+        "objects": true
+      }
+    },
+    "knockdown": {
+      "label": "Down",
+      "handler": "skip_action",
+      "expiry": "consume_action",
+      "params": {}
+    },
+    "taunt": {
+      "label": "Taunted",
+      "handler": "retarget",
+      "expiry": "actor_turn_end",
+      "params": {
+        "teams": [
+          "heroes"
+        ]
+      }
+    }
+  }
+}

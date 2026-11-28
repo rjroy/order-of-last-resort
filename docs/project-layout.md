@@ -38,8 +38,8 @@ use the current paths below.
 | `presentation/help/` | In-game help and instruction presentation. |
 | `presentation/settings/` | User-facing options and settings presentation. |
 | `content/heroes/` | Hero and character definitions, including their kits and orders. |
-| `content/missions/` | Individual authored mission definitions. |
-| `content/shared/` | Shared encounter and common content definitions. |
+| `content/missions/` | Road and destination mission families, with documented recipe path exceptions. |
+| `content/shared/` | Shared profiles, statuses, abilities, enemies and encounter content. |
 | `content/guild/` | Guild progression and training catalog data. |
 | `content/expedition/` | Commission and expedition reward catalog data. |
 | `content/practice/` | Practice/tutorial content, distinct from commission missions. |
@@ -97,7 +97,7 @@ art.
 
 For a stock mission, the authored definition belongs in
 [`content/missions/`](../games/company-of-unlikely-heroes/content/missions/);
-for example, [`wrong_side_of_the_door.json`](../games/company-of-unlikely-heroes/content/missions/wrong_side_of_the_door.json).
+for example, [`wrong_side_of_the_door.json`](../games/company-of-unlikely-heroes/content/missions/destinations/wrong_side_of_the_door.json).
 Add every new stock mission file's relative path to the `parts` array in
 [`content/catalog.json`](../games/company-of-unlikely-heroes/content/catalog.json);
 the stock manifest resolves each entry relative to `content/`. In this example,
@@ -105,7 +105,10 @@ the mission file itself defines the `frontier_gate` encounter and
 `frontier_gate_board`, including its `gate_guard` goblin placement and named
 plate, gate, and exit locations; none of those records come from
 `content/shared/encounters.json`. Put definitions in `content/shared/` only
-when they are genuinely shared by multiple content entries. The separate
+when they are genuinely shared by multiple content entries. Asset recipes read
+`boards.bridge` from `content/shared/common.json`, `company_crossing` from
+`content/missions/company_rescue.json`, and wagon content from
+`content/missions/last_wagon.json`; keep those records at those paths. The separate
 `content/practice/catalog.json` is a deliberately narrower, curated catalog,
 not a minimal list: it assembles 14 missions (including its own practice
 encounter) and selected shared and hero definitions. Update it only when the

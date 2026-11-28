@@ -1,0 +1,88 @@
+{
+  "missions": {
+    "empty_helmets": {
+      "title": "Empty Helmets",
+      "encounter": "road_empty_helmets",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "defeat_all",
+        "corpse_bell": {
+          "character": "road_bell_soldier"
+        },
+        "text": "Defeat every opponent. A fallen soldier is announced for the bell on the following round: it gets one chance to rise on its corpse tile, only if that tile is vacant. Defeat the whole enemy crew before then to win immediately.",
+        "victory_text": "The company wins the fight.",
+        "defeat_text": "The company falls.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ]
+    }
+  },
+  "encounters": {
+    "road_empty_helmets": {
+      "board": "frontier_field",
+      "party_slots": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "bell_soldier_one",
+          "character": "grunt",
+          "at": [
+            3,
+            1
+          ]
+        },
+        {
+          "id": "bell_soldier_two",
+          "character": "grunt",
+          "at": [
+            3,
+            3
+          ]
+        },
+        {
+          "id": "bell_guard",
+          "character": "bruiser",
+          "at": [
+            5,
+            2
+          ]
+        }
+      ]
+    }
+  },
+  "characters": {
+    "road_bell_soldier": {
+      "class": "enemy",
+      "label": "Risen Soldier",
+      "max_hp": 4,
+      "art_key": "skeleton",
+      "art_variant": "default",
+      "abilities": [
+        "move",
+        "grunt_strike"
+      ],
+      "behavior": "frontier_grunt_strike"
+    }
+  }
+}

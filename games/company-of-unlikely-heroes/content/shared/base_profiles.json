@@ -1,0 +1,65 @@
+{
+  "classes": {
+    "undead": {
+      "team": "heroes",
+      "max_hp": 1,
+      "capabilities": [
+        "blocks_movement",
+        "mobile",
+        "pushable",
+        "pullable",
+        "damageable",
+        "protectable",
+        "recoverable",
+        "minion"
+      ],
+      "abilities": [
+        "move"
+      ],
+      "habits": {},
+      "art_key": "skeleton"
+    },
+    "enemy": {
+      "team": "enemies",
+      "max_hp": 6,
+      "capabilities": [
+        "blocks_movement",
+        "mobile",
+        "pushable",
+        "pullable",
+        "damageable",
+        "protectable",
+        "tauntable",
+        "recoverable"
+      ],
+      "abilities": [
+        "move",
+        "enemy_attack",
+        "enemy_harpoon"
+      ],
+      "habits": {},
+      "behavior": "harpooner",
+      "art_key": "enemy",
+      "art_variant": "spear"
+    },
+    "civilian": {
+      "team": "civilian",
+      "max_hp": 5,
+      "capabilities": [
+        "blocks_movement",
+        "mobile",
+        "pushable",
+        "pullable",
+        "damageable",
+        "protectable",
+        "recoverable"
+      ],
+      "abilities": [
+        "move"
+      ],
+      "habits": {},
+      "behavior": "escort",
+      "art_key": "ferryman"
+    }
+  }
+}

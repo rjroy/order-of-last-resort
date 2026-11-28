@@ -1,0 +1,63 @@
+{
+  "characters": {
+    "harpooner": {
+      "class": "enemy",
+      "label": "Harpooner",
+      "cast_key": "harpooner",
+      "cast_art_key": "enemy",
+      "cast_variant": "spear",
+      "cast_team": "enemies"
+    }
+  },
+  "abilities": {
+    "enemy_attack": {
+      "label": "Attack",
+      "help": "Attack an adjacent target.",
+      "handler": "attack",
+      "params": {
+        "damage": 2,
+        "source_suffix": ""
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 1,
+        "objects": true,
+        "capabilities": [
+          "damageable"
+        ]
+      }
+    },
+    "enemy_harpoon": {
+      "label": "Harpoon",
+      "help": "Strike a target up to two tiles away.",
+      "handler": "attack",
+      "params": {
+        "damage": 2,
+        "source_suffix": "'s harpoon"
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 2,
+        "objects": true,
+        "capabilities": [
+          "damageable"
+        ]
+      }
+    }
+  },
+  "behaviors": {
+    "harpooner": {
+      "handler": "threat",
+      "params": {
+        "ability": "enemy_harpoon",
+        "move_ability": "move",
+        "pursue_range": 5,
+        "fallback_teams": [
+          "heroes",
+          "civilian"
+        ],
+        "taunt_status": "taunt"
+      }
+    }
+  }
+}

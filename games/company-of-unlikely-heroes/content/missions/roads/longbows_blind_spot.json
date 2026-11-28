@@ -1,0 +1,115 @@
+{
+  "missions": {
+    "longbows_blind_spot": {
+      "title": "The Longbow's Blind Spot",
+      "encounter": "road_longbow",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. The Longbow cannot shoot an adjacent target and needs a clear straight lane. Get close, but watch the advancing bodyguard.",
+        "victory_text": "The company wins the fight.",
+        "defeat_text": "The company falls.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ]
+    }
+  },
+  "encounters": {
+    "road_longbow": {
+      "board": "frontier_field",
+      "party_slots": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "longbow_guard",
+          "character": "bruiser",
+          "at": [
+            3,
+            2
+          ]
+        },
+        {
+          "id": "longbow_archer",
+          "character": "road_longbow_archer",
+          "at": [
+            5,
+            2
+          ]
+        }
+      ]
+    }
+  },
+  "characters": {
+    "road_longbow_archer": {
+      "class": "enemy",
+      "label": "Longbow",
+      "max_hp": 5,
+      "art_key": "enemy",
+      "art_variant": "spear",
+      "cast_key": "archer",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "abilities": [
+        "move",
+        "road_longbow_shot"
+      ],
+      "behavior": "road_longbow_archer"
+    }
+  },
+  "abilities": {
+    "road_longbow_shot": {
+      "label": "Longbow Shot",
+      "help": "Deals 2 damage at range 2 to 5 along a clear straight lane. Cannot hit adjacent targets.",
+      "handler": "attack",
+      "params": {
+        "damage": 2,
+        "source_suffix": "'s longbow"
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 5,
+        "min_range": 2,
+        "straight_line_clear": true,
+        "teams": [
+          "heroes"
+        ]
+      }
+    }
+  },
+  "behaviors": {
+    "road_longbow_archer": {
+      "handler": "threat",
+      "params": {
+        "fallback_teams": [
+          "heroes"
+        ],
+        "pursue_range": 7,
+        "taunt_status": "taunt",
+        "move_ability": "move",
+        "ability": "road_longbow_shot"
+      }
+    }
+  }
+}

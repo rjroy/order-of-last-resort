@@ -1,6 +1,11 @@
 # Company content catalog
 
-[`catalog.json`](catalog.json) is the built-in manifest. It assembles shared definitions in [`shared/`](shared/), one file per recruitable hero in [`heroes/`](heroes/), one file per mission in [`missions/`](missions/), expedition rewards and commissions in [`expedition/`](expedition/), and permanent guild progression and training in [`guild/`](guild/). Shared boards, actors and mechanics used across missions live in `shared/`; mission-local encounters, boards and actors live with their mission. Practice has its own manifest in [`practice/`](practice/). A manifest contains only a nonempty `parts` array of paths relative to the manifest. Duplicate IDs in the same table across parts are errors, not overrides. For custom content, `--content=full-catalog.json` still accepts a complete catalog without a manifest. Each part and full catalog uses top-level dictionaries. Most are tables keyed by ID:
+[`catalog.json`](catalog.json) is the built-in manifest. It assembles shared definitions in [`shared/`](shared/), one file per recruitable hero in [`heroes/`](heroes/), road and destination families in [`missions/`](missions/), expedition rewards and commissions in [`expedition/`](expedition/), and permanent guild progression and training in [`guild/`](guild/). Shared base profiles, statuses, abilities and reusable enemies have separate files; mission-local encounters, boards and actors live with their mission family. Variants that practice does not include are registered separately from their base mission. Practice has its own manifest in [`practice/`](practice/). A manifest contains only a nonempty `parts` array of paths relative to the manifest. Duplicate IDs in the same table across parts are errors, not overrides. For custom content, `--content=full-catalog.json` still accepts a complete catalog without a manifest. Each part and full catalog uses top-level dictionaries. Most are tables keyed by ID:
+
+Asset recipes read `boards.bridge` directly from `shared/common.json`, the
+`company_crossing` encounter from `missions/company_rescue.json`, and wagon
+content from `missions/last_wagon.json`. Keep these records at those paths rather
+than duplicating them in the road or destination directories.
 
 When adding a stock hero or mission, add its file's path relative to `content/` to the `parts` array in [`catalog.json`](catalog.json). A file not listed there is not loaded by the default stock catalog. `practice/catalog.json` is intentionally narrower and independent: add a part there only when practice needs that content; do not mirror every stock catalog addition automatically.
 
@@ -213,4 +218,4 @@ Village Troubles uses tier 1 for the Goblin Mob and tier 2 for the Harpoon Squad
 
 To check the built-in Bard without a standalone mission, run `godot --headless --path games/company-of-unlikely-heroes --script res://tests/battle/bard_test.gd` from the repository root. Commission scene tests also check recruitment and deployment.
 
-Godot reads the manifest and its parts directly with `FileAccess`; no import step is needed when running from source. For a Godot export preset, include `content/**/*.json` and `content/catalog.json` under **Filters to export non-resource files/folders**. The project does not ship a platform export preset.
+Godot reads the manifest and its parts directly with `FileAccess`; no import step is needed when running from source. For a Godot export preset, include `content/**/*.json` and `content/catalog.json` under **Filters to export non-resource files/folders**. The checked-in [Web export preset](../export_presets.cfg) includes nested content parts through its `*.json` filter.

@@ -1,0 +1,31 @@
+{
+  "missions": {
+    "veteran_odd_couple": {
+      "title": "The Veteran Odd Couple",
+      "base_mission_id": "odd_couple",
+      "encounter": "frontier_odd_couple",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "enemy_max_hp": {
+        "ogre_1": 8
+      },
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. The Trickster can swap places with the Ogre once per battle. The Ogre is slow but hits hard.",
+        "victory_text": "The company defeats the veteran odd couple.",
+        "defeat_text": "The company falls to the veteran odd couple.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ],
+      "tier": 2
+    }
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "missions": {
+    "wrong_twin": {
+      "title": "The Wrong Twin",
+      "encounter": "road_twins",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat both twins. The Fresh Twin hits harder at full health; the Wounded Twin hits harder once hurt. Nick the Fresh Twin early, but be ready to finish the Wounded Twin.",
+        "victory_text": "The company wins the fight.",
+        "defeat_text": "The company falls.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ]
+    }
+  },
+  "encounters": {
+    "road_twins": {
+      "board": "frontier_field",
+      "party_slots": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "fresh_twin",
+          "character": "road_fresh_twin",
+          "at": [
+            3,
+            1
+          ]
+        },
+        {
+          "id": "wounded_twin",
+          "character": "road_wounded_twin",
+          "at": [
+            3,
+            3
+          ]
+        }
+      ]
+    }
+  },
+  "characters": {
+    "road_fresh_twin": {
+      "class": "enemy",
+      "label": "Fresh Twin",
+      "max_hp": 9,
+      "art_key": "enemy",
+      "art_variant": "spear",
+      "cast_key": "grunt",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "abilities": [
+        "move",
+        "grunt_strike"
+      ],
+      "behavior": "frontier_grunt_strike",
+      "traits": [
+        {
+          "kind": "health_damage_bonus",
+          "condition": "full",
+          "damage": 1
+        }
+      ]
+    },
+    "road_wounded_twin": {
+      "class": "enemy",
+      "label": "Wounded Twin",
+      "max_hp": 9,
+      "art_key": "enemy",
+      "art_variant": "spear",
+      "cast_key": "grunt",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "abilities": [
+        "move",
+        "grunt_strike"
+      ],
+      "behavior": "frontier_grunt_strike",
+      "traits": [
+        {
+          "kind": "health_damage_bonus",
+          "condition": "wounded",
+          "damage": 1
+        }
+      ]
+    }
+  }
+}

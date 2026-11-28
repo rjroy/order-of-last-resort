@@ -1,0 +1,70 @@
+{
+  "characters": {
+    "goblin": {
+      "class": "enemy",
+      "label": "Goblin",
+      "art_key": "goblin",
+      "art_variant": "default",
+      "cast_key": "goblin",
+      "cast_art_key": "goblin",
+      "cast_variant": "default",
+      "cast_team": "enemies",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "move"
+          },
+          "goblin_jab": {
+            "handler": "attack",
+            "clip": "jab",
+            "impact_frame": 8
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat"
+      },
+      "max_hp": 1,
+      "abilities": [
+        "move",
+        "goblin_jab"
+      ],
+      "behavior": "goblin_mob_pursuit"
+    }
+  },
+  "abilities": {
+    "goblin_jab": {
+      "label": "Goblin Jab",
+      "help": "Deals 1 damage to an adjacent hero or summon, plus 1 when another goblin is adjacent to the same target.",
+      "handler": "attack",
+      "params": {
+        "damage": 1,
+        "surround_bonus": {
+          "character": "goblin",
+          "damage": 1
+        }
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 1,
+        "teams": [
+          "heroes"
+        ]
+      }
+    }
+  },
+  "behaviors": {
+    "goblin_mob_pursuit": {
+      "handler": "threat",
+      "params": {
+        "fallback_teams": [
+          "heroes"
+        ],
+        "pursue_range": 7,
+        "taunt_status": "taunt",
+        "move_ability": "move",
+        "ability": "goblin_jab"
+      }
+    }
+  }
+}

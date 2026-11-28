@@ -1,0 +1,95 @@
+{
+  "missions": {
+    "friars_last_favor": {
+      "title": "The Friar's Last Favor",
+      "encounter": "road_friar",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. When the Friar falls, he heals surviving enemies for 2 HP. Finish him first before spreading damage, or save him for last.",
+        "victory_text": "The company wins the fight.",
+        "defeat_text": "The company falls.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ]
+    }
+  },
+  "encounters": {
+    "road_friar": {
+      "board": "frontier_field",
+      "party_slots": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "friar_guard",
+          "character": "bruiser",
+          "at": [
+            3,
+            1
+          ]
+        },
+        {
+          "id": "friar_crew",
+          "character": "grunt",
+          "at": [
+            3,
+            3
+          ]
+        },
+        {
+          "id": "friar",
+          "character": "road_friar",
+          "at": [
+            4,
+            2
+          ]
+        }
+      ]
+    }
+  },
+  "characters": {
+    "road_friar": {
+      "class": "enemy",
+      "label": "Friar",
+      "max_hp": 7,
+      "art_key": "enemy",
+      "art_variant": "spear",
+      "cast_key": "captain",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "abilities": [
+        "move",
+        "captain_strike"
+      ],
+      "behavior": "captain_retreat",
+      "traits": [
+        {
+          "kind": "death_heal",
+          "amount": 2
+        }
+      ]
+    }
+  }
+}

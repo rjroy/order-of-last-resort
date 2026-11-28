@@ -14,7 +14,11 @@ func _initialize() -> void:
 	_test_configuration(defs)
 	_test_reports(defs)
 	_test_pool(defs)
-	_test_authored()
+	_test_tiered_catalog()
+	_test_variants()
+	_test_malformed_encounter_does_not_hide_hp_error()
+	if "--controlled-only" not in OS.get_cmdline_user_args():
+		_test_authored()
 	if failures.is_empty():
 		print("PASS: commission catalog validation")
 	else:
@@ -164,8 +168,147 @@ func _test_commission_deployment(defs: Dictionary) -> void:
 		"reported mission lacks party-wiped failure")
 
 
+func _tiered_fixture() -> Dictionary:
+	var defs := _fixture()
+	defs.commission_settings.tiered = true
+	# Ten independent roads, two kinds in each tier, plus two extra roads.
+	for kind_index in range(3):
+		for index in range(4):
+			defs.missions["transit_%d_%d" % [kind_index, index]].tier = index + 1
+	for kind_index in range(2):
+		var id := "tier_five_%d" % kind_index
+		defs.missions[id] = defs.missions.fixture.duplicate(true)
+		defs.missions[id].tier = 5
+		defs.mission_reports[id] = {
+			"kind": "test_kind_%d" % kind_index, "descriptors": ["Road"]
+		}
+	return defs
+
+
+func _test_tiered_catalog() -> void:
+	var defs := _tiered_fixture()
+	_valid(defs, "tiered catalog with two road kinds per tier and no report road_tier")
+	for value in ["true", 1, null]:
+		var bad := defs.duplicate(true)
+		bad.commission_settings.tiered = value
+		_invalid(bad, "malformed tiered opt-in " + str(value))
+	for value in [0, 6, -1, 1.5, "1", true, null]:
+		var bad := defs.duplicate(true)
+		bad.missions.transit_0_0.tier = value
+		_invalid_at(bad, ["missions.transit_0_0.tier"], "invalid road mission tier " + str(value))
+	var missing := defs.duplicate(true)
+	missing.missions.transit_0_0.erase("tier")
+	_invalid_at(missing, ["missions.transit_0_0.tier"], "tiered road missing mission tier")
+	for tier in range(1, 6):
+		var one_kind := defs.duplicate(true)
+		for id in one_kind.mission_reports:
+			var report: Dictionary = one_kind.mission_reports[id]
+			if not report.has("destination_descriptors") and one_kind.missions[id].get("tier") == tier and report.kind != "test_kind_0":
+				report.kind = "test_kind_0"
+		_invalid_at(one_kind, ["road tier %d requires at least two different kinds" % tier],
+			"tier %d with only one road kind" % tier)
+	var legacy := _fixture()
+	legacy.commission_settings.tiered = false
+	_valid(legacy, "legacy commission catalog explicitly opts out")
+	_valid(_fixture(), "legacy commission catalog without opt-in")
+
+
+func _variant_fixture() -> Dictionary:
+	var defs := _fixture()
+	defs.missions["variant"] = defs.missions.transit_0_0.duplicate(true)
+	defs.missions["variant"].base_mission_id = "transit_0_0"
+	defs.missions["variant"].enemy_max_hp = {"harpooner": 6}
+	defs.mission_reports["variant"] = defs.mission_reports.transit_0_0.duplicate(true)
+	return defs
+
+
+func _unit(world: Dictionary, id: String) -> Dictionary:
+	for unit in world.get("units", []):
+		if unit.id == id:
+			return unit
+	return {}
+
+
+func _test_variants() -> void:
+	var defs := _variant_fixture()
+	_valid(defs, "variant references a canonical mission and overrides enemy HP")
+	var party := ["knight", "healer", "wizard"]
+	var variant := _unit(Catalog.build(defs, "variant", party), "harpooner")
+	var canonical := _unit(Catalog.build(defs, "transit_0_0", party), "harpooner")
+	if variant.get("max_hp") != 6 or variant.get("hp") != 6:
+		failures.append("variant enemy must start at its overridden maximum HP 6")
+	if canonical.get("max_hp") != 10 or canonical.get("hp") != 10:
+		failures.append("canonical enemy must retain its original maximum and starting HP 10")
+	var wounded := defs.duplicate(true)
+	wounded.encounters.fixture.placements[0].hp = 4
+	_valid(wounded, "variant with an explicitly wounded enemy")
+	var wounded_unit := _unit(Catalog.build(wounded, "variant", party), "harpooner")
+	if wounded_unit.get("max_hp") != 6 or wounded_unit.get("hp") != 4:
+		failures.append("variant must preserve explicit starting HP 4 under its maximum 6")
+	var raised_cap := defs.duplicate(true)
+	raised_cap.encounters["variant_encounter"] = raised_cap.encounters.fixture.duplicate(true)
+	raised_cap.encounters.variant_encounter.placements[0].hp = 12
+	raised_cap.missions.variant.encounter = "variant_encounter"
+	raised_cap.missions.variant.enemy_max_hp.harpooner = 14
+	_valid(raised_cap, "variant starting above inherited HP but below its raised cap")
+	var raised_unit := _unit(Catalog.build(raised_cap, "variant", party), "harpooner")
+	if raised_unit.get("max_hp") != 14 or raised_unit.get("hp") != 12:
+		failures.append("variant must start at HP 12 under its raised maximum 14")
+	var no_override := raised_cap.duplicate(true)
+	no_override.missions.variant.erase("enemy_max_hp")
+	_invalid(no_override, "starting HP above inherited maximum without override")
+	for reference in ["missing", "variant"]:
+		var bad := defs.duplicate(true)
+		bad.missions.variant.base_mission_id = reference
+		_invalid(bad, "invalid variant base " + reference)
+	var chain := defs.duplicate(true)
+	chain.missions.transit_0_0.base_mission_id = "transit_0_1"
+	_invalid(chain, "variant base cannot itself be a variant")
+	for overrides in [{"missing": 6}, {"civilian": 6}, {"harpooner": 0},
+			{"harpooner": -1}, {"harpooner": 1.5}, {"harpooner": "6"},
+			{"harpooner": true}, [], null]:
+		var bad := defs.duplicate(true)
+		bad.missions.variant.enemy_max_hp = overrides
+		_invalid(bad, "invalid enemy max HP override " + str(overrides))
+	var above_cap := defs.duplicate(true)
+	above_cap.encounters.fixture.placements[0].hp = 7
+	_invalid(above_cap, "explicit enemy starting HP exceeds variant cap")
+
+
+func _test_malformed_encounter_does_not_hide_hp_error() -> void:
+	var defs := _fixture()
+	defs.missions.fixture.encounter = 42
+	defs.encounters.fixture.placements[0].hp = 11
+	_invalid_at(defs, ["missions.fixture.encounter", "encounters.fixture.placements[0].hp",
+		"missions.transit_0_0"], "malformed encounter reference and sibling starting HP")
+	for malformed in ["placement_id", "team"]:
+		var bad := _variant_fixture()
+		bad.missions.variant.enemy_max_hp = {"harpooner": 6, "missing": 6}
+		var source_path := "encounters.fixture.placements[0].id"
+		if malformed == "placement_id":
+			bad.encounters.fixture.placements[0].id = 42
+		else:
+			bad.characters.harpooner.team = 42
+			source_path = "characters.harpooner.team"
+		_invalid_at(bad, [source_path, "missions.variant.enemy_max_hp.harpooner",
+			"missions.variant.enemy_max_hp.missing"], "malformed " + malformed + " and later HP map errors")
+
+
 func _test_authored() -> void:
-	var defs: Dictionary = Catalog.read_default()
+	var source := Catalog.read_source(Catalog.DEFAULT_PATH)
+	if source.has("error"):
+		failures.append("built-in commission catalog failed to load: " + str(source.error))
+		return
+	var defs: Dictionary = source.definitions
 	_valid(defs, "built-in commission catalog")
-	if defs.get("mission_reports", {}).size() != 20:
-		failures.append("built-in catalog must include all 20 mission reports")
+	var reports: Dictionary = defs.get("mission_reports", {})
+	for id in ["bridge_patrol", "goblin_mob", "harpoon_squad", "shield_wall",
+			"cowardly_captain", "explosive_situation", "unfortunate_healer",
+			"duelists", "odd_couple", "mirror_company", "last_one_standing"]:
+		if not reports.has(id) or reports[id].has("destination_descriptors"):
+			failures.append("built-in road report must remain a road: " + id)
+	for id in ["company_rescue", "unwelcome_guest", "wrong_side_of_the_door",
+			"hold_the_line", "great_sheep_escape", "bridge_is_out",
+			"dont_wake_the_giant", "unfortunate_ritual", "last_wagon"]:
+		if not reports.has(id) or not reports[id].has("destination_descriptors"):
+			failures.append("built-in destination report must remain a destination: " + id)

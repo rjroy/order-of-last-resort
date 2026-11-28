@@ -7,6 +7,13 @@ const Triggers = preload("res://tests/support/stock_cast_triggers.gd")
 const CastCues = preload("res://presentation/cast/cast_cues.gd")
 const BridgeBoard = preload("res://presentation/battle/bridge_art.gd")
 
+const ROAD_CAST_ROLES := [
+	"road_swing_giant", "road_crate_archer", "road_longbow_archer", "road_friar",
+	"road_fresh_twin", "road_wounded_twin", "road_windup_bruiser",
+	"road_hired_mercenary", "road_bell_soldier", "road_armor_lender",
+	"road_long_spearman",
+]
+
 var output := ""
 var mission := ""
 var actor := ""
@@ -289,6 +296,8 @@ func _inventory_check(defs: Dictionary, opening: Dictionary, board: Node) -> voi
 
 
 func _cast_key_for_role(role: String) -> String:
+	if role in ROAD_CAST_ROLES:
+		return role
 	for mission_cases in cases.values():
 		if mission_cases.has(role):
 			return str(mission_cases[role].get("cast_key", ""))

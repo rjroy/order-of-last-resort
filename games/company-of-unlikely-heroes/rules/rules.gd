@@ -5,6 +5,7 @@ const Catalog = preload("res://content/catalog.gd")
 const Actions = preload("res://rules/actions.gd")
 const Behaviors = preload("res://rules/behaviors.gd")
 const Board = preload("res://rules/board.gd")
+const Combat = preload("res://rules/combat.gd")
 const FittingState = preload("res://rules/fitting_state.gd")
 const Fittings = preload("res://rules/fittings.gd")
 const FrontierCombat = preload("res://rules/frontier_combat.gd")
@@ -72,6 +73,12 @@ func shield_position(state: Dictionary, unit_id: String) -> Variant:
 
 func nominated_target(state: Dictionary, unit_id: String) -> String:
 	return Summons.nominated_target(state, Board.entity(state, unit_id)).get("id", "")
+
+
+## The live grudge, not a prediction of the actor's next action.
+func pursuit_target(state: Dictionary, unit_id: String) -> Dictionary:
+	var actor := Board.entity(state, unit_id)
+	return Behaviors.last_damager(state, actor) if Board.alive(actor) else {}
 
 
 func mission_definition(state: Dictionary) -> Dictionary:
@@ -301,6 +308,8 @@ func preview_round(state: Dictionary) -> Dictionary:
 	Alchemy.finish_round(result, events)
 	FrontierObjectives.report_gate_change(result, {}, gate_before_reactions, events)
 	FrontierObjectives.finish_round(result, events)
+	if _end_condition(result).is_empty():
+		FrontierCombat.ring_corpse_bell(result, events)
 	var ending := _end_condition(result)
 	if ending.is_empty():
 		Fittings.report_pending(result, events)
@@ -364,6 +373,7 @@ func _matches_board_outcome(state: Dictionary) -> bool:
 
 
 func _resolve_turns(state: Dictionary, events: Array, stop_before := "") -> void:
+	FrontierCombat.lend_armor(state, events)
 	for actor in Board.turn_order(state):
 		Statuses.begin_turn(state, actor, events)
 		if actor.id == stop_before:
@@ -377,6 +387,12 @@ func _resolve_turn(state: Dictionary, actor: Dictionary, events: Array) -> void:
 	if Statuses.has_skip(state, actor):
 		if not FrontierObjectives.controls_movement(state, actor.id) or _has_objective_turn_action(state, actor):
 			Statuses.consume_skips(state, actor, events)
+		if actor.has("windup_cell"):
+			var cell: Vector2i = actor.windup_cell
+			Board.event(events, "windup_delayed", "%s's smash at %s is delayed until their next turn." % [
+				Board.display_name(state, actor), Board.coordinate(cell)], {"unit_id": actor.id, "position": cell})
+		return
+	if _windup_turn(state, actor, events):
 		return
 
 	var name := Board.display_name(state, actor)
@@ -398,6 +414,33 @@ func _resolve_turn(state: Dictionary, actor: Dictionary, events: Array) -> void:
 		var result := _execute_action(state, actor, action, events)
 		if result != ActionResult.PERFORMED:
 			_report_invalid_action(state, actor, action, name, result, events)
+
+
+func _windup_turn(state: Dictionary, actor: Dictionary, events: Array) -> bool:
+	var specs := FrontierCombat.traits(state, actor, "big_windup")
+	if specs.is_empty():
+		return false
+	if actor.has("windup_cell"):
+		var cell: Vector2i = actor.windup_cell
+		actor.erase("windup_cell")
+		Board.event(events, "windup_strike", "%s smashes marked tile %s." % [
+			Board.display_name(state, actor), Board.coordinate(cell)], {"unit_id": actor.id, "position": cell})
+		for victim in Board.occupants(state, {"objects": true, "capabilities": ["damageable"]}):
+			if Board.occupies_cell(victim, cell):
+				Combat.attack(state, actor, victim, int(specs[0].damage),
+					{"source_name": Board.display_name(state, actor) + "'s smash", "misdirect": false,
+						"impact_position": cell}, events)
+		return true
+	var opponents := Board.occupants(state, {}).filter(func(unit: Dictionary) -> bool:
+		return Board.opponents(state, actor, unit) and Board.distance(actor.position, unit.position) == 1)
+	var target := Board.nearest(actor, opponents)
+	if target.is_empty():
+		return false
+	actor["windup_cell"] = target.position
+	Board.event(events, "windup_mark", "%s winds up to smash %s next round." % [
+		Board.display_name(state, actor), Board.coordinate(target.position)],
+		{"unit_id": actor.id, "position": target.position, "round": state.round + 1})
+	return true
 
 
 func _report_invalid_action(state: Dictionary, actor: Dictionary, action: Dictionary, name: String,

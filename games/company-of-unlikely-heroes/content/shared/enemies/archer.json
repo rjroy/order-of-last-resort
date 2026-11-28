@@ -1,0 +1,69 @@
+{
+  "characters": {
+    "archer": {
+      "class": "enemy",
+      "label": "Archer",
+      "art_key": "enemy",
+      "art_variant": "spear",
+      "max_hp": 4,
+      "abilities": [
+        "move",
+        "archer_shot"
+      ],
+      "behavior": "frontier_archer_shot",
+      "cast_key": "archer",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "advance"
+          },
+          "archer_shot": {
+            "handler": "attack",
+            "clip": "draw_and_release"
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat",
+        "events": {
+          "reserve_arrival": "reserve_arrival"
+        }
+      }
+    }
+  },
+  "abilities": {
+    "archer_shot": {
+      "label": "Arrow",
+      "help": "Deals 2 damage to a hero or summon within 3 tiles.",
+      "handler": "attack",
+      "params": {
+        "damage": 2,
+        "source_suffix": "'s arrow"
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 4,
+        "teams": [
+          "heroes"
+        ]
+      }
+    }
+  },
+  "behaviors": {
+    "frontier_archer_shot": {
+      "handler": "threat",
+      "params": {
+        "fallback_teams": [
+          "heroes"
+        ],
+        "pursue_range": 7,
+        "taunt_status": "taunt",
+        "move_ability": "move",
+        "ability": "archer_shot"
+      }
+    }
+  }
+}

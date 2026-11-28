@@ -1,0 +1,306 @@
+{
+  "missions": {
+    "big_windup": {
+      "title": "The Big Windup",
+      "encounter": "road_big_windup",
+      "tier": 2,
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. The Bruiser marks an adjacent opponent's tile, then smashes that same tile on his next turn for 6 damage, even if an ally is there. Move away or bait his crew onto it. If he falls before striking, the smash is lost.",
+        "victory_text": "The company wins the fight.",
+        "defeat_text": "The company falls.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ]
+    },
+    "big_windup_t3": {
+      "title": "The Big Windup: Extra Crew",
+      "encounter": "road_big_windup_t3",
+      "tier": 3,
+      "base_mission_id": "big_windup",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. The Bruiser marks an adjacent opponent's tile, then smashes that same tile on his next turn for 6 damage, even if an ally is there. Move away or bait his crew onto it. If he falls before striking, the smash is lost.",
+        "victory_text": "The company wins the fight.",
+        "defeat_text": "The company falls.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ]
+    },
+    "big_windup_t4": {
+      "title": "The Big Windup: Double Trouble",
+      "encounter": "road_big_windup_t4",
+      "tier": 4,
+      "base_mission_id": "big_windup",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. Each Bruiser marks an adjacent opponent's tile, then smashes that same tile on his next turn for 6 damage, even if an ally is there. Move away or bait their crew onto it. If a Bruiser falls before striking, his smash is lost.",
+        "victory_text": "The company wins the fight.",
+        "defeat_text": "The company falls.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ]
+    },
+    "big_windup_t5": {
+      "title": "The Big Windup: Full Crew",
+      "encounter": "road_big_windup_t5",
+      "tier": 5,
+      "base_mission_id": "big_windup",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. Each Bruiser marks an adjacent opponent's tile, then smashes that same tile on his next turn for 6 damage, even if an ally is there. Move away or bait their crew onto it. If a Bruiser falls before striking, his smash is lost.",
+        "victory_text": "The company wins the fight.",
+        "defeat_text": "The company falls.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ]
+    }
+  },
+  "encounters": {
+    "road_big_windup": {
+      "board": "frontier_field",
+      "party_slots": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "windup_bruiser",
+          "character": "road_windup_bruiser",
+          "at": [
+            3,
+            2
+          ]
+        },
+        {
+          "id": "windup_crew",
+          "character": "grunt",
+          "at": [
+            4,
+            3
+          ]
+        }
+      ]
+    },
+    "road_big_windup_t3": {
+      "board": "frontier_field",
+      "party_slots": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "windup_bruiser",
+          "character": "road_windup_bruiser",
+          "at": [
+            3,
+            2
+          ]
+        },
+        {
+          "id": "windup_crew",
+          "character": "grunt",
+          "at": [
+            4,
+            3
+          ]
+        },
+        {
+          "id": "windup_crew_two",
+          "character": "grunt",
+          "at": [
+            5,
+            3
+          ]
+        }
+      ]
+    },
+    "road_big_windup_t4": {
+      "board": "frontier_field",
+      "party_slots": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "windup_bruiser",
+          "character": "road_windup_bruiser",
+          "at": [
+            3,
+            2
+          ]
+        },
+        {
+          "id": "windup_crew",
+          "character": "grunt",
+          "at": [
+            4,
+            3
+          ]
+        },
+        {
+          "id": "windup_bruiser_two",
+          "character": "road_windup_bruiser",
+          "at": [
+            5,
+            1
+          ]
+        }
+      ]
+    },
+    "road_big_windup_t5": {
+      "board": "frontier_field",
+      "party_slots": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "windup_bruiser",
+          "character": "road_windup_bruiser",
+          "at": [
+            3,
+            2
+          ]
+        },
+        {
+          "id": "windup_crew",
+          "character": "grunt",
+          "at": [
+            4,
+            3
+          ]
+        },
+        {
+          "id": "windup_bruiser_two",
+          "character": "road_windup_bruiser",
+          "at": [
+            5,
+            1
+          ]
+        },
+        {
+          "id": "windup_crew_two",
+          "character": "grunt",
+          "at": [
+            5,
+            3
+          ]
+        }
+      ]
+    }
+  },
+  "characters": {
+    "road_windup_bruiser": {
+      "class": "enemy",
+      "label": "Bruiser",
+      "max_hp": 9,
+      "art_key": "bruiser",
+      "art_variant": "default",
+      "cast_key": "road_windup_bruiser",
+      "cast_art_key": "bruiser",
+      "cast_team": "enemies",
+      "cast_variant": "default",
+      "cast_presentation": {
+        "actions": {
+          "move": {"handler": "move", "clip": "trudge"},
+          "bruiser_strike": {"handler": "attack", "clip": "delayed_heavy_strike", "impact_frame": 30}
+        },
+        "hit": "hit",
+        "defeat": "defeat",
+        "events": {"windup_strike": {"clip": "delayed_heavy_strike", "impact_frame": 30}}
+      },
+      "abilities": [
+        "move",
+        "bruiser_strike"
+      ],
+      "behavior": "bruiser_charge",
+      "traits": [
+        {
+          "kind": "big_windup",
+          "damage": 6
+        }
+      ]
+    }
+  }
+}

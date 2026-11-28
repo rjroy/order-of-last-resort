@@ -78,7 +78,7 @@
     "healer_heal": {
       "fitted_form": "doctors_orders",
       "label": "Heal self or nearest ally",
-      "help": "Restore 2 HP within 3 tiles. Heals self when wounded; otherwise heals the nearest other hero, even at full health.",
+      "help": "Restore 2 HP within 2 tiles. Heals self when wounded; otherwise heals the nearest other hero, even at full health.",
       "handler": "heal",
       "params": {
         "amount": 2,
@@ -87,10 +87,10 @@
       },
       "targeting": {
         "kind": "automatic",
-        "range": 3,
+        "range": 2,
         "direct": {
           "label": "Heal",
-          "help": "Restore 2 HP to yourself or a chosen healable ally within 3 tiles, even at full health."
+          "help": "Restore 2 HP to yourself or a chosen healable ally within 2 tiles, even at full health."
         },
         "teams": [
           "heroes"

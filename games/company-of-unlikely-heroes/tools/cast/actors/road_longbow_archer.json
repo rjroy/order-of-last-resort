@@ -1,0 +1,114 @@
+{
+  "role": "road_longbow_archer",
+  "master": {
+    "source": "models/road_longbow_archer/road_longbow_archer.blend",
+    "sha256": "9d3b7744cf508d3f993fc96edbee62e70c511270e58438bfdc0a047e7fb58d23",
+    "rig_name": "Archer_Rig",
+    "action_prefix": "Archer",
+    "release_visible_frames": {
+      "held_draw_and_release": [
+        7,
+        28
+      ]
+    },
+    "projectile_tip_offsets": {
+      "arrow_projectile": [
+        -78.111,
+        39.926
+      ]
+    }
+  },
+  "takes": {
+    "ready": [
+      "Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31
+      ],
+      33,
+      true
+    ],
+    "advance": [
+      "Advance",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        27
+      ],
+      28,
+      false
+    ],
+    "held_draw_and_release": [
+      "Held Draw and Release",
+      [
+        1,
+        6,
+        7,
+        11,
+        13,
+        19,
+        25,
+        28,
+        29,
+        30,
+        32,
+        33,
+        38,
+        43,
+        45
+      ],
+      46,
+      false
+    ],
+    "arrow_projectile": [
+      "Held Draw and Release",
+      [
+        29
+      ],
+      30,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        6,
+        11,
+        16,
+        17
+      ],
+      18,
+      false
+    ],
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        29
+      ],
+      30,
+      false
+    ]
+  },
+  "release": [
+    "held_draw_and_release",
+    "arrow_projectile",
+    "Arrow_Detachable",
+    29,
+    "Release"
+  ]
+}

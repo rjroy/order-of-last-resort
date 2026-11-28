@@ -1,0 +1,207 @@
+{
+  "missions": {
+    "odd_couple": {
+      "title": "The Odd Couple",
+      "encounter": "frontier_odd_couple",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. The Trickster can swap places with the Ogre once per battle. The Ogre is slow but hits hard.",
+        "victory_text": "The company wins the fight.",
+        "defeat_text": "The company falls.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ],
+      "tier": 2
+    }
+  },
+  "encounters": {
+    "frontier_odd_couple": {
+      "board": "frontier_field",
+      "party_slots": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "ogre_1",
+          "character": "ogre",
+          "at": [
+            4,
+            2
+          ]
+        },
+        {
+          "id": "trickster_2",
+          "character": "trickster",
+          "at": [
+            5,
+            3
+          ]
+        }
+      ]
+    }
+  },
+  "characters": {
+    "ogre": {
+      "class": "enemy",
+      "label": "Ogre",
+      "art_key": "enemy",
+      "art_variant": "spear",
+      "max_hp": 12,
+      "abilities": [
+        "move",
+        "ogre_strike"
+      ],
+      "behavior": "frontier_ogre_strike",
+      "cast_key": "ogre",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "heavy_tread"
+          },
+          "ogre_strike": {
+            "handler": "attack",
+            "clip": "heavy_strike"
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat",
+        "events": {
+          "swapped": "swap_reaction"
+        }
+      }
+    },
+    "trickster": {
+      "class": "enemy",
+      "label": "Trickster",
+      "art_key": "enemy",
+      "art_variant": "spear",
+      "max_hp": 5,
+      "abilities": [
+        "move",
+        "trickster_strike",
+        "ogre_swap"
+      ],
+      "behavior": "trickster_swap",
+      "cast_key": "trickster",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "quick_step"
+          },
+          "trickster_strike": {
+            "handler": "attack",
+            "clip": "melee_feint"
+          },
+          "ogre_swap": {
+            "handler": "swap_ally",
+            "clip": "switch_places"
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat"
+      }
+    }
+  },
+  "abilities": {
+    "ogre_strike": {
+      "label": "Ogre Strike",
+      "help": "Deals 3 damage to a hero or summon within 1 tile.",
+      "handler": "attack",
+      "params": {
+        "damage": 3,
+        "source_suffix": "'s ogre strike"
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 1,
+        "teams": [
+          "heroes"
+        ]
+      }
+    },
+    "trickster_strike": {
+      "label": "Trickster Strike",
+      "help": "Deals 2 damage to a hero or summon within 1 tile.",
+      "handler": "attack",
+      "params": {
+        "damage": 2,
+        "source_suffix": "'s trickster strike"
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 1,
+        "teams": [
+          "heroes"
+        ]
+      }
+    },
+    "ogre_swap": {
+      "label": "Switch Places",
+      "help": "Swap places with the living Ogre within 7 tiles, once per battle.",
+      "handler": "swap_ally",
+      "params": {
+        "character": "ogre",
+        "range": 7
+      },
+      "targeting": {
+        "kind": "automatic",
+        "teams": [
+          "enemies"
+        ]
+      }
+    }
+  },
+  "behaviors": {
+    "frontier_ogre_strike": {
+      "handler": "threat",
+      "params": {
+        "fallback_teams": [
+          "heroes"
+        ],
+        "pursue_range": 7,
+        "taunt_status": "taunt",
+        "move_ability": "move",
+        "ability": "ogre_strike"
+      }
+    },
+    "trickster_swap": {
+      "handler": "swap_ally",
+      "params": {
+        "team": "heroes",
+        "ally": "ogre",
+        "move_ability": "move",
+        "swap_ability": "ogre_swap",
+        "ability": "trickster_strike"
+      }
+    }
+  }
+}

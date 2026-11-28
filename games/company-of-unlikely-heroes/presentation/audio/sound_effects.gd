@@ -144,7 +144,7 @@ func _family(ability: String, handler: String, recipe: String) -> String:
 		"heal":
 			return "dressing" if ability == "healer_field_dressing" else "heal"
 		"enemy_heal":
-			return "enemy_heal" if ability == "frontier_heal" else "heal"
+			return "enemy_heal" if ability in ["frontier_heal", "unfortunate_healer_heal"] else "heal"
 		"healing_potion":
 			return "dose" if ability == "alchemist_potion" else "heal"
 		"plain_tonic":

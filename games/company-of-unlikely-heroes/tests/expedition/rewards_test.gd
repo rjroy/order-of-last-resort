@@ -12,7 +12,7 @@ var defs: Dictionary
 # [display name, rarity, acquisition cap]. Same-named rewards are distinguished
 # by their hero. This is an integration contract for the authored pools.
 const POOLS := {
-	"knight": [["+1 HP", "common", 5], ["+2 HP", "uncommon", 2], ["+1 shield damage", "uncommon", 3], ["+5 HP", "rare", 1], ["Dig In", "rare", 1], ["Shield Throw", "rare", 1], ["+3 shield damage", "rare", 1], ["Wide Guard", "legendary", 1]],
+	"knight": [["+1 HP", "common", 5], ["+2 HP", "uncommon", 2], ["+1 Shield", "uncommon", 3], ["+5 HP", "rare", 1], ["Dig In", "rare", 1], ["Shield Throw", "rare", 1], ["+3 Shield", "rare", 1], ["Wide Guard", "legendary", 1]],
 	"healer": [["+1 HP", "common", 3], ["+1 Bonk damage", "common", 2], ["+2 HP", "uncommon", 1], ["+1 heal", "uncommon", 2], ["+2 Bonk damage", "uncommon", 1], ["+2 heal", "rare", 1], ["Long Staff", "rare", 1], ["Strong Swing", "rare", 1], ["Me or You", "legendary", 1]],
 	"wizard": [["Spare Robes", "common", 3], ["More Powder", "common", 2], ["Padded Landing", "uncommon", 2], ["Demolition Practice", "uncommon", 2], ["Duck!", "rare", 1], ["Braced Casting", "rare", 1], ["Parting Gift", "rare", 1], ["Conductive Personality", "legendary", 1]],
 	"rogue": [["Thick Coat", "common", 2], ["Cheap Shot", "common", 2], ["Exit Strategy", "uncommon", 1], ["Borrowed Courage", "uncommon", 2], ["Pass the Buck", "rare", 1], ["Pocket Sand", "rare", 1], ["Long Finger", "rare", 1], ["Body Double", "legendary", 1]],
@@ -34,6 +34,7 @@ func _initialize() -> void:
 	_test_smith_claim_reset()
 	_test_smith_scoped_gates()
 	_test_exit_strategy_order_gate()
+	_test_shield_wall_eligibility()
 	if failures.is_empty():
 		print("PASS: reward content and outing")
 	else:
@@ -519,6 +520,16 @@ func _test_exit_strategy_order_gate() -> void:
 		var chosen: Dictionary = adventure.call("choose_reward", settled, "rogue", reward)
 		_check((chosen.get("upgrades_by_id", {}).get("rogue", {}).get(reward, 0) == 1) == expected,
 			"Exit Strategy claim rechecks the frozen Retreat order")
+
+
+func _test_shield_wall_eligibility() -> void:
+	var wall_kit := {"abilities": ["move", "knight_push", "knight_shield_wall"], "habits": {}}
+	var no_shield_kit := {"abilities": ["move", "knight_push"], "habits": {}}
+	for id in ["knight_shield_damage_1", "knight_shield_damage_3"]:
+		_check(Rewards.eligible(defs, "knight", id, {}, wall_kit),
+			id + ": equipped Shield Wall alone qualifies")
+		_check(not Rewards.eligible(defs, "knight", id, {}, no_shield_kit),
+			id + ": no shield ability does not qualify")
 
 
 func _check_reset(finished: Dictionary, party: Array, label: String) -> void:

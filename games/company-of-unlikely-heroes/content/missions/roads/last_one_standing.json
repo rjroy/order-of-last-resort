@@ -1,0 +1,242 @@
+{
+  "missions": {
+    "last_one_standing": {
+      "title": "The Last One Standing",
+      "encounter": "frontier_last_one_standing",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. When a Bandit falls, the Fierce Bandit gains 1 damage and the Swift Bandit gains 1 movement step; these bonuses stack. After the first Bandit falls, the Guard Bandit reduces hits above 1 damage by 1; 1-damage hits still land. This protection does not increase further.",
+        "victory_text": "The company wins the fight.",
+        "defeat_text": "The company falls.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ],
+      "tier": 2
+    }
+  },
+  "encounters": {
+    "frontier_last_one_standing": {
+      "board": "frontier_field",
+      "party_slots": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "bandit_damage_1",
+          "character": "bandit_damage",
+          "at": [
+            4,
+            1
+          ]
+        },
+        {
+          "id": "bandit_guard_2",
+          "character": "bandit_guard",
+          "at": [
+            4,
+            2
+          ]
+        },
+        {
+          "id": "bandit_swift_3",
+          "character": "bandit_swift",
+          "at": [
+            4,
+            3
+          ]
+        }
+      ]
+    }
+  },
+  "characters": {
+    "bandit_damage": {
+      "class": "enemy",
+      "label": "Fierce Bandit",
+      "art_key": "enemy",
+      "art_variant": "spear",
+      "max_hp": 6,
+      "abilities": [
+        "move",
+        "bandit_strike"
+      ],
+      "behavior": "frontier_bandit_strike",
+      "traits": [
+        {
+          "kind": "ally_death_bonus",
+          "allies": [
+            "bandit_damage",
+            "bandit_guard",
+            "bandit_swift"
+          ],
+          "damage": 1
+        }
+      ],
+      "cast_key": "bandit_damage",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "move"
+          },
+          "bandit_strike": {
+            "handler": "attack",
+            "clip": "melee",
+            "bonus": {
+              "stat": "damage",
+              "clip": "harder_strike"
+            }
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat"
+      }
+    },
+    "bandit_guard": {
+      "class": "enemy",
+      "label": "Guard Bandit",
+      "art_key": "enemy",
+      "art_variant": "spear",
+      "max_hp": 7,
+      "abilities": [
+        "move",
+        "bandit_strike"
+      ],
+      "behavior": "frontier_bandit_strike",
+      "traits": [
+        {
+          "kind": "ally_death_bonus",
+          "allies": [
+            "bandit_damage",
+            "bandit_guard",
+            "bandit_swift"
+          ],
+          "reduction": 1,
+          "max_reduction": 1
+        }
+      ],
+      "cast_key": "bandit_guard",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "move"
+          },
+          "bandit_strike": {
+            "handler": "attack",
+            "clip": "melee"
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat",
+        "events": {
+          "ally_death_guard": "brace"
+        }
+      }
+    },
+    "bandit_swift": {
+      "class": "enemy",
+      "label": "Swift Bandit",
+      "art_key": "enemy",
+      "art_variant": "spear",
+      "max_hp": 5,
+      "abilities": [
+        "move",
+        "bandit_strike"
+      ],
+      "behavior": "frontier_bandit_strike",
+      "traits": [
+        {
+          "kind": "ally_death_bonus",
+          "allies": [
+            "bandit_damage",
+            "bandit_guard",
+            "bandit_swift"
+          ],
+          "movement": 1
+        }
+      ],
+      "cast_key": "bandit_swift",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "move",
+            "bonus": {
+              "stat": "movement",
+              "clip": "quick_step"
+            }
+          },
+          "bandit_strike": {
+            "handler": "attack",
+            "clip": "melee",
+            "impact_frame": 7
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat"
+      }
+    }
+  },
+  "abilities": {
+    "bandit_strike": {
+      "label": "Bandit Strike",
+      "help": "Deals 2 damage to a hero or summon within 1 tile.",
+      "handler": "attack",
+      "params": {
+        "damage": 2,
+        "source_suffix": "'s bandit strike"
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 1,
+        "teams": [
+          "heroes"
+        ]
+      }
+    }
+  },
+  "behaviors": {
+    "frontier_bandit_strike": {
+      "handler": "threat",
+      "params": {
+        "fallback_teams": [
+          "heroes"
+        ],
+        "pursue_range": 7,
+        "taunt_status": "taunt",
+        "move_ability": "move",
+        "ability": "bandit_strike"
+      }
+    }
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "missions": {
+    "crossfire_blast_lane": {
+      "title": "Crossfire at the Fuse Line",
+      "encounter": "road_crossfire_blast_lane",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. Two Hookhands can pull heroes toward the Bomber. When the Bomber falls, its blast deals 2 damage to every adjacent living character, friend or foe. Watch the two Harpooners too.",
+        "victory_text": "The company clears the fuse line.",
+        "defeat_text": "The company falls at the fuse line.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ],
+      "tier": 4
+    },
+    "crossfire_split_fuse": {
+      "title": "Crossfire: Split Fuse",
+      "base_mission_id": "crossfire_blast_lane",
+      "encounter": "road_crossfire_split_fuse",
+      "default_party": ["knight", "healer", "wizard"],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. Two Hookhands pull from separate approaches while two Harpooners strike from two tiles away. The Bomber's death blast deals 2 damage to every adjacent living character, friend or foe.",
+        "victory_text": "The company clears the fuse line.",
+        "defeat_text": "The company falls at the fuse line.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {"handler": "party_wiped", "event": "The company has fallen."}
+      ],
+      "tier": 5
+    }
+  },
+  "encounters": {
+    "road_crossfire_split_fuse": {
+      "board": "road",
+      "party_slots": [[1, 1], [1, 2], [1, 3]],
+      "placements": [
+        {"id": "crossfire_hookhand", "character": "hookhand", "at": [3, 1]},
+        {"id": "crossfire_bomber", "character": "bomber", "at": [3, 0]},
+        {"id": "crossfire_harpooner", "character": "harpooner", "at": [5, 3]},
+        {"id": "crossfire_hookhand_2", "character": "hookhand", "at": [3, 3]},
+        {"id": "crossfire_harpooner_2", "character": "harpooner", "at": [4, 3]}
+      ]
+    },
+    "road_crossfire_blast_lane": {
+      "board": "road",
+      "party_slots": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "crossfire_hookhand",
+          "character": "hookhand",
+          "at": [
+            3,
+            2
+          ]
+        },
+        {
+          "id": "crossfire_bomber",
+          "character": "bomber",
+          "at": [
+            3,
+            1
+          ]
+        },
+        {
+          "id": "crossfire_harpooner",
+          "character": "harpooner",
+          "at": [
+            5,
+            3
+          ]
+        },
+        {
+          "id": "crossfire_hookhand_2",
+          "character": "hookhand",
+          "at": [
+            3,
+            3
+          ]
+        },
+        {
+          "id": "crossfire_harpooner_2",
+          "character": "harpooner",
+          "at": [
+            5,
+            1
+          ]
+        }
+      ]
+    }
+  }
+}

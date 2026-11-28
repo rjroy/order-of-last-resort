@@ -1,0 +1,67 @@
+{
+  "characters": {
+    "bruiser": {
+      "class": "enemy",
+      "label": "Bruiser",
+      "art_key": "bruiser",
+      "art_variant": "default",
+      "max_hp": 7,
+      "abilities": [
+        "move",
+        "bruiser_strike"
+      ],
+      "behavior": "bruiser_charge",
+      "cast_key": "bruiser",
+      "cast_art_key": "bruiser",
+      "cast_team": "enemies",
+      "cast_variant": "default",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "trudge"
+          },
+          "bruiser_strike": {
+            "handler": "attack",
+            "clip": "heavy_strike",
+            "impact_frame": 18
+          }
+        },
+        "hit": "hit",
+        "defeat": "down"
+      }
+    }
+  },
+  "abilities": {
+    "bruiser_strike": {
+      "label": "Bruiser Strike",
+      "help": "Deals 4 damage to an adjacent hero or summon.",
+      "handler": "attack",
+      "params": {
+        "damage": 4,
+        "source_suffix": "'s strike"
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 1,
+        "teams": [
+          "heroes"
+        ]
+      }
+    }
+  },
+  "behaviors": {
+    "bruiser_charge": {
+      "handler": "threat",
+      "params": {
+        "fallback_teams": [
+          "heroes"
+        ],
+        "pursue_range": 7,
+        "taunt_status": "taunt",
+        "move_ability": "move",
+        "ability": "bruiser_strike"
+      }
+    }
+  }
+}

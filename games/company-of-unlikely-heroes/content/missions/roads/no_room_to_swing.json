@@ -1,0 +1,119 @@
+{
+  "missions": {
+    "no_room_to_swing": {
+      "title": "No Room to Swing",
+      "tier": 2,
+      "encounter": "road_swing",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. The Giant sweeps everyone next to him, including his own crew. Stay clear or lure him into swinging beside his allies.",
+        "victory_text": "The company wins the fight.",
+        "defeat_text": "The company falls.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ]
+    }
+  },
+  "encounters": {
+    "road_swing": {
+      "board": "frontier_field",
+      "party_slots": [
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "swing_giant",
+          "character": "road_swing_giant",
+          "at": [
+            3,
+            2
+          ]
+        },
+        {
+          "id": "swing_crew",
+          "character": "grunt",
+          "at": [
+            3,
+            3
+          ]
+        }
+      ]
+    }
+  },
+  "characters": {
+    "road_swing_giant": {
+      "class": "enemy",
+      "label": "Giant",
+      "max_hp": 12,
+      "art_key": "enemy",
+      "art_variant": "spear",
+      "cast_key": "road_swing_giant",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {"handler": "move", "clip": "move"},
+          "road_giant_sweep": {"handler": "sweep", "clip": "sweep", "impact_frame": 18}
+        },
+        "hit": "hit",
+        "defeat": "defeat",
+        "events": {"recover": "recover"}
+      },
+      "abilities": [
+        "move",
+        "road_giant_sweep"
+      ],
+      "behavior": "road_giant_greet"
+    }
+  },
+  "abilities": {
+    "road_giant_sweep": {
+      "label": "Giant Sweep",
+      "help": "Requires a nearby opponent. Deals 1 damage to every other adjacent living character, friend or foe.",
+      "handler": "sweep",
+      "params": {
+        "damage": 1,
+        "opponents_only": true
+      },
+      "targeting": {
+        "kind": "none",
+        "range": 1
+      }
+    }
+  },
+  "behaviors": {
+    "road_giant_greet": {
+      "handler": "greet",
+      "params": {
+        "team": "heroes",
+        "move_ability": "move",
+        "greeting_range": 1,
+        "greetings": [
+          "road_giant_sweep"
+        ]
+      }
+    }
+  }
+}

@@ -58,6 +58,7 @@ func _fixture() -> Dictionary:
 	# Match the route integration fixture: cloned combat and test-owned route
 	# reports, so route choice and reward randomness do not depend on live tuning.
 	var defs: Dictionary = Catalog.read_default().duplicate(true)
+	defs.commission_settings.tiered = false
 	var combat: Dictionary = defs.missions.shield_wall.duplicate(true)
 	defs.mission_reports = {}
 	defs.mission_kinds = {}

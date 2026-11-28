@@ -56,10 +56,11 @@ const FITTED_FORMS := {
 const ABILITY_EVENTS := {"swap_furthest": ["swap"], "swap_ally": ["swap"], "misdirect": ["misdirect_mark"],
 	"sweep": ["sweep"], "stop_target": ["stop_target"], "repel": ["repel"],
 	"perform": ["performance_dry"], "hook": ["hook_pull"]}
-const CAST_ACTION_HANDLERS := ["move", "attack", "hook", "push", "blast", "enemy_heal", "swap_ally", "perform"]
+const CAST_ACTION_HANDLERS := ["move", "attack", "hook", "push", "blast", "enemy_heal", "swap_ally", "perform", "sweep"]
 const CAST_EVENTS := ["recover", "adjacent_guard", "adjacent_damage_bonus", "ally_death_guard",
 	"retaliate", "swapped", "displaced", "reserve_arrival", "tactical_retreat",
-	"sheep_flee", "sheep_entry", "wagon_advance", "wagon_stall", "leave_zone"]
+	"sheep_flee", "sheep_entry", "wagon_advance", "wagon_stall", "leave_zone",
+	"death_heal", "borrowed_armor", "health_damage_bonus", "windup_strike", "corpse_bell_raised"]
 const CAST_HOLDS := ["sheep_penned", "wagon_wreck"]
 const CAST_BONUS_STATS := {"attack": "damage", "move": "movement"}
 const STATUS_EXPIRY := {"reflect": "actor_turn_start", "skip_action": "consume_action",
@@ -173,6 +174,11 @@ static func _read_json(path: String) -> Dictionary:
 	return {"definitions": parser.data}
 
 
+## Decode both the original clip shorthand and the timed event binding.
+static func cast_event_binding(value: Variant) -> Dictionary:
+	return Validator.cast_event_binding(value)
+
+
 static func validate(defs: Dictionary) -> PackedStringArray:
 	return Validator.new(defs).check()
 
@@ -273,8 +279,9 @@ static func build(defs: Dictionary, mission_id: String, chosen_ids: Array = [], 
 		var instance := {"id": placement.id, "position": Objectives.position(placement.at), "statuses": {}}
 		if placement.has("character"):
 			var unit_profile := profile(defs, placement.character)
+			var maximum := int(mission.get("enemy_max_hp", {}).get(placement.id, unit_profile.max_hp))
 			instance.merge({"character_id": placement.character,
-				"hp": int(placement.get("hp", unit_profile.max_hp)), "max_hp": int(unit_profile.max_hp)})
+				"hp": int(placement.get("hp", maximum)), "max_hp": maximum})
 			if placement.id in reserve_ids:
 				reserves.append(instance)
 				continue
@@ -597,6 +604,18 @@ class Validator:
 				_error(path + ".targeting.range", "apply_status has no target range")
 			else:
 				_integer(targeting.range, path + ".targeting.range", 2 if handler == "hook" else 1)
+		if targeting.has("min_range") or targeting.has("straight_line_clear"):
+			if kind != "entity" or handler not in ["attack", "bonk", "blast"]:
+				_error(path + ".targeting", "range restrictions require an entity-targeted damaging attack")
+			if not _is_integer(targeting.get("range"), 1):
+				_error(path + ".targeting.range", "range restrictions require a positive finite range")
+			if targeting.has("min_range"):
+				_integer(targeting.min_range, path + ".targeting.min_range", 1)
+				if _is_integer(targeting.min_range, 1) and _is_integer(targeting.get("range"), 1) \
+						and int(targeting.min_range) > int(targeting.range):
+					_error(path + ".targeting.min_range", "cannot exceed range")
+			if targeting.has("straight_line_clear"):
+				_boolean(targeting.straight_line_clear, path + ".targeting.straight_line_clear")
 		if kind == "cell" or handler in ["apply_status", "sweep"]:
 			for filter in ["teams", "objects", "capabilities"]:
 				if targeting.has(filter):
@@ -615,6 +634,10 @@ class Validator:
 			_boolean(params.opponents_only, param_path + "opponents_only")
 			if handler not in ["attack", "repel", "stop_target", "sweep"]:
 				_error(param_path + "opponents_only", "not supported by this ability handler")
+		if params.has("spear_followthrough"):
+			_boolean(params.spear_followthrough, param_path + "spear_followthrough")
+			if handler != "attack" or kind != "entity" or targeting.get("range") != 1:
+				_error(param_path + "spear_followthrough", "requires an adjacent entity-targeted attack")
 		if params.has("shared_reaction"):
 			_boolean(params.shared_reaction, param_path + "shared_reaction")
 			if handler != "acid":
@@ -670,7 +693,8 @@ class Validator:
 						_error(path + ".targeting." + field, "repeat_batch takes its targeting from the bottled recipe")
 			"enemy_heal":
 				_integer(params.get("amount"), param_path + "amount", 1)
-				_integer(params.get("charges"), param_path + "charges", 1)
+				if params.has("charges"):
+					_integer(params.charges, param_path + "charges", 1)
 				var teams: Variant = targeting.get("teams")
 				if not teams is Array or teams.size() != 1 or not is_same(teams[0], "enemies"):
 					_error(path + ".targeting.teams", "enemy_heal targets only the enemies team")
@@ -891,6 +915,8 @@ class Validator:
 		match handler:
 			"reflect":
 				_integer(params.get("range"), path + ".params.range")
+				if params.has("max_reflect_damage_per_round"):
+					_integer(params.max_reflect_damage_per_round, path + ".params.max_reflect_damage_per_round")
 				_check_target_filters(params, path + ".params")
 			"retarget":
 				if params.has("teams"):
@@ -943,7 +969,8 @@ class Validator:
 			var entry := _dictionary(traits[i], trait_path)
 			var kind: Variant = entry.get("kind")
 			if not _choice(kind, ["adjacent_guard", "adjacent_damage_bonus", "death_blast",
-					"retaliate", "ally_death_bonus"], trait_path + ".kind"):
+					"retaliate", "ally_death_bonus", "death_heal", "health_damage_bonus",
+					"last_damager_pursuit", "borrowed_armor", "big_windup"], trait_path + ".kind"):
 				continue
 			match kind:
 				"adjacent_guard":
@@ -955,6 +982,13 @@ class Validator:
 				"death_blast", "retaliate":
 					_integer(entry.get("damage"), trait_path + ".damage", 1)
 					_integer(entry.get("range"), trait_path + ".range", 1)
+				"death_heal":
+					_integer(entry.get("amount"), trait_path + ".amount", 1)
+				"big_windup":
+					_integer(entry.get("damage"), trait_path + ".damage", 1)
+				"health_damage_bonus":
+					_choice(entry.get("condition"), ["full", "wounded"], trait_path + ".condition")
+					_integer(entry.get("damage"), trait_path + ".damage", 1)
 				"ally_death_bonus":
 					var allies := _id_list(entry.get("allies"), trait_path + ".allies", "characters")
 					if allies.is_empty():
@@ -1031,7 +1065,13 @@ class Validator:
 		for field in presentation:
 			if field not in ["actions", "hit", "defeat", "events", "holds"]:
 				_error(path + ".cast_presentation." + str(field), "unknown presentation field")
-		_check_cast_clips(presentation.get("events", {}), CAST_EVENTS, path + ".cast_presentation.events")
+		var event_path := path + ".cast_presentation.events"
+		var event_bindings := _dictionary(presentation.get("events", {}), event_path)
+		for kind in event_bindings:
+			var binding_path := event_path + "." + str(kind)
+			_choice(kind, CAST_EVENTS, binding_path)
+			if cast_event_binding(event_bindings[kind]).is_empty():
+				_error(binding_path, "expected a clip other than ready, or {clip, impact_frame} with a positive integer frame")
 		_check_cast_clips(presentation.get("holds", {}), CAST_HOLDS, path + ".cast_presentation.holds")
 		var actions := _dictionary(presentation.get("actions", {}), path + ".cast_presentation.actions")
 		for id in actions:
@@ -1064,6 +1104,19 @@ class Validator:
 				if "damageable" not in capabilities:
 					_error(path + ".cast_presentation." + field, "requires the damageable capability")
 				_check_cast_clip(presentation[field], path + ".cast_presentation." + field)
+
+	static func cast_event_binding(value: Variant) -> Dictionary:
+		var binding: Dictionary = {"clip": value} if value is String else {}
+		if value is Dictionary:
+			if value.size() != 2 or not value.has("clip") or not value.has("impact_frame"):
+				return {}
+			var frame: Variant = value.impact_frame
+			if not (frame is int or frame is float) or not is_finite(float(frame)) \
+					or frame < 1 or frame > 2147483647 or floorf(frame) != frame:
+				return {}
+			binding = {"clip": value.clip, "impact_frame": int(frame)}
+		var clip: Variant = binding.get("clip")
+		return binding if clip is String and not clip.strip_edges().is_empty() and clip != "ready" else {}
 
 	func _check_cast_clips(value: Variant, kinds: Array, path: String) -> void:
 		var clips := _dictionary(value, path)
@@ -1146,6 +1199,13 @@ class Validator:
 		var terrain := _terrain_index(board)
 		var occupied: Dictionary = {}
 		var ids: Dictionary = {}
+		var callers: Array[Dictionary] = []
+		var encounter_id := path.trim_prefix("encounters.")
+		for mission_id in _defs.missions:
+			var mission: Dictionary = _defs.missions[mission_id]
+			var mission_encounter: Variant = mission.get("encounter")
+			if mission_encounter is String and mission_encounter == encounter_id:
+				callers.append({"id": mission_id, "overrides": mission.get("enemy_max_hp")})
 		for i in placements.size():
 			var place_path := "%s.placements[%d]" % [path, i]
 			var placement := _dictionary(placements[i], place_path)
@@ -1165,8 +1225,16 @@ class Validator:
 					maximum = _defs.objects[placement.object].get("max_hp")
 			if placement.has("hp"):
 				_integer(placement.hp, place_path + ".hp")
-				if _is_integer(placement.hp) and _is_integer(maximum, 1) and placement.hp > maximum:
-					_error(place_path + ".hp", "cannot exceed maximum health")
+				if _is_integer(placement.hp):
+					if callers.is_empty():
+						_check_starting_hp(placement.hp, maximum, place_path + ".hp")
+					for caller in callers:
+						var effective: Variant = maximum
+						var overrides: Variant = caller.overrides
+						if overrides is Dictionary and overrides.has(id):
+							effective = overrides[id]
+						_check_starting_hp(placement.hp, effective,
+							place_path + ".hp (missions.%s)" % caller.id)
 			var at: Variant = _board_position(placement.get("at"), board, place_path + ".at")
 			if at != null:
 				if occupied.has(at):
@@ -1185,13 +1253,27 @@ class Validator:
 					_error(slot_path, "slot is on impassable terrain")
 				occupied[at] = "party slot"
 
+	func _check_starting_hp(hp: Variant, maximum: Variant, path: String) -> void:
+		if _is_integer(maximum, 1) and hp > maximum:
+			_error(path, "cannot exceed maximum health")
+
 	func _check_mission(mission: Dictionary, path: String) -> void:
 		_text(mission.get("title"), path + ".title")
 		if mission.has("tier"):
 			_integer(mission.tier, path + ".tier", 1)
+		if mission.has("base_mission_id"):
+			var base: Variant = mission.base_mission_id
+			var base_path := path + ".base_mission_id"
+			if _ref(base, "missions", base_path):
+				if base == path.trim_prefix("missions."):
+					_error(base_path, "mission cannot be its own base")
+				elif _defs.missions[base].has("base_mission_id"):
+					_error(base_path, "base mission must not itself reference a base")
 		var encounter: Dictionary = {}
 		if _ref(mission.get("encounter"), "encounters", path + ".encounter"):
 			encounter = _defs.encounters[mission.encounter]
+		if mission.has("enemy_max_hp"):
+			_check_enemy_max_hp(mission.enemy_max_hp, encounter, path + ".enemy_max_hp")
 		if mission.has("default_party"):
 			_check_default_party(mission.default_party, encounter, path + ".default_party")
 		var objective_path := path + ".objective"
@@ -1203,6 +1285,29 @@ class Validator:
 		for field in ["text", "victory_text", "defeat_text", "victory_event"]:
 			_text(objective.get(field), objective_path + "." + field)
 		_check_mission_failures(mission.get("failures"), encounter, objective_handler, path + ".failures")
+
+	func _check_enemy_max_hp(value: Variant, encounter: Dictionary, path: String) -> void:
+		var overrides := _dictionary(value, path)
+		var placements: Variant = encounter.get("placements", [])
+		for id in overrides:
+			var item_path := path + "." + str(id)
+			_integer(overrides[id], item_path, 1)
+			if not _text(id, item_path):
+				continue
+			var found: Dictionary = {}
+			if placements is Array:
+				for placement in placements:
+					if placement is Dictionary and is_same(placement.get("id"), id):
+						found = placement
+						break
+			var character: Variant = found.get("character")
+			if not character is String or not _defs.characters.has(character) \
+					or not is_same(_effective_profile(_defs.characters[character]).get("team"), "enemies"):
+				_error(item_path, "expected an enemy placement ID in the mission encounter")
+				continue
+			var hp: Variant = found.get("hp")
+			if found.has("hp") and _is_integer(hp) and _is_integer(overrides[id], 1) and hp > overrides[id]:
+				_error(item_path, "cannot be lower than the placement's starting health")
 
 	func _check_objective_fields(objective: Dictionary, encounter: Dictionary, path: String) -> void:
 		var board: Dictionary = _defs.boards.get(encounter.get("board"), {})
@@ -1238,6 +1343,17 @@ class Validator:
 					if objective.has(field):
 						_text(value, field_path)
 		match objective.handler:
+			"defeat_all":
+				if objective.has("corpse_bell"):
+					var bell := _dictionary(objective.corpse_bell, path + ".corpse_bell")
+					var character: Variant = bell.get("character")
+					if not character is String or not _defs.characters.has(character) \
+							or _effective_profile(_defs.characters[character]).get("team") != objective.get("team", "enemies"):
+						_error(path + ".corpse_bell.character", "expected a character on the objective team")
+					else:
+						var capabilities: Variant = _effective_profile(_defs.characters[character]).get("capabilities", [])
+						if not capabilities is Array or "damageable" not in capabilities:
+							_error(path + ".corpse_bell.character", "expected a damageable character")
 			"pressure_gate":
 				_check_pressure_gate_cells(objective, board, path)
 			"herd_sheep":
@@ -1444,6 +1560,8 @@ class Validator:
 			_check_descriptors(kind.get("descriptors"), path + ".descriptors")
 
 		var transit_kinds: Dictionary = {}
+		var tiered: bool = is_same(settings.get("tiered"), true)
+		var tier_kinds := {1: {}, 2: {}, 3: {}, 4: {}, 5: {}}
 		var destination_count := 0
 		for id in reports:
 			var path := "mission_reports." + str(id)
@@ -1457,6 +1575,12 @@ class Validator:
 			if _text(kind, path + ".kind") and not kinds.has(kind):
 				_error(path + ".kind", "unknown mission_kinds ID '%s'" % kind)
 			_check_descriptors(report.get("descriptors"), path + ".descriptors")
+			if tiered and not report.has("destination_descriptors") and known_mission:
+				var mission_tier: Variant = _defs.missions[id].get("tier")
+				if not _is_integer(mission_tier, 1) or mission_tier > 5:
+					_error("missions.%s.tier" % id, "expected a whole number from 1 to 5 for a tiered road")
+				elif kind is String and kinds.has(kind):
+					tier_kinds[int(mission_tier)][kind] = true
 			if report.has("destination_descriptors"):
 				_check_descriptors(report.destination_descriptors, path + ".destination_descriptors")
 				destination_count += 1
@@ -1474,9 +1598,15 @@ class Validator:
 		# Repeat visits are allowed whenever the unplayed pool cannot supply a fork.
 		if transit_kinds.size() < 2:
 			_error("mission_reports", "requires transit missions from at least two different kinds")
+		if tiered:
+			for tier in range(1, 6):
+				if tier_kinds[tier].size() < 2:
+					_error("mission_reports", "road tier %d requires at least two different kinds" % tier)
 
 	func _check_commission_settings(settings: Dictionary) -> Array:
-		_check_commission_fields(settings, ["recruitment_roster"], "commission_settings")
+		_check_commission_fields(settings, ["recruitment_roster", "tiered"], "commission_settings")
+		if settings.has("tiered"):
+			_boolean(settings.tiered, "commission_settings.tiered")
 		var path := "commission_settings.recruitment_roster"
 		var roster := _id_list(settings.get("recruitment_roster"), path, "characters")
 		for id in roster:
@@ -1598,8 +1728,9 @@ class Validator:
 					_require_reward(_has_capability(hero, "pullable"), path, "a pullable hero for Dig In")
 			"shield_damage":
 				_require_reward(_kit_has_status(hero, "apply_status", "reflect") \
+					or _kit_has_handler(hero, "shield_wall") \
 					or not _kit_ability(hero, "knight_shield_throw", ["attack"]).is_empty() \
-					or _has_shield_throw_reward(hero_id), path, "reflecting guard or access to knight_shield_throw")
+					or _has_shield_throw_reward(hero_id), path, "reflecting guard, shield wall, or access to knight_shield_throw")
 			"shield_throw":
 				_require_reward(_has_capability(hero, "mobile") and _kit_has_handler(hero, "move"), path,
 					"a mobile hero with a Move ability to retrieve the shield")

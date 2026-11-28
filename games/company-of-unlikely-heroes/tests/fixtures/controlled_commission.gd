@@ -3,6 +3,7 @@ extends RefCounted
 
 static func build(source: Dictionary) -> Dictionary:
 	var defs := source.duplicate(true)
+	defs.commission_settings.tiered = false
 	defs.tiles["test_commission_floor"] = {"label": "Floor", "art_key": "open", "passable": true}
 	defs.boards["test_commission_board"] = {"width": 8, "height": 8,
 		"default_tile": "test_commission_floor", "tiles": [], "locations": {}}

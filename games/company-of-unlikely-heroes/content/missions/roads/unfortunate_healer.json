@@ -1,0 +1,135 @@
+{
+  "missions": {
+    "unfortunate_healer": {
+      "title": "The Unfortunate Healer",
+      "encounter": "frontier_unfortunate_healer",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. The Healer can restore 3 HP to a wounded ally within 2 tiles without a use limit. Stop the healing or defeat the Bruisers first.",
+        "victory_text": "The company wins the fight.",
+        "defeat_text": "The company falls.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ],
+      "tier": 3
+    }
+  },
+  "encounters": {
+    "frontier_unfortunate_healer": {
+      "board": "frontier_field",
+      "party_slots": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "bruiser_1",
+          "character": "bruiser",
+          "at": [
+            4,
+            1
+          ]
+        },
+        {
+          "id": "bruiser_2",
+          "character": "bruiser",
+          "at": [
+            4,
+            3
+          ]
+        },
+        {
+          "id": "enemy_healer_3",
+          "character": "enemy_healer",
+          "at": [
+            5,
+            2
+          ]
+        }
+      ]
+    }
+  },
+  "characters": {
+    "enemy_healer": {
+      "class": "enemy",
+      "label": "Enemy Healer",
+      "art_key": "enemy",
+      "art_variant": "spear",
+      "max_hp": 6,
+      "abilities": [
+        "move",
+        "rival_bonk",
+        "unfortunate_healer_heal"
+      ],
+      "behavior": "unfortunate_healer_medic",
+      "cast_key": "enemy_healer",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {
+            "handler": "move",
+            "clip": "move"
+          },
+          "rival_bonk": {
+            "handler": "attack",
+            "clip": "bonk"
+          },
+          "unfortunate_healer_heal": {
+            "handler": "enemy_heal",
+            "clip": "field_dressing"
+          }
+        },
+        "hit": "hit",
+        "defeat": "defeat"
+      }
+    }
+  },
+  "abilities": {
+    "unfortunate_healer_heal": {
+      "label": "Field Dressing",
+      "help": "Restore 3 HP to a wounded living ally within 2 tiles, with no use limit.",
+      "handler": "enemy_heal",
+      "params": {
+        "amount": 3
+      },
+      "targeting": {
+        "kind": "automatic",
+        "range": 2,
+        "teams": ["enemies"]
+      }
+    }
+  },
+  "behaviors": {
+    "unfortunate_healer_medic": {
+      "handler": "finite_healer",
+      "params": {
+        "team": "enemies",
+        "move_ability": "move",
+        "heal_ability": "unfortunate_healer_heal",
+        "ability": "rival_bonk"
+      }
+    }
+  }
+}

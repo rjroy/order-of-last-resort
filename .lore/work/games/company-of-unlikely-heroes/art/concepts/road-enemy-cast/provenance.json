@@ -1,0 +1,341 @@
+{
+  "approval_date": "2026-11-28",
+  "bead": "olr-2wt",
+  "cohorts": {
+    "a": {
+      "tool": "Native OpenAI image_gen via ChatGPT-authenticated Codex CLI 0.172.0",
+      "model": null,
+      "native": {
+        "format": "PNG",
+        "width": 1536,
+        "height": 1024,
+        "sha256": "d8eb64dccc9e6edff4b4ae31fc1fdc2defa3fcec4afa5525e2ebb27ad114af38"
+      },
+      "contact": {
+        "format": "PNG",
+        "width": 1536,
+        "height": 1108,
+        "sha256": "107024a54f58c85f223e9ee7da639be859936180939cd63c557d84474c1461cd"
+      },
+      "references": [
+        {
+          "path": ".lore/work/games/company-of-unlikely-heroes/art/concepts/non-hero-cast/01-river-and-village.png",
+          "format": "PNG",
+          "width": 1536,
+          "height": 1024,
+          "sha256": "f3a93be9d71479a142b88c46597558e460ae9a729735b87fb8a54591c48af767"
+        },
+        {
+          "path": ".lore/work/games/company-of-unlikely-heroes/art/concepts/non-hero-cast/02-shield-wall-and-captain.png",
+          "format": "PNG",
+          "width": 1536,
+          "height": 1024,
+          "sha256": "5815d7caae1b7b15d8bdab9b8ccdddb3dfb7dbc2a1000c5d08542dfa9728d21c"
+        }
+      ],
+      "generated_date": "2026-11-27"
+    },
+    "b": {
+      "tool": "Native OpenAI image_gen via ChatGPT-authenticated Codex CLI 0.172.0",
+      "model": null,
+      "native": {
+        "format": "PNG",
+        "width": 1536,
+        "height": 1024,
+        "sha256": "2aaa6086c8d9235a59ee351896daa1e64f16281c4738516a5b1fde74d44bb8c7"
+      },
+      "contact": {
+        "format": "PNG",
+        "width": 1536,
+        "height": 1108,
+        "sha256": "de659d06979f9f9fd61b4686f3b4e1c5ad841a2c15872fdf0f8af4f092f13823"
+      },
+      "references": [
+        {
+          "path": ".lore/work/games/company-of-unlikely-heroes/art/concepts/non-hero-cast/02-shield-wall-and-captain.png",
+          "format": "PNG",
+          "width": 1536,
+          "height": 1024,
+          "sha256": "5815d7caae1b7b15d8bdab9b8ccdddb3dfb7dbc2a1000c5d08542dfa9728d21c"
+        },
+        {
+          "path": ".lore/work/games/company-of-unlikely-heroes/art/concepts/non-hero-cast/04-odd-couple.png",
+          "format": "PNG",
+          "width": 1536,
+          "height": 1024,
+          "sha256": "41358a4c29abb9e97fbd624461272e0811cf3f2ae9478f6e485d2bff4f059cc7"
+        },
+        {
+          "path": ".lore/work/games/company-of-unlikely-heroes/art/concepts/non-hero-cast/06-last-one-standing.png",
+          "format": "PNG",
+          "width": 1536,
+          "height": 1024,
+          "sha256": "f71417d10728115de4c5a7d0c7793224e92bc2e2a347edc3469eedd2cbef4843"
+        }
+      ],
+      "generated_date": "2026-11-27"
+    },
+    "c": {
+      "tool": "Native OpenAI image_gen via ChatGPT-authenticated Codex CLI 0.172.0",
+      "model": null,
+      "native": {
+        "format": "PNG",
+        "width": 1536,
+        "height": 1024,
+        "sha256": "d5fc9b043a8792d1abe63bff48e257551035be5c78d0c42857764df1001fb823"
+      },
+      "contact": {
+        "format": "PNG",
+        "width": 1536,
+        "height": 1108,
+        "sha256": "41a8bdf5daa53b132d5c374768d6d45107318326d23b13e828ebc35e94a816fb"
+      },
+      "references": [
+        {
+          "path": ".lore/work/games/company-of-unlikely-heroes/art/concepts/non-hero-cast/02-shield-wall-and-captain.png",
+          "format": "PNG",
+          "width": 1536,
+          "height": 1024,
+          "sha256": "5815d7caae1b7b15d8bdab9b8ccdddb3dfb7dbc2a1000c5d08542dfa9728d21c"
+        },
+        {
+          "path": ".lore/work/games/company-of-unlikely-heroes/art/concepts/non-hero-cast/01-river-and-village.png",
+          "format": "PNG",
+          "width": 1536,
+          "height": 1024,
+          "sha256": "f3a93be9d71479a142b88c46597558e460ae9a729735b87fb8a54591c48af767"
+        },
+        {
+          "path": ".lore/work/games/company-of-unlikely-heroes/art/concepts/necromancer/first-greetings.png",
+          "format": "PNG",
+          "width": 1536,
+          "height": 1024,
+          "sha256": "fed436ee36ed767e9eecd232e55d74b8cf1f75ea6e994d3243b977164463f96f"
+        }
+      ],
+      "generated_date": "2026-11-27"
+    }
+  },
+  "actors": {
+    "road_hired_mercenary": {
+      "label": "A1 · Hired Hammer / Mercenary",
+      "cohort": "a",
+      "crop_box": [
+        0,
+        0,
+        704,
+        502
+      ],
+      "concept_sha256": "69adfeefb68dd40f72c52506799df3245ae47dfd87ede2abbf090ad139add0b8",
+      "version": "Original exact Hammer candidate",
+      "model_source": "art/models/road_hired_mercenary/road_hired_mercenary.blend",
+      "model_sha256": "3026f8a306a0e0add5e25067f2dae206aa1cc8d27109c6806cafb164a5476a47",
+      "atlas_path": "res://assets/cast/road_hired_mercenary.png",
+      "atlas_sha256": "e5be5f59d150cabf98348974a3da0037894676a2f5c96d41a2e14ad686b3a9fd",
+      "atlas_size": [
+        1072,
+        1325
+      ]
+    },
+    "road_long_spearman": {
+      "label": "A2 · Long Spearman",
+      "cohort": "a",
+      "crop_box": [
+        704,
+        0,
+        832,
+        502
+      ],
+      "concept_sha256": "fad48da6fd13c885aff9425c31790e3492307ffb6c1c5e76fcf8bd7d6bc406ee",
+      "version": "Original exact Spearman candidate (512 px capture)",
+      "model_source": "art/models/road_long_spearman/road_long_spearman.blend",
+      "model_sha256": "73e6992ac5ab0373bb33bdf3ef10592ba7332d69688f846a67ed1159b349e9f2",
+      "atlas_path": "res://assets/cast/road_long_spearman.png",
+      "atlas_sha256": "82d6b9ca1e5d4a6df5127db5c178a8181f0b298c58c3eaed392a9620eccf25ae",
+      "atlas_size": [
+        1488,
+        1870
+      ]
+    },
+    "road_friar": {
+      "label": "A3 · Friar",
+      "cohort": "a",
+      "crop_box": [
+        0,
+        502,
+        748,
+        522
+      ],
+      "concept_sha256": "f7e3ef0278e13b61009a2dce1ef4bb62f6f92a46bd8be8103ccad3bd85339089",
+      "version": "Friar V3",
+      "model_source": "art/models/road_friar/road_friar.blend",
+      "model_sha256": "e83c4896e60a67bebf9eaf581a1166c3674c8bd939233345e1ebad1b0cc15f4a",
+      "atlas_path": "res://assets/cast/road_friar.png",
+      "atlas_sha256": "a0f23fbc15abdfc90f3f50d6736052e4439416de67b98056bd3691f947332793",
+      "atlas_size": [
+        1104,
+        1225
+      ]
+    },
+    "road_armor_lender": {
+      "label": "A4 · Armor Lender",
+      "cohort": "a",
+      "crop_box": [
+        748,
+        502,
+        788,
+        522
+      ],
+      "concept_sha256": "00fae64688e341d4868f6b376515342b2a5ab43ca78ea436e68d3120a839b35a",
+      "version": "Lender V4, revised free arm; shield unchanged",
+      "model_source": "art/models/road_armor_lender/road_armor_lender.blend",
+      "model_sha256": "68cc92b105c5ecd40117c8c6beb1bf287f2e2ba1765267f22381b28e55d00cbf",
+      "atlas_path": "res://assets/cast/road_armor_lender.png",
+      "atlas_sha256": "98c877102ff6707cb0f8b1885f37897f3f10198ba5965cc61faee5d2be6d110c",
+      "atlas_size": [
+        1040,
+        1162
+      ]
+    },
+    "road_fresh_twin": {
+      "label": "B1 · Fresh Twin",
+      "cohort": "b",
+      "crop_box": [
+        0,
+        0,
+        768,
+        474
+      ],
+      "concept_sha256": "dd4b9d35661987fb2b7242cd382cc125d53238aacbc8fbdf8251b692c411ab89",
+      "version": "Arm-motion revision, upright blade and open lapels",
+      "model_source": "art/models/road_fresh_twin/road_fresh_twin.blend",
+      "model_sha256": "b80de310f85f5270f2a3f43e77ec9416eb74321cf2a1114ccbeba812472a4aba",
+      "atlas_path": "res://assets/cast/road_fresh_twin.png",
+      "atlas_sha256": "24dcedddcea43301928e44c2c41d1341bcc8a695c275290e1d1c488baf1646bc",
+      "atlas_size": [
+        1120,
+        1199
+      ]
+    },
+    "road_wounded_twin": {
+      "label": "B2 · Wounded Twin",
+      "cohort": "b",
+      "crop_box": [
+        768,
+        0,
+        768,
+        474
+      ],
+      "concept_sha256": "afed10c13fdc6d44c76b9ee9bfdba69347ad0666ec74c0ba8f58d4eed21522b7",
+      "version": "Arm-motion revision, low guard and raised collar",
+      "model_source": "art/models/road_wounded_twin/road_wounded_twin.blend",
+      "model_sha256": "4761f127f0875227c9a239795be9e7f8dc2ad0bd68fa9c3904f921a55aea3382",
+      "atlas_path": "res://assets/cast/road_wounded_twin.png",
+      "atlas_sha256": "5b046e747db2ed4e656e3199665a4209435dcaf7988471e3c14b2282616417bd",
+      "atlas_size": [
+        1088,
+        1316
+      ]
+    },
+    "road_swing_giant": {
+      "label": "B3 · Giant",
+      "cohort": "b",
+      "crop_box": [
+        0,
+        474,
+        1536,
+        550
+      ],
+      "concept_sha256": "3372393dad43ebf13ac0f3cdf02d953a83766a0973520c7d638fac357acd6c18",
+      "version": "Arm-motion revision, fixed left strike with revised right counterarm",
+      "model_source": "art/models/road_swing_giant/road_swing_giant.blend",
+      "model_sha256": "ae281f49dfa99b671f9d406954fdfcba150ef8f09ef8341e20471cca2359c4e7",
+      "atlas_path": "res://assets/cast/road_swing_giant.png",
+      "atlas_sha256": "f7538c46ec06c8db80978e0dad5f25af521956559c212e749ed14429a2e37d73",
+      "atlas_size": [
+        1792,
+        2133
+      ]
+    },
+    "road_crate_archer": {
+      "label": "C1 · Road Archer",
+      "cohort": "c",
+      "crop_box": [
+        0,
+        0,
+        768,
+        503
+      ],
+      "concept_sha256": "bff2b16de1e9c08603e10a9c8e6bf096f4e322adf1848a30730bfcd1f6e8525d",
+      "version": "Cover-aware derivative of the approved Archer, with preserved native shot/release",
+      "model_source": "art/models/road_crate_archer/road_crate_archer.blend",
+      "model_sha256": "232a1719eb8a44ff49bed6df9961a4e2df29d0153f53021b3d7c8bd43ca12721",
+      "atlas_path": "res://assets/cast/road_crate_archer.png",
+      "atlas_sha256": "34522118d1fdb4717ea99589761a85e2ea7908b5e03d9a9d400ad82607afd1f0",
+      "atlas_size": [
+        1120,
+        1325
+      ]
+    },
+    "road_longbow_archer": {
+      "label": "C2 · Longbow",
+      "cohort": "c",
+      "crop_box": [
+        768,
+        0,
+        768,
+        503
+      ],
+      "concept_sha256": "2d883856fa71250cbc4e4614eb3c8164ba2f19f68721f60d2c2091f2b4b70545",
+      "version": "Held-draw derivative of the approved Archer with original bow",
+      "model_source": "art/models/road_longbow_archer/road_longbow_archer.blend",
+      "model_sha256": "9d3b7744cf508d3f993fc96edbee62e70c511270e58438bfdc0a047e7fb58d23",
+      "atlas_path": "res://assets/cast/road_longbow_archer.png",
+      "atlas_sha256": "58dd050019eaf08e660bab46958abba3879206428e963de85e6ffaff355e8b37",
+      "atlas_size": [
+        1040,
+        1187
+      ]
+    },
+    "road_windup_bruiser": {
+      "label": "C3 · Windup Bruiser",
+      "cohort": "c",
+      "crop_box": [
+        0,
+        503,
+        768,
+        521
+      ],
+      "concept_sha256": "4a931f02ef6125231fe687837086d36c010f0379ce295b6439665d665e247486",
+      "version": "Delayed-strike derivative of the approved Bruiser, shoulder-height hold",
+      "model_source": "art/models/road_windup_bruiser/road_windup_bruiser.blend",
+      "model_sha256": "62e651a0ba605cc1fb3a21e87fa751a72a8a57d5ae7be69edfaf06226d3d485c",
+      "atlas_path": "res://assets/cast/road_windup_bruiser.png",
+      "atlas_sha256": "b7f7b321c56fe3be60224f5da17cb6d9a940f07456e4be8b428ae9fcb5f25e7b",
+      "atlas_size": [
+        1248,
+        1407
+      ]
+    },
+    "road_bell_soldier": {
+      "label": "C4 · Risen Soldier",
+      "cohort": "c",
+      "crop_box": [
+        768,
+        503,
+        768,
+        521
+      ],
+      "concept_sha256": "3dc2676e05358682dd34e1d0c604bb0ce47fbe56d7e343efe435e140a4358b2c",
+      "version": "Grounded rise derivative of the approved Skeleton, cap and scarf",
+      "model_source": "art/models/road_bell_soldier/road_bell_soldier.blend",
+      "model_sha256": "88ab2a1dd011391b66ce0e45108c00c6f707662e17c9e6e8e2f7053ea7c04d92",
+      "atlas_path": "res://assets/cast/road_bell_soldier.png",
+      "atlas_sha256": "f7989b8c4ae82725aeb71680a4759086e1df2a27c6285125f5ed901b0f5eb826",
+      "atlas_size": [
+        1008,
+        1133
+      ]
+    }
+  }
+}

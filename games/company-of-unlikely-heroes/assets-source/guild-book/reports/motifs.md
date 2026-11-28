@@ -1,6 +1,6 @@
 # Field report sketch map
 
-This is the content and drawing plan for the child scout's field reports in *Barnaby’s Order of Last Resort*. The source is `../../../content/expedition/commissions.json`, `mission_reports`. The two variants for a mission share the same image. No image uses a future mission, the other branch, an onward kind, or destination-only copy. The 11 transit reports appear in commission forks; for the nine finales this set covers their authored immediate report records, not a new fork.
+This is the content and drawing plan for the child scout's field reports in *Barnaby’s Order of Last Resort*. The source is `../../../content/expedition/commissions.json`, `mission_reports`. Alternate descriptions for the same mission ID share an image; different layouts with their own IDs have their own sketches. No image uses a future mission, the other branch, an onward kind, or destination-only copy. The 28 transit plates are for commission forks; for the nine finales this set covers their authored immediate report records, not a new fork.
 
 The cheap cream school paper is part of each opaque PNG. A child of about six drew a single oversized observation from the encounter in dark, shaky pencil and uneven wax crayon. Shapes overlap and perspective is inconsistent; no polished lighting, caption, labels, numbers, or writing. Leave blank paper on all sides. Use wide crops contained within 510 × 212 at 1280 × 820, preserving the reviewed bridge plate's roughly 3:2 aspect when practical. Keep only features common to the two public variants, backed by the immediate encounter.
 
@@ -27,6 +27,13 @@ Two goblin heads with absurdly long green ears crowd a little shield from either
 
 A bent hook and long line tug a little hero by the cape toward a Bruiser with a disproportionately big fist. No other threat, range diagram, or landing tile.
 
+### `light_hook_pair` · accepted standalone sketch
+
+1. A Hookhand and a Harpooner cover the lane. The Hookhand can pull a hero closer while the Harpooner strikes from a distance.
+2. Watch where the Hookhand's pull will land your hero, and check the Harpooner's reach before closing.
+
+Two travelers stand apart, each holding an upright pole. The blunt-ended crook looks comically bent next to the straight pointed pole. No Bruiser or action; the report text explains the pull.
+
 ### `shield_wall` · sheet A bottom left
 
 1. Two Shieldbearers flank an Archer. Each one beside the Archer cuts the damage the Archer takes.
@@ -47,6 +54,13 @@ A small, plume-helmeted Captain has a broad Grunt close at either shoulder with 
 2. Watch the Harpooner's two-tile reach when picking a spot clear of the blast. The Bombers can set each other off while they're side by side.
 
 Two side-by-side Bombers caught in the same oversized red-orange zigzag. No Harpooner, wound, blast radius, or depiction of what set it off.
+
+### `crossfire_blast_lane` · accepted standalone sketch
+
+1. A Hookhand can pull a hero toward the Bomber, which can strike up close before it falls. Its death blast hurts everyone beside it, friend or foe.
+2. The Harpooner strikes from two tiles away while the Bomber closes in. Check the Hookhand's pull and the Bomber's blast before committing.
+
+One round plum-and-umber fellow stands on a crooked ochre path with a curled, unlit cord on his cap. The round coat and little cord are the observation. No other figure, movement, or blast.
 
 ### `unfortunate_healer` · sheet B bottom left
 
@@ -82,6 +96,34 @@ The three rivals together, united by the child's mismatched grouping: conspicuou
 2. The Guard Bandit shrugs off part of a heavy hit once another Bandit is down. Small hits still get through, and the armor only improves once.
 
 A bandit with the biggest bedraggled hat has toppled over. Two other bandits with matching hoods perk up at the fall. No speed, armor or damage markers; their response to an ally falling is the shared observation.
+
+### `crossfire_split_fuse` · accepted tier-five sketch
+
+Two separate hook pulls: one draws a blue-cloaked scout toward a round Bomber with an unlit fuse; the other draws a moss-cloaked scout toward two Harpooners with straight shafts. No cover, explosion, or exact positions.
+
+### `very_long_spear_crossed_spears` · accepted tier-five sketch
+
+Two long spears thrust from opposite approaches. One extends past a nearby shield to surprise a member of the spearmen's own crew. No hit is depicted and there is no exact board geometry.
+
+### Formerly standalone roads
+
+| Exact mission ID | Native sheet and quadrant | Immediate observation |
+|---|---|---|
+| `no_room_to_swing` | A, top left | Giant sweeps low, and a nearby member of his own crew ducks. |
+| `last_crate_on_the_road` | A, top right | Crooked crate fills the road and shelters a tiny scout. |
+| `longbows_blind_spot` | A, bottom left | A little scout stands almost underneath an archer's comically tall unused bow. |
+| `friars_last_favor` | B, top left | The fallen Friar's last mending reaches a bandaged ally. |
+| `wrong_twin` | B, top right | Matching helmets and clubs, but the bandaged twin is visibly angrier. |
+| `hired_hammer` | B, bottom left | A maul bearer turns toward a recent attacker. The pebble isn't a playable ability. |
+| `borrowed_armor` | C, top left | A scrawny Lender hands a large patchwork shield to an ally. `veteran_borrowed_armor` uses the same plate through the same-encounter fallback. |
+| `empty_helmets` | C, top right | A fallen soldier starts to sit up in an empty patch. A little bell signals the trigger. |
+| `very_long_spear` | C, bottom left | A spear shaft runs past a scout toward a startled member of the spearman's crew. |
+| `big_windup` | D, top left | One raised maul and a visibly empty warning ring. |
+| `big_windup_t3` | D, top right | A scout has already stepped clear of the warned spot. |
+| `big_windup_t4` | D, bottom left | One Bruiser winds up while another keeps his maul low. |
+| `big_windup_t5` | D, bottom right | Two raised mauls and two distinct warned spots. |
+
+The Big Windup rings are the scout's shorthand for threatened ground, not exact board marks. The close-ups omit Grunts rather than trying to count the crew.
 
 ## Finales
 

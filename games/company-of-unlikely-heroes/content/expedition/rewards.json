@@ -32,10 +32,11 @@
       "amount": 1,
       "requires_any_ability": [
         "knight_aura",
+        "knight_shield_wall",
         "knight_shield_throw"
       ],
-      "label": "+1 shield damage",
-      "description": "Reflected damage and Shield Throw each deal 1 more damage."
+      "label": "+1 Shield",
+      "description": "Reflecting aura redirects or absorbs 1 more damage per round, Shield Wall gains 1 shared HP, and Shield Throw deals 1 more damage."
     },
     "knight_hp_5": {
       "hero_id": "knight",
@@ -79,10 +80,11 @@
       "amount": 3,
       "requires_any_ability": [
         "knight_aura",
+        "knight_shield_wall",
         "knight_shield_throw"
       ],
-      "label": "+3 shield damage",
-      "description": "Reflected damage and Shield Throw each deal 3 more damage."
+      "label": "+3 Shield",
+      "description": "Reflecting aura redirects or absorbs 3 more damage per round, Shield Wall gains 3 shared HP, and Shield Throw deals 3 more damage."
     },
     "knight_wide_guard": {
       "hero_id": "knight",

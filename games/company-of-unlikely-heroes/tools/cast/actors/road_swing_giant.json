@@ -1,0 +1,129 @@
+{
+  "role": "road_swing_giant",
+  "master": {
+    "source": "models/road_swing_giant/road_swing_giant.blend",
+    "sha256": "ae281f49dfa99b671f9d406954fdfcba150ef8f09ef8341e20471cca2359c4e7",
+    "rig_name": "Giant_Rig",
+    "action_prefix": "Giant",
+    "capture_size": 448,
+    "capture_anchor": [
+      224,
+      312
+    ]
+  },
+  "takes": {
+    "ready": [
+      "Ready",
+      [
+        1,
+        5,
+        9,
+        13,
+        17,
+        21,
+        25,
+        29
+      ],
+      33,
+      true
+    ],
+    "move": [
+      "Move",
+      [
+        1,
+        4,
+        7,
+        10,
+        13,
+        16,
+        19,
+        22,
+        24
+      ],
+      25,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        3,
+        4,
+        7,
+        9,
+        12,
+        16
+      ],
+      17,
+      false
+    ],
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        5,
+        8,
+        12,
+        15,
+        18,
+        21,
+        25,
+        27
+      ],
+      28,
+      false
+    ],
+    "down": [
+      "Down",
+      [
+        1,
+        5,
+        8,
+        12,
+        15,
+        18,
+        21,
+        25,
+        27
+      ],
+      28,
+      false
+    ],
+    "recover": [
+      "Recover",
+      [
+        1,
+        4,
+        7,
+        9,
+        12,
+        14,
+        18
+      ],
+      19,
+      false
+    ],
+    "sweep": [
+      "Sweep",
+      [
+        1,
+        4,
+        8,
+        10,
+        12,
+        14,
+        15,
+        16,
+        18,
+        20,
+        22,
+        26,
+        30,
+        33,
+        36
+      ],
+      37,
+      false
+    ]
+  }
+}

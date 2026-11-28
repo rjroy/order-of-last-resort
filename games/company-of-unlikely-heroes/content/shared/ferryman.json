@@ -1,0 +1,19 @@
+{
+  "characters": {
+    "ferryman": {
+      "class": "civilian",
+      "label": "Ferryman",
+      "cast_key": "ferryman",
+      "cast_art_key": "ferryman",
+      "cast_team": "civilian"
+    }
+  },
+  "behaviors": {
+    "escort": {
+      "handler": "escort",
+      "params": {
+        "move_ability": "move"
+      }
+    }
+  }
+}

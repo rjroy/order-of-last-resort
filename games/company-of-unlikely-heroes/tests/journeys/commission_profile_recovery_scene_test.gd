@@ -143,6 +143,7 @@ func _key(code: Key) -> void:
 func _write_fixture() -> bool:
 	var catalog = load("res://content/catalog.gd")
 	var defs: Dictionary = catalog.read_default().duplicate(true)
+	defs.commission_settings.tiered = false
 	var mission: Dictionary = defs.missions.shield_wall.duplicate(true)
 	mission.encounter = "recovery_test_encounter"
 	defs.encounters.recovery_test_encounter = {

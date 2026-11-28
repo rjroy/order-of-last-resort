@@ -1,0 +1,32 @@
+{
+  "missions": {
+    "veteran_explosive_situation": {
+      "title": "The Veteran Explosive Situation",
+      "base_mission_id": "explosive_situation",
+      "encounter": "frontier_explosive_situation",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "enemy_max_hp": {
+        "bomber_1": 7,
+        "bomber_2": 7
+      },
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. When a Bomber dies, it deals 2 damage to every adjacent living character, friend or foe. Bombers can set each other off.",
+        "victory_text": "The company survives the veteran explosive situation.",
+        "defeat_text": "The company falls in the veteran explosive situation.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ],
+      "tier": 4
+    }
+  }
+}

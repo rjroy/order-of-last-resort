@@ -72,7 +72,15 @@ func _run() -> void:
 			purchase_id + ": purchased selection cannot be purchased twice")
 		# Relaunch follows the ordinary commission entry instead of assuming a
 		# private back-navigation or page-model implementation.
-		await _launch_normal()
+		if purchase_id == "knight_rescue_line":
+			await _launch_normal()
+			var rescue_defs := _rescue_fixture()
+			if rescue_defs.is_empty():
+				continue
+			scene.set("_definitions", rescue_defs)
+			scene.call("_open_commission_hub")
+		else:
+			await _launch_normal()
 		await _press("Commission_0")
 		if purchase_id == "recruit_bard":
 			for id in ["knight", "bard", "wizard"]:
@@ -119,7 +127,7 @@ func _run() -> void:
 		if scene.current_screen() != "routes":
 			_check(false, purchase_id + ": prepared party can depart")
 			continue
-		await _press("Route_1" if purchase_id == "knight_rescue_line" else "Route_0")
+		await _press("Route_0")
 		if scene.current_screen() != "battle":
 			_check(false, purchase_id + ": next mission deploys")
 			continue
@@ -431,9 +439,41 @@ func _click_loadout(name: String) -> void:
 	await _settlement_click(button.get_global_rect().get_center())
 
 
+func _rescue_fixture() -> Dictionary:
+	var catalog = load("res://content/catalog.gd")
+	var defs: Dictionary = catalog.read_default().duplicate(true)
+	defs.commission_settings.tiered = false
+	# Keep the original battle geometry, independently of the stock route pool.
+	defs.encounters.test_rescue_encounter = {
+		"board": "frontier_field", "party_slots": [[1, 1], [1, 2], [1, 3]],
+		"placements": [
+			{"id": "bandit_damage_1", "character": "bandit_damage", "at": [4, 1]},
+			{"id": "bandit_guard_2", "character": "bandit_guard", "at": [4, 2]},
+			{"id": "bandit_swift_3", "character": "bandit_swift", "at": [4, 3]}
+		]
+	}
+	var mission: Dictionary = defs.missions.last_one_standing.duplicate(true)
+	mission.encounter = "test_rescue_encounter"
+	for id in defs.mission_reports.keys():
+		if not defs.mission_reports[id].has("destination_descriptors"):
+			defs.mission_reports.erase(id)
+	for kind_index in range(4):
+		var kind := "test_rescue_kind_%d" % kind_index
+		defs.mission_kinds[kind] = {"label": kind, "descriptors": ["Rescue fixture hint"]}
+		for index in range(3):
+			var id := "test_rescue_road_%d_%d" % [kind_index, index]
+			defs.missions[id] = mission.duplicate(true)
+			defs.mission_reports[id] = {"kind": kind, "descriptors": ["Rescue fixture road"]}
+	var errors: PackedStringArray = catalog.validate(defs)
+	if not errors.is_empty():
+		_check(false, "Rescue Line catalog validates: " + str(errors))
+		return {}
+	return defs
+
+
 func _command_rescue(state: Dictionary, rules: Variant) -> void:
-	if state.get("mission_id") != "last_one_standing":
-		_check(false, "Rescue Line fixture deploys last_one_standing")
+	if not str(state.get("mission_id", "")).begins_with("test_rescue_road_"):
+		_check(false, "Rescue Line fixture deploys its controlled road")
 		return
 	var driver = load("res://tests/support/storybook_driver.gd").new(self, scene)
 	if not await driver.command("knight", "move", "1,0"):

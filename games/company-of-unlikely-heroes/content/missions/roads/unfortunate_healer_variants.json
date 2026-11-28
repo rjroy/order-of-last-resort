@@ -1,0 +1,33 @@
+{
+  "missions": {
+    "veteran_unfortunate_healer": {
+      "title": "The Veteran Unfortunate Healer",
+      "base_mission_id": "unfortunate_healer",
+      "encounter": "frontier_unfortunate_healer",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "enemy_max_hp": {
+        "bruiser_1": 11,
+        "bruiser_2": 11,
+        "enemy_healer_3": 8
+      },
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. The Healer can restore 3 HP to a wounded ally within 2 tiles without a use limit. Stop the healing or defeat the Bruisers first.",
+        "victory_text": "The company defeats the veteran Healer's party.",
+        "defeat_text": "The company falls to the veteran Healer's party.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ],
+      "tier": 2
+    }
+  }
+}

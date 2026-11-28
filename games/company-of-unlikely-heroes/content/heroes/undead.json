@@ -1,0 +1,112 @@
+{
+  "characters": {
+    "skeleton": {
+      "class": "undead",
+      "label": "Skeleton",
+      "cast_key": "skeleton",
+      "cast_art_key": "skeleton",
+      "abilities": [
+        "move",
+        "wave",
+        "dont_go"
+      ],
+      "behavior": "skeleton_greetings",
+      "color": "#e1d7b5"
+    },
+    "zombie": {
+      "class": "undead",
+      "label": "Zombie",
+      "art_key": "zombie",
+      "cast_key": "zombie",
+      "cast_art_key": "zombie",
+      "abilities": [
+        "move",
+        "say_hello",
+        "offer_flower"
+      ],
+      "behavior": "zombie_greetings",
+      "color": "#aeca93"
+    }
+  },
+  "abilities": {
+    "wave": {
+      "label": "Wave",
+      "help": "Requires a nearby opponent. Deals 1 damage to every other living character next to the skeleton, friend or foe.",
+      "handler": "sweep",
+      "params": {
+        "damage": 1,
+        "opponents_only": true
+      },
+      "targeting": {
+        "kind": "none",
+        "range": 1
+      }
+    },
+    "dont_go": {
+      "label": "Don't Go",
+      "help": "The closest eligible opponent cannot use Move on their next turn.",
+      "handler": "stop_target",
+      "params": {
+        "status": "held_in_place",
+        "opponents_only": true
+      },
+      "targeting": {
+        "kind": "automatic"
+      }
+    },
+    "say_hello": {
+      "label": "Say Hello",
+      "help": "The closest opponent steps one tile back if that tile is open.",
+      "handler": "repel",
+      "params": {
+        "opponents_only": true
+      },
+      "targeting": {
+        "kind": "automatic"
+      }
+    },
+    "offer_flower": {
+      "label": "Offer Flower",
+      "help": "Offer a flower tied to a rock. Deals 1 damage to an opponent up to two tiles away.",
+      "handler": "attack",
+      "params": {
+        "damage": 1,
+        "source_suffix": "'s Offer Flower",
+        "opponents_only": true
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 2,
+        "teams": [
+          "enemies"
+        ]
+      }
+    }
+  },
+  "behaviors": {
+    "skeleton_greetings": {
+      "handler": "greet",
+      "params": {
+        "team": "enemies",
+        "move_ability": "move",
+        "greeting_range": 1,
+        "greetings": [
+          "wave",
+          "dont_go"
+        ]
+      }
+    },
+    "zombie_greetings": {
+      "handler": "greet",
+      "params": {
+        "team": "enemies",
+        "move_ability": "move",
+        "greeting_range": 2,
+        "greetings": [
+          "say_hello",
+          "offer_flower"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "missions": {
+    "hired_hammer": {
+      "title": "The Hired Hammer",
+      "tier": 1,
+      "encounter": "road_hired_hammer",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. The Mercenary pursues whoever last damaged him, even a member of his own crew. Without a living last attacker to pursue, he seeks heroes instead.",
+        "victory_text": "The company wins the fight.",
+        "defeat_text": "The company falls.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ]
+    }
+  },
+  "encounters": {
+    "road_hired_hammer": {
+      "board": "frontier_field",
+      "party_slots": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "hired_mercenary",
+          "character": "road_hired_mercenary",
+          "at": [
+            3,
+            2
+          ]
+        },
+        {
+          "id": "hired_archer",
+          "character": "archer",
+          "at": [
+            5,
+            2
+          ]
+        }
+      ]
+    }
+  },
+  "characters": {
+    "road_hired_mercenary": {
+      "class": "enemy",
+      "label": "Mercenary",
+      "max_hp": 8,
+      "art_key": "bruiser",
+      "art_variant": "default",
+      "cast_key": "road_hired_mercenary",
+      "cast_art_key": "bruiser",
+      "cast_team": "enemies",
+      "cast_variant": "default",
+      "cast_presentation": {
+        "actions": {
+          "move": {"handler": "move", "clip": "move"},
+          "road_mercenary_strike": {"handler": "attack", "clip": "hammer_strike", "impact_frame": 17}
+        },
+        "hit": "hit",
+        "defeat": "defeat"
+      },
+      "abilities": [
+        "move",
+        "road_mercenary_strike"
+      ],
+      "behavior": "road_mercenary_threat",
+      "traits": [
+        {
+          "kind": "last_damager_pursuit"
+        }
+      ]
+    }
+  },
+  "abilities": {
+    "road_mercenary_strike": {
+      "label": "Hired Hammer",
+      "help": "Deals 2 damage to an adjacent target. The Mercenary can strike whoever last damaged him, including an ally.",
+      "handler": "attack",
+      "params": {
+        "damage": 2,
+        "source_suffix": "'s hammer"
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 1,
+        "teams": [
+          "heroes",
+          "enemies"
+        ]
+      }
+    }
+  },
+  "behaviors": {
+    "road_mercenary_threat": {
+      "handler": "threat",
+      "params": {
+        "fallback_teams": [
+          "heroes"
+        ],
+        "pursue_range": 7,
+        "taunt_status": "taunt",
+        "move_ability": "move",
+        "ability": "road_mercenary_strike"
+      }
+    }
+  }
+}

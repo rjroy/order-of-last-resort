@@ -22939,6 +22939,5862 @@
           "path": "res://assets/cast/frontier_wagon.png"
         }
       }
+    },
+    "road_hired_mercenary": {
+      "source": "art/models/road_hired_mercenary/road_hired_mercenary.blend",
+      "sha256": "3026f8a306a0e0add5e25067f2dae206aa1cc8d27109c6806cafb164a5476a47",
+      "clips": {
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 292,
+              "rect": [
+                770,
+                932,
+                153,
+                196
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 291,
+              "rect": [
+                0,
+                1129,
+                153,
+                196
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 292,
+              "rect": [
+                153,
+                1129,
+                153,
+                196
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 292,
+              "rect": [
+                306,
+                1129,
+                153,
+                196
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            81,
+            180
+          ],
+          "action": "Hired Hammer | Ready",
+          "path": "res://assets/cast/road_hired_mercenary.png"
+        },
+        "move": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                462,
+                721,
+                154,
+                197
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 125,
+              "rect": [
+                616,
+                721,
+                154,
+                197
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 125,
+              "rect": [
+                770,
+                721,
+                154,
+                197
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                932,
+                154,
+                197
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                154,
+                932,
+                154,
+                197
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 125,
+              "rect": [
+                308,
+                932,
+                154,
+                197
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 125,
+              "rect": [
+                462,
+                932,
+                154,
+                197
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 125,
+              "rect": [
+                616,
+                932,
+                154,
+                197
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            80,
+            181
+          ],
+          "action": "Hired Hammer | Pursuit Turn",
+          "path": "res://assets/cast/road_hired_mercenary.png"
+        },
+        "hammer_strike": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                0,
+                159,
+                245
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 125,
+              "rect": [
+                159,
+                0,
+                159,
+                245
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                318,
+                0,
+                159,
+                245
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 84,
+              "rect": [
+                477,
+                0,
+                159,
+                245
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 125,
+              "rect": [
+                636,
+                0,
+                159,
+                245
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 166,
+              "rect": [
+                795,
+                0,
+                159,
+                245
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                245,
+                159,
+                245
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 208,
+              "rect": [
+                159,
+                245,
+                159,
+                245
+              ]
+            },
+            {
+              "source_frame": 30,
+              "duration_ms": 167,
+              "rect": [
+                318,
+                245,
+                159,
+                245
+              ]
+            },
+            {
+              "source_frame": 34,
+              "duration_ms": 42,
+              "rect": [
+                477,
+                245,
+                159,
+                245
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            87,
+            218
+          ],
+          "action": "Hired Hammer | Hired Hammer",
+          "path": "res://assets/cast/road_hired_mercenary.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                775,
+                490,
+                154,
+                211
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                721,
+                154,
+                211
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                154,
+                721,
+                154,
+                211
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 84,
+              "rect": [
+                308,
+                721,
+                154,
+                211
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            81,
+            195
+          ],
+          "action": "Hired Hammer | Hit",
+          "path": "res://assets/cast/road_hired_mercenary.png"
+        },
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                636,
+                245,
+                155,
+                231
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                791,
+                245,
+                155,
+                231
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                490,
+                155,
+                231
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                155,
+                490,
+                155,
+                231
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                310,
+                490,
+                155,
+                231
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 208,
+              "rect": [
+                465,
+                490,
+                155,
+                231
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 42,
+              "rect": [
+                620,
+                490,
+                155,
+                231
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            82,
+            195
+          ],
+          "action": "Hired Hammer | Defeat",
+          "path": "res://assets/cast/road_hired_mercenary.png"
+        }
+      }
+    },
+    "road_long_spearman": {
+      "source": "art/models/road_long_spearman/road_long_spearman.blend",
+      "sha256": "73e6992ac5ab0373bb33bdf3ef10592ba7332d69688f846a67ed1159b349e9f2",
+      "clips": {
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 292,
+              "rect": [
+                1041,
+                1003,
+                273,
+                219
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 291,
+              "rect": [
+                0,
+                1229,
+                273,
+                219
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 292,
+              "rect": [
+                273,
+                1229,
+                273,
+                219
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 292,
+              "rect": [
+                546,
+                1229,
+                273,
+                219
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            100,
+            202
+          ],
+          "action": "Long Spearman | Ready",
+          "path": "res://assets/cast/road_long_spearman.png"
+        },
+        "move": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                819,
+                1229,
+                274,
+                211
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 125,
+              "rect": [
+                1093,
+                1229,
+                274,
+                211
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                1448,
+                274,
+                211
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 125,
+              "rect": [
+                274,
+                1448,
+                274,
+                211
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                548,
+                1448,
+                274,
+                211
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 125,
+              "rect": [
+                822,
+                1448,
+                274,
+                211
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 125,
+              "rect": [
+                1096,
+                1448,
+                274,
+                211
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                1659,
+                274,
+                211
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            100,
+            194
+          ],
+          "action": "Long Spearman | Measured Step",
+          "path": "res://assets/cast/road_long_spearman.png"
+        },
+        "long_thrust": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                819,
+                518,
+                347,
+                226
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                777,
+                347,
+                226
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 125,
+              "rect": [
+                347,
+                777,
+                347,
+                226
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                694,
+                777,
+                347,
+                226
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                1041,
+                777,
+                347,
+                226
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                1003,
+                347,
+                226
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 166,
+              "rect": [
+                347,
+                1003,
+                347,
+                226
+              ]
+            },
+            {
+              "source_frame": 30,
+              "duration_ms": 42,
+              "rect": [
+                694,
+                1003,
+                347,
+                226
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            110,
+            209
+          ],
+          "action": "Long Spearman | Long Thrust",
+          "path": "res://assets/cast/road_long_spearman.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                948,
+                259,
+                273,
+                259
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                518,
+                273,
+                259
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                273,
+                518,
+                273,
+                259
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 84,
+              "rect": [
+                546,
+                518,
+                273,
+                259
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            100,
+            242
+          ],
+          "action": "Long Spearman | Hit",
+          "path": "res://assets/cast/road_long_spearman.png"
+        },
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                0,
+                316,
+                259
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                316,
+                0,
+                316,
+                259
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 125,
+              "rect": [
+                632,
+                0,
+                316,
+                259
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                948,
+                0,
+                316,
+                259
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                259,
+                316,
+                259
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 208,
+              "rect": [
+                316,
+                259,
+                316,
+                259
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 42,
+              "rect": [
+                632,
+                259,
+                316,
+                259
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            101,
+            242
+          ],
+          "action": "Long Spearman | Defeat",
+          "path": "res://assets/cast/road_long_spearman.png"
+        }
+      }
+    },
+    "road_friar": {
+      "source": "art/models/road_friar/road_friar.blend",
+      "sha256": "e83c4896e60a67bebf9eaf581a1166c3674c8bd939233345e1ebad1b0cc15f4a",
+      "clips": {
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 333,
+              "rect": [
+                898,
+                623,
+                114,
+                198
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 334,
+              "rect": [
+                0,
+                830,
+                114,
+                198
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 333,
+              "rect": [
+                114,
+                830,
+                114,
+                198
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 333,
+              "rect": [
+                228,
+                830,
+                114,
+                198
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            57,
+            173
+          ],
+          "action": "RoadFriar | Ready",
+          "path": "res://assets/cast/road_friar.png"
+        },
+        "retreat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                118,
+                623,
+                130,
+                202
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                248,
+                623,
+                130,
+                202
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                378,
+                623,
+                130,
+                202
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                508,
+                623,
+                130,
+                202
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 166,
+              "rect": [
+                638,
+                623,
+                130,
+                202
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 125,
+              "rect": [
+                768,
+                623,
+                130,
+                202
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            74,
+            177
+          ],
+          "action": "RoadFriar | Retreat",
+          "path": "res://assets/cast/road_friar.png"
+        },
+        "close_strike": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                342,
+                830,
+                191,
+                197
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 125,
+              "rect": [
+                533,
+                830,
+                191,
+                197
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 125,
+              "rect": [
+                724,
+                830,
+                191,
+                197
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                1028,
+                191,
+                197
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 166,
+              "rect": [
+                191,
+                1028,
+                191,
+                197
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 209,
+              "rect": [
+                382,
+                1028,
+                191,
+                197
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 166,
+              "rect": [
+                573,
+                1028,
+                191,
+                197
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            105,
+            172
+          ],
+          "action": "RoadFriar | Staff Jab",
+          "path": "res://assets/cast/road_friar.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                600,
+                416,
+                118,
+                207
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 125,
+              "rect": [
+                718,
+                416,
+                118,
+                207
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 208,
+              "rect": [
+                836,
+                416,
+                118,
+                207
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                954,
+                416,
+                118,
+                207
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                623,
+                118,
+                207
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            62,
+            178
+          ],
+          "action": "RoadFriar | Hit",
+          "path": "res://assets/cast/road_friar.png"
+        },
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                644,
+                208,
+                150,
+                207
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                794,
+                208,
+                150,
+                207
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                944,
+                208,
+                150,
+                207
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                416,
+                150,
+                207
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 250,
+              "rect": [
+                150,
+                416,
+                150,
+                207
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 333,
+              "rect": [
+                300,
+                416,
+                150,
+                207
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 208,
+              "rect": [
+                450,
+                416,
+                150,
+                207
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            79,
+            178
+          ],
+          "action": "RoadFriar | Defeat",
+          "path": "res://assets/cast/road_friar.png"
+        },
+        "last_heal": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                0,
+                161,
+                208
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                161,
+                0,
+                161,
+                208
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                322,
+                0,
+                161,
+                208
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 125,
+              "rect": [
+                483,
+                0,
+                161,
+                208
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                644,
+                0,
+                161,
+                208
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 166,
+              "rect": [
+                805,
+                0,
+                161,
+                208
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                208,
+                161,
+                208
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 291,
+              "rect": [
+                161,
+                208,
+                161,
+                208
+              ]
+            },
+            {
+              "source_frame": 36,
+              "duration_ms": 250,
+              "rect": [
+                322,
+                208,
+                161,
+                208
+              ]
+            },
+            {
+              "source_frame": 42,
+              "duration_ms": 250,
+              "rect": [
+                483,
+                208,
+                161,
+                208
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            78,
+            178
+          ],
+          "action": "RoadFriar | Last Heal",
+          "path": "res://assets/cast/road_friar.png"
+        }
+      }
+    },
+    "road_armor_lender": {
+      "source": "art/models/road_armor_lender/road_armor_lender.blend",
+      "sha256": "68cc92b105c5ecd40117c8c6beb1bf287f2e2ba1765267f22381b28e55d00cbf",
+      "clips": {
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 333,
+              "rect": [
+                304,
+                971,
+                128,
+                191
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 334,
+              "rect": [
+                432,
+                971,
+                128,
+                191
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 333,
+              "rect": [
+                560,
+                971,
+                128,
+                191
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 333,
+              "rect": [
+                688,
+                971,
+                128,
+                191
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            41,
+            177
+          ],
+          "action": "RoadArmorLender | Ready",
+          "path": "res://assets/cast/road_armor_lender.png"
+        },
+        "advance": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                0,
+                133,
+                197
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                133,
+                0,
+                133,
+                197
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                266,
+                0,
+                133,
+                197
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                399,
+                0,
+                133,
+                197
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 166,
+              "rect": [
+                532,
+                0,
+                133,
+                197
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 125,
+              "rect": [
+                665,
+                0,
+                133,
+                197
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            42,
+            177
+          ],
+          "action": "RoadArmorLender | Advance",
+          "path": "res://assets/cast/road_armor_lender.png"
+        },
+        "close_strike": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                798,
+                0,
+                148,
+                196
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                197,
+                148,
+                196
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 125,
+              "rect": [
+                148,
+                197,
+                148,
+                196
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 125,
+              "rect": [
+                296,
+                197,
+                148,
+                196
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 166,
+              "rect": [
+                444,
+                197,
+                148,
+                196
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 209,
+              "rect": [
+                592,
+                197,
+                148,
+                196
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 166,
+              "rect": [
+                740,
+                197,
+                148,
+                196
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            61,
+            177
+          ],
+          "action": "RoadArmorLender | Close Strike",
+          "path": "res://assets/cast/road_armor_lender.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                501,
+                779,
+                152,
+                191
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 125,
+              "rect": [
+                653,
+                779,
+                152,
+                191
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 208,
+              "rect": [
+                805,
+                779,
+                152,
+                191
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                971,
+                152,
+                191
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 125,
+              "rect": [
+                152,
+                971,
+                152,
+                191
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            60,
+            177
+          ],
+          "action": "RoadArmorLender | Hit",
+          "path": "res://assets/cast/road_armor_lender.png"
+        },
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                393,
+                163,
+                193
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                163,
+                393,
+                163,
+                193
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                326,
+                393,
+                163,
+                193
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                489,
+                393,
+                163,
+                193
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 250,
+              "rect": [
+                652,
+                393,
+                163,
+                193
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 333,
+              "rect": [
+                815,
+                393,
+                163,
+                193
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                586,
+                163,
+                193
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            71,
+            177
+          ],
+          "action": "RoadArmorLender | Defeat",
+          "path": "res://assets/cast/road_armor_lender.png"
+        },
+        "lend_armor": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                163,
+                586,
+                167,
+                192
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                330,
+                586,
+                167,
+                192
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                497,
+                586,
+                167,
+                192
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                664,
+                586,
+                167,
+                192
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 166,
+              "rect": [
+                831,
+                586,
+                167,
+                192
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                779,
+                167,
+                192
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 250,
+              "rect": [
+                167,
+                779,
+                167,
+                192
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 125,
+              "rect": [
+                334,
+                779,
+                167,
+                192
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            41,
+            177
+          ],
+          "action": "RoadArmorLender | Lend Armor",
+          "path": "res://assets/cast/road_armor_lender.png"
+        }
+      }
+    },
+    "road_fresh_twin": {
+      "source": "art/models/road_fresh_twin/road_fresh_twin.blend",
+      "sha256": "b80de310f85f5270f2a3f43e77ec9416eb74321cf2a1114ccbeba812472a4aba",
+      "clips": {
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                888,
+                0,
+                109,
+                200
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                997,
+                0,
+                109,
+                200
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                205,
+                109,
+                200
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                997,
+                0,
+                109,
+                200
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 166,
+              "rect": [
+                888,
+                0,
+                109,
+                200
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                109,
+                205,
+                109,
+                200
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 167,
+              "rect": [
+                218,
+                205,
+                109,
+                200
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 166,
+              "rect": [
+                109,
+                205,
+                109,
+                200
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            60,
+            183
+          ],
+          "action": "Road Twin | Ready",
+          "path": "res://assets/cast/road_fresh_twin.png"
+        },
+        "move": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                0,
+                111,
+                205
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 125,
+              "rect": [
+                111,
+                0,
+                111,
+                205
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 125,
+              "rect": [
+                222,
+                0,
+                111,
+                205
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 125,
+              "rect": [
+                333,
+                0,
+                111,
+                205
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 125,
+              "rect": [
+                444,
+                0,
+                111,
+                205
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 125,
+              "rect": [
+                555,
+                0,
+                111,
+                205
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 125,
+              "rect": [
+                666,
+                0,
+                111,
+                205
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 83,
+              "rect": [
+                777,
+                0,
+                111,
+                205
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                0,
+                111,
+                205
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            59,
+            181
+          ],
+          "action": "Road Twin | Move",
+          "path": "res://assets/cast/road_fresh_twin.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 83,
+              "rect": [
+                740,
+                405,
+                128,
+                199
+              ]
+            },
+            {
+              "source_frame": 3,
+              "duration_ms": 42,
+              "rect": [
+                868,
+                405,
+                128,
+                199
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                604,
+                128,
+                199
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 83,
+              "rect": [
+                128,
+                604,
+                128,
+                199
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 125,
+              "rect": [
+                256,
+                604,
+                128,
+                199
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                384,
+                604,
+                128,
+                199
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                740,
+                405,
+                128,
+                199
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            65,
+            182
+          ],
+          "action": "Road Twin | Hit",
+          "path": "res://assets/cast/road_fresh_twin.png"
+        },
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                512,
+                604,
+                154,
+                198
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 125,
+              "rect": [
+                666,
+                604,
+                154,
+                198
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                820,
+                604,
+                154,
+                198
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                803,
+                154,
+                198
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 125,
+              "rect": [
+                154,
+                803,
+                154,
+                198
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 125,
+              "rect": [
+                308,
+                803,
+                154,
+                198
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                462,
+                803,
+                154,
+                198
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 83,
+              "rect": [
+                462,
+                803,
+                154,
+                198
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                462,
+                803,
+                154,
+                198
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            65,
+            181
+          ],
+          "action": "Road Twin | Defeat",
+          "path": "res://assets/cast/road_fresh_twin.png"
+        },
+        "down": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                512,
+                604,
+                154,
+                198
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 125,
+              "rect": [
+                666,
+                604,
+                154,
+                198
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                616,
+                803,
+                154,
+                198
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                803,
+                154,
+                198
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 125,
+              "rect": [
+                154,
+                803,
+                154,
+                198
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 125,
+              "rect": [
+                308,
+                803,
+                154,
+                198
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                462,
+                803,
+                154,
+                198
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 83,
+              "rect": [
+                462,
+                803,
+                154,
+                198
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                462,
+                803,
+                154,
+                198
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            65,
+            181
+          ],
+          "action": "Road Twin | Down",
+          "path": "res://assets/cast/road_fresh_twin.png"
+        },
+        "recover": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                770,
+                803,
+                151,
+                198
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 125,
+              "rect": [
+                921,
+                803,
+                151,
+                198
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                1001,
+                151,
+                198
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 125,
+              "rect": [
+                151,
+                1001,
+                151,
+                198
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 84,
+              "rect": [
+                302,
+                1001,
+                151,
+                198
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 166,
+              "rect": [
+                453,
+                1001,
+                151,
+                198
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 42,
+              "rect": [
+                453,
+                1001,
+                151,
+                198
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            62,
+            181
+          ],
+          "action": "Road Twin | Recover",
+          "path": "res://assets/cast/road_fresh_twin.png"
+        },
+        "melee": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                327,
+                205,
+                148,
+                199
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 83,
+              "rect": [
+                475,
+                205,
+                148,
+                199
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 84,
+              "rect": [
+                623,
+                205,
+                148,
+                199
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 83,
+              "rect": [
+                771,
+                205,
+                148,
+                199
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 83,
+              "rect": [
+                919,
+                205,
+                148,
+                199
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 84,
+              "rect": [
+                0,
+                405,
+                148,
+                199
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 125,
+              "rect": [
+                148,
+                405,
+                148,
+                199
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 125,
+              "rect": [
+                296,
+                405,
+                148,
+                199
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 125,
+              "rect": [
+                444,
+                405,
+                148,
+                199
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 83,
+              "rect": [
+                592,
+                405,
+                148,
+                199
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 42,
+              "rect": [
+                327,
+                205,
+                148,
+                199
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            76,
+            182
+          ],
+          "action": "Road Twin | Melee",
+          "path": "res://assets/cast/road_fresh_twin.png"
+        },
+        "resolve": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 83,
+              "rect": [
+                604,
+                1001,
+                112,
+                198
+              ]
+            },
+            {
+              "source_frame": 3,
+              "duration_ms": 84,
+              "rect": [
+                716,
+                1001,
+                112,
+                198
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 125,
+              "rect": [
+                828,
+                1001,
+                112,
+                198
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 125,
+              "rect": [
+                828,
+                1001,
+                112,
+                198
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 83,
+              "rect": [
+                828,
+                1001,
+                112,
+                198
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 125,
+              "rect": [
+                940,
+                1001,
+                112,
+                198
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                604,
+                1001,
+                112,
+                198
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            59,
+            181
+          ],
+          "action": "Road Twin | Resolve",
+          "path": "res://assets/cast/road_fresh_twin.png"
+        }
+      }
+    },
+    "road_wounded_twin": {
+      "source": "art/models/road_wounded_twin/road_wounded_twin.blend",
+      "sha256": "4761f127f0875227c9a239795be9e7f8dc2ad0bd68fa9c3904f921a55aea3382",
+      "clips": {
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                432,
+                761,
+                95,
+                185
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                527,
+                761,
+                95,
+                185
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                622,
+                761,
+                95,
+                185
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                527,
+                761,
+                95,
+                185
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 166,
+              "rect": [
+                432,
+                761,
+                95,
+                185
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                717,
+                761,
+                95,
+                185
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 167,
+              "rect": [
+                812,
+                761,
+                95,
+                185
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 166,
+              "rect": [
+                717,
+                761,
+                95,
+                185
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            46,
+            168
+          ],
+          "action": "Road Twin | Ready",
+          "path": "res://assets/cast/road_wounded_twin.png"
+        },
+        "move": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                0,
+                119,
+                192
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 125,
+              "rect": [
+                119,
+                0,
+                119,
+                192
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 125,
+              "rect": [
+                238,
+                0,
+                119,
+                192
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 125,
+              "rect": [
+                357,
+                0,
+                119,
+                192
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 125,
+              "rect": [
+                476,
+                0,
+                119,
+                192
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 125,
+              "rect": [
+                595,
+                0,
+                119,
+                192
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 125,
+              "rect": [
+                714,
+                0,
+                119,
+                192
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 83,
+              "rect": [
+                833,
+                0,
+                119,
+                192
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                0,
+                119,
+                192
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            58,
+            167
+          ],
+          "action": "Road Twin | Move",
+          "path": "res://assets/cast/road_wounded_twin.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                192,
+                138,
+                191
+              ]
+            },
+            {
+              "source_frame": 3,
+              "duration_ms": 42,
+              "rect": [
+                138,
+                192,
+                138,
+                191
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 125,
+              "rect": [
+                276,
+                192,
+                138,
+                191
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 83,
+              "rect": [
+                414,
+                192,
+                138,
+                191
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 125,
+              "rect": [
+                552,
+                192,
+                138,
+                191
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                690,
+                192,
+                138,
+                191
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                192,
+                138,
+                191
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            76,
+            174
+          ],
+          "action": "Road Twin | Hit",
+          "path": "res://assets/cast/road_wounded_twin.png"
+        },
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                828,
+                192,
+                165,
+                190
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                383,
+                165,
+                190
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                165,
+                383,
+                165,
+                190
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 125,
+              "rect": [
+                330,
+                383,
+                165,
+                190
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 125,
+              "rect": [
+                495,
+                383,
+                165,
+                190
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 125,
+              "rect": [
+                660,
+                383,
+                165,
+                190
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                825,
+                383,
+                165,
+                190
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 83,
+              "rect": [
+                825,
+                383,
+                165,
+                190
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                825,
+                383,
+                165,
+                190
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            76,
+            173
+          ],
+          "action": "Road Twin | Defeat",
+          "path": "res://assets/cast/road_wounded_twin.png"
+        },
+        "down": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                828,
+                192,
+                165,
+                190
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                383,
+                165,
+                190
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                165,
+                383,
+                165,
+                190
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 125,
+              "rect": [
+                330,
+                383,
+                165,
+                190
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 125,
+              "rect": [
+                495,
+                383,
+                165,
+                190
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 125,
+              "rect": [
+                660,
+                383,
+                165,
+                190
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                825,
+                383,
+                165,
+                190
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 83,
+              "rect": [
+                825,
+                383,
+                165,
+                190
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                825,
+                383,
+                165,
+                190
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            76,
+            173
+          ],
+          "action": "Road Twin | Down",
+          "path": "res://assets/cast/road_wounded_twin.png"
+        },
+        "recover": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                907,
+                761,
+                153,
+                184
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                949,
+                153,
+                184
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 83,
+              "rect": [
+                153,
+                949,
+                153,
+                184
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 125,
+              "rect": [
+                306,
+                949,
+                153,
+                184
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 84,
+              "rect": [
+                459,
+                949,
+                153,
+                184
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 166,
+              "rect": [
+                612,
+                949,
+                153,
+                184
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 42,
+              "rect": [
+                612,
+                949,
+                153,
+                184
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            64,
+            167
+          ],
+          "action": "Road Twin | Recover",
+          "path": "res://assets/cast/road_wounded_twin.png"
+        },
+        "melee": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                573,
+                144,
+                188
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 83,
+              "rect": [
+                144,
+                573,
+                144,
+                188
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 84,
+              "rect": [
+                288,
+                573,
+                144,
+                188
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 83,
+              "rect": [
+                432,
+                573,
+                144,
+                188
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 83,
+              "rect": [
+                576,
+                573,
+                144,
+                188
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 84,
+              "rect": [
+                720,
+                573,
+                144,
+                188
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 125,
+              "rect": [
+                864,
+                573,
+                144,
+                188
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                761,
+                144,
+                188
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 125,
+              "rect": [
+                144,
+                761,
+                144,
+                188
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 83,
+              "rect": [
+                288,
+                761,
+                144,
+                188
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                573,
+                144,
+                188
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            72,
+            171
+          ],
+          "action": "Road Twin | Melee",
+          "path": "res://assets/cast/road_wounded_twin.png"
+        },
+        "resolve": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 83,
+              "rect": [
+                765,
+                949,
+                97,
+                183
+              ]
+            },
+            {
+              "source_frame": 3,
+              "duration_ms": 84,
+              "rect": [
+                862,
+                949,
+                97,
+                183
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 125,
+              "rect": [
+                959,
+                949,
+                97,
+                183
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 125,
+              "rect": [
+                959,
+                949,
+                97,
+                183
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 83,
+              "rect": [
+                959,
+                949,
+                97,
+                183
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                1133,
+                97,
+                183
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                765,
+                949,
+                97,
+                183
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            46,
+            166
+          ],
+          "action": "Road Twin | Resolve",
+          "path": "res://assets/cast/road_wounded_twin.png"
+        }
+      }
+    },
+    "road_swing_giant": {
+      "source": "art/models/road_swing_giant/road_swing_giant.blend",
+      "sha256": "ae281f49dfa99b671f9d406954fdfcba150ef8f09ef8341e20471cca2359c4e7",
+      "clips": {
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                1482,
+                543,
+                203,
+                267
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 166,
+              "rect": [
+                0,
+                810,
+                203,
+                267
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 167,
+              "rect": [
+                203,
+                810,
+                203,
+                267
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                810,
+                203,
+                267
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 166,
+              "rect": [
+                1482,
+                543,
+                203,
+                267
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                406,
+                810,
+                203,
+                267
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 167,
+              "rect": [
+                609,
+                810,
+                203,
+                267
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 166,
+              "rect": [
+                406,
+                810,
+                203,
+                267
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            102,
+            243
+          ],
+          "action": "Giant | Ready",
+          "path": "res://assets/cast/road_swing_giant.png"
+        },
+        "move": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                0,
+                203,
+                276
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 125,
+              "rect": [
+                203,
+                0,
+                203,
+                276
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 125,
+              "rect": [
+                406,
+                0,
+                203,
+                276
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 125,
+              "rect": [
+                609,
+                0,
+                203,
+                276
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 125,
+              "rect": [
+                812,
+                0,
+                203,
+                276
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 125,
+              "rect": [
+                1015,
+                0,
+                203,
+                276
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 125,
+              "rect": [
+                1218,
+                0,
+                203,
+                276
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 83,
+              "rect": [
+                1421,
+                0,
+                203,
+                276
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                0,
+                203,
+                276
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            102,
+            240
+          ],
+          "action": "Giant | Move",
+          "path": "res://assets/cast/road_swing_giant.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 83,
+              "rect": [
+                246,
+                543,
+                206,
+                267
+              ]
+            },
+            {
+              "source_frame": 3,
+              "duration_ms": 42,
+              "rect": [
+                452,
+                543,
+                206,
+                267
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 125,
+              "rect": [
+                658,
+                543,
+                206,
+                267
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 83,
+              "rect": [
+                864,
+                543,
+                206,
+                267
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 125,
+              "rect": [
+                1070,
+                543,
+                206,
+                267
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 167,
+              "rect": [
+                1276,
+                543,
+                206,
+                267
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                246,
+                543,
+                206,
+                267
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            104,
+            243
+          ],
+          "action": "Giant | Hit",
+          "path": "res://assets/cast/road_swing_giant.png"
+        },
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                276,
+                246,
+                267
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 125,
+              "rect": [
+                246,
+                276,
+                246,
+                267
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                492,
+                276,
+                246,
+                267
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 125,
+              "rect": [
+                738,
+                276,
+                246,
+                267
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 125,
+              "rect": [
+                984,
+                276,
+                246,
+                267
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 125,
+              "rect": [
+                1230,
+                276,
+                246,
+                267
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                1476,
+                276,
+                246,
+                267
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 83,
+              "rect": [
+                1476,
+                276,
+                246,
+                267
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                1476,
+                276,
+                246,
+                267
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            106,
+            243
+          ],
+          "action": "Giant | Defeat",
+          "path": "res://assets/cast/road_swing_giant.png"
+        },
+        "down": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                276,
+                246,
+                267
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 125,
+              "rect": [
+                246,
+                276,
+                246,
+                267
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                0,
+                543,
+                246,
+                267
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 125,
+              "rect": [
+                738,
+                276,
+                246,
+                267
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 125,
+              "rect": [
+                984,
+                276,
+                246,
+                267
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 125,
+              "rect": [
+                1230,
+                276,
+                246,
+                267
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 167,
+              "rect": [
+                1476,
+                276,
+                246,
+                267
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 83,
+              "rect": [
+                1476,
+                276,
+                246,
+                267
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                1476,
+                276,
+                246,
+                267
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            106,
+            243
+          ],
+          "action": "Giant | Down",
+          "path": "res://assets/cast/road_swing_giant.png"
+        },
+        "recover": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                324,
+                1605,
+                246,
+                264
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 125,
+              "rect": [
+                570,
+                1605,
+                246,
+                264
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 83,
+              "rect": [
+                816,
+                1605,
+                246,
+                264
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 125,
+              "rect": [
+                1062,
+                1605,
+                246,
+                264
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 84,
+              "rect": [
+                1308,
+                1605,
+                246,
+                264
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 166,
+              "rect": [
+                0,
+                1869,
+                246,
+                264
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                1869,
+                246,
+                264
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            106,
+            240
+          ],
+          "action": "Giant | Recover",
+          "path": "res://assets/cast/road_swing_giant.png"
+        },
+        "sweep": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                812,
+                810,
+                324,
+                264
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 167,
+              "rect": [
+                1136,
+                810,
+                324,
+                264
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 83,
+              "rect": [
+                1460,
+                810,
+                324,
+                264
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 83,
+              "rect": [
+                0,
+                1077,
+                324,
+                264
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 84,
+              "rect": [
+                324,
+                1077,
+                324,
+                264
+              ]
+            },
+            {
+              "source_frame": 14,
+              "duration_ms": 41,
+              "rect": [
+                648,
+                1077,
+                324,
+                264
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 42,
+              "rect": [
+                972,
+                1077,
+                324,
+                264
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 83,
+              "rect": [
+                1296,
+                1077,
+                324,
+                264
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 84,
+              "rect": [
+                0,
+                1341,
+                324,
+                264
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 83,
+              "rect": [
+                324,
+                1341,
+                324,
+                264
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 167,
+              "rect": [
+                648,
+                1341,
+                324,
+                264
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 166,
+              "rect": [
+                972,
+                1341,
+                324,
+                264
+              ]
+            },
+            {
+              "source_frame": 30,
+              "duration_ms": 125,
+              "rect": [
+                1296,
+                1341,
+                324,
+                264
+              ]
+            },
+            {
+              "source_frame": 33,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                1605,
+                324,
+                264
+              ]
+            },
+            {
+              "source_frame": 36,
+              "duration_ms": 42,
+              "rect": [
+                812,
+                810,
+                324,
+                264
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            138,
+            240
+          ],
+          "action": "Giant | Sweep",
+          "path": "res://assets/cast/road_swing_giant.png"
+        }
+      }
+    },
+    "road_crate_archer": {
+      "source": "art/models/road_crate_archer/road_crate_archer.blend",
+      "sha256": "232a1719eb8a44ff49bed6df9961a4e2df29d0153f53021b3d7c8bd43ca12721",
+      "clips": {
+        "advance": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                725,
+                471,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                852,
+                471,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                979,
+                471,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                695,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                127,
+                695,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 41,
+              "rect": [
+                254,
+                695,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                725,
+                471,
+                127,
+                211
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            66,
+            186
+          ],
+          "action": "Archer | Advance",
+          "path": "res://assets/cast/road_crate_archer.png"
+        },
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                0,
+                183,
+                247
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                183,
+                0,
+                183,
+                247
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                366,
+                0,
+                183,
+                247
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                549,
+                0,
+                183,
+                247
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                732,
+                0,
+                183,
+                247
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                915,
+                0,
+                183,
+                247
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 41,
+              "rect": [
+                915,
+                0,
+                183,
+                247
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            118,
+            189
+          ],
+          "action": "Archer | Defeat",
+          "path": "res://assets/cast/road_crate_archer.png"
+        },
+        "draw_and_release": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 42,
+              "rect": [
+                145,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 167,
+              "rect": [
+                290,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 83,
+              "rect": [
+                435,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 125,
+              "rect": [
+                580,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                580,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 41,
+              "rect": [
+                725,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 84,
+              "rect": [
+                870,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 41,
+              "rect": [
+                0,
+                471,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                145,
+                471,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                290,
+                471,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 83,
+              "rect": [
+                435,
+                471,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 33,
+              "duration_ms": 42,
+              "rect": [
+                580,
+                471,
+                145,
+                224
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            84,
+            201
+          ],
+          "action": "Archer | Cover Shot",
+          "release": {
+            "time_ms": 667,
+            "offset": [
+              20.913,
+              -151.515
+            ],
+            "clip": "arrow_projectile"
+          },
+          "path": "res://assets/cast/road_crate_archer.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                906,
+                125,
+                211
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                125,
+                906,
+                125,
+                211
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                250,
+                906,
+                125,
+                211
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                375,
+                906,
+                125,
+                211
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 41,
+              "rect": [
+                0,
+                906,
+                125,
+                211
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            64,
+            190
+          ],
+          "action": "Archer | Hit",
+          "path": "res://assets/cast/road_crate_archer.png"
+        },
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                500,
+                906,
+                124,
+                208
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                624,
+                906,
+                124,
+                208
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                748,
+                906,
+                124,
+                208
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                872,
+                906,
+                124,
+                208
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                996,
+                906,
+                124,
+                208
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                1117,
+                124,
+                208
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 83,
+              "rect": [
+                124,
+                1117,
+                124,
+                208
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            63,
+            187
+          ],
+          "action": "Archer | Cover Ready",
+          "path": "res://assets/cast/road_crate_archer.png"
+        },
+        "reserve_arrival": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                725,
+                471,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                381,
+                695,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                508,
+                695,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                635,
+                695,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                762,
+                695,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 41,
+              "rect": [
+                889,
+                695,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                725,
+                471,
+                127,
+                211
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            66,
+            186
+          ],
+          "action": "Archer | Reserve Arrival",
+          "path": "res://assets/cast/road_crate_archer.png"
+        },
+        "arrow_projectile": {
+          "frames": [
+            {
+              "source_frame": 17,
+              "duration_ms": 42,
+              "rect": [
+                248,
+                1117,
+                78,
+                47
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            83.913,
+            1.485
+          ],
+          "action": "Archer | Cover Shot",
+          "tip": [
+            5.802,
+            41.411
+          ],
+          "path": "res://assets/cast/road_crate_archer.png"
+        }
+      }
+    },
+    "road_longbow_archer": {
+      "source": "art/models/road_longbow_archer/road_longbow_archer.blend",
+      "sha256": "9d3b7744cf508d3f993fc96edbee62e70c511270e58438bfdc0a047e7fb58d23",
+      "clips": {
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                125,
+                929,
+                125,
+                208
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                250,
+                929,
+                125,
+                208
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                375,
+                929,
+                125,
+                208
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                500,
+                929,
+                125,
+                208
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                625,
+                929,
+                125,
+                208
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                750,
+                929,
+                125,
+                208
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 83,
+              "rect": [
+                875,
+                929,
+                125,
+                208
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            64,
+            187
+          ],
+          "action": "Archer | Ready",
+          "path": "res://assets/cast/road_longbow_archer.png"
+        },
+        "advance": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                870,
+                494,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                718,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                127,
+                718,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                254,
+                718,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                381,
+                718,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 41,
+              "rect": [
+                508,
+                718,
+                127,
+                211
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                870,
+                494,
+                127,
+                211
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            66,
+            186
+          ],
+          "action": "Archer | Advance",
+          "path": "res://assets/cast/road_longbow_archer.png"
+        },
+        "held_draw_and_release": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                183,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 42,
+              "rect": [
+                328,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 167,
+              "rect": [
+                473,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 83,
+              "rect": [
+                618,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 250,
+              "rect": [
+                763,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 19,
+              "duration_ms": 250,
+              "rect": [
+                763,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 25,
+              "duration_ms": 125,
+              "rect": [
+                763,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 42,
+              "rect": [
+                763,
+                247,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 41,
+              "rect": [
+                0,
+                494,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 30,
+              "duration_ms": 84,
+              "rect": [
+                145,
+                494,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 32,
+              "duration_ms": 41,
+              "rect": [
+                290,
+                494,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 33,
+              "duration_ms": 209,
+              "rect": [
+                435,
+                494,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 38,
+              "duration_ms": 208,
+              "rect": [
+                580,
+                494,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 43,
+              "duration_ms": 83,
+              "rect": [
+                725,
+                494,
+                145,
+                224
+              ]
+            },
+            {
+              "source_frame": 45,
+              "duration_ms": 42,
+              "rect": [
+                183,
+                247,
+                145,
+                224
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            84,
+            201
+          ],
+          "action": "Archer | Held Draw and Release",
+          "release": {
+            "time_ms": 1167,
+            "offset": [
+              20.913,
+              -151.515
+            ],
+            "clip": "arrow_projectile"
+          },
+          "path": "res://assets/cast/road_longbow_archer.png"
+        },
+        "arrow_projectile": {
+          "frames": [
+            {
+              "source_frame": 29,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                1140,
+                78,
+                47
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            83.913,
+            1.485
+          ],
+          "action": "Archer | Held Draw and Release",
+          "tip": [
+            5.802,
+            41.411
+          ],
+          "path": "res://assets/cast/road_longbow_archer.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                635,
+                718,
+                125,
+                211
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                760,
+                718,
+                125,
+                211
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                885,
+                718,
+                125,
+                211
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                0,
+                929,
+                125,
+                211
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 41,
+              "rect": [
+                635,
+                718,
+                125,
+                211
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            64,
+            190
+          ],
+          "action": "Archer | Hit",
+          "path": "res://assets/cast/road_longbow_archer.png"
+        },
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                0,
+                183,
+                247
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                183,
+                0,
+                183,
+                247
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                366,
+                0,
+                183,
+                247
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                549,
+                0,
+                183,
+                247
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                732,
+                0,
+                183,
+                247
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                247,
+                183,
+                247
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 41,
+              "rect": [
+                0,
+                247,
+                183,
+                247
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            118,
+            189
+          ],
+          "action": "Archer | Defeat",
+          "path": "res://assets/cast/road_longbow_archer.png"
+        }
+      }
+    },
+    "road_windup_bruiser": {
+      "source": "art/models/road_windup_bruiser/road_windup_bruiser.blend",
+      "sha256": "62e651a0ba605cc1fb3a21e87fa751a72a8a57d5ae7be69edfaf06226d3d485c",
+      "clips": {
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                760,
+                1020,
+                157,
+                193
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                917,
+                1020,
+                157,
+                193
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                1074,
+                1020,
+                157,
+                193
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                1214,
+                157,
+                193
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                157,
+                1214,
+                157,
+                193
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                314,
+                1214,
+                157,
+                193
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 208,
+              "rect": [
+                471,
+                1214,
+                157,
+                193
+              ]
+            },
+            {
+              "source_frame": 36,
+              "duration_ms": 42,
+              "rect": [
+                628,
+                1214,
+                157,
+                193
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            65,
+            175
+          ],
+          "action": "Bruiser | Ready",
+          "path": "res://assets/cast/road_windup_bruiser.png"
+        },
+        "trudge": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                172,
+                630,
+                164,
+                195
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 84,
+              "rect": [
+                336,
+                630,
+                164,
+                195
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 125,
+              "rect": [
+                500,
+                630,
+                164,
+                195
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                664,
+                630,
+                164,
+                195
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                828,
+                630,
+                164,
+                195
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 42,
+              "rect": [
+                992,
+                630,
+                164,
+                195
+              ]
+            },
+            {
+              "source_frame": 22,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                825,
+                164,
+                195
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                164,
+                825,
+                164,
+                195
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 41,
+              "rect": [
+                328,
+                825,
+                164,
+                195
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            72,
+            177
+          ],
+          "action": "Bruiser | Trudge",
+          "path": "res://assets/cast/road_windup_bruiser.png"
+        },
+        "delayed_heavy_strike": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                0,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 125,
+              "rect": [
+                204,
+                0,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 9,
+              "duration_ms": 84,
+              "rect": [
+                408,
+                0,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 166,
+              "rect": [
+                612,
+                0,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 250,
+              "rect": [
+                816,
+                0,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 250,
+              "rect": [
+                816,
+                0,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 27,
+              "duration_ms": 42,
+              "rect": [
+                816,
+                0,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 83,
+              "rect": [
+                1020,
+                0,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 30,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                210,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 33,
+              "duration_ms": 167,
+              "rect": [
+                204,
+                210,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 37,
+              "duration_ms": 42,
+              "rect": [
+                408,
+                210,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 38,
+              "duration_ms": 208,
+              "rect": [
+                612,
+                210,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 43,
+              "duration_ms": 208,
+              "rect": [
+                816,
+                210,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 48,
+              "duration_ms": 209,
+              "rect": [
+                1020,
+                210,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 53,
+              "duration_ms": 41,
+              "rect": [
+                0,
+                420,
+                204,
+                210
+              ]
+            },
+            {
+              "source_frame": 54,
+              "duration_ms": 42,
+              "rect": [
+                204,
+                420,
+                204,
+                210
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            86,
+            192
+          ],
+          "action": "Bruiser | Delayed Heavy Strike",
+          "path": "res://assets/cast/road_windup_bruiser.png"
+        },
+        "hit": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                408,
+                420,
+                172,
+                195
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                580,
+                420,
+                172,
+                195
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                752,
+                420,
+                172,
+                195
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 42,
+              "rect": [
+                924,
+                420,
+                172,
+                195
+              ]
+            },
+            {
+              "source_frame": 17,
+              "duration_ms": 41,
+              "rect": [
+                0,
+                630,
+                172,
+                195
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            81,
+            177
+          ],
+          "action": "Bruiser | Hit",
+          "path": "res://assets/cast/road_windup_bruiser.png"
+        },
+        "defeat": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 208,
+              "rect": [
+                492,
+                825,
+                190,
+                194
+              ]
+            },
+            {
+              "source_frame": 6,
+              "duration_ms": 209,
+              "rect": [
+                682,
+                825,
+                190,
+                194
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 208,
+              "rect": [
+                872,
+                825,
+                190,
+                194
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 208,
+              "rect": [
+                0,
+                1020,
+                190,
+                194
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 209,
+              "rect": [
+                190,
+                1020,
+                190,
+                194
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 125,
+              "rect": [
+                380,
+                1020,
+                190,
+                194
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 41,
+              "rect": [
+                570,
+                1020,
+                190,
+                194
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            79,
+            175
+          ],
+          "action": "Bruiser | Down",
+          "path": "res://assets/cast/road_windup_bruiser.png"
+        }
+      }
+    },
+    "road_bell_soldier": {
+      "source": "art/models/road_bell_soldier/road_bell_soldier.blend",
+      "sha256": "88ab2a1dd011391b66ce0e45108c00c6f707662e17c9e6e8e2f7053ea7c04d92",
+      "clips": {
+        "ready": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 250,
+              "rect": [
+                366,
+                470,
+                143,
+                214
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 167,
+              "rect": [
+                509,
+                470,
+                143,
+                214
+              ]
+            },
+            {
+              "source_frame": 11,
+              "duration_ms": 166,
+              "rect": [
+                652,
+                470,
+                143,
+                214
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 125,
+              "rect": [
+                795,
+                470,
+                143,
+                214
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 125,
+              "rect": [
+                0,
+                705,
+                143,
+                214
+              ]
+            },
+            {
+              "source_frame": 21,
+              "duration_ms": 125,
+              "rect": [
+                795,
+                470,
+                143,
+                214
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 209,
+              "rect": [
+                0,
+                705,
+                143,
+                214
+              ]
+            },
+            {
+              "source_frame": 29,
+              "duration_ms": 166,
+              "rect": [
+                143,
+                705,
+                143,
+                214
+              ]
+            },
+            {
+              "source_frame": 33,
+              "duration_ms": 500,
+              "rect": [
+                366,
+                470,
+                143,
+                214
+              ]
+            }
+          ],
+          "loop": true,
+          "anchor": [
+            41,
+            193
+          ],
+          "action": "Skeleton | Ready & Greet",
+          "path": "res://assets/cast/road_bell_soldier.png"
+        },
+        "bell_rise": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 125,
+              "rect": [
+                286,
+                705,
+                127,
+                214
+              ]
+            },
+            {
+              "source_frame": 4,
+              "duration_ms": 125,
+              "rect": [
+                413,
+                705,
+                127,
+                214
+              ]
+            },
+            {
+              "source_frame": 7,
+              "duration_ms": 125,
+              "rect": [
+                540,
+                705,
+                127,
+                214
+              ]
+            },
+            {
+              "source_frame": 10,
+              "duration_ms": 125,
+              "rect": [
+                667,
+                705,
+                127,
+                214
+              ]
+            },
+            {
+              "source_frame": 13,
+              "duration_ms": 125,
+              "rect": [
+                794,
+                705,
+                127,
+                214
+              ]
+            },
+            {
+              "source_frame": 16,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                919,
+                127,
+                214
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 166,
+              "rect": [
+                127,
+                919,
+                127,
+                214
+              ]
+            },
+            {
+              "source_frame": 24,
+              "duration_ms": 167,
+              "rect": [
+                254,
+                919,
+                127,
+                214
+              ]
+            },
+            {
+              "source_frame": 28,
+              "duration_ms": 167,
+              "rect": [
+                381,
+                919,
+                127,
+                214
+              ]
+            },
+            {
+              "source_frame": 32,
+              "duration_ms": 166,
+              "rect": [
+                508,
+                919,
+                127,
+                214
+              ]
+            },
+            {
+              "source_frame": 36,
+              "duration_ms": 42,
+              "rect": [
+                635,
+                919,
+                127,
+                214
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            62,
+            193
+          ],
+          "action": "Skeleton | Bell Rise Study",
+          "path": "res://assets/cast/road_bell_soldier.png"
+        },
+        "wave": {
+          "frames": [
+            {
+              "source_frame": 1,
+              "duration_ms": 167,
+              "rect": [
+                0,
+                0,
+                183,
+                235
+              ]
+            },
+            {
+              "source_frame": 5,
+              "duration_ms": 125,
+              "rect": [
+                183,
+                0,
+                183,
+                235
+              ]
+            },
+            {
+              "source_frame": 8,
+              "duration_ms": 166,
+              "rect": [
+                366,
+                0,
+                183,
+                235
+              ]
+            },
+            {
+              "source_frame": 12,
+              "duration_ms": 125,
+              "rect": [
+                549,
+                0,
+                183,
+                235
+              ]
+            },
+            {
+              "source_frame": 15,
+              "duration_ms": 125,
+              "rect": [
+                732,
+                0,
+                183,
+                235
+              ]
+            },
+            {
+              "source_frame": 18,
+              "duration_ms": 84,
+              "rect": [
+                0,
+                235,
+                183,
+                235
+              ]
+            },
+            {
+              "source_frame": 20,
+              "duration_ms": 125,
+              "rect": [
+                183,
+                235,
+                183,
+                235
+              ]
+            },
+            {
+              "source_frame": 23,
+              "duration_ms": 125,
+              "rect": [
+                366,
+                235,
+                183,
+                235
+              ]
+            },
+            {
+              "source_frame": 26,
+              "duration_ms": 208,
+              "rect": [
+                549,
+                235,
+                183,
+                235
+              ]
+            },
+            {
+              "source_frame": 31,
+              "duration_ms": 292,
+              "rect": [
+                732,
+                235,
+                183,
+                235
+              ]
+            },
+            {
+              "source_frame": 38,
+              "duration_ms": 333,
+              "rect": [
+                0,
+                470,
+                183,
+                235
+              ]
+            },
+            {
+              "source_frame": 46,
+              "duration_ms": 333,
+              "rect": [
+                183,
+                470,
+                183,
+                235
+              ]
+            }
+          ],
+          "loop": false,
+          "anchor": [
+            73,
+            214
+          ],
+          "action": "Skeleton | Wave",
+          "path": "res://assets/cast/road_bell_soldier.png"
+        }
+      }
     }
   }
 }

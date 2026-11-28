@@ -1,0 +1,131 @@
+{
+  "missions": {
+    "last_crate_on_the_road": {
+      "title": "The Last Crate on the Road",
+      "tier": 1,
+      "encounter": "road_last_crate",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. The crate blocks the road Archer's straight shot and the direct approach to the Bruiser. Break it to open the shortcut, or keep it for cover.",
+        "victory_text": "The company wins the fight.",
+        "defeat_text": "The company falls.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ]
+    }
+  },
+  "encounters": {
+    "road_last_crate": {
+      "board": "frontier_field",
+      "party_slots": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "placements": [
+        {
+          "id": "last_crate",
+          "object": "crate",
+          "at": [
+            3,
+            2
+          ]
+        },
+        {
+          "id": "crate_bruiser",
+          "character": "bruiser",
+          "at": [
+            4,
+            2
+          ]
+        },
+        {
+          "id": "crate_archer",
+          "character": "road_crate_archer",
+          "at": [
+            5,
+            2
+          ]
+        }
+      ]
+    }
+  },
+  "characters": {
+    "road_crate_archer": {
+      "class": "enemy",
+      "label": "Road Archer",
+      "max_hp": 5,
+      "art_key": "enemy",
+      "art_variant": "spear",
+      "cast_key": "road_crate_archer",
+      "cast_art_key": "enemy",
+      "cast_team": "enemies",
+      "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {"handler": "move", "clip": "advance"},
+          "road_cover_shot": {"handler": "attack", "clip": "draw_and_release"}
+        },
+        "hit": "hit",
+        "defeat": "defeat"
+      },
+      "abilities": [
+        "move",
+        "road_cover_shot"
+      ],
+      "behavior": "road_cover_archer"
+    }
+  },
+  "abilities": {
+    "road_cover_shot": {
+      "label": "Road Arrow",
+      "help": "Deals 2 damage within 5 tiles along a clear straight lane.",
+      "handler": "attack",
+      "params": {
+        "damage": 2,
+        "source_suffix": "'s arrow"
+      },
+      "targeting": {
+        "kind": "entity",
+        "range": 5,
+        "straight_line_clear": true,
+        "teams": [
+          "heroes"
+        ]
+      }
+    }
+  },
+  "behaviors": {
+    "road_cover_archer": {
+      "handler": "threat",
+      "params": {
+        "fallback_teams": [
+          "heroes"
+        ],
+        "pursue_range": 7,
+        "taunt_status": "taunt",
+        "move_ability": "move",
+        "ability": "road_cover_shot"
+      }
+    }
+  }
+}

@@ -260,7 +260,7 @@ static func _prepare_next_mission(run: Dictionary) -> void:
 		run.phase = "ready"
 		return
 	var draw := Commissions.draw_reports(run.catalog.defs, run.destination_id, remaining == 2,
-		run.mission_ids, run.get("promised_kind", ""), run.route_rng_state)
+		run.mission_ids, run.get("promised_kind", ""), run.route_rng_state, run.mission_index)
 	run.reports = draw.reports
 	run.route_rng_state = draw.rng_state
 	run.erase("promised_kind")

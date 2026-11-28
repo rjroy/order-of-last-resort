@@ -72,9 +72,12 @@ static func _valid_presentation(value: Variant) -> bool:
 	for field in value:
 		if field not in ["actions", "hit", "defeat", "events", "holds"]:
 			return false
-	if not _valid_clip_map(value.get("events", {}), Catalog.CAST_EVENTS) \
-			or not _valid_clip_map(value.get("holds", {}), Catalog.CAST_HOLDS):
+	var events: Variant = value.get("events", {})
+	if not events is Dictionary or not _valid_clip_map(value.get("holds", {}), Catalog.CAST_HOLDS):
 		return false
+	for kind in events:
+		if kind not in Catalog.CAST_EVENTS or Catalog.cast_event_binding(events[kind]).is_empty():
+			return false
 	var actions: Variant = value.get("actions", {})
 	if not actions is Dictionary:
 		return false
@@ -173,12 +176,19 @@ static func build(before: Dictionary, after: Dictionary, events: Array, include_
 	var cues := []
 	var last_shift := {}
 	var pull_recoils := {}
+	var fall_cues := {}
 	var index := 0
 	var next_action := {}
 	while index < events.size():
 		var echo := not next_action.is_empty()
 		var action: Dictionary = next_action if echo else events[index].get("resolved_action", {})
 		next_action = {}
+		var windup := {}
+		if action.is_empty() and events[index].get("type") == "windup_strike":
+			windup = _windup_cue(after, events[index], actors, positions)
+			if not windup.is_empty():
+				action = {"unit_id": windup.unit_id, "source_cell": windup.source_cell,
+					"actor_cell": windup.actor_cell, "event_count": _windup_span(events, index)}
 		var actor: Dictionary = actors.get(action.get("unit_id", ""), {})
 		var end := index + int(action.get("event_count", 1))
 		if end <= index or end > events.size():
@@ -193,12 +203,18 @@ static func build(before: Dictionary, after: Dictionary, events: Array, include_
 					"effects": [{"kind": "status_expired", "source_id": affected, "target_id": affected,
 						"cell": positions.get(affected), "event_index": index, "status_id": expiration.status_id,
 						"timing": expiration.timing, "removed": true}]}})
-		if action.is_empty() and include_silent and events[index].get("type") in ["damage", "heal"]:
+		var loose_event: Dictionary = events[index]
+		var follows_fall: bool = loose_event.get("type") == "heal" \
+			and fall_cues.has(loose_event.get("source_id", loose_event.get("unit_id", "")))
+		var lethal_boundary := -1
+		if action.is_empty() and include_silent and not follows_fall and loose_event.get("type") in ["damage", "heal"]:
 			var hp := _hp_effect(events[index], index, positions, health)
 			if not hp.is_empty():
 				var source: String = hp.source_id
 				var projection := _project_hp(after, actors.get(source, {}), source, hp, "boundary")
 				projection["presentation_boundary"] = true
+				if hp.kind == "damage" and int(hp.get("hp_before", 0)) > 0 and hp.get("hp_after") == 0:
+					lethal_boundary = cues.size()
 				cues.append(projection)
 		if action.is_empty() and include_silent and events[index].get("type") == "collapse_fall":
 			var fall: Dictionary = events[index]
@@ -224,7 +240,7 @@ static func build(before: Dictionary, after: Dictionary, events: Array, include_
 						"event_count": end - event_index}
 			if not next_action.is_empty():
 				end -= int(next_action.event_count)
-		var cue := {} if branch == "converted" else _start_cue(after, actor, action)
+		var cue := windup if not windup.is_empty() else ({} if branch == "converted" else _start_cue(after, actor, action))
 		if cue.is_empty() and not actor.is_empty() and action.has("ability_id") \
 				and (include_silent or action.ability_id == "move"):
 			cue = {"unit_id": actor.id, "cast_key": cast_key_for(after, actor), "clip": "",
@@ -235,11 +251,13 @@ static func build(before: Dictionary, after: Dictionary, events: Array, include_
 		if not cue.is_empty():
 			cue["action_beat"] = true
 			if not action.is_empty():
-				var source_id: String = action.get("source_ability_id", action.ability_id)
+				var form_id: String = action.get("ability_id", "")
+				var source_id: String = action.get("source_ability_id", form_id)
 				var source_definition: Dictionary = after.catalog.defs.abilities.get(source_id, {})
 				cue["performance"] = {"actor_id": actor.id, "cast_key": cue.cast_key,
-					"source_ability_id": source_id, "form_id": action.ability_id,
-					"source_handler": source_definition.get("handler", ""), "branch": branch,
+					"source_ability_id": source_id, "form_id": form_id,
+					"source_handler": source_definition.get("handler", ""),
+					"branch": "reaction" if not windup.is_empty() else branch,
 					"source_cell": action.source_cell, "actor_cell": action.actor_cell, "effects": []}
 				if cue.cast_key == "knight":
 					cue.performance["shield_away"] = shield_away.get(actor.id, false)
@@ -251,6 +269,7 @@ static func build(before: Dictionary, after: Dictionary, events: Array, include_
 				and events.slice(index, end).any(func(event): return event.get("type") != "wait"):
 			_audio_action(cue, after, action)
 		var reactions := []
+		var prelude := {}
 		var steps := 0
 		var moved := {}
 		var retaliations := {}
@@ -260,6 +279,10 @@ static func build(before: Dictionary, after: Dictionary, events: Array, include_
 		var pull_recoil_pending := false
 		while index < end:
 			var event: Dictionary = events[index]
+			if prelude.is_empty() and action.has("ability_id") and cue.get("ordinary_handler") == "attack" \
+					and event.get("type") == "health_damage_bonus" and event.get("unit_id") == cue.unit_id \
+					and int(event.get("amount", 0)) > 0:
+				prelude = _event_cue(after, actor, "health_damage_bonus", positions.get(cue.unit_id))
 			if event.get("type") == "death_blast":
 				var detonation := int(detonations.get(event.get("unit_id", ""), -1))
 				if detonation >= 0:
@@ -272,9 +295,7 @@ static func build(before: Dictionary, after: Dictionary, events: Array, include_
 					and event.get("position") != positions.get(action.get("unit_id")):
 				steps += 1
 				if event.get("tactical_retreat", false) and cue.get("ordinary_handler") == "move":
-					_replace_clip(cue, _event_clip(after, actor, "tactical_retreat"))
-					if cue.has("fallback_clip"):
-						cue["ordinary_role"] = "tactical_retreat"
+					_tactical_retreat(cue, after, actor, positions.get(actor.id), event.position)
 			if not cue.is_empty():
 				_observe_performance(cue, event, index, positions, health, actors, after)
 				if branch != "converted" and not cue.get("performance", {}).get("fitted_dose_replay", false):
@@ -430,6 +451,8 @@ static func build(before: Dictionary, after: Dictionary, events: Array, include_
 								reaction["after_reaction"] = dependency
 							if health[victim] <= 0:
 								detonations[victim] = reactions.size()
+								if not _event_clip(after, target, "death_heal").is_empty():
+									fall_cues[victim] = {"cue": reaction, "boundary": lethal_boundary}
 							reactions.append(reaction)
 					var knocked := key == "ferryman" and Statuses.is_knockdown(after, event.get("status_id", ""))
 					if not has_presentation(after, target) and key in ["harpooner", "ferryman"] \
@@ -449,7 +472,16 @@ static func build(before: Dictionary, after: Dictionary, events: Array, include_
 			elif event.get("type") == "heal":
 				var healed: String = event.get("target_id", "")
 				var source: String = event.get("source_id", event.get("unit_id", ""))
-				if include_silent and not action.is_empty() and source != action.unit_id:
+				if fall_cues.has(source):
+					var effect := _hp_effect(event, index, positions, health)
+					if not effect.is_empty():
+						var fall: Dictionary = fall_cues[source]
+						_add_death_heal(fall.cue, after, actors[source], effect)
+						if fall.boundary >= 0:
+							# This is the loose damage that killed the heal's source,
+							# not another actor's damage or an action impact.
+							fall.cue["after_cue"] = fall.boundary
+				elif include_silent and not action.is_empty() and source != action.unit_id:
 					var hp := _hp_effect(event, index, positions, health)
 					if not hp.is_empty():
 						reactions.append(_project_hp(after, actors.get(source, {}), source, hp, "reaction"))
@@ -559,10 +591,17 @@ static func build(before: Dictionary, after: Dictionary, events: Array, include_
 			_aim(cue, aim.id, aim.cell)
 		var parent_index := -1
 		if not cue.is_empty():
+			if not prelude.is_empty():
+				_aim(prelude, cue.target_id, cue.get("target_cell"))
+				prelude["wait_for_actor_landing"] = true
+				cue["after_cue"] = cues.size()
+				cues.append(prelude)
 			parent_index = cues.size()
 			cues.append(cue)
 		var first_reaction := cues.size()
 		for reaction in reactions:
+			if reaction.get("ordinary_role") == "defeat" and reaction.get("projection_fallback", false):
+				_preserve_later_hp(cue, reaction)
 			if reaction.has("after_reaction"):
 				reaction["after_cue"] = first_reaction + int(reaction.after_reaction)
 				reaction.erase("after_reaction")
@@ -634,21 +673,94 @@ static func _replace_clip(cue: Dictionary, replacement: String) -> void:
 		cue.clip = replacement
 
 
-static func _event_clip(state: Dictionary, owner: Dictionary, kind: String) -> String:
+static func _event_binding(state: Dictionary, owner: Dictionary, kind: String) -> Dictionary:
 	if owner.is_empty():
-		return ""
-	return presentation_for(state, owner).get("events", {}).get(kind, "")
+		return {}
+	return Catalog.cast_event_binding(presentation_for(state, owner).get("events", {}).get(kind))
+
+
+static func _event_clip(state: Dictionary, owner: Dictionary, kind: String) -> String:
+	return _event_binding(state, owner, kind).get("clip", "")
 
 
 static func _event_cue(state: Dictionary, owner: Dictionary, kind: String, cell: Variant) -> Dictionary:
 	if not cell is Vector2i:
 		return {}
-	var clip := _event_clip(state, owner, kind)
-	if clip.is_empty():
+	var binding := _event_binding(state, owner, kind)
+	if binding.is_empty():
 		return {}
-	return {"unit_id": owner.id, "cast_key": cast_key_for(state, owner), "clip": clip,
+	return {"unit_id": owner.id, "cast_key": cast_key_for(state, owner),
 		"ordinary_presentation": true, "ordinary_role": kind, "source_cell": cell, "actor_cell": cell,
-		"target_id": "", "recipients": []}
+		"target_id": "", "recipients": []}.merged(binding)
+
+
+static func _tactical_retreat(cue: Dictionary, state: Dictionary, actor: Dictionary,
+		from: Vector2i, destination: Vector2i) -> void:
+	var binding := _event_binding(state, actor, "tactical_retreat")
+	if binding.is_empty():
+		return
+	var event_only: bool = cue.clip.is_empty()
+	_replace_clip(cue, binding.clip)
+	if binding.has("impact_frame"):
+		cue["fallback_impact_frame"] = cue.get("impact_frame")
+		cue["impact_frame"] = binding.impact_frame
+	cue.erase("silent_action")
+	cue["ordinary_presentation"] = true
+	cue["ordinary_role"] = "tactical_retreat"
+	cue["target_cell"] = destination
+	if event_only and from.x != destination.x:
+		cue["facing"] = signi(from.x - destination.x)
+
+
+static func _add_death_heal(fall: Dictionary, state: Dictionary, actor: Dictionary, effect: Dictionary) -> void:
+	if not fall.has("performance"):
+		var binding := _event_binding(state, actor, "death_heal")
+		_replace_clip(fall, binding.clip)
+		if binding.has("impact_frame"):
+			fall["fallback_impact_frame"] = null
+			fall["impact_frame"] = binding.impact_frame
+		fall["performance"] = _effect_performance(actor.id, fall.cast_key, effect, "reaction")
+		fall["projection_fallback"] = true
+	else:
+		fall.performance.effects.append(effect)
+	_recipient(fall, effect.target_id, effect.cell, "heal")
+
+
+static func _preserve_later_hp(action: Dictionary, fall: Dictionary) -> void:
+	# Multiple contacts of an ordinary action share one impact. Never rewind a
+	# recipient's HP at the later gesture if that impact already showed a
+	# subsequent HP change on the same recipient. The heal ink is still shown.
+	var contacts: Array = action.get("performance", {}).get("effects", [])
+	for heal: Dictionary in fall.performance.effects:
+		if heal.kind == "heal" and contacts.any(func(effect): return effect.kind in ["damage", "heal"] \
+				and effect.target_id == heal.target_id and effect.event_index > heal.event_index):
+			heal["hp_superseded"] = true
+
+
+static func _windup_cue(state: Dictionary, event: Dictionary, actors: Dictionary, positions: Dictionary) -> Dictionary:
+	var owner: String = event.unit_id
+	var cue := _event_cue(state, actors.get(owner, {}), "windup_strike", positions.get(owner))
+	if not cue.is_empty():
+		cue["ordinary_handler"] = "attack"
+		cue["projection_fallback"] = true
+		_aim(cue, "", event.position)
+	return cue
+
+
+static func _windup_span(events: Array, start: int) -> int:
+	# The trait fires outside _execute_action. Only its contiguous combat
+	# effects belong to the smash, never the next turn or round-end HP loss.
+	var end := start + 1
+	while end < events.size():
+		var event: Dictionary = events[end]
+		if event.has("resolved_action") or event.get("effect_timing") == "round_end" \
+				or event.type not in ["damage", "heal", "reflect", "reflect_exhausted", "body_double",
+					"status", "adjacent_damage_bonus", "health_damage_bonus", "adjacent_guard",
+					"ally_death_guard", "ally_death_bonus", "borrowed_armor", "corpse_bell_marked",
+					"death_blast", "retaliate"]:
+			break
+		end += 1
+	return end - start
 
 
 static func _ordinary_events(state: Dictionary, event: Dictionary, action: Dictionary, actors: Dictionary,
@@ -659,6 +771,23 @@ static func _ordinary_events(state: Dictionary, event: Dictionary, action: Dicti
 	var objective: Dictionary = state.get("objective", {})
 	var kind: String = event.get("type", "")
 	match kind:
+		"borrowed_armor":
+			if not event.has("amount"):
+				var cue := _event_cue(state, actors.get(owner, {}), kind, positions.get(owner))
+				if not cue.is_empty():
+					_aim(cue, target, positions.get(target))
+					_recipient(cue, target, positions.get(target), "guard")
+					result.append(cue)
+		"corpse_bell_raised":
+			if not positions.has(owner):
+				var cue := _event_cue(state, actors.get(owner, {}), kind, event.get("position"))
+				if not cue.is_empty():
+					var spawn := {"kind": "summon", "source_id": owner, "target_id": owner,
+						"cell": event.position, "corpse_id": objective.get("corpse_bell", {}).get("corpse_id", "")}
+					cue["performance"] = _effect_performance(owner, cue.cast_key, spawn, "reaction")
+					cue["projection_fallback"] = true
+					cue["reveal_at_start"] = true
+					result.append(cue)
 		"adjacent_guard", "adjacent_damage_bonus", "ally_death_guard", "retaliate":
 			var cue := _event_cue(state, actors.get(owner, {}), kind, positions.get(owner))
 			if not cue.is_empty():
@@ -1022,8 +1151,12 @@ static func _project_hp(state: Dictionary, unit: Dictionary, source: String, eff
 		branch: String) -> Dictionary:
 	var key := cast_key_for(state, unit)
 	return {"unit_id": source, "cast_key": key, "clip": "", "recipients": [],
-		"presentation_kind": "projection", "performance": {"actor_id": source, "cast_key": key,
-			"source_ability_id": "", "form_id": "", "source_handler": "", "branch": branch, "effects": [effect]}}
+		"presentation_kind": "projection", "performance": _effect_performance(source, key, effect, branch)}
+
+
+static func _effect_performance(source: String, key: String, effect: Dictionary, branch: String) -> Dictionary:
+	return {"actor_id": source, "cast_key": key, "source_ability_id": "", "form_id": "",
+		"source_handler": "", "branch": branch, "effects": [effect]}
 
 
 static func _set_aim(use: Dictionary, id: String, cell: Variant, replace := false) -> void:
@@ -1151,7 +1284,7 @@ static func _observe_ordinary_action(cue: Dictionary, event: Dictionary, positio
 	var target: String = event.get("target_id", "")
 	var cell: Variant = positions.get(target)
 	var owner: String = event.get("unit_id", "")
-	if handler in ["attack", "blast", "push", "perform"]:
+	if handler in ["attack", "blast", "push", "perform", "sweep"]:
 		_observe_ordinary_strike(cue, event, positions)
 	match event.get("type"):
 		"pull":
@@ -1256,7 +1389,7 @@ static func _has_recipient(cue: Dictionary, kind: String) -> bool:
 static func _position_changes(event: Dictionary, positions: Dictionary) -> Dictionary:
 	var changes := {}
 	match event.get("type"):
-		"move", "reserve_arrival":
+		"move", "reserve_arrival", "corpse_bell_raised":
 			changes[event.unit_id] = event.position
 		"push", "repel":
 			changes[event.target_id] = event.position

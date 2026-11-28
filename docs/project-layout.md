@@ -12,7 +12,7 @@ to them. The Godot project root remains
 |---|---|
 | `AGENTS.md` | Repository working agreements and links to the game guide and focused runbooks. |
 | `MIGRATION.md`, `migration-commit-map.txt` | Extraction history and mapping from historical source commits. These are provenance, not a live tracker or runtime input. |
-| `docs/` | Maintained project and workflow documentation. [`adding-a-playable-class.md`](adding-a-playable-class.md) is the end-to-end recruitable-hero runbook; use it rather than duplicating its detailed design, integration, approval, and verification procedure. |
+| `docs/` | Maintained project and workflow documentation. See [Adding a playable class](adding-a-playable-class.md) for the recruitable-hero runbook, [Designing commission tiers](designing-commission-tiers.md) for route eligibility, [Designing balanced road missions](designing-road-missions.md) for encounters at forks, and [Designing balanced commission finales](designing-commission-finales.md) for named destinations. |
 | `.agents/` | Project-local agent skills and helper instructions. These guide work but are not game runtime resources. |
 | `.beads/` | Repository-local issue-tracker data when present; unlike historical issue IDs in `.lore/`, this is operational tracker state. |
 | `.git/` | Git's repository metadata and object database; do not edit it as project content. |
@@ -38,8 +38,8 @@ use the current paths below.
 | `presentation/help/` | In-game help and instruction presentation. |
 | `presentation/settings/` | User-facing options and settings presentation. |
 | `content/heroes/` | Hero and character definitions, including their kits and orders. |
-| `content/missions/` | Individual authored mission definitions. |
-| `content/shared/` | Shared encounter and common content definitions. |
+| `content/missions/` | Road and destination mission families, with documented recipe path exceptions. |
+| `content/shared/` | Shared profiles, statuses, abilities, enemies and encounter content. |
 | `content/guild/` | Guild progression and training catalog data. |
 | `content/expedition/` | Commission and expedition reward catalog data. |
 | `content/practice/` | Practice/tutorial content, distinct from commission missions. |
@@ -97,7 +97,7 @@ art.
 
 For a stock mission, the authored definition belongs in
 [`content/missions/`](../games/company-of-unlikely-heroes/content/missions/);
-for example, [`wrong_side_of_the_door.json`](../games/company-of-unlikely-heroes/content/missions/wrong_side_of_the_door.json).
+for example, [`wrong_side_of_the_door.json`](../games/company-of-unlikely-heroes/content/missions/destinations/wrong_side_of_the_door.json).
 Add every new stock mission file's relative path to the `parts` array in
 [`content/catalog.json`](../games/company-of-unlikely-heroes/content/catalog.json);
 the stock manifest resolves each entry relative to `content/`. In this example,
@@ -105,7 +105,10 @@ the mission file itself defines the `frontier_gate` encounter and
 `frontier_gate_board`, including its `gate_guard` goblin placement and named
 plate, gate, and exit locations; none of those records come from
 `content/shared/encounters.json`. Put definitions in `content/shared/` only
-when they are genuinely shared by multiple content entries. The separate
+when they are genuinely shared by multiple content entries. Asset recipes read
+`boards.bridge` from `content/shared/common.json`, `company_crossing` from
+`content/missions/company_rescue.json`, and wagon content from
+`content/missions/last_wagon.json`; keep those records at those paths. The separate
 `content/practice/catalog.json` is a deliberately narrower, curated catalog,
 not a minimal list: it assembles 14 missions (including its own practice
 encounter) and selected shared and hero definitions. Update it only when the

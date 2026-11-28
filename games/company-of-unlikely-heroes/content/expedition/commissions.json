@@ -1,5 +1,6 @@
 {
   "commission_settings": {
+    "tiered": true,
     "recruitment_roster": [
       "knight",
       "healer",
@@ -42,6 +43,13 @@
         "A rival band is on the road. The scout says they don't all fight alike.",
         "The scout's notes read like a rival roster: less about how many, more about what each can do.",
         "Watch how that band fights together. The one who rushes you first may not be the one to worry about."
+      ]
+    },
+    "telegraphed_strike": {
+      "label": "Heavy windup",
+      "descriptors": [
+        "The scout saw a Bruiser prepare a heavy blow before striking the same spot.",
+        "Watch the ground where the Bruiser winds up. There is time to move before the blow lands."
       ]
     },
     "ferryman_escort": {
@@ -112,8 +120,8 @@
     "bridge_patrol": {
       "kind": "skirmish",
       "descriptors": [
-        "Two Harpooners wait on opposite sides of the road. Each can hit from two tiles away, so check both before stepping between them.",
-        "These harpoons wound but don't pull. Stay more than two tiles from both raiders, or close on one without stepping into the other's reach."
+        "Three Harpooners wait across the road. Each can hit from two tiles away, so check their reach before stepping between them.",
+        "These three harpoons wound but don't pull. Stay more than two tiles from the raiders, or close on one without stepping into another's reach."
       ]
     },
     "goblin_mob": {
@@ -140,7 +148,7 @@
     "cowardly_captain": {
       "kind": "formation",
       "descriptors": [
-        "The Captain tries to back away when heroes get beside him, but the two Grunts hit harder at his side.",
+        "The Captain tries to back away when heroes get beside him, but the three Grunts hit harder at his side.",
         "The Grunts aren't stronger everywhere. It's standing next to the Captain that puts extra force behind their blows."
       ]
     },
@@ -154,8 +162,8 @@
     "unfortunate_healer": {
       "kind": "formation",
       "descriptors": [
-        "Two Bruisers have a Healer who can patch up a wounded ally within two tiles.",
-        "The enemy Healer has only two heals. A Bruiser out of reach gets neither."
+        "Two Bruisers have a Healer who can repeatedly restore 3 HP to a wounded ally within two tiles.",
+        "The enemy Healer can heal without a cast limit, restoring 3 HP to a wounded ally within two tiles. A Bruiser out of reach gets no healing."
       ]
     },
     "duelists": {
@@ -176,7 +184,7 @@
       "kind": "rival_band",
       "descriptors": [
         "They brought a Knight who pushes, a Wizard who blasts the nearest character, and a Healer who patches up wounded allies.",
-        "The rival Healer gets two heals. Their Wizard can hit their own side, and their Knight answers a taunt."
+        "The rival Healer can repeatedly restore 2 HP to wounded allies within two tiles. Their Wizard can hit their own side, and their Knight answers a taunt."
       ]
     },
     "last_one_standing": {
@@ -184,6 +192,151 @@
       "descriptors": [
         "When a Bandit falls, the Fierce one hits harder and the Swift one moves farther. Those gains stack.",
         "The Guard Bandit shrugs off part of a heavy hit once another Bandit is down. Small hits still get through, and the armor only improves once."
+      ]
+    },
+    "light_hook_pair": {
+      "kind": "ambush",
+      "descriptors": [
+        "A Hookhand and a Harpooner cover the lane. The Hookhand can pull a hero closer while the Harpooner strikes from a distance.",
+        "Watch where the Hookhand's pull will land your hero, and check the Harpooner's reach before closing."
+      ]
+    },
+    "veteran_shield_wall": {
+      "kind": "formation",
+      "descriptors": [
+        "Tougher Shieldbearers flank the Archer. Each guard beside the Archer reduces the damage it takes.",
+        "These Shieldbearers take more punishment than the usual wall. Separate them from the Archer or work through their defenses."
+      ]
+    },
+    "veteran_explosive_situation": {
+      "kind": "ambush",
+      "descriptors": [
+        "These Bombers can survive hits that would fell the usual pair. Their death blasts hurt anyone beside them, including their allies.",
+        "The sturdier Bombers may need another hit before they explode. Watch the Harpooner's reach while choosing where to finish them."
+      ]
+    },
+    "veteran_mirror_company": {
+      "kind": "rival_band",
+      "descriptors": [
+        "The rival Wizard is tougher than usual and blasts the nearest character, friend or foe. A Knight and Healer fight alongside them.",
+        "Expect the sturdier rival Wizard to stay in the fight longer. The rival Healer can also patch up wounded allies."
+      ]
+    },
+    "veteran_unfortunate_healer": {
+      "kind": "formation",
+      "descriptors": [
+        "A tougher enemy Healer supports two Bruisers and can repeatedly restore 3 HP to a wounded ally within 2 tiles.",
+        "The sturdier Healer can patch up wounded allies within two tiles. Separate a Bruiser from that support or focus on the Healer."
+      ]
+    },
+    "veteran_odd_couple": {
+      "kind": "ambush",
+      "descriptors": [
+        "This Ogre is tougher than usual and hits hard up close. The Trickster can swap places with it once.",
+        "A sturdier Ogre may stay dangerous longer, and the Trickster can bring it closer with a single swap."
+      ]
+    },
+    "crossfire_blast_lane": {
+      "kind": "ambush",
+      "descriptors": [
+        "Two Hookhands can pull heroes toward the Bomber, which can strike up close before it falls. Its death blast hurts everyone beside it, friend or foe.",
+        "Two Harpooners strike from two tiles away while the Bomber closes in. Check both Hookhands' pulls and the Bomber's blast before committing."
+      ]
+    },
+    "crossfire_split_fuse": {
+      "kind": "ambush",
+      "descriptors": [
+        "Defeat the whole crew. Two Hookhands pull from separate approaches, with two Harpooners and a Bomber nearby. The Bomber's death blast hurts everyone beside it, friend or foe."
+      ]
+    },
+    "last_crate_on_the_road": {
+      "kind": "skirmish",
+      "descriptors": [
+        "Defeat the Bruiser and Archer. A crate blocks the Archer's straight shot and the direct approach to the Bruiser; break it for a shortcut or keep the cover."
+      ]
+    },
+    "longbows_blind_spot": {
+      "kind": "skirmish",
+      "descriptors": [
+        "Defeat the Longbow and its Bruiser bodyguard. The Longbow needs a clear straight lane and cannot shoot an adjacent target, but the bodyguard is advancing."
+      ]
+    },
+    "wrong_twin": {
+      "kind": "skirmish",
+      "descriptors": [
+        "Defeat both twins. The Fresh Twin hits harder at full health; the Wounded Twin hits harder once hurt. Consider whom you can finish before the return blow."
+      ]
+    },
+    "hired_hammer": {
+      "kind": "skirmish",
+      "descriptors": [
+        "Defeat the Mercenary and Archer. The Mercenary pursues whoever last damaged him, even his own crew; without a living last attacker, he seeks heroes."
+      ]
+    },
+    "no_room_to_swing": {
+      "kind": "skirmish",
+      "descriptors": [
+        "Defeat the Giant and his crew. The Giant sweeps everyone next to him, including his ally; keep clear or lure him into swinging beside the crew."
+      ]
+    },
+    "friars_last_favor": {
+      "kind": "formation",
+      "descriptors": [
+        "Defeat the Friar and his crew. When the Friar falls, he heals surviving enemies for 2 HP; finish him before spreading damage or save him for last."
+      ]
+    },
+    "empty_helmets": {
+      "kind": "skirmish",
+      "descriptors": [
+        "Defeat the whole enemy crew. The first enemy corpse marks the bell's one attempt to raise a soldier at that tile, at the end of the following round. Block the tile or defeat everyone first."
+      ]
+    },
+    "very_long_spear": {
+      "kind": "skirmish",
+      "descriptors": [
+        "Defeat the two Spearmen and their crew. Each adjacent strike continues one tile straight beyond its target, hitting anyone there, including an ally."
+      ]
+    },
+    "very_long_spear_crossed_spears": {
+      "kind": "skirmish",
+      "descriptors": [
+        "Defeat the two Spearmen and their crew. Their adjacent strikes continue one tile straight beyond the target, hitting anyone there, even their own crew. Watch both approaches."
+      ]
+    },
+    "big_windup": {
+      "kind": "telegraphed_strike",
+      "descriptors": [
+        "Defeat the Bruiser and his crew. The Bruiser marks an adjacent opponent's tile, then smashes that tile for 6 damage on his next turn when he can act, even if an ally stands there. A skipped turn delays the blow; move away or defeat him first."
+      ]
+    },
+    "big_windup_t3": {
+      "kind": "telegraphed_strike",
+      "descriptors": [
+        "Defeat the Bruiser and two crew. The Bruiser marks an adjacent opponent's tile, then smashes it for 6 damage on his next turn when he can act, even if an ally stands there. A skipped turn delays the blow; move away or defeat him first."
+      ]
+    },
+    "big_windup_t4": {
+      "kind": "telegraphed_strike",
+      "descriptors": [
+        "Defeat two Bruisers and their crew. Each Bruiser marks an adjacent opponent's tile, then smashes it for 6 damage on his next turn when he can act, even if an ally stands there. A skipped turn delays his blow; move away or defeat him first."
+      ]
+    },
+    "big_windup_t5": {
+      "kind": "telegraphed_strike",
+      "descriptors": [
+        "Defeat two Bruisers and two crew. Each Bruiser marks an adjacent opponent's tile, then smashes it for 6 damage on his next turn when he can act, even if an ally stands there. A skipped turn delays his blow; move away or defeat him first."
+      ]
+    },
+    "borrowed_armor": {
+      "kind": "formation",
+      "descriptors": [
+        "Defeat the Lender, Bruiser and Archer. At each round's start the Lender protects the nearest other ally from its first damaging hit while the Lender lives; the Lender remains exposed."
+      ]
+    },
+    "veteran_borrowed_armor": {
+      "kind": "formation",
+      "descriptors": [
+        "Defeat the Lender, Bruiser and Archer. All three are tougher than usual. At each round's start the Lender protects the nearest other ally from its first damaging hit while the Lender lives; the Lender remains exposed."
       ]
     },
     "company_rescue": {

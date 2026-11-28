@@ -4,6 +4,10 @@ extends SceneTree
 var scene: Node
 var failures: Array[String] = []
 
+class RuntimeCatalog:
+	extends RefCounted
+	var defs: Dictionary
+
 
 func _initialize() -> void:
 	call_deferred("_run")
@@ -52,7 +56,113 @@ func _run() -> void:
 			_check(cues.get("context_cell") == Vector2i(2, 1) and cues.get("context_text") == "Move to C2",
 				"Manual move tag says Move to C2 at C2: %s / %s" % [
 					str(cues.get("context_cell")), str(cues.get("context_text"))])
+		_test_moved_windup_impact(board)
+		_test_recalled_windup_impact(board)
+		_test_pursuit_projection(board)
 	_finish()
+
+
+func _test_pursuit_projection(board: Node) -> void:
+	var state: Dictionary = scene.get("_state").duplicate(true)
+	var catalog := RuntimeCatalog.new()
+	catalog.defs = state.catalog.defs.duplicate(true)
+	state.catalog = catalog
+	var hook: Dictionary = {}
+	for unit: Dictionary in state.units:
+		if unit.id == "hookhand":
+			hook = unit
+			break
+	_check(not hook.is_empty(), "projection fixture has hookhand")
+	if hook.is_empty():
+		return
+	catalog.defs.characters[hook.character_id].traits = [{"kind": "last_damager_pursuit"}]
+	var plan: Dictionary = scene.get("_plan").duplicate(true)
+	plan.result = state.duplicate(true)
+	for unit: Dictionary in plan.result.units:
+		if unit.id == "hookhand":
+			unit.last_damager_id = "healer"
+	scene.set("_state", state)
+	scene.set("_plan", plan)
+	scene.call("_refresh_board")
+	_check(board.get("_units_by_id").get("hookhand", {}).get("pursuit_target", {}).is_empty(),
+		"forecast hit does not create a committed board grudge")
+	hook.last_damager_id = "healer"
+	scene.call("_refresh_board")
+	var target: Dictionary = board.get("_units_by_id").get("hookhand", {}).get("pursuit_target", {})
+	_check(target == {"id": "healer", "label": scene.get("_rules").display_name(state, "healer")},
+		"board projects committed target and full display name")
+	var ally: Dictionary = hook.duplicate(true)
+	ally.id = "enemy_ally"
+	state.units.append(ally)
+	for unit: Dictionary in plan.result.units:
+		if unit.id == "hookhand":
+			unit.last_damager_id = "enemy_ally"
+	scene.call("_refresh_board")
+	_check(board.get("_units_by_id").get("hookhand", {}).get("pursuit_target", {}).get("id") == "healer",
+		"draft swap does not replace committed target")
+	hook.last_damager_id = "enemy_ally"
+	scene.call("_refresh_board")
+	_check(board.get("_units_by_id").get("hookhand", {}).get("pursuit_target", {}).get("id") == "enemy_ally",
+		"committed enemy ally replaces target")
+	hook.last_damager_id = "healer"
+	for unit: Dictionary in state.units:
+		if unit.id == "healer":
+			unit.hp = 0
+	scene.call("_refresh_board")
+	_check(board.get("_units_by_id").get("hookhand", {}).get("pursuit_target", {}).is_empty(),
+		"board removes grudge when committed target dies")
+
+
+func _test_moved_windup_impact(board: Node) -> void:
+	# Exercise the existing board projection seam with an ordered forecast:
+	# the hero leaves C3, then a primed smash hits the hero on D2.
+	var plan: Dictionary = scene.get("_plan").duplicate(true)
+	var hero: Dictionary = {}
+	for unit in plan.result.units:
+		if unit.id == "healer":
+			hero = unit
+			break
+	_check(not hero.is_empty() and hero.position == Vector2i(3, 1),
+		"windup impact fixture has the moved hero at D2")
+	if hero.is_empty():
+		return
+	hero.hp -= 1
+	plan.events.append({"type": "windup_strike", "text": "Smashes marked tile D2.",
+		"unit_id": "hookhand", "position": Vector2i(3, 1)})
+	plan.events.append({"type": "damage", "text": "Healer takes damage.",
+		"source_id": "hookhand", "target_id": "healer", "amount": 1})
+	scene.set("_plan", plan)
+	scene.call("_refresh_board")
+	var overlay: Dictionary = board.get("_overlay")
+	var hits: Array = overlay.get("impact", [])
+	_check(Vector2i(3, 1) in hits, "forecast impact appears on marked tile D2")
+	_check(Vector2i(2, 2) not in hits, "forecast impact does not follow victim's old tile C3")
+
+
+func _test_recalled_windup_impact(board: Node) -> void:
+	var state: Dictionary = scene.get("_state").duplicate(true)
+	var skeleton: Dictionary = state.units[0].duplicate(true)
+	skeleton.id = "recalled_skeleton"
+	skeleton.position = Vector2i(1, 2)
+	state.units.append(skeleton)
+	var plan: Dictionary = scene.get("_plan").duplicate(true)
+	plan.result = state.duplicate(true)
+	var result_skeleton: Dictionary = plan.result.units.back()
+	result_skeleton.position = Vector2i(2, 2)
+	result_skeleton.hp -= 1
+	plan.events = [
+		{"type": "recall", "unit_id": "healer", "target_id": skeleton.id,
+			"from_position": Vector2i(1, 2), "position": Vector2i(2, 2)},
+		{"type": "windup_strike", "unit_id": "hookhand", "position": Vector2i(2, 2)},
+		{"type": "damage", "source_id": "hookhand", "target_id": skeleton.id, "amount": 1}]
+	scene.set("_state", state)
+	scene.set("_plan", plan)
+	scene.call("_refresh_board")
+	var hits: Array = board.get("_overlay").get("impact", [])
+	_check(hits.count(Vector2i(2, 2)) == 1,
+		"recalled skeleton's windup impact appears exactly once at marked C3")
+	_check(Vector2i(1, 2) not in hits,
+		"recalled skeleton's windup impact does not appear at old B3")
 
 
 func _has_event(events: Array, kind: String, actor: String, target: String, position: Vector2i) -> bool:

@@ -87,7 +87,7 @@ or controlled fixture, not this stock route. The Captain's `rally` is the
 Captain-owned `adjacent_damage_bonus` trait event during a Grunt's
 `grunt_strike`, not a Captain attack. `back_away` requires the actual
 `last_retreat_round` state set by the Captain's tactical retreat. The Enemy
-Healer variant requires positive `frontier_heal` output. The Troll's walk is
+Healer variant requires positive `unfortunate_healer_heal` output. The Troll's walk is
 induced by a legal Knight move; the stationary route is not presented as
 movement. The separate exit variant requires a living objective subject outside
 the square at the committed victory.

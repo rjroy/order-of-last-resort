@@ -1,0 +1,91 @@
+{
+  "role": "road_windup_bruiser",
+  "master": {
+    "source": "models/road_windup_bruiser/road_windup_bruiser.blend",
+    "sha256": "62e651a0ba605cc1fb3a21e87fa751a72a8a57d5ae7be69edfaf06226d3d485c",
+    "rig_name": "Bruiser_Rig",
+    "action_prefix": "Bruiser"
+  },
+  "takes": {
+    "ready": [
+      "Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31,
+        36
+      ],
+      37,
+      true
+    ],
+    "trudge": [
+      "Trudge",
+      [
+        1,
+        6,
+        8,
+        11,
+        16,
+        21,
+        22,
+        26,
+        29
+      ],
+      30,
+      false
+    ],
+    "delayed_heavy_strike": [
+      "Delayed Heavy Strike",
+      [
+        1,
+        6,
+        9,
+        11,
+        15,
+        21,
+        27,
+        28,
+        30,
+        33,
+        37,
+        38,
+        43,
+        48,
+        53,
+        54
+      ],
+      55,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        6,
+        11,
+        16,
+        17
+      ],
+      18,
+      false
+    ],
+    "defeat": [
+      "Down",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        29
+      ],
+      30,
+      false
+    ]
+  }
+}

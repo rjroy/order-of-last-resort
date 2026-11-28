@@ -1,0 +1,126 @@
+{
+  "role": "road_crate_archer",
+  "master": {
+    "source": "models/road_crate_archer/road_crate_archer.blend",
+    "sha256": "232a1719eb8a44ff49bed6df9961a4e2df29d0153f53021b3d7c8bd43ca12721",
+    "rig_name": "Archer_Rig",
+    "action_prefix": "Archer",
+    "release_visible_frames": {
+      "draw_and_release": [
+        7,
+        16
+      ]
+    },
+    "projectile_tip_offsets": {
+      "arrow_projectile": [
+        -78.111,
+        39.926
+      ]
+    }
+  },
+  "takes": {
+    "advance": [
+      "Advance",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        27
+      ],
+      28,
+      false
+    ],
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        29
+      ],
+      30,
+      false
+    ],
+    "draw_and_release": [
+      "Cover Shot",
+      [
+        1,
+        6,
+        7,
+        11,
+        13,
+        16,
+        17,
+        18,
+        20,
+        21,
+        26,
+        31,
+        33
+      ],
+      34,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        6,
+        11,
+        16,
+        17
+      ],
+      18,
+      false
+    ],
+    "ready": [
+      "Cover Ready",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31
+      ],
+      33,
+      true
+    ],
+    "reserve_arrival": [
+      "Reserve Arrival",
+      [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        27
+      ],
+      28,
+      false
+    ],
+    "arrow_projectile": [
+      "Cover Shot",
+      [
+        17
+      ],
+      18,
+      false
+    ]
+  },
+  "release": [
+    "draw_and_release",
+    "arrow_projectile",
+    "Arrow_Detachable",
+    17,
+    "Release"
+  ]
+}

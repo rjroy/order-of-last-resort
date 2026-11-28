@@ -24,17 +24,25 @@ func _initialize() -> void:
 			_check(false, "Commission board and adventure route APIs are available")
 		else:
 			var fixture := _fixture()
-			_test_board(fixture, "controlled")
-			_test_board(Catalog.read_default(), "authored")
-			for seed_value in [11, 9182]:
-				for length_index in [0, 2]:
-					for branch in [0, 1]:
-						_test_route(fixture, seed_value, length_index, branch)
-			_test_branch_promises(fixture)
-			_test_authored_opening()
-			_test_tiered_routes()
-			_test_exhausted_kind_avoids_last_base()
-			_test_stock_tiered_catalog()
+			if not fixture.is_empty():
+				_test_board(fixture, "controlled")
+				for seed_value in [11, 9182]:
+					for length_index in [0, 2]:
+						for branch in [0, 1]:
+							_test_route(fixture, seed_value, length_index, branch)
+				_test_branch_promises(fixture)
+				_test_legacy_ignores_mission_tiers()
+				_test_tiered_routes()
+				_test_exhausted_kind_avoids_last_base()
+			if "--controlled-only" not in OS.get_cmdline_user_args():
+				var source := Catalog.read_source(Catalog.DEFAULT_PATH)
+				if source.has("error"):
+					_check(false, "authored catalog failed to load: " + str(source.error))
+				else:
+					var stock: Dictionary = source.definitions
+					_test_board(stock, "authored")
+					_test_authored_opening(stock)
+					_test_stock_tiered_catalog(stock)
 	if failures.is_empty():
 		print("PASS: commission routes")
 	else:
@@ -49,8 +57,17 @@ func _check(ok: bool, message: String) -> void:
 
 
 func _fixture() -> Dictionary:
-	var defs: Dictionary = Catalog.read_default().duplicate(true)
+	var source := Catalog.read_source("res://content/practice/catalog.json")
+	if source.has("error"):
+		_check(false, "practice combat source failed to load: " + str(source.error))
+		return {}
+	var defs: Dictionary = source.definitions
 	var combat: Dictionary = defs.missions.shield_wall.duplicate(true)
+	defs.upgrades = {}
+	for hero in PARTY:
+		defs.upgrades["test_hp_" + hero] = {"hero_id": hero, "rarity": "common",
+			"cap": 20, "effect": "max_hp", "amount": 1,
+			"label": "Test HP", "description": "Test reward"}
 	defs.mission_reports = {}
 	defs.mission_kinds = {}
 	# Four test-owned types with three transit missions each.
@@ -220,6 +237,33 @@ func _test_branch_promises(defs: Dictionary) -> void:
 			_enumerate_forks(defs, offer, [], "", rng_state, 0, str(seed_value))
 
 
+func _test_legacy_ignores_mission_tiers() -> void:
+	var original := _fixture()
+	var changed := original.duplicate(true)
+	for kind_index in range(4):
+		for mission_index in range(3):
+			var id := "test_transit_%d_%d" % [kind_index, mission_index]
+			original.missions[id].erase("tier")
+			changed.missions[id].tier = 1 if kind_index < 2 else 5
+	_check(Catalog.validate(original).is_empty() and Catalog.validate(changed).is_empty(),
+		"legacy fixtures validate with missing or varying mission tiers")
+	var seen_tiers: Array = []
+	for seed_value in range(16):
+		var rng_state: int = commissions.call("starting_rng_state", seed_value)
+		var before: Dictionary = commissions.call("draw_reports", original, "test_destination_0",
+			false, [], "", rng_state)
+		var after: Dictionary = commissions.call("draw_reports", changed, "test_destination_0",
+			false, [], "", rng_state)
+		_check(before == after, "legacy route draw ignores mission tier at seed %d" % seed_value)
+		var reports: Array = after.get("reports", [])
+		_check(reports.size() == 2, "legacy route yields two reports at seed %d" % seed_value)
+		for report in reports:
+			var tier: Variant = changed.missions[report.mission_id].tier
+			if tier not in seen_tiers:
+				seen_tiers.append(tier)
+	_check(1 in seen_tiers and 5 in seen_tiers, "legacy routes can offer either mission tier")
+
+
 func _enumerate_forks(defs: Dictionary, offer: Dictionary, visited: Array,
 		promised: String, rng_state: int, depth: int, path: String) -> void:
 	var penultimate: bool = depth == int(offer.length) - 2
@@ -259,8 +303,7 @@ func _victory(deployed: Dictionary, label: String) -> Dictionary:
 	return adventure.call("settle_mission", deployed, terminal)
 
 
-func _test_authored_opening() -> void:
-	var defs: Dictionary = Catalog.read_default()
+func _test_authored_opening(defs: Dictionary) -> void:
 	var offers: Array = commissions.call("board", defs, 101)
 	if offers.is_empty():
 		return
@@ -286,15 +329,17 @@ func _tiered_fixture() -> Dictionary:
 				var base := "tier_%d_kind_%d_base_%d" % [tier, kind_index, base_index]
 				defs.missions[base] = combat.duplicate(true)
 				defs.missions[base].title = base
+				defs.missions[base].tier = tier
 				defs.mission_reports[base] = {
-					"kind": kind, "road_tier": tier, "descriptors": ["report " + base]}
+					"kind": kind, "descriptors": ["report " + base]}
 				if base_index == 0:
 					var variant := base + "_variant"
 					defs.missions[variant] = combat.duplicate(true)
 					defs.missions[variant].title = variant
+					defs.missions[variant].tier = tier
 					defs.missions[variant].base_mission_id = base
 					defs.mission_reports[variant] = {
-						"kind": kind, "road_tier": tier, "descriptors": ["report " + variant]}
+						"kind": kind, "descriptors": ["report " + variant]}
 	for index in range(3):
 		var id := "tier_destination_%d" % index
 		defs.missions[id] = combat.duplicate(true)
@@ -349,7 +394,7 @@ func _test_tiered_route(defs: Dictionary, offer: Dictionary, branch: int, seen: 
 			var info: Dictionary = defs.mission_reports.get(id, {})
 			var kind := str(info.get("kind", ""))
 			kinds.append(kind)
-			_check(info.get("road_tier") == tiers[step],
+			_check(defs.missions.get(id, {}).get("tier") == tiers[step] and not info.has("road_tier"),
 				label + ": slot %d offers tier %d, got %s" % [step + 1, tiers[step], id])
 			var base := _base_id(defs, id)
 			if id != base:
@@ -358,7 +403,7 @@ func _test_tiered_route(defs: Dictionary, offer: Dictionary, branch: int, seen: 
 			var fresh_available := false
 			for candidate in defs.mission_reports:
 				var entry: Dictionary = defs.mission_reports[candidate]
-				if entry.get("road_tier") != tiers[step] or entry.get("kind") != kind:
+				if entry.has("destination_descriptors") or defs.missions[candidate].get("tier") != tiers[step] or entry.get("kind") != kind:
 					continue
 				var candidate_base := _base_id(defs, candidate)
 				if candidate_base not in visited_bases:
@@ -423,7 +468,7 @@ func _test_exhausted_kind_avoids_last_base() -> void:
 	var defs := _tiered_fixture()
 	var kind := "tier_2_kind_0"
 	for id in defs.mission_reports.keys():
-		if defs.mission_reports[id].get("road_tier") == 2 and defs.mission_reports[id].get("kind") == kind:
+		if not defs.mission_reports[id].has("destination_descriptors") and defs.missions[id].get("tier") == 2 and defs.mission_reports[id].get("kind") == kind:
 			defs.mission_reports.erase(id)
 	var first := "tier_1_kind_0_base_0"
 	var second := "tier_1_kind_0_base_1"
@@ -433,8 +478,9 @@ func _test_exhausted_kind_avoids_last_base() -> void:
 		var id: String = entry[0]
 		defs.missions[id] = defs.missions[entry[1]].duplicate(true)
 		defs.missions[id].title = id
+		defs.missions[id].tier = 2
 		defs.missions[id].base_mission_id = entry[1]
-		defs.mission_reports[id] = {"kind": kind, "road_tier": 2, "descriptors": ["report " + id]}
+		defs.mission_reports[id] = {"kind": kind, "descriptors": ["report " + id]}
 	_check(Catalog.validate(defs).is_empty(), "repeat fixture is a valid tiered catalog")
 	var traversed := [first, second, "repeat_a"]
 	for seed_value in range(16):
@@ -453,8 +499,7 @@ func _test_exhausted_kind_avoids_last_base() -> void:
 				"exhausted promised kind avoids the last base even when another variant is unplayed")
 
 
-func _test_stock_tiered_catalog() -> void:
-	var defs: Dictionary = Catalog.read_default()
+func _test_stock_tiered_catalog(defs: Dictionary) -> void:
 	_check(defs.get("commission_settings", {}).get("tiered") == true,
 		"stock catalog opts into tiered commissions")
 	# Preserve the shipped roads and their base identities without pinning tuning.
@@ -522,21 +567,37 @@ func _test_stock_path(defs: Dictionary, offer: Dictionary, branch: int) -> void:
 			return
 		var kinds: Array = []
 		var fresh := false
+		var fresh_available := false
+		for candidate in defs.mission_reports:
+			var entry: Dictionary = defs.mission_reports[candidate]
+			if not entry.has("destination_descriptors") \
+					and defs.missions[candidate].get("tier") == tiers[step] \
+					and _base_id(defs, candidate) not in visited_bases:
+				fresh_available = true
 		for report in reports:
 			var id := str(report.get("mission_id", ""))
 			var info: Dictionary = defs.mission_reports.get(id, {})
 			kinds.append(str(info.get("kind", "")))
-			_check(info.get("road_tier") == tiers[step] and not info.has("destination_descriptors"),
+			_check(defs.missions.get(id, {}).get("tier") == tiers[step] and not info.has("destination_descriptors"),
 				label + ": slot %d offers tier %d road %s" % [step + 1, tiers[step], id])
 			if _base_id(defs, id) not in visited_bases:
 				fresh = true
+			else:
+				for candidate in defs.mission_reports:
+					var entry: Dictionary = defs.mission_reports[candidate]
+					if not entry.has("destination_descriptors") \
+							and defs.missions[candidate].get("tier") == tiers[step] \
+							and entry.get("kind") == info.get("kind"):
+						_check(_base_id(defs, candidate) in visited_bases,
+							label + ": slot %d repeats %s despite a fresh base of its kind" % [step + 1, id])
 			if step == tiers.size() - 1:
 				_check(report.get("hint_kind") == defs.mission_reports[offer.destination_id].kind
 					and str(report.get("hint_text", "")).contains(defs.missions[offer.destination_id].title),
 					label + ": both last-road clues name the selected finale")
 		_check(not kinds[0].is_empty() and kinds[0] != kinds[1],
 			label + ": slot %d offers different kinds" % (step + 1))
-		_check(fresh, label + ": slot %d offers at least one fresh base" % (step + 1))
+		_check(not fresh_available or fresh,
+			label + ": slot %d offers a fresh base when one is available" % (step + 1))
 		if not promised.is_empty():
 			_check(kinds.count(promised) == 1,
 				label + ": prior clue matches exactly one next option")

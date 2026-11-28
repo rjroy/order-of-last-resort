@@ -64,10 +64,10 @@ static func draw_reports(defs: Dictionary, destination_id: String, penultimate: 
 			next_tier = ROAD_TIERS[position + 1]
 		for id in defs.missions:
 			bases[id] = defs.missions[id].get("base_mission_id", id)
-	var transit := _transit_by_kind(defs.mission_reports, tier)
+	var transit := _transit_by_kind(defs.mission_reports, defs.missions, tier)
 	var kinds := transit.keys()
 	kinds.sort()
-	var next_transit := _transit_by_kind(defs.mission_reports, next_tier) if tiered and not penultimate else transit
+	var next_transit := _transit_by_kind(defs.mission_reports, defs.missions, next_tier) if tiered and not penultimate else transit
 	var next_kinds := next_transit.keys()
 	next_kinds.sort()
 	if kinds.size() < 2 or (not promised_kind.is_empty() and not transit.has(promised_kind)) \
@@ -172,13 +172,13 @@ static func _pick(choices: Array, rng: RandomNumberGenerator) -> String:
 
 
 ## The reports opt missions into the pool; standalone fixtures have no reports.
-static func _transit_by_kind(reports: Dictionary, tier := 0) -> Dictionary:
+static func _transit_by_kind(reports: Dictionary, missions: Dictionary, tier := 0) -> Dictionary:
 	var transit: Dictionary = {}
 	for id in reports:
 		var report: Dictionary = reports[id]
 		if report.has("destination_descriptors"):
 			continue
-		if tier != 0 and report.get("road_tier") != tier:
+		if tier != 0 and missions[id].get("tier") != tier:
 			continue
 		if not transit.has(report.kind):
 			transit[report.kind] = []

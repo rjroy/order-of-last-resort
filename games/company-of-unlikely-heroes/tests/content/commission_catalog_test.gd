@@ -17,7 +17,8 @@ func _initialize() -> void:
 	_test_tiered_catalog()
 	_test_variants()
 	_test_malformed_encounter_does_not_hide_hp_error()
-	_test_authored()
+	if "--controlled-only" not in OS.get_cmdline_user_args():
+		_test_authored()
 	if failures.is_empty():
 		print("PASS: commission catalog validation")
 	else:
@@ -173,40 +174,39 @@ func _tiered_fixture() -> Dictionary:
 	# Ten independent roads, two kinds in each tier, plus two extra roads.
 	for kind_index in range(3):
 		for index in range(4):
-			defs.mission_reports["transit_%d_%d" % [kind_index, index]].road_tier = index + 1
+			defs.missions["transit_%d_%d" % [kind_index, index]].tier = index + 1
 	for kind_index in range(2):
 		var id := "tier_five_%d" % kind_index
 		defs.missions[id] = defs.missions.fixture.duplicate(true)
+		defs.missions[id].tier = 5
 		defs.mission_reports[id] = {
-			"kind": "test_kind_%d" % kind_index, "descriptors": ["Road"], "road_tier": 5
+			"kind": "test_kind_%d" % kind_index, "descriptors": ["Road"]
 		}
 	return defs
 
 
 func _test_tiered_catalog() -> void:
 	var defs := _tiered_fixture()
-	_valid(defs, "tiered catalog with two road kinds per tier and untiered finales")
+	_valid(defs, "tiered catalog with two road kinds per tier and no report road_tier")
 	for value in ["true", 1, null]:
 		var bad := defs.duplicate(true)
 		bad.commission_settings.tiered = value
 		_invalid(bad, "malformed tiered opt-in " + str(value))
 	for value in [0, 6, -1, 1.5, "1", true, null]:
 		var bad := defs.duplicate(true)
-		bad.mission_reports.transit_0_0.road_tier = value
-		_invalid(bad, "invalid road tier " + str(value))
+		bad.missions.transit_0_0.tier = value
+		_invalid_at(bad, ["missions.transit_0_0.tier"], "invalid road mission tier " + str(value))
 	var missing := defs.duplicate(true)
-	missing.mission_reports.transit_0_0.erase("road_tier")
-	_invalid(missing, "tiered road missing road_tier")
-	var finale := defs.duplicate(true)
-	finale.mission_reports.destination_0.road_tier = 1
-	_invalid(finale, "finale assigned a road tier")
+	missing.missions.transit_0_0.erase("tier")
+	_invalid_at(missing, ["missions.transit_0_0.tier"], "tiered road missing mission tier")
 	for tier in range(1, 6):
 		var one_kind := defs.duplicate(true)
 		for id in one_kind.mission_reports:
 			var report: Dictionary = one_kind.mission_reports[id]
-			if report.get("road_tier") == tier and report.kind != "test_kind_0":
+			if not report.has("destination_descriptors") and one_kind.missions[id].get("tier") == tier and report.kind != "test_kind_0":
 				report.kind = "test_kind_0"
-		_invalid(one_kind, "tier %d with only one road kind" % tier)
+		_invalid_at(one_kind, ["road tier %d requires at least two different kinds" % tier],
+			"tier %d with only one road kind" % tier)
 	var legacy := _fixture()
 	legacy.commission_settings.tiered = false
 	_valid(legacy, "legacy commission catalog explicitly opts out")
@@ -295,7 +295,11 @@ func _test_malformed_encounter_does_not_hide_hp_error() -> void:
 
 
 func _test_authored() -> void:
-	var defs: Dictionary = Catalog.read_default()
+	var source := Catalog.read_source(Catalog.DEFAULT_PATH)
+	if source.has("error"):
+		failures.append("built-in commission catalog failed to load: " + str(source.error))
+		return
+	var defs: Dictionary = source.definitions
 	_valid(defs, "built-in commission catalog")
 	var reports: Dictionary = defs.get("mission_reports", {})
 	for id in ["bridge_patrol", "goblin_mob", "harpoon_squad", "shield_wall",

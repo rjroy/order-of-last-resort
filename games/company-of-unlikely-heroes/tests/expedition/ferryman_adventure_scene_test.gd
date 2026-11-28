@@ -30,11 +30,15 @@ func _run() -> void:
 	if dir == null or not dir.get_files().is_empty() or not dir.get_directories().is_empty():
 		_finish("Output directory must be empty.")
 		return
-	# Make the stock rescue eligible as a road report, without changing its
-	# authored mission or encounter, so its settlement is reached immediately.
-	var defs: Dictionary = Catalog.read_default()
+	# Make the stock rescue eligible as a tier-one road in this in-memory fixture,
+	# without changing its encounter, so its settlement is reached immediately.
+	var source := Catalog.read_source(Catalog.DEFAULT_PATH)
+	if source.has("error"):
+		_finish(str(source.error))
+		return
+	var defs: Dictionary = source.definitions
 	defs.mission_reports.company_rescue.erase("destination_descriptors")
-	defs.mission_reports.company_rescue.road_tier = 1
+	defs.missions.company_rescue.tier = 1
 	var errors: PackedStringArray = Catalog.validate(defs)
 	if not errors.is_empty():
 		_finish("Commission rescue fixture is invalid: " + str(errors))

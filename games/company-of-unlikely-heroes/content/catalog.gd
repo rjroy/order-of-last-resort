@@ -1544,20 +1544,17 @@ class Validator:
 				_error(path, "expected a dictionary")
 				continue
 			var report: Dictionary = reports[id]
-			_check_commission_fields(report, ["kind", "descriptors", "destination_descriptors", "road_tier"], path)
+			_check_commission_fields(report, ["kind", "descriptors", "destination_descriptors"], path)
 			var kind: Variant = report.get("kind")
 			if _text(kind, path + ".kind") and not kinds.has(kind):
 				_error(path + ".kind", "unknown mission_kinds ID '%s'" % kind)
 			_check_descriptors(report.get("descriptors"), path + ".descriptors")
-			if report.has("destination_descriptors") or not tiered:
-				if report.has("road_tier"):
-					_error(path + ".road_tier", "road tiers require a tiered catalog and a road report")
-			else:
-				var road_tier: Variant = report.get("road_tier")
-				if not _is_integer(road_tier, 1) or road_tier > 5:
-					_error(path + ".road_tier", "expected a whole number from 1 to 5")
+			if tiered and not report.has("destination_descriptors") and known_mission:
+				var mission_tier: Variant = _defs.missions[id].get("tier")
+				if not _is_integer(mission_tier, 1) or mission_tier > 5:
+					_error("missions.%s.tier" % id, "expected a whole number from 1 to 5 for a tiered road")
 				elif kind is String and kinds.has(kind):
-					tier_kinds[int(road_tier)][kind] = true
+					tier_kinds[int(mission_tier)][kind] = true
 			if report.has("destination_descriptors"):
 				_check_descriptors(report.destination_descriptors, path + ".destination_descriptors")
 				destination_count += 1

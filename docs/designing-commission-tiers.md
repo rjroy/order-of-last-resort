@@ -40,11 +40,11 @@ design does not set a target count for distinct finales.
 
 The minimum coverage gate is **at least two represented road kinds at each of
 T1, T2, T3, T4, and T5**. This keeps every fork and promise possible without
-requiring a repeat-free run. Stock has 18 eligible road options: 11 original
-missions and seven new mission IDs. The [road audit](../.lore/work/games/company-of-unlikely-heroes/notes/commission-tier-road-audit.md)
-records the rationale and modeled coverage of the proposed pool for both
-lengths. It is not evidence that the tiers are equally challenging within a
-band or that pressure rises at the intended pace.
+requiring a repeat-free run. Stock has 32 road reports across T1–T5 in counts
+of 7, 18, 2, 3, and 2, plus nine finales. It meets the minimum gate but does
+not guarantee a repeat-free run. The historical
+[road audit](../.lore/work/games/company-of-unlikely-heroes/notes/commission-tier-road-audit.md)
+records a proposed pool, not proof that pressure rises at the intended pace.
 
 Longer term, aim for **about 20 road options per tier at T1–T5**. Roughly 80
 distinct road bases overall is a planning estimate, with some bases supplying
@@ -54,9 +54,13 @@ finale target.
 ## Authoring and compatibility
 
 Set `commission_settings.tiered` to `true` to opt the entire commission
-catalog into the schedule. Stock opts in. In a tiered catalog each road report
-must have a whole-number `road_tier` from 1 through 5. The existing
-`missions.<id>.tier` is complexity metadata, not route eligibility. A custom
+catalog into the schedule. Stock opts in. Each reported road mission in a tiered
+catalog must have a whole-number `missions.<id>.tier` from 1 through 5; this
+field controls its route eligibility. To migrate a custom tiered catalog,
+remove the retired `road_tier` from every report, assign each road mission its
+intended tier, and ensure at least two road kinds are represented in every tier.
+Reports still determine pool membership, and destination tiers do not filter
+the destination pool. A custom
 commission catalog with `tiered` absent or `false` keeps the same validation
 requirements and seeded route selection as before, with no slot-tier filter.
 Legacy selection is not a fallback for a tiered catalog.

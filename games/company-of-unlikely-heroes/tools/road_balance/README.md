@@ -16,8 +16,7 @@ and `provenance.json`. Open the HTML locally to sort and search cases; agents
 can select specific TSV rows. Raw data is machine input, not a document to load
 wholesale.
 The setup column records opening units, positions, orders and effective settings.
-The Tier column shows the configured commission `road_tier` when present,
-otherwise the authored standalone mission `tier`; a blank means unassigned or
+The Tier column shows the authored mission `tier`; a blank means unassigned or
 not recorded in an older report. It is not inferred from results.
 Victory ending wounds use projected carryover; non-win wounds use terminal HP,
 identified by `ending_kind`. Round limits are indeterminate.

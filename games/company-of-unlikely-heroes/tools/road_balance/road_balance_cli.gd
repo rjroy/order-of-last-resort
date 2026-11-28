@@ -40,7 +40,7 @@ func _initialize() -> void:
 	else:
 		var selected := {}
 		for id in defs.mission_reports:
-			if defs.mission_reports[id].has("road_tier"):
+			if not defs.mission_reports[id].has("destination_descriptors"):
 				selected[id] = true
 		for id in STANDALONE:
 			selected[id] = true
@@ -98,16 +98,9 @@ func _cases(cases: Array, defs: Dictionary, mission: String, variant: String) ->
 					return false
 				cases.append({"mission": mission, "variant": variant, "roster": roster,
 					"wounded": wounded, "opening": opening, "orders": state.orders,
-					"settings": _settings(state), "tier": _tier(defs, mission),
+				"settings": _settings(state), "tier": defs.missions[mission].get("tier"),
 					"policy": policy, "result": result})
 	return true
-
-
-func _tier(defs: Dictionary, mission: String) -> Variant:
-	var report: Dictionary = defs.mission_reports.get(mission, {})
-	if report.has("road_tier"):
-		return report.road_tier
-	return defs.missions[mission].get("tier")
 
 
 func _settings(state: Dictionary) -> Dictionary:

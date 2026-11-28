@@ -69,7 +69,7 @@ Ownership is separate from what is equipped. Borrowed abilities retain their exi
 | `mission_reports.<mission_id>` | An entry keyed by an existing mission ID, with `kind` referencing `mission_kinds` and a `descriptors` array for the immediate field report. Give concrete information about this mission, such as an enemy interaction, an objective constraint, or a board hazard. |
 | `commission_settings.recruitment_roster` | Ordered array of distinct commandable hero IDs available for recruitment. Party size comes from destination encounter `party_slots`; all reported missions must have the same number of slots, and the roster must be large enough. |
 | `commission_settings.tiered` | Optional boolean. Set `true` to enable the slot schedule for the entire catalog. Omitting it or setting `false` preserves the legacy custom catalog rules and seeded route selection, without filtering by tier. |
-| `mission_reports.<mission_id>.road_tier` | Required on each road report in a tiered catalog: a whole number from 1 to 5. The mission's own `tier` describes complexity and does not control routes. |
+| `missions.<mission_id>.tier` | Required for each road in a tiered catalog: a whole number from 1 to 5. This authored tier controls route eligibility. |
 
 On a mission report, the presence of `destination_descriptors` is the destination flag; there is no separate boolean. Its strings describe the finale's job for the commission board. Give a destination report the regular `descriptors` as well. Each descriptor array must be nonempty and contain only nonblank strings; multiple strings are alternate versions of the same report or clue. For example, `formation` clues describe enemies that depend on one another, `shield_wall` reports name the Shieldbearers protecting the Archer, and `last_wagon` destination text explains the job of getting supplies to the village.
 
@@ -79,7 +79,9 @@ The board offers three distinct destinations at lengths **5/5/10**, counting
 the finale. Stock opts into the [commission tier schedule](../../../docs/designing-commission-tiers.md#slot-schedule)
 with 18 road options. Short roads follow **T1, T1, T2, T2** before a T3
 finale; long roads follow **T1, T1, T2, T2, T3, T4, T4, T5, T5** before a
-T6 finale. Both finale slots use the same unchanged destination pool.
+T6 finale. Both finale slots use the same unchanged destination pool. The current
+stock road tiers leave tiers 3 and 5 empty, so stock fails the coverage validation
+below until the authored catalog is addressed.
 
 Each fork offers two different kinds. In tiered play both roads must be in
 the current slot's tier, and the onward clue names a kind in the next road
@@ -89,6 +91,11 @@ needs at least three destinations and at least two road kinds with eligible
 missions: in every road tier for tiered catalogs, across the whole pool for
 legacy catalogs. Tiered selection prefers unvisited base missions but may
 repeat one; it never relaxes the tier or the promised kind.
+
+To migrate a custom tiered catalog, remove the retired `road_tier` field from
+every report and assign each road mission its intended `tier` from 1 to 5.
+Check that each tier has at least two road kinds. Reports still determine pool
+membership; destination mission tiers do not filter the destination pool.
 
 **Authoring a road variant:** Give it a new mission ID and a report keyed by
 that ID. Use a separate `encounter` ID when changing the layout or placements.

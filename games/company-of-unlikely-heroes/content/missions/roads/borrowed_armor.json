@@ -22,6 +22,35 @@
           "event": "The company has fallen."
         }
       ]
+    },
+    "veteran_borrowed_armor": {
+      "tier": 5,
+      "title": "Borrowed Armor: Veteran Crew",
+      "base_mission_id": "borrowed_armor",
+      "encounter": "road_borrowed_armor",
+      "default_party": [
+        "knight",
+        "healer",
+        "wizard"
+      ],
+      "enemy_max_hp": {
+        "armor_guard": 11,
+        "armor_lender": 11,
+        "armor_archer": 6
+      },
+      "objective": {
+        "handler": "defeat_all",
+        "text": "Defeat every opponent. At the start of each round the Lender lends armor to the nearest other ally, absorbing that ally's first hit that would deal damage while the Lender lives. The Lender remains exposed; change the formation or strike the Lender.",
+        "victory_text": "The company wins the fight.",
+        "defeat_text": "The company falls.",
+        "victory_event": "The last opponent falls."
+      },
+      "failures": [
+        {
+          "handler": "party_wiped",
+          "event": "The company has fallen."
+        }
+      ]
     }
   },
   "encounters": {

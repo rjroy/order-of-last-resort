@@ -153,7 +153,7 @@
       "class": "enemy",
       "label": "Opposing Shepherd",
       "art_key": "enemy",
-      "max_hp": 3,
+      "max_hp": 4,
       "abilities": [
         "move",
         "frontier_shepherd_wave"

@@ -75,7 +75,7 @@
       "label": "Shieldbearer",
       "art_key": "enemy",
       "art_variant": "spear",
-      "max_hp": 4,
+      "max_hp": 7,
       "abilities": [
         "move",
         "shield_bash"

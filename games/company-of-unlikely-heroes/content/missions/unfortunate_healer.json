@@ -75,7 +75,7 @@
       "label": "Enemy Healer",
       "art_key": "enemy",
       "art_variant": "spear",
-      "max_hp": 3,
+      "max_hp": 6,
       "abilities": [
         "move",
         "rival_bonk",

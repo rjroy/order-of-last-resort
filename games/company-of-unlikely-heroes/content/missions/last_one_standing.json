@@ -75,7 +75,7 @@
       "label": "Fierce Bandit",
       "art_key": "enemy",
       "art_variant": "spear",
-      "max_hp": 3,
+      "max_hp": 6,
       "abilities": [
         "move",
         "bandit_strike"
@@ -120,7 +120,7 @@
       "label": "Guard Bandit",
       "art_key": "enemy",
       "art_variant": "spear",
-      "max_hp": 3,
+      "max_hp": 7,
       "abilities": [
         "move",
         "bandit_strike"
@@ -165,7 +165,7 @@
       "label": "Swift Bandit",
       "art_key": "enemy",
       "art_variant": "spear",
-      "max_hp": 3,
+      "max_hp": 5,
       "abilities": [
         "move",
         "bandit_strike"

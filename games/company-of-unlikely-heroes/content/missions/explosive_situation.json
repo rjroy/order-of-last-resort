@@ -75,7 +75,7 @@
       "label": "Bomber",
       "art_key": "enemy",
       "art_variant": "spear",
-      "max_hp": 2,
+      "max_hp": 3,
       "abilities": [
         "move",
         "bomber_strike"

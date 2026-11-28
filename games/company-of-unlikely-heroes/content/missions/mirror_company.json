@@ -75,7 +75,7 @@
       "label": "Rival Knight",
       "art_key": "enemy",
       "art_variant": "spear",
-      "max_hp": 5,
+      "max_hp": 8,
       "abilities": [
         "move",
         "knight_push"
@@ -105,7 +105,7 @@
       "label": "Rival Wizard",
       "art_key": "enemy",
       "art_variant": "spear",
-      "max_hp": 3,
+      "max_hp": 6,
       "abilities": [
         "move",
         "rival_blast"
@@ -136,7 +136,7 @@
       "label": "Rival Healer",
       "art_key": "enemy",
       "art_variant": "spear",
-      "max_hp": 3,
+      "max_hp": 7,
       "abilities": [
         "move",
         "rival_bonk",

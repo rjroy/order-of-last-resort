@@ -194,26 +194,26 @@
       "traits": [{"kind": "big_windup", "damage": 6}]
     },
     "road_hired_mercenary": {
-      "class": "enemy", "label": "Mercenary", "max_hp": 6,
+      "class": "enemy", "label": "Mercenary", "max_hp": 8,
       "art_key": "bruiser", "art_variant": "default",
       "cast_key": "bruiser", "cast_art_key": "bruiser", "cast_team": "enemies", "cast_variant": "default",
       "abilities": ["move", "road_mercenary_strike"], "behavior": "road_mercenary_threat",
       "traits": [{"kind": "last_damager_pursuit"}]
     },
     "road_bell_soldier": {
-      "class": "enemy", "label": "Risen Soldier", "max_hp": 2,
+      "class": "enemy", "label": "Risen Soldier", "max_hp": 4,
       "art_key": "skeleton", "art_variant": "default",
       "abilities": ["move", "grunt_strike"], "behavior": "frontier_grunt_strike"
     },
     "road_armor_lender": {
-      "class": "enemy", "label": "Lender", "max_hp": 4,
+      "class": "enemy", "label": "Lender", "max_hp": 7,
       "art_key": "enemy", "art_variant": "spear",
       "cast_key": "grunt", "cast_art_key": "enemy", "cast_team": "enemies", "cast_variant": "spear",
       "abilities": ["move", "grunt_strike"], "behavior": "frontier_grunt_strike",
       "traits": [{"kind": "borrowed_armor"}]
     },
     "road_long_spearman": {
-      "class": "enemy", "label": "Spearman", "max_hp": 5,
+      "class": "enemy", "label": "Spearman", "max_hp": 6,
       "art_key": "enemy", "art_variant": "spear",
       "cast_key": "grunt", "cast_art_key": "enemy", "cast_team": "enemies", "cast_variant": "spear",
       "abilities": ["move", "road_long_spear_strike"], "behavior": "road_long_spear_threat"

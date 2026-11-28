@@ -36,7 +36,7 @@
       "label": "Hookhand",
       "art_key": "hookhand",
       "art_variant": "default",
-      "max_hp": 3,
+      "max_hp": 5,
       "abilities": [
         "move",
         "hook_pull"
@@ -70,7 +70,7 @@
       "label": "Bruiser",
       "art_key": "bruiser",
       "art_variant": "default",
-      "max_hp": 3,
+      "max_hp": 7,
       "abilities": [
         "move",
         "bruiser_strike"
@@ -101,7 +101,7 @@
       "label": "Archer",
       "art_key": "enemy",
       "art_variant": "spear",
-      "max_hp": 3,
+      "max_hp": 4,
       "abilities": [
         "move",
         "archer_shot"

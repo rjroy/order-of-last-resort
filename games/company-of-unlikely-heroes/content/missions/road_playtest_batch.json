@@ -112,39 +112,39 @@
   },
   "characters": {
     "road_swing_giant": {
-      "class": "enemy", "label": "Giant", "max_hp": 6,
+      "class": "enemy", "label": "Giant", "max_hp": 12,
       "art_key": "enemy", "art_variant": "spear",
       "cast_key": "ogre", "cast_art_key": "enemy", "cast_team": "enemies", "cast_variant": "spear",
       "abilities": ["move", "road_giant_sweep"], "behavior": "road_giant_greet"
     },
     "road_crate_archer": {
-      "class": "enemy", "label": "Road Archer", "max_hp": 3,
+      "class": "enemy", "label": "Road Archer", "max_hp": 5,
       "art_key": "enemy", "art_variant": "spear",
       "cast_key": "archer", "cast_art_key": "enemy", "cast_team": "enemies", "cast_variant": "spear",
       "abilities": ["move", "road_cover_shot"], "behavior": "road_cover_archer"
     },
     "road_longbow_archer": {
-      "class": "enemy", "label": "Longbow", "max_hp": 3,
+      "class": "enemy", "label": "Longbow", "max_hp": 5,
       "art_key": "enemy", "art_variant": "spear",
       "cast_key": "archer", "cast_art_key": "enemy", "cast_team": "enemies", "cast_variant": "spear",
       "abilities": ["move", "road_longbow_shot"], "behavior": "road_longbow_archer"
     },
     "road_friar": {
-      "class": "enemy", "label": "Friar", "max_hp": 4,
+      "class": "enemy", "label": "Friar", "max_hp": 7,
       "art_key": "enemy", "art_variant": "spear",
       "cast_key": "captain", "cast_art_key": "enemy", "cast_team": "enemies", "cast_variant": "spear",
       "abilities": ["move", "captain_strike"], "behavior": "captain_retreat",
       "traits": [{"kind": "death_heal", "amount": 2}]
     },
     "road_fresh_twin": {
-      "class": "enemy", "label": "Fresh Twin", "max_hp": 5,
+      "class": "enemy", "label": "Fresh Twin", "max_hp": 9,
       "art_key": "enemy", "art_variant": "spear",
       "cast_key": "grunt", "cast_art_key": "enemy", "cast_team": "enemies", "cast_variant": "spear",
       "abilities": ["move", "grunt_strike"], "behavior": "frontier_grunt_strike",
       "traits": [{"kind": "health_damage_bonus", "condition": "full", "damage": 1}]
     },
     "road_wounded_twin": {
-      "class": "enemy", "label": "Wounded Twin", "max_hp": 5,
+      "class": "enemy", "label": "Wounded Twin", "max_hp": 9,
       "art_key": "enemy", "art_variant": "spear",
       "cast_key": "grunt", "cast_art_key": "enemy", "cast_team": "enemies", "cast_variant": "spear",
       "abilities": ["move", "grunt_strike"], "behavior": "frontier_grunt_strike",

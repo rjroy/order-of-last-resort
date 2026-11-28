@@ -75,7 +75,7 @@
       "label": "Captain",
       "art_key": "enemy",
       "art_variant": "spear",
-      "max_hp": 3,
+      "max_hp": 4,
       "abilities": [
         "move",
         "captain_strike"
@@ -117,7 +117,7 @@
       "label": "Grunt",
       "art_key": "enemy",
       "art_variant": "spear",
-      "max_hp": 3,
+      "max_hp": 5,
       "abilities": [
         "move",
         "grunt_strike"

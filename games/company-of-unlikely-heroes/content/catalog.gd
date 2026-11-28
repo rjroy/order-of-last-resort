@@ -1728,8 +1728,9 @@ class Validator:
 					_require_reward(_has_capability(hero, "pullable"), path, "a pullable hero for Dig In")
 			"shield_damage":
 				_require_reward(_kit_has_status(hero, "apply_status", "reflect") \
+					or _kit_has_handler(hero, "shield_wall") \
 					or not _kit_ability(hero, "knight_shield_throw", ["attack"]).is_empty() \
-					or _has_shield_throw_reward(hero_id), path, "reflecting guard or access to knight_shield_throw")
+					or _has_shield_throw_reward(hero_id), path, "reflecting guard, shield wall, or access to knight_shield_throw")
 			"shield_throw":
 				_require_reward(_has_capability(hero, "mobile") and _kit_has_handler(hero, "move"), path,
 					"a mobile hero with a Move ability to retrieve the shield")

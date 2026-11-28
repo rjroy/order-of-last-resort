@@ -347,6 +347,7 @@ static func _intercept(state: Dictionary, protector: Dictionary, ward: Dictionar
 	var cap := int(params.get("max_reflect_damage_per_round", -1))
 	var amount := damage
 	if cap >= 0:
+		cap += Upgrades.amount(state, protector, "shield_damage")
 		# Expiring, throwing or reapplying the aura does not reset round spending.
 		var spending: Dictionary = protector.get("reflect_spending", {})
 		var spent := int(spending.amount) if spending.get("round") == state.round else 0
@@ -381,11 +382,7 @@ static func _intercept(state: Dictionary, protector: Dictionary, ward: Dictionar
 			text += "; %d reaches %s before defenses" % [overflow, ward_name]
 		Board.event(events, "reflect", text + ".", data)
 
-	var bonus := Upgrades.amount(state, protector, "shield_damage") if not recipient.is_empty() else 0
-	if bonus > 0:
-		Board.event(events, "reflect", "The improved shield adds %d reflected damage." % bonus,
-			{"unit_id": protector.id, "target_id": recipient.id, "amount": bonus})
-	return {"target": recipient, "damage": amount + bonus, "overflow": overflow}
+	return {"target": recipient, "damage": amount, "overflow": overflow}
 
 
 static func double_recipient(state: Dictionary, target: Dictionary, events: Array) -> Dictionary:

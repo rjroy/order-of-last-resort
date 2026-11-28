@@ -10,6 +10,7 @@ const Adventure = preload("res://expedition/adventure.gd")
 const Commissions = preload("res://expedition/commissions.gd")
 const CastCues = preload("res://presentation/cast/cast_cues.gd")
 const BridgeArt = preload("res://presentation/battle/bridge_art.gd")
+const ShieldWall = preload("res://rules/shield_wall.gd")
 const WALL := "knight_shield_wall"
 
 var rules := Rules.new()
@@ -27,6 +28,8 @@ func _initialize() -> void:
 		defs.characters.harpooner.behavior = "hold"
 		defs.characters.ferryman.behavior = "hold"
 		defs.abilities.healer_bonk.params.damage = 1
+		defs.upgrades.fixture_shield = defs.upgrades.knight_shield_damage_1.duplicate(true)
+		defs.upgrades.fixture_shield.amount = 2
 		defs.tiles.test_blocked = defs.tiles.stone.duplicate(true)
 		defs.tiles.test_blocked.passable = false
 		base = rules.new_game(defs, "test_escort")
@@ -43,6 +46,7 @@ func _initialize() -> void:
 			_test_bad_spans()
 			_test_edge_attack()
 			_test_wall_playback_cues()
+			_test_upgraded_wall()
 	if failures.is_empty():
 		print("PASS: Shield Wall variant")
 	else:
@@ -197,6 +201,31 @@ func _test_bad_spans() -> void:
 	edge.units[0].position = Vector2i(4, 0)
 	_check("5,0" not in _ids(edge, "knight", WALL),
 		"A span extending off the board is unavailable")
+
+
+func _test_upgraded_wall() -> void:
+	for thrown in [false, true]:
+		var state := _state()
+		var center := Vector2i(6, 4) if thrown else Vector2i(5, 4)
+		var baseline := _state()
+		var baseline_events := []
+		if not ShieldWall.place(baseline, baseline.units[0], center, baseline_events, thrown):
+			_check(false, "Baseline wall placement succeeds, thrown=%s" % thrown)
+			continue
+		var expected_hp: int = baseline.obstacles[0].hp + 4
+		state.units[0]["upgrades"] = {"fixture_shield": 2}
+		var events := []
+		var placed: bool = ShieldWall.place(state, state.units[0], center, events, thrown)
+		_check(placed and state.obstacles.size() == 1, "Upgraded wall placement succeeds, thrown=%s" % thrown)
+		if not placed or state.obstacles.size() != 1:
+			continue
+		var wall: Dictionary = state.obstacles[0]
+		_check(wall.hp == expected_hp and wall.max_hp == expected_hp and Board.occupied_cells(wall).size() == 3,
+			"Stacked shield bonus adds to one shared wall's current and maximum HP, thrown=%s" % thrown)
+		var placements := events.filter(func(event: Dictionary) -> bool:
+			return event.get("type") == "shield_wall_placed")
+		_check(placements.size() == 1 and placements[0].get("hp") == expected_hp,
+			"Wall placement event reports boosted shared HP, thrown=%s" % thrown)
 
 
 func _test_edge_attack() -> void:

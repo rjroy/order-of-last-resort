@@ -16,6 +16,7 @@ func _initialize() -> void:
 	_test_shared_redirect_budget()
 	_test_absorb_and_friendly_blast()
 	_test_uncapped()
+	_test_upgraded_budget()
 	_test_split_blast_retaliates_once()
 	_test_overlapping_auras()
 	for failure in failures:
@@ -134,6 +135,36 @@ func _test_uncapped() -> void:
 	_hit(state, "attacker", "other", 4)
 	_check(_unit_at(state, "ward").hp == 30 and _unit_at(state, "other").hp == 30 \
 		and _unit_at(state, "attacker").hp == 23, "custom aura without cap remains uncapped")
+
+
+func _test_upgraded_budget() -> void:
+	for capped in [true, false]:
+		var state := _state(capped)
+		state.catalog.defs["upgrades"] = {"fixture_shield": {
+			"hero_id": "knight", "effect": "shield_damage", "amount": 2}}
+		_unit_at(state, "k")["upgrades"] = {"fixture_shield": 1}
+		_hit(state, "attacker", "ward", 3)
+		_check(_unit_at(state, "attacker").hp == 27 and _unit_at(state, "ward").hp == 30,
+			"Upgraded aura redirects exactly the incoming damage, capped=%s" % capped)
+		_hit(state, "attacker", "other", 5)
+		var reflected := 3 if capped else 5
+		_check(_unit_at(state, "attacker").hp == 27 - reflected \
+			and _unit_at(state, "other").hp == 30 - (5 - reflected),
+			"Upgraded aura shares its increased budget and leaves overflow, capped=%s" % capped)
+		if capped:
+			state.round = 2
+			_hit(state, "attacker", "ward", 6)
+			_check(_unit_at(state, "ward").hp == 30 and _unit_at(state, "attacker").hp == 18,
+				"Upgraded finite budget refreshes to six next round")
+	var absorbed := _state()
+	absorbed.catalog.defs["upgrades"] = {"fixture_shield": {
+		"hero_id": "knight", "effect": "shield_damage", "amount": 2}}
+	_unit_at(absorbed, "k")["upgrades"] = {"fixture_shield": 1}
+	absorbed.units.pop_back()
+	_hit(absorbed, "other", "ward", 5)
+	_hit(absorbed, "other", "ward", 3)
+	_check(_unit_at(absorbed, "ward").hp == 28,
+		"Upgraded aura spends its six-point budget on absorption before overflow")
 
 
 func _test_split_blast_retaliates_once() -> void:

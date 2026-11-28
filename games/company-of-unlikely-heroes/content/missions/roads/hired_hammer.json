@@ -68,10 +68,18 @@
       "max_hp": 8,
       "art_key": "bruiser",
       "art_variant": "default",
-      "cast_key": "bruiser",
+      "cast_key": "road_hired_mercenary",
       "cast_art_key": "bruiser",
       "cast_team": "enemies",
       "cast_variant": "default",
+      "cast_presentation": {
+        "actions": {
+          "move": {"handler": "move", "clip": "move"},
+          "road_mercenary_strike": {"handler": "attack", "clip": "hammer_strike", "impact_frame": 17}
+        },
+        "hit": "hit",
+        "defeat": "defeat"
+      },
       "abilities": [
         "move",
         "road_mercenary_strike"

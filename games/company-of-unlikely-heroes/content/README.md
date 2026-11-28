@@ -25,7 +25,7 @@ bind a packaged cast family only while the effective team, art key and variant
 still match. The `cast_presentation` dictionary optionally maps ability IDs in
 `actions` to `{ "handler": "<rules handler>", "clip": "<clip id>" }`, and
 can name `hit` and `defeat` clips. Supported handlers are `move`, `attack`,
-`hook`, `push`, `blast`, `enemy_heal`, `swap_ally`, and `perform`.
+`hook`, `push`, `blast`, `enemy_heal`, `swap_ally`, `perform`, and `sweep`.
 The ability must be in the effective kit;
 its actual handler must match before the committed action plays. A move needs
 an actual displacement. An optional positive `impact_frame` sets contact on
@@ -36,7 +36,10 @@ trait. The move must actually take multiple steps. A missing alternate clip
 falls back to the normal action clip.
 
 `hit` and `defeat` require a damageable character and work without action mappings.
-Optional `events` maps these event keys to clip IDs:
+Optional `events` maps these event keys to a clip ID or to
+`{ "clip": "<clip id>", "impact_frame": 20 }` to select a positive integer
+source frame for contact. An appearance such as `corpse_bell_raised` takes
+effect at the start of its clip.
 
 | Keys | Plays on |
 |---|---|
@@ -45,6 +48,11 @@ Optional `events` maps these event keys to clip IDs:
 | `recover`, `reserve_arrival` | A living character's knockdown recovery or an actual reserve's entry onto the board. |
 | `tactical_retreat` | A character's actual tactical retreat, instead of its normal move. |
 | `sheep_flee`, `sheep_entry`, `wagon_advance`, `wagon_stall`, `leave_zone` | Matching objective events, only for the subject in that objective. |
+| `death_heal` | Replaces the ordinary defeat take only when the fallen unit actually heals an ally. Provide a `defeat` clip for other falls. |
+| `borrowed_armor` | The lender grants armor at round start, not when the armor blocks a hit. |
+| `health_damage_bonus` | A prelude to the actor's own attack when it receives the actual health-dependent bonus. |
+| `windup_strike` | The stored tile is struck on the delayed turn, even if empty; marks and skipped turns do not play the strike. |
+| `corpse_bell_raised` | The newly risen actor enters on a successful round-end raise. |
 
 Optional `holds` maps `sheep_penned` or `wagon_wreck` to a clip ID. These pose
 selectors come from the committed pen position or destroyed wagon, never queued

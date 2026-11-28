@@ -105,10 +105,19 @@
       "max_hp": 7,
       "art_key": "enemy",
       "art_variant": "spear",
-      "cast_key": "grunt",
+      "cast_key": "road_armor_lender",
       "cast_art_key": "enemy",
       "cast_team": "enemies",
       "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {"handler": "move", "clip": "advance"},
+          "grunt_strike": {"handler": "attack", "clip": "close_strike", "impact_frame": 11}
+        },
+        "hit": "hit",
+        "defeat": "defeat",
+        "events": {"borrowed_armor": {"clip": "lend_armor", "impact_frame": 17}}
+      },
       "abilities": [
         "move",
         "grunt_strike"

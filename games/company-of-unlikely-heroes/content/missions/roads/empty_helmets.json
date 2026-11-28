@@ -79,6 +79,13 @@
       "max_hp": 4,
       "art_key": "skeleton",
       "art_variant": "default",
+      "cast_key": "road_bell_soldier",
+      "cast_art_key": "skeleton",
+      "cast_team": "enemies",
+      "cast_variant": "default",
+      "cast_presentation": {
+        "events": {"corpse_bell_raised": "bell_rise"}
+      },
       "abilities": [
         "move",
         "grunt_strike"

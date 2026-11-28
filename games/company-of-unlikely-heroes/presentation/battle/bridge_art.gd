@@ -583,7 +583,7 @@ func _apply_presentation_beat(beat: Dictionary, at: float) -> bool:
 				if _hp_tracking.has(id):
 					_committed_hp[id] = effect.hp_after
 			"damage", "heal":
-				if _hp_tracking.has(id):
+				if _hp_tracking.has(id) and not effect.get("hp_superseded", false):
 					var delta: int = int(effect.get("amount", 0)) * (-1 if effect.kind == "damage" else 1)
 					var hp: int = _committed_hp.get(id, 0)
 					_committed_hp[id] = int(effect.get("hp_after", maxi(0, hp + delta)))
@@ -1074,6 +1074,8 @@ func _figure_frame(active: Array[CastPlayback.Entry]) -> Dictionary:
 	var occupants: Array = []
 	var visual_units := {}
 	for original: Dictionary in _presentation_units():
+		if _playback.has_pending_reveal(original.id):
+			continue
 		visual_units[original.id] = original
 		if original.get("playback_only", false) \
 				and not _playback.has_pending_ordinary_role(str(original.id), "defeat") \
@@ -1116,6 +1118,8 @@ func _figure_frame(active: Array[CastPlayback.Entry]) -> Dictionary:
 		if entry.cue.get("silent_action", false):
 			continue
 		var id: String = entry.cue.unit_id
+		if entry.cue.get("reveal_at_start", false) and not entry.presentation_impact_emitted:
+			continue
 		var unit: Dictionary = visual_units.get(id, {})
 		if entry.cue.get("requires_existing_figure", false) \
 				and (unit.is_empty() or int(unit.get("hp", 0)) <= 0):

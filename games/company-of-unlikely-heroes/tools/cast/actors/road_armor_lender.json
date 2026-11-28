@@ -1,0 +1,90 @@
+{
+  "role": "road_armor_lender",
+  "master": {
+    "source": "models/road_armor_lender/road_armor_lender.blend",
+    "sha256": "68cc92b105c5ecd40117c8c6beb1bf287f2e2ba1765267f22381b28e55d00cbf",
+    "rig_name": "RoadArmorLender_Rig",
+    "action_prefix": "RoadArmorLender"
+  },
+  "takes": {
+    "ready": [
+      "Ready",
+      [
+        1,
+        9,
+        17,
+        25
+      ],
+      33,
+      true
+    ],
+    "advance": [
+      "Advance",
+      [
+        1,
+        5,
+        9,
+        13,
+        17,
+        21
+      ],
+      24,
+      false
+    ],
+    "close_strike": [
+      "Close Strike",
+      [
+        1,
+        5,
+        8,
+        11,
+        14,
+        18,
+        23
+      ],
+      27,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        4,
+        7,
+        12,
+        16
+      ],
+      19,
+      false
+    ],
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        5,
+        9,
+        13,
+        17,
+        23,
+        31
+      ],
+      36,
+      false
+    ],
+    "lend_armor": [
+      "Lend Armor",
+      [
+        1,
+        5,
+        9,
+        13,
+        17,
+        21,
+        25,
+        31
+      ],
+      34,
+      false
+    ]
+  }
+}

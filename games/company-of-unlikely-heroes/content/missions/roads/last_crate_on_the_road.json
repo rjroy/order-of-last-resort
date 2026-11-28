@@ -76,10 +76,18 @@
       "max_hp": 5,
       "art_key": "enemy",
       "art_variant": "spear",
-      "cast_key": "archer",
+      "cast_key": "road_crate_archer",
       "cast_art_key": "enemy",
       "cast_team": "enemies",
       "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {"handler": "move", "clip": "advance"},
+          "road_cover_shot": {"handler": "attack", "clip": "draw_and_release"}
+        },
+        "hit": "hit",
+        "defeat": "defeat"
+      },
       "abilities": [
         "move",
         "road_cover_shot"

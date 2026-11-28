@@ -56,10 +56,11 @@ const FITTED_FORMS := {
 const ABILITY_EVENTS := {"swap_furthest": ["swap"], "swap_ally": ["swap"], "misdirect": ["misdirect_mark"],
 	"sweep": ["sweep"], "stop_target": ["stop_target"], "repel": ["repel"],
 	"perform": ["performance_dry"], "hook": ["hook_pull"]}
-const CAST_ACTION_HANDLERS := ["move", "attack", "hook", "push", "blast", "enemy_heal", "swap_ally", "perform"]
+const CAST_ACTION_HANDLERS := ["move", "attack", "hook", "push", "blast", "enemy_heal", "swap_ally", "perform", "sweep"]
 const CAST_EVENTS := ["recover", "adjacent_guard", "adjacent_damage_bonus", "ally_death_guard",
 	"retaliate", "swapped", "displaced", "reserve_arrival", "tactical_retreat",
-	"sheep_flee", "sheep_entry", "wagon_advance", "wagon_stall", "leave_zone"]
+	"sheep_flee", "sheep_entry", "wagon_advance", "wagon_stall", "leave_zone",
+	"death_heal", "borrowed_armor", "health_damage_bonus", "windup_strike", "corpse_bell_raised"]
 const CAST_HOLDS := ["sheep_penned", "wagon_wreck"]
 const CAST_BONUS_STATS := {"attack": "damage", "move": "movement"}
 const STATUS_EXPIRY := {"reflect": "actor_turn_start", "skip_action": "consume_action",
@@ -171,6 +172,11 @@ static func _read_json(path: String) -> Dictionary:
 	if not duplicate.is_empty():
 		return {"error": "Invalid JSON in \"%s\": %s" % [path, duplicate]}
 	return {"definitions": parser.data}
+
+
+## Decode both the original clip shorthand and the timed event binding.
+static func cast_event_binding(value: Variant) -> Dictionary:
+	return Validator.cast_event_binding(value)
 
 
 static func validate(defs: Dictionary) -> PackedStringArray:
@@ -1059,7 +1065,13 @@ class Validator:
 		for field in presentation:
 			if field not in ["actions", "hit", "defeat", "events", "holds"]:
 				_error(path + ".cast_presentation." + str(field), "unknown presentation field")
-		_check_cast_clips(presentation.get("events", {}), CAST_EVENTS, path + ".cast_presentation.events")
+		var event_path := path + ".cast_presentation.events"
+		var event_bindings := _dictionary(presentation.get("events", {}), event_path)
+		for kind in event_bindings:
+			var binding_path := event_path + "." + str(kind)
+			_choice(kind, CAST_EVENTS, binding_path)
+			if cast_event_binding(event_bindings[kind]).is_empty():
+				_error(binding_path, "expected a clip other than ready, or {clip, impact_frame} with a positive integer frame")
 		_check_cast_clips(presentation.get("holds", {}), CAST_HOLDS, path + ".cast_presentation.holds")
 		var actions := _dictionary(presentation.get("actions", {}), path + ".cast_presentation.actions")
 		for id in actions:
@@ -1092,6 +1104,19 @@ class Validator:
 				if "damageable" not in capabilities:
 					_error(path + ".cast_presentation." + field, "requires the damageable capability")
 				_check_cast_clip(presentation[field], path + ".cast_presentation." + field)
+
+	static func cast_event_binding(value: Variant) -> Dictionary:
+		var binding: Dictionary = {"clip": value} if value is String else {}
+		if value is Dictionary:
+			if value.size() != 2 or not value.has("clip") or not value.has("impact_frame"):
+				return {}
+			var frame: Variant = value.impact_frame
+			if not (frame is int or frame is float) or not is_finite(float(frame)) \
+					or frame < 1 or frame > 2147483647 or floorf(frame) != frame:
+				return {}
+			binding = {"clip": value.clip, "impact_frame": int(frame)}
+		var clip: Variant = binding.get("clip")
+		return binding if clip is String and not clip.strip_edges().is_empty() and clip != "ready" else {}
 
 	func _check_cast_clips(value: Variant, kinds: Array, path: String) -> void:
 		var clips := _dictionary(value, path)

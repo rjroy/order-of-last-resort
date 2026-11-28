@@ -111,10 +111,18 @@
       "max_hp": 6,
       "art_key": "enemy",
       "art_variant": "spear",
-      "cast_key": "grunt",
+      "cast_key": "road_long_spearman",
       "cast_art_key": "enemy",
       "cast_team": "enemies",
       "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {"handler": "move", "clip": "move"},
+          "road_long_spear_strike": {"handler": "attack", "clip": "long_thrust", "impact_frame": 12}
+        },
+        "hit": "hit",
+        "defeat": "defeat"
+      },
       "abilities": [
         "move",
         "road_long_spear_strike"

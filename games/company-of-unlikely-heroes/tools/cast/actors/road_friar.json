@@ -1,0 +1,92 @@
+{
+  "role": "road_friar",
+  "master": {
+    "source": "models/road_friar/road_friar.blend",
+    "sha256": "e83c4896e60a67bebf9eaf581a1166c3674c8bd939233345e1ebad1b0cc15f4a",
+    "rig_name": "RoadFriar_Rig",
+    "action_prefix": "RoadFriar"
+  },
+  "takes": {
+    "ready": [
+      "Ready",
+      [
+        1,
+        9,
+        17,
+        25
+      ],
+      33,
+      true
+    ],
+    "retreat": [
+      "Retreat",
+      [
+        1,
+        5,
+        9,
+        13,
+        17,
+        21
+      ],
+      24,
+      false
+    ],
+    "close_strike": [
+      "Staff Jab",
+      [
+        1,
+        5,
+        8,
+        11,
+        14,
+        18,
+        23
+      ],
+      27,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        4,
+        7,
+        12,
+        16
+      ],
+      19,
+      false
+    ],
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        5,
+        9,
+        13,
+        17,
+        23,
+        31
+      ],
+      36,
+      false
+    ],
+    "last_heal": [
+      "Last Heal",
+      [
+        1,
+        5,
+        9,
+        13,
+        16,
+        20,
+        24,
+        29,
+        36,
+        42
+      ],
+      48,
+      false
+    ]
+  }
+}

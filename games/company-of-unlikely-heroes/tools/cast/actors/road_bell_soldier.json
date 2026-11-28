@@ -1,0 +1,69 @@
+{
+  "role": "road_bell_soldier",
+  "master": {
+    "source": "models/road_bell_soldier/road_bell_soldier.blend",
+    "sha256": "88ab2a1dd011391b66ce0e45108c00c6f707662e17c9e6e8e2f7053ea7c04d92",
+    "rig_name": "Skeleton_Rig",
+    "action_prefix": "Skeleton",
+    "capture_size": 512,
+    "capture_anchor": [
+      256,
+      344
+    ]
+  },
+  "takes": {
+    "ready": [
+      "Ready & Greet",
+      [
+        1,
+        7,
+        11,
+        15,
+        18,
+        21,
+        24,
+        29,
+        33
+      ],
+      45,
+      true
+    ],
+    "bell_rise": [
+      "Bell Rise Study",
+      [
+        1,
+        4,
+        7,
+        10,
+        13,
+        16,
+        20,
+        24,
+        28,
+        32,
+        36
+      ],
+      37,
+      false
+    ],
+    "wave": [
+      "Wave",
+      [
+        1,
+        5,
+        8,
+        12,
+        15,
+        18,
+        20,
+        23,
+        26,
+        31,
+        38,
+        46
+      ],
+      54,
+      false
+    ]
+  }
+}

@@ -145,6 +145,7 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 			boundary.duration_ms = 1.0
 			boundary.order = _timeline_order()
 			_entries.append(boundary)
+			impacts[index] = boundary_at
 			continue
 		if value.has("after_impacts"):
 			# A motion-only continuation is scheduled after all of its causes
@@ -173,7 +174,7 @@ func enqueue(cues: Array, art: CastSprites) -> void:
 		entry.order = _timeline_order()
 		cue_orders[index] = entry.order
 		var start := 0.0 if cue.get("projection_only", false) else float(tails.get(cue.unit_id, 0.0))
-		if cue.has("performance"):
+		if cue.has("performance") or cue.get("wait_for_actor_landing", false):
 			start = maxf(start, float(landings.get(cue.unit_id, 0.0)))
 		if parent != null:
 			start = maxf(start, float(parent))
@@ -261,10 +262,20 @@ static func _entry_for(value: Dictionary, art: CastSprites, allow_binding := tru
 		clip = null
 		key = ""
 	var ordinary: bool = value.get("ordinary_presentation", false)
+	if ordinary and value.get("ordinary_role") != "action" and _missing_atlas(clip):
+		clip = null
 	if ordinary and clip == null and value.get("fallback_clip") is String:
 		key = value.fallback_clip
 		clip = art.clip_for(role, key)
-	var projection_only: bool = clip == null and value.get("presentation_kind") == "projection"
+		if _missing_atlas(clip):
+			clip = null
+		value = value.duplicate()
+		if value.has("fallback_impact_frame"):
+			value["impact_frame"] = value.fallback_impact_frame
+		if value.get("ordinary_role") == "tactical_retreat":
+			value.erase("facing")
+	var projection_only: bool = clip == null and (value.get("presentation_kind") == "projection" \
+		or value.get("projection_fallback", false))
 	var no_art: bool = clip == null and (projection_only or value.get("silent_action", false) or value.has("audio_ability"))
 	if no_art:
 		clip = CastSprites.Clip.new()
@@ -276,10 +287,12 @@ static func _entry_for(value: Dictionary, art: CastSprites, allow_binding := tru
 		cue["silent_action"] = true
 	if projection_only:
 		cue["projection_only"] = true
+		cue["presentation_kind"] = "projection"
 		cue["recipients"] = []
 	cue["cast_key"] = role
 	cue["clip"] = key
 	cue.erase("fallback_clip")
+	cue.erase("fallback_impact_frame")
 	cue["target_id"] = str(cue.get("target_id", ""))
 	var entry := Entry.new()
 	entry.cue = cue
@@ -298,6 +311,9 @@ static func _entry_for(value: Dictionary, art: CastSprites, allow_binding := tru
 		if not ordinary and beat >= 0 else clip.total_ms * 0.48
 	entry.impact_ms = maxf(0.0, entry.impact_ms - entry.sample_offset_ms)
 	entry.impact_ms = _marker_time(clip, cue.get("impact_frame"), entry.impact_ms)
+	if cue.get("reveal_at_start", false):
+		# Unlike an attack, the first drawn pose is itself the visible event.
+		entry.impact_ms = 0.0
 	var declared_impact: Variant = cue.get("impact_ms")
 	if (declared_impact is int or declared_impact is float) and is_finite(float(declared_impact)) \
 			and declared_impact >= 0.0 and declared_impact < clip.total_ms:
@@ -319,6 +335,11 @@ static func _entry_for(value: Dictionary, art: CastSprites, allow_binding := tru
 			fallback.erase(field)
 		return _entry_for(fallback, art, false)
 	return entry
+
+
+static func _missing_atlas(clip: CastSprites.Clip) -> bool:
+	return clip != null and not clip.path.is_empty() and not FileAccess.file_exists(clip.path) \
+		and not ResourceLoader.exists(clip.path, "Texture2D")
 
 
 static func _apply_performance_markers(entry: Entry) -> void:
@@ -628,6 +649,11 @@ func pending_hero_defeat(unit_id: String) -> Dictionary:
 func has_pending_ordinary_role(unit_id: String, role: String) -> bool:
 	return _entries.any(func(entry: Entry): return entry.cue.get("unit_id") == unit_id \
 		and entry.cue.get("ordinary_presentation", false) and entry.cue.get("ordinary_role") == role)
+
+
+func has_pending_reveal(unit_id: String) -> bool:
+	return _entries.any(func(entry: Entry): return entry.cue.unit_id == unit_id \
+		and entry.cue.get("reveal_at_start", false) and not entry.presentation_impact_emitted)
 
 
 func has_waiting_upright_hit(unit_id: String) -> bool:

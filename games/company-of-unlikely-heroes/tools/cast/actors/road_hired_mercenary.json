@@ -1,0 +1,80 @@
+{
+  "role": "road_hired_mercenary",
+  "master": {
+    "source": "models/road_hired_mercenary/road_hired_mercenary.blend",
+    "sha256": "3026f8a306a0e0add5e25067f2dae206aa1cc8d27109c6806cafb164a5476a47",
+    "rig_name": "Hired Hammer Rig",
+    "action_prefix": "Hired Hammer",
+    "capture_size": 320
+  },
+  "takes": {
+    "ready": [
+      "Ready",
+      [
+        1,
+        8,
+        15,
+        22
+      ],
+      29,
+      true
+    ],
+    "move": [
+      "Pursuit Turn",
+      [
+        1,
+        4,
+        7,
+        10,
+        13,
+        17,
+        20,
+        23
+      ],
+      26,
+      false
+    ],
+    "hammer_strike": [
+      "Hired Hammer",
+      [
+        1,
+        5,
+        8,
+        12,
+        14,
+        17,
+        21,
+        25,
+        30,
+        34
+      ],
+      35,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        5,
+        8,
+        12
+      ],
+      14,
+      false
+    ],
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        5,
+        9,
+        12,
+        16,
+        20,
+        25
+      ],
+      26,
+      false
+    ]
+  }
+}

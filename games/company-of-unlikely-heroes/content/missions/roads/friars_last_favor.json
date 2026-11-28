@@ -84,10 +84,21 @@
       "max_hp": 7,
       "art_key": "enemy",
       "art_variant": "spear",
-      "cast_key": "captain",
+      "cast_key": "road_friar",
       "cast_art_key": "enemy",
       "cast_team": "enemies",
       "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "captain_strike": {"handler": "attack", "clip": "close_strike", "impact_frame": 11}
+        },
+        "hit": "hit",
+        "defeat": "defeat",
+        "events": {
+          "tactical_retreat": {"clip": "retreat", "impact_frame": 13},
+          "death_heal": {"clip": "last_heal", "impact_frame": 20}
+        }
+      },
       "abilities": [
         "move",
         "captain_strike"

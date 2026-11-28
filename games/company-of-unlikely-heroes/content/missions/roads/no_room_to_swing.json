@@ -68,10 +68,19 @@
       "max_hp": 12,
       "art_key": "enemy",
       "art_variant": "spear",
-      "cast_key": "ogre",
+      "cast_key": "road_swing_giant",
       "cast_art_key": "enemy",
       "cast_team": "enemies",
       "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {"handler": "move", "clip": "move"},
+          "road_giant_sweep": {"handler": "sweep", "clip": "sweep", "impact_frame": 18}
+        },
+        "hit": "hit",
+        "defeat": "defeat",
+        "events": {"recover": "recover"}
+      },
       "abilities": [
         "move",
         "road_giant_sweep"

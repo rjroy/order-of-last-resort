@@ -1,0 +1,78 @@
+{
+  "role": "road_long_spearman",
+  "master": {
+    "source": "models/road_long_spearman/road_long_spearman.blend",
+    "sha256": "73e6992ac5ab0373bb33bdf3ef10592ba7332d69688f846a67ed1159b349e9f2",
+    "rig_name": "Long Spearman Rig",
+    "action_prefix": "Long Spearman",
+    "capture_size": 512
+  },
+  "takes": {
+    "ready": [
+      "Ready",
+      [
+        1,
+        8,
+        15,
+        22
+      ],
+      29,
+      true
+    ],
+    "move": [
+      "Measured Step",
+      [
+        1,
+        4,
+        7,
+        10,
+        13,
+        17,
+        20,
+        23
+      ],
+      26,
+      false
+    ],
+    "long_thrust": [
+      "Long Thrust",
+      [
+        1,
+        6,
+        9,
+        12,
+        16,
+        21,
+        26,
+        30
+      ],
+      31,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        5,
+        8,
+        12
+      ],
+      14,
+      false
+    ],
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        5,
+        9,
+        12,
+        16,
+        20,
+        25
+      ],
+      26,
+      false
+    ]
+  }
+}

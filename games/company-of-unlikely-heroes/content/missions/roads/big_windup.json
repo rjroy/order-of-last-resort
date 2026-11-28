@@ -277,10 +277,19 @@
       "max_hp": 9,
       "art_key": "bruiser",
       "art_variant": "default",
-      "cast_key": "bruiser",
+      "cast_key": "road_windup_bruiser",
       "cast_art_key": "bruiser",
       "cast_team": "enemies",
       "cast_variant": "default",
+      "cast_presentation": {
+        "actions": {
+          "move": {"handler": "move", "clip": "trudge"},
+          "bruiser_strike": {"handler": "attack", "clip": "delayed_heavy_strike", "impact_frame": 30}
+        },
+        "hit": "hit",
+        "defeat": "defeat",
+        "events": {"windup_strike": {"clip": "delayed_heavy_strike", "impact_frame": 30}}
+      },
       "abilities": [
         "move",
         "bruiser_strike"

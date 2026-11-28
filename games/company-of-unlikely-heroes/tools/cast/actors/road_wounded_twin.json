@@ -1,0 +1,134 @@
+{
+  "role": "road_wounded_twin",
+  "master": {
+    "source": "models/road_wounded_twin/road_wounded_twin.blend",
+    "sha256": "4761f127f0875227c9a239795be9e7f8dc2ad0bd68fa9c3904f921a55aea3382",
+    "rig_name": "RoadTwin_Rig",
+    "action_prefix": "Road Twin"
+  },
+  "takes": {
+    "ready": [
+      "Ready",
+      [
+        1,
+        5,
+        9,
+        13,
+        17,
+        21,
+        25,
+        29
+      ],
+      33,
+      true
+    ],
+    "move": [
+      "Move",
+      [
+        1,
+        4,
+        7,
+        10,
+        13,
+        16,
+        19,
+        22,
+        24
+      ],
+      25,
+      false
+    ],
+    "hit": [
+      "Hit",
+      [
+        1,
+        3,
+        4,
+        7,
+        9,
+        12,
+        16
+      ],
+      17,
+      false
+    ],
+    "defeat": [
+      "Defeat",
+      [
+        1,
+        5,
+        8,
+        12,
+        15,
+        18,
+        21,
+        25,
+        27
+      ],
+      28,
+      false
+    ],
+    "down": [
+      "Down",
+      [
+        1,
+        5,
+        8,
+        12,
+        15,
+        18,
+        21,
+        25,
+        27
+      ],
+      28,
+      false
+    ],
+    "recover": [
+      "Recover",
+      [
+        1,
+        4,
+        7,
+        9,
+        12,
+        14,
+        18
+      ],
+      19,
+      false
+    ],
+    "melee": [
+      "Melee",
+      [
+        1,
+        4,
+        6,
+        8,
+        10,
+        12,
+        14,
+        17,
+        20,
+        23,
+        25
+      ],
+      26,
+      false
+    ],
+    "resolve": [
+      "Resolve",
+      [
+        1,
+        3,
+        5,
+        8,
+        11,
+        13,
+        16
+      ],
+      17,
+      false
+    ]
+  }
+}

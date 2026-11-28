@@ -68,10 +68,19 @@
       "max_hp": 9,
       "art_key": "enemy",
       "art_variant": "spear",
-      "cast_key": "grunt",
+      "cast_key": "road_fresh_twin",
       "cast_art_key": "enemy",
       "cast_team": "enemies",
       "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {"handler": "move", "clip": "move"},
+          "grunt_strike": {"handler": "attack", "clip": "melee", "impact_frame": 10}
+        },
+        "hit": "hit",
+        "defeat": "defeat",
+        "events": {"recover": "recover", "health_damage_bonus": "resolve"}
+      },
       "abilities": [
         "move",
         "grunt_strike"
@@ -91,10 +100,19 @@
       "max_hp": 9,
       "art_key": "enemy",
       "art_variant": "spear",
-      "cast_key": "grunt",
+      "cast_key": "road_wounded_twin",
       "cast_art_key": "enemy",
       "cast_team": "enemies",
       "cast_variant": "spear",
+      "cast_presentation": {
+        "actions": {
+          "move": {"handler": "move", "clip": "move"},
+          "grunt_strike": {"handler": "attack", "clip": "melee", "impact_frame": 10}
+        },
+        "hit": "hit",
+        "defeat": "defeat",
+        "events": {"recover": "recover", "health_damage_bonus": "resolve"}
+      },
       "abilities": [
         "move",
         "grunt_strike"

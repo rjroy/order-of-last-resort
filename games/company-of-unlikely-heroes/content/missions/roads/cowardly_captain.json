@@ -171,7 +171,7 @@
     },
     "grunt_strike": {
       "label": "Grunt Strike",
-      "help": "Deals 3 damage to a hero or summon within 1 tile.",
+      "help": "Deals 2 damage to a hero or summon within 1 tile.",
       "handler": "attack",
       "params": {
         "damage": 2,

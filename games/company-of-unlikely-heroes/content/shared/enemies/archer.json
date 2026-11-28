@@ -37,7 +37,7 @@
   "abilities": {
     "archer_shot": {
       "label": "Arrow",
-      "help": "Deals 3 damage to a hero or summon within 3 tiles.",
+      "help": "Deals 2 damage to a hero or summon within 3 tiles.",
       "handler": "attack",
       "params": {
         "damage": 2,

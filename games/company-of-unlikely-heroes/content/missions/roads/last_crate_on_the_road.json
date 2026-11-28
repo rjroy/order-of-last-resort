@@ -98,7 +98,7 @@
   "abilities": {
     "road_cover_shot": {
       "label": "Road Arrow",
-      "help": "Deals 3 damage within 5 tiles along a clear straight lane.",
+      "help": "Deals 2 damage within 5 tiles along a clear straight lane.",
       "handler": "attack",
       "params": {
         "damage": 2,

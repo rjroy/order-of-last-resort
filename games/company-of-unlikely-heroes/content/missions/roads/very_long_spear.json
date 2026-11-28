@@ -133,7 +133,7 @@
   "abilities": {
     "road_long_spear_strike": {
       "label": "Very Long Spear",
-      "help": "Deals 3 damage to an adjacent target and follows through to the next tile in the same direction, including allies.",
+      "help": "Deals 2 damage to an adjacent target and follows through to the next tile in the same direction, including allies.",
       "handler": "attack",
       "params": {
         "damage": 2,
